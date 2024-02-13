@@ -1,0 +1,4 @@
+name: ApxPluginTest
+author: Approximations
+main: me.approximations.apxPlugin.testPlugin.Main
+version: 1.0
