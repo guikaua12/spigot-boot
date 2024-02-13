@@ -62,8 +62,15 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <relocations>
-                            </relocations>
+                            <!--                            <relocations>-->
+                            <!--                                <relocation>-->
+                            <!--                                    <pattern>me.approximations.apxPlugin</pattern>-->
+                            <!--                                    <shadedPattern>me.approximations.apxPlugin.testPlugin.libs.apxPlugin</shadedPattern>-->
+                            <!--                                    <excludes>-->
+                            <!--                                        <exclude>me.approximations.apxPlugin.testPlugin.**</exclude>-->
+                            <!--                                    </excludes>-->
+                            <!--                                </relocation>-->
+                            <!--                            </relocations>-->
                         </configuration>
                     </execution>
                 </executions>

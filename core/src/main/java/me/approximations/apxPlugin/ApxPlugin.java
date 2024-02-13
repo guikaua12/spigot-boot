@@ -1,6 +1,7 @@
 package me.approximations.apxPlugin;
 
 import com.google.common.base.Stopwatch;
+import me.approximations.apxPlugin.dependencyInjection.manager.DependencyManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -9,12 +10,15 @@ import java.util.logging.Level;
 
 public abstract class ApxPlugin extends JavaPlugin {
     private final List<Runnable> disableEntries = new ArrayList<>();
+    private DependencyManager dependencyManager;
 
     @Override
     public void onEnable() {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
         try {
+            dependencyManager = new DependencyManager(this);
+
             onPluginEnable();
 
             getLogger().info(String.format("Plugin enabled successfully! (%s)", stopwatch.stop()));
@@ -42,5 +46,4 @@ public abstract class ApxPlugin extends JavaPlugin {
     public void addDisableEntry(Runnable runnable) {
         disableEntries.add(runnable);
     }
-
 }
