@@ -11,9 +11,8 @@ import org.reflections.scanners.TypeAnnotationsScanner;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class DependencyManager {
@@ -28,18 +27,24 @@ public class DependencyManager {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getDependency(Class<T> clazz) {
+    public <T> T getDependency(@NotNull Class<T> clazz) {
+        Objects.requireNonNull(clazz, "class cannot be null.");
+
         return (T) dependencies.get(clazz);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T registerDependency(Object dependency) {
+    public <T> T registerDependency(@NotNull Object dependency) {
+        Objects.requireNonNull(dependency, "dependency cannot be null.");
+
         dependencies.put(dependency.getClass(), dependency);
 
         return (T) dependency;
     }
 
-    private void registerDependencies() {
+    public void registerDependencies() {
+        this.dependencies.clear();
+
         final Set<Class<?>> dependencyRegisters = reflections.getTypesAnnotatedWith(DependencyRegister.class);
 
         for (Class<?> dependencyRegister : dependencyRegisters) {
@@ -57,27 +62,37 @@ public class DependencyManager {
         }
     }
 
-    private void injectDependencies() {
+    public void injectDependencies() {
         for (Object dependency : dependencies.values()) {
-            for (Field field : dependency.getClass().getDeclaredFields()) {
-                if (!field.isAnnotationPresent(Inject.class)) continue;
+            injectDependencies(dependency);
+        }
+    }
 
-                final Class<?> fieldType = field.getType();
-                final Object fieldDependency = dependencies.get(fieldType);
+    public void injectDependencies(@NotNull Object object) {
+        Objects.requireNonNull(object, "object cannot be null.");
 
-                if (fieldDependency == null) {
-                    throw new RuntimeException("Dependency not found for field " + field.getName() + " in class " + dependency.getClass().getName());
-                }
+        for (final Field field : getInjectableFields(object)) {
+            final Class<?> fieldType = field.getType();
+            final Object dependency = this.getDependency(fieldType);
 
-                try {
-                    field.setAccessible(true);
-                    field.set(dependency, fieldDependency);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    field.setAccessible(false);
-                }
+            if (dependency == null) {
+                throw new RuntimeException("Dependency not found for field " + field.getName() + " in class " + field.getDeclaringClass().getName());
+            }
+
+            try {
+                field.setAccessible(true);
+                field.set(object, dependency);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } finally {
+                field.setAccessible(false);
             }
         }
+    }
+
+    private Set<Field> getInjectableFields(@NotNull Object object) {
+        Objects.requireNonNull(object, "object cannot be null.");
+
+        return Arrays.stream(object.getClass().getDeclaredFields()).filter(field -> field.isAnnotationPresent(Inject.class)).collect(Collectors.toSet());
     }
 }
