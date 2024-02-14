@@ -1,8 +1,12 @@
 package me.approximations.apxPlugin;
 
 import com.google.common.base.Stopwatch;
+import lombok.Getter;
 import me.approximations.apxPlugin.dependencyInjection.manager.DependencyManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +14,10 @@ import java.util.logging.Level;
 
 public abstract class ApxPlugin extends JavaPlugin {
     private final List<Runnable> disableEntries = new ArrayList<>();
+
+    @Getter
+    private Reflections reflections;
+    @Getter
     private DependencyManager dependencyManager;
 
     @Override
@@ -17,7 +25,9 @@ public abstract class ApxPlugin extends JavaPlugin {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
         try {
-            dependencyManager = new DependencyManager(this);
+            this.reflections = new Reflections(getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
+
+            dependencyManager = new DependencyManager(reflections);
 
             onPluginEnable();
 

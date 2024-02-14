@@ -1,12 +1,9 @@
 package me.approximations.apxPlugin.dependencyInjection.manager;
 
-import me.approximations.apxPlugin.ApxPlugin;
 import me.approximations.apxPlugin.dependencyInjection.annotations.DependencyRegister;
 import me.approximations.apxPlugin.dependencyInjection.annotations.Inject;
 import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -19,8 +16,8 @@ public class DependencyManager {
     private final Map<Class<?>, Object> dependencies = new HashMap<>();
     private final Reflections reflections;
 
-    public DependencyManager(@NotNull ApxPlugin plugin) {
-        this.reflections = new Reflections(plugin.getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
+    public DependencyManager(@NotNull Reflections reflections) {
+        this.reflections = reflections;
 
         registerDependencies();
         injectDependencies();
