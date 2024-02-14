@@ -3,6 +3,7 @@ package me.approximations.apxPlugin;
 import com.google.common.base.Stopwatch;
 import lombok.Getter;
 import me.approximations.apxPlugin.dependencyInjection.manager.DependencyManager;
+import me.approximations.apxPlugin.listener.manager.ListenerManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -19,6 +20,8 @@ public abstract class ApxPlugin extends JavaPlugin {
     private Reflections reflections;
     @Getter
     private DependencyManager dependencyManager;
+    @Getter
+    private ListenerManager listenerManager;
 
     @Override
     public void onEnable() {
@@ -26,8 +29,8 @@ public abstract class ApxPlugin extends JavaPlugin {
 
         try {
             this.reflections = new Reflections(getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
-
-            dependencyManager = new DependencyManager(reflections);
+            this.dependencyManager = new DependencyManager(reflections);
+            this.listenerManager = new ListenerManager(this, reflections, dependencyManager);
 
             onPluginEnable();
 
