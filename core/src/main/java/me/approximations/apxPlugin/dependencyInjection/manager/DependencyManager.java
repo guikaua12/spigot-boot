@@ -18,9 +18,6 @@ public class DependencyManager {
 
     public DependencyManager(@NotNull Reflections reflections) {
         this.reflections = reflections;
-
-        registerDependencies();
-        injectDependencies();
     }
 
     @SuppressWarnings("unchecked")
@@ -31,12 +28,17 @@ public class DependencyManager {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Object dependency) {
+    public <T> T registerDependency(@NotNull T dependency) {
+        return (T) registerDependency((Class<? super T>) dependency.getClass(), dependency);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T registerDependency(@NotNull Class<? extends T> clazz, @NotNull T dependency) {
         Objects.requireNonNull(dependency, "dependency cannot be null.");
 
-        dependencies.put(dependency.getClass(), dependency);
+        dependencies.put(clazz, dependency);
 
-        return (T) dependency;
+        return dependency;
     }
 
     public void registerDependencies() {

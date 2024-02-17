@@ -2,6 +2,7 @@ package me.approximations.apxPlugin.persistence.jpa.config;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.dialect.Dialect;
 
 import javax.persistence.SharedCacheMode;
 import javax.persistence.ValidationMode;
@@ -12,6 +13,7 @@ import javax.sql.DataSource;
 import java.net.URL;
 import java.sql.Driver;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Getter
@@ -20,9 +22,10 @@ public abstract class PersistenceUnitConfig implements PersistenceUnitInfo {
 
     protected final String address;
     protected final String username;
+    protected final List<Class<?>> entitiesClasses;
     protected final String password;
-    protected final String database;
     protected final Class<? extends Driver> jdbcDriver;
+    protected final Class<? extends Dialect> dialect;
     protected final boolean showSql;
 
     @Override
@@ -38,6 +41,11 @@ public abstract class PersistenceUnitConfig implements PersistenceUnitInfo {
     @Override
     public DataSource getJtaDataSource() {
         return null;
+    }
+
+    @Override
+    public List<String> getManagedClassNames() {
+        return entitiesClasses.stream().map(Class::getName).collect(Collectors.toList());
     }
 
     @Override

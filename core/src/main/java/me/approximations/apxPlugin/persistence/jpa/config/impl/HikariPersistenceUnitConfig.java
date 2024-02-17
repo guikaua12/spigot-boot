@@ -2,20 +2,19 @@ package me.approximations.apxPlugin.persistence.jpa.config.impl;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Setter;
+import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
+import org.hibernate.dialect.Dialect;
 
 import javax.persistence.spi.PersistenceUnitInfo;
 import javax.sql.DataSource;
 import java.sql.Driver;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 @Setter
 public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implements PersistenceUnitInfo {
-    public static final String ADDRESS_FORMAT = "jdbc:mysql://%s/%s?serverTimezone=UTC";
-
     private static final int MAXIMUM_POOL_SIZE = (Runtime.getRuntime().availableProcessors() * 2) + 1;
     private static final int MINIMUM_IDLE = Math.min(MAXIMUM_POOL_SIZE, 10);
 
@@ -25,10 +24,10 @@ public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implement
 
     private final HikariDataSource dataSource = new HikariDataSource();
 
-    public HikariPersistenceUnitConfig(String persistenceUnitName, String address, String username, String password, String database, Class<? extends Driver> jdbcDriver, boolean showSql) {
-        super(persistenceUnitName, address, username, password, database, jdbcDriver, showSql);
+    public HikariPersistenceUnitConfig(String persistenceUnitName, String address, String username, String password, Class<? extends Driver> jdbcDriver, boolean showSql, List<Class<?>> entitiesClasses, Class<? extends Dialect> dialect) {
+        super(persistenceUnitName, address, username, entitiesClasses, password, jdbcDriver, dialect, showSql);
 
-        dataSource.setJdbcUrl(getFormattedAddress());
+        dataSource.setJdbcUrl(address);
         dataSource.setDriverClassName(jdbcDriver.getName());
 
         dataSource.setUsername(username);
@@ -60,8 +59,11 @@ public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implement
         dataSource.addDataSourceProperty("socketTimeout", String.valueOf(TimeUnit.SECONDS.toMillis(30)));
     }
 
-    private String getFormattedAddress() {
-        return String.format(ADDRESS_FORMAT, address, database);
+    public HikariPersistenceUnitConfig(PersistenceConfig persistenceConfig, List<Class<?>> entitiesClasses) {
+        this(persistenceConfig.getPersistenceUnitName(), persistenceConfig.getAddress(), persistenceConfig.getUsername(),
+                persistenceConfig.getPassword(), persistenceConfig.getJdbcDriver(), persistenceConfig.showSql(), entitiesClasses,
+                persistenceConfig.getDialect()
+        );
     }
 
     @Override
@@ -75,21 +77,13 @@ public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implement
     }
 
     @Override
-    public List<String> getManagedClassNames() {
-        List<String> classNames = new ArrayList<>();
-        classNames.add("me.approximations.jpaExample.model.People");
-        classNames.add("me.approximations.jpaExample.model.Permission");
-        return classNames;
-    }
-
-    @Override
     public Properties getProperties() {
         Properties properties = new Properties();
-        properties.setProperty("hibernate.connection.url", getFormattedAddress());
+        properties.setProperty("hibernate.connection.url", address);
         properties.setProperty("hibernate.connection.username", username);
         properties.setProperty("hibernate.connection.password", password);
         properties.setProperty("hibernate.connection.driver_class", jdbcDriver.getName());
-        // properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQL8Dialect");
+        properties.setProperty("hibernate.dialect", dialect.getName());
         properties.setProperty("hibernate.show_sql", String.valueOf(showSql));
         properties.setProperty("hibernate.hbm2ddl.auto", "update");
         return properties;
