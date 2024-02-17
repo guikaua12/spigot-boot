@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
-public abstract class SimpleJpaRepository<T, KEY> implements JpaRepository<T, KEY> {
+public class SimpleJpaRepository<T, KEY> implements JpaRepository<T, KEY> {
     private EntityManagerFactory entityManagerFactory;
     private final Class<T> entityClass;
 
