@@ -68,7 +68,7 @@ public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implement
 
     @Override
     public String getPersistenceUnitName() {
-        return "jpa-example";
+        return persistenceUnitName;
     }
 
     @Override
