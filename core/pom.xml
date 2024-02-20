@@ -47,10 +47,57 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
-                                <relocation>
-                                    <pattern>org.reflections</pattern>
-                                    <shadedPattern>me.approximations.apxPlugin.libs.org.reflections</shadedPattern>
-                                </relocation>
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.reflections</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.reflections</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.hibernate</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.hibernate</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.intellij.lang</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.intellij.lang</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.jboss</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jboss</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.jetbrains.annotations</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jetbrains.annotations-->
+                                <!--                                    </shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.jvnet</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jvnet</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>org.slf4j</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.slf4j</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>net.bytebuddy</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.net.bytebuddy</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>com.zaxxer.hikari</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.zaxxer.hikari</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>com.sun</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.sun</shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>com.fasterxml.classmate</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.fasterxml.classmate-->
+                                <!--                                    </shadedPattern>-->
+                                <!--                                </relocation>-->
+                                <!--                                <relocation>-->
+                                <!--                                    <pattern>javassist</pattern>-->
+                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.javassist-->
+                                <!--                                    </shadedPattern>-->
+                                <!--                                </relocation>-->
                             </relocations>
                         </configuration>
                     </execution>
@@ -72,6 +119,49 @@
             <version>0.9.12</version>
             <type>javadoc</type>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.6.15.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.6.15.Final</version>
+            <type>javadoc</type>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.3.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
         </dependency>
     </dependencies>
 
