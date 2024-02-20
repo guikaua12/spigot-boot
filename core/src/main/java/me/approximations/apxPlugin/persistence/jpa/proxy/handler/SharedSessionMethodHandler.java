@@ -6,8 +6,8 @@ import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.context.PersistenceContext;
 import me.approximations.apxPlugin.utils.EntityManagerTransactionUtils;
+import org.hibernate.Session;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import java.lang.reflect.InvocationTargetException;
@@ -15,24 +15,29 @@ import java.lang.reflect.Method;
 import java.util.Set;
 
 @RequiredArgsConstructor
-public class SharedEntityManagerMethodHandler implements MethodHandler {
+public class SharedSessionMethodHandler implements MethodHandler {
     private static final Set<String> TRANSACTION_REQUIRING_METHODS = ImmutableSet.of(
             "joinTransaction",
             "flush",
             "persist",
             "merge",
             "remove",
-            "refresh");
+            "refresh",
+            "save",
+            "saveOrUpdate",
+            "update",
+            "replicate"
+    );
 
     private final EntityManagerFactory entityManagerFactory;
 
-    public static EntityManager createProxy(EntityManagerFactory entityManagerFactory) {
+    public static Session createProxy(EntityManagerFactory entityManagerFactory) {
         final ProxyFactory proxyFactory = new ProxyFactory();
-        proxyFactory.setInterfaces(new Class<?>[]{EntityManager.class});
+        proxyFactory.setInterfaces(new Class<?>[]{Session.class});
 
-        final SharedEntityManagerMethodHandler sharedEntityManagerMethodHandler = new SharedEntityManagerMethodHandler(entityManagerFactory);
+        final SharedSessionMethodHandler sharedSessionMethodHandler = new SharedSessionMethodHandler(entityManagerFactory);
         try {
-            return (EntityManager) proxyFactory.create(new Class<?>[0], new Object[0], sharedEntityManagerMethodHandler);
+            return (Session) proxyFactory.create(new Class<?>[0], new Object[0], sharedSessionMethodHandler);
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
                  InvocationTargetException e) {
             throw new RuntimeException(e);
@@ -49,7 +54,7 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
                 return hashCode();
             }
             case "toString": {
-                return "SharedEntityManager proxy";
+                return "shared session proxy";
             }
             case "getEntityManagerFactory": {
                 return this.entityManagerFactory;
@@ -75,14 +80,14 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
                 return null;
             }
             case "getTransaction": {
-                throw new IllegalStateException("Not allowed to create a transaction using a EntityManager proxy.");
+                throw new IllegalStateException("Not allowed to create a transaction using a Session proxy.");
             }
         }
 
-        final EntityManager entityManager = getEntityManager();
+        final Session entityManager = getEntityManager();
 
         if (TRANSACTION_REQUIRING_METHODS.contains(thisMethod.getName())) {
-            if (PersistenceContext.hasEntityManager()) {
+            if (PersistenceContext.hasSession()) {
                 return thisMethod.invoke(entityManager, args);
             }
 
@@ -90,7 +95,7 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
         }
 
         final Object result = thisMethod.invoke(entityManager, args);
-        if (PersistenceContext.hasEntityManager() || !(result instanceof Query)) {
+        if (PersistenceContext.hasSession() || !(result instanceof Query)) {
             return result;
         }
 
@@ -98,9 +103,9 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
         return QueryMethodHandler.createProxy(entityManager, (Query) result);
     }
 
-    private EntityManager getEntityManager() {
-        final EntityManager contextEntityManager = PersistenceContext.getEntityManager();
+    private Session getEntityManager() {
+        final Session contextEntityManager = PersistenceContext.getSession();
 
-        return contextEntityManager != null ? contextEntityManager : entityManagerFactory.createEntityManager();
+        return (Session) (contextEntityManager != null ? contextEntityManager : entityManagerFactory.createEntityManager());
     }
 }

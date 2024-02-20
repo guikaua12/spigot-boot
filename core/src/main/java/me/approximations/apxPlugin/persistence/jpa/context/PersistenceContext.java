@@ -1,23 +1,23 @@
 package me.approximations.apxPlugin.persistence.jpa.context;
 
-import javax.persistence.EntityManager;
+import org.hibernate.Session;
 
 public class PersistenceContext {
-    private static final ThreadLocal<EntityManager> THREAD_LOCAL_ENTITY_MANAGER = new ThreadLocal<>();
+    private static final ThreadLocal<Session> THREAD_LOCAL_SESSION = new ThreadLocal<>();
 
-    public static EntityManager getEntityManager() {
-        return THREAD_LOCAL_ENTITY_MANAGER.get();
+    public static Session getSession() {
+        return THREAD_LOCAL_SESSION.get();
     }
 
-    public static void setEntityManager(EntityManager entityManager) {
-        THREAD_LOCAL_ENTITY_MANAGER.set(entityManager);
+    public static void setSession(Session session) {
+        THREAD_LOCAL_SESSION.set(session);
     }
 
-    public static void removeEntityManager() {
-        THREAD_LOCAL_ENTITY_MANAGER.remove();
+    public static void removeSession() {
+        THREAD_LOCAL_SESSION.remove();
     }
 
-    public static boolean hasEntityManager() {
-        return THREAD_LOCAL_ENTITY_MANAGER.get() != null;
+    public static boolean hasSession() {
+        return THREAD_LOCAL_SESSION.get() != null;
     }
 }

@@ -2,13 +2,13 @@ package me.approximations.apxPlugin.persistence.jpa.repository.impl;
 
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.repository.JpaRepository;
+import org.hibernate.Session;
 
-import javax.persistence.EntityManager;
 import java.util.List;
 
 @RequiredArgsConstructor
 public class SimpleJpaRepository<T, KEY> implements JpaRepository<T, KEY> {
-    private final EntityManager entityManager;
+    protected final Session entityManager;
     private final Class<T> entityClass;
 
     @Override

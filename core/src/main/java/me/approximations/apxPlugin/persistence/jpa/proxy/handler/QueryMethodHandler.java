@@ -6,8 +6,8 @@ import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.context.PersistenceContext;
 import me.approximations.apxPlugin.utils.EntityManagerTransactionUtils;
+import org.hibernate.Session;
 
-import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -28,10 +28,10 @@ public class QueryMethodHandler implements MethodHandler {
             "uniqueResultOptional"  // org.hibernate.query.Query.uniqueResultOptional()
     );
 
-    private final EntityManager entityManager;
+    private final Session entityManager;
     private final Query query;
 
-    public static Query createProxy(EntityManager entityManager, Query query) {
+    public static Query createProxy(Session entityManager, Query query) {
         final QueryMethodHandler queryMethodHandler = new QueryMethodHandler(entityManager, query);
 
         final ProxyFactory queryProxyFactory = new ProxyFactory();
@@ -48,8 +48,8 @@ public class QueryMethodHandler implements MethodHandler {
 
     @Override
     public Object invoke(Object self, Method thisMethod, Method proceed, Object[] args) throws Throwable {
-        if (PersistenceContext.hasEntityManager()) {
-            throw new IllegalStateException("EntityManager found in PersistenceContext");
+        if (PersistenceContext.hasSession()) {
+            throw new IllegalStateException("Session found in PersistenceContext");
         }
 
         if (!QUERY_TERMINATING_METHODS.contains(thisMethod.getName())) {

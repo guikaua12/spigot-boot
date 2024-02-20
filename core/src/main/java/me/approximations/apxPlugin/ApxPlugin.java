@@ -8,10 +8,11 @@ import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.discovery.PersistenceConfigDiscovery;
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
-import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedEntityManagerMethodHandler;
+import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.hibernate.Session;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -80,15 +81,15 @@ public abstract class ApxPlugin extends JavaPlugin {
                     try {
                         final Class<?> entityClass = Class.forName(types[0].getTypeName());
 
-                        final EntityManager sharedEntityManagerProxy = SharedEntityManagerMethodHandler.createProxy(entityManagerFactory);
+                        final Session sharedSessionProxy = SharedSessionMethodHandler.createProxy(entityManagerFactory);
 
-                        final Constructor<? extends SimpleJpaRepository> repositoryConstructor = repositoryClass.getConstructor(EntityManager.class, Class.class);
+                        final Constructor<? extends SimpleJpaRepository> repositoryConstructor = repositoryClass.getConstructor(Session.class, Class.class);
 
                         if (repositoryConstructor == null) {
                             throw new RuntimeException(String.format("Repository constructor not found with params (%s, %s).", EntityManager.class.getName(), entityClass.getName()));
                         }
 
-                        final SimpleJpaRepository repository = repositoryConstructor.newInstance(sharedEntityManagerProxy, entityClass);
+                        final SimpleJpaRepository repository = repositoryConstructor.newInstance(sharedSessionProxy, entityClass);
 
                         dependencyManager.registerDependency(repositoryClass, repository);
                     } catch (ClassNotFoundException | InvocationTargetException | InstantiationException |

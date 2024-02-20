@@ -1,15 +1,15 @@
 package me.approximations.apxPlugin.test.persistence;
 
-import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedEntityManagerMethodHandler;
+import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
+import org.hibernate.Session;
 import org.junit.jupiter.api.Test;
 
-import javax.persistence.EntityManager;
 import java.lang.reflect.InvocationTargetException;
 
-public class SharedEntityManagerMethodHandlerTest {
+public class SharedSessionMethodHandlerTest {
     @Test
     public void test() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        final EntityManager entityManager = SharedEntityManagerMethodHandler.createProxy(null);
+        final Session entityManager = SharedSessionMethodHandler.createProxy(null);
         System.out.println(entityManager.isOpen());
     }
 }

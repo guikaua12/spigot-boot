@@ -3,9 +3,10 @@ package me.approximations.apxPlugin.test.persistence;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
-import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedEntityManagerMethodHandler;
+import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.JpaRepository;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
+import org.hibernate.Session;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.H2Dialect;
 import org.hibernate.jpa.HibernatePersistenceProvider;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Driver;
@@ -73,7 +73,7 @@ public class SimpleRepositoryTest {
                         persistenceUnitConfig.getProperties()
                 );
 
-        final EntityManager sharedEntityManagerProxy = SharedEntityManagerMethodHandler.createProxy(entityManagerFactory);
+        final Session sharedEntityManagerProxy = SharedSessionMethodHandler.createProxy(entityManagerFactory);
 
         peopleRepository = new SimpleJpaRepository<>(sharedEntityManagerProxy, People.class);
         peopleRepository.deleteAll();
