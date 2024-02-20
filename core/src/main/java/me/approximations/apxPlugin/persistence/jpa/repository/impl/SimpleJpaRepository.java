@@ -13,7 +13,7 @@ public class SimpleJpaRepository<T, KEY> implements JpaRepository<T, KEY> {
 
     @Override
     public T save(T entity) {
-        entityManager.persist(entity);
+        entityManager.saveOrUpdate(entity);
         return entity;
     }
 
