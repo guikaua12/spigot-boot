@@ -3,6 +3,7 @@ package me.approximations.apxPlugin.test.persistence;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
+import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedEntityManagerMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.JpaRepository;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
 import org.hibernate.dialect.Dialect;
@@ -12,7 +13,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Driver;
 import java.time.Instant;
 import java.util.Arrays;
@@ -23,7 +26,7 @@ public class SimpleRepositoryTest {
     static JpaRepository<People, Long> peopleRepository;
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         final PersistenceConfig config = new PersistenceConfig() {
             @Override
             public String getPersistenceUnitName() {
@@ -70,7 +73,9 @@ public class SimpleRepositoryTest {
                         persistenceUnitConfig.getProperties()
                 );
 
-        peopleRepository = new SimpleJpaRepository<>(entityManagerFactory, People.class);
+        final EntityManager sharedEntityManagerProxy = SharedEntityManagerMethodHandler.createProxy(entityManagerFactory);
+
+        peopleRepository = new SimpleJpaRepository<>(sharedEntityManagerProxy, People.class);
         peopleRepository.deleteAll();
     }
 

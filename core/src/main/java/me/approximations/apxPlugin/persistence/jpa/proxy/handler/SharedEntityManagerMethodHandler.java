@@ -5,10 +5,10 @@ import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.context.PersistenceContext;
+import me.approximations.apxPlugin.utils.EntityManagerTransactionUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -25,6 +25,19 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
             "refresh");
 
     private final EntityManagerFactory entityManagerFactory;
+
+    public static EntityManager createProxy(EntityManagerFactory entityManagerFactory) {
+        final ProxyFactory proxyFactory = new ProxyFactory();
+        proxyFactory.setInterfaces(new Class<?>[]{EntityManager.class});
+
+        final SharedEntityManagerMethodHandler sharedEntityManagerMethodHandler = new SharedEntityManagerMethodHandler(entityManagerFactory);
+        try {
+            return (EntityManager) proxyFactory.create(new Class<?>[0], new Object[0], sharedEntityManagerMethodHandler);
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public Object invoke(Object self, Method thisMethod, Method proceed, Object[] args) throws Throwable {
@@ -70,37 +83,19 @@ public class SharedEntityManagerMethodHandler implements MethodHandler {
 
         if (TRANSACTION_REQUIRING_METHODS.contains(thisMethod.getName())) {
             if (PersistenceContext.hasEntityManager()) {
-                return proceed.invoke(self, args);
+                return thisMethod.invoke(entityManager, args);
             }
 
-            final EntityTransaction transaction = entityManager.getTransaction();
-            try {
-                transaction.begin();
-                final Object result = proceed.invoke(self, args);
-                transaction.commit();
-
-                return result;
-            } catch (Throwable throwable) {
-                transaction.rollback();
-                throw new RuntimeException(throwable);
-            } finally {
-                entityManager.close();
-            }
+            return EntityManagerTransactionUtils.executeTransaction(entityManager, () -> thisMethod.invoke(entityManager, args));
         }
 
-        final Object result = proceed.invoke(self, args);
+        final Object result = thisMethod.invoke(entityManager, args);
         if (PersistenceContext.hasEntityManager() || !(result instanceof Query)) {
             return result;
         }
 
 
-        final Query query = (Query) result;
-        final QueryMethodHandler queryMethodHandler = new QueryMethodHandler(entityManager, query);
-
-        final ProxyFactory queryProxyFactory = new ProxyFactory();
-        queryProxyFactory.setInterfaces(query.getClass().getInterfaces());
-
-        return queryProxyFactory.create(new Class[0], new Object[0], queryMethodHandler);
+        return QueryMethodHandler.createProxy(entityManager, (Query) result);
     }
 
     private EntityManager getEntityManager() {
