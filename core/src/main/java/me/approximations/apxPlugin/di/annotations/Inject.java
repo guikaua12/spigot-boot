@@ -1,4 +1,4 @@
-package me.approximations.apxPlugin.dependencyInjection.annotations;
+package me.approximations.apxPlugin.di.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

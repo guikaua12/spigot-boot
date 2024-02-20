@@ -1,7 +1,7 @@
 package me.approximations.apxPlugin.testPlugin.listener;
 
 import lombok.NoArgsConstructor;
-import me.approximations.apxPlugin.dependencyInjection.annotations.Inject;
+import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.testPlugin.services.PointsService;
 import me.approximations.apxPlugin.utils.ColorUtil;
 import org.bukkit.event.EventHandler;

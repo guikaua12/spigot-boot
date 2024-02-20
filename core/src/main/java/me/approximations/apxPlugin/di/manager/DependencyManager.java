@@ -1,7 +1,7 @@
-package me.approximations.apxPlugin.dependencyInjection.manager;
+package me.approximations.apxPlugin.di.manager;
 
-import me.approximations.apxPlugin.dependencyInjection.annotations.DependencyRegister;
-import me.approximations.apxPlugin.dependencyInjection.annotations.Inject;
+import me.approximations.apxPlugin.di.annotations.DependencyRegister;
+import me.approximations.apxPlugin.di.annotations.Inject;
 import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
 

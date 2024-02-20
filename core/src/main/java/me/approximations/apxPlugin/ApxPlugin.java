@@ -2,7 +2,7 @@ package me.approximations.apxPlugin;
 
 import com.google.common.base.Stopwatch;
 import lombok.Getter;
-import me.approximations.apxPlugin.dependencyInjection.manager.DependencyManager;
+import me.approximations.apxPlugin.di.manager.DependencyManager;
 import me.approximations.apxPlugin.listener.manager.ListenerManager;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;

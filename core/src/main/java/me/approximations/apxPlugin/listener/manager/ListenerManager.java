@@ -1,7 +1,7 @@
 package me.approximations.apxPlugin.listener.manager;
 
 import me.approximations.apxPlugin.ApxPlugin;
-import me.approximations.apxPlugin.dependencyInjection.manager.DependencyManager;
+import me.approximations.apxPlugin.di.manager.DependencyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;

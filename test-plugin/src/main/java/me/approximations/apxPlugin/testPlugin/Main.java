@@ -1,7 +1,7 @@
 package me.approximations.apxPlugin.testPlugin;
 
 import me.approximations.apxPlugin.ApxPlugin;
-import me.approximations.apxPlugin.dependencyInjection.annotations.Inject;
+import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.testPlugin.repositories.UserRepository;
 
 public class Main extends ApxPlugin {
