@@ -2,7 +2,10 @@ package me.approximations.apxPlugin.testPlugin;
 
 import lombok.*;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.time.Instant;
 
 
@@ -14,8 +17,8 @@ import java.time.Instant;
 @Entity
 @Table(name="jpa_peoples")
 public class People {
-    @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private final Long id;
+    @Id
+    private final String uuid;
     private String name;
     private String email;
     @Column(name="created_at") private final Instant createdAt;

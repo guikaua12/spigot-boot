@@ -4,7 +4,7 @@ import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepo
 import me.approximations.apxPlugin.testPlugin.People;
 import org.hibernate.Session;
 
-public class UserRepository extends SimpleJpaRepository<People, Long> {
+public class UserRepository extends SimpleJpaRepository<People, String> {
     private final String name = "UserRepository";
 
     public UserRepository(Session entityManager, Class<People> entityClass) {
