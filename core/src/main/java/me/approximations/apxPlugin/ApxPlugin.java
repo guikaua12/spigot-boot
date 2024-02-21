@@ -11,6 +11,8 @@ import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistence
 import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
 import me.approximations.apxPlugin.persistence.jpa.service.register.ServicesRegister;
+import me.approximations.apxPlugin.placeholder.manager.PlaceholderManager;
+import me.approximations.apxPlugin.placeholder.register.PlaceholderRegister;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.hibernate.Session;
@@ -43,6 +45,8 @@ public abstract class ApxPlugin extends JavaPlugin {
     @Getter
     private ListenerManager listenerManager;
     private EntityManagerFactory entityManagerFactory;
+    @Getter
+    private final PlaceholderManager placeholderManager = new PlaceholderManager();
 
     @SuppressWarnings("rawtypes")
     @Override
@@ -101,6 +105,7 @@ public abstract class ApxPlugin extends JavaPlugin {
             });
 
             new ServicesRegister(reflections, entityManagerFactory, dependencyManager).register();
+            new PlaceholderRegister(this, reflections, dependencyManager, placeholderManager).register();
 
 
             this.listenerManager = new ListenerManager(this, reflections, dependencyManager);

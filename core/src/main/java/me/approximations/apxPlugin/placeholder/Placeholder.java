@@ -1,10 +1,22 @@
 package me.approximations.apxPlugin.placeholder;
 
-import lombok.Data;
-import me.approximations.apxPlugin.placeholder.annotations.PlaceholderValue;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.bukkit.entity.Player;
 
-@Data
-@PlaceholderValue
+@RequiredArgsConstructor
+@Getter
+@ToString(callSuper=true)
 public abstract class Placeholder {
-    private final String placeholder;
+    protected final String placeholder;
+    protected final char delimiter;
+
+    public String getPlaceholderWithDelimiter() {
+        return String.format("%s%s%s", delimiter, placeholder, delimiter);
+    }
+
+    public abstract String getValue(Player player);
+
+    public abstract boolean shouldRegisterPAPI();
 }
