@@ -3,19 +3,23 @@ package me.approximations.apxPlugin.testPlugin.listener;
 import lombok.NoArgsConstructor;
 import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.testPlugin.People;
+import me.approximations.apxPlugin.testPlugin.placeholders.UserNamePlaceholder;
 import me.approximations.apxPlugin.testPlugin.services.UserService;
 import me.approximations.apxPlugin.utils.ColorUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 
 @NoArgsConstructor(force=true)
 public class JoinListener implements Listener {
-    @Inject
+    @NotNull @Inject
     private final UserService userService;
+    @NotNull @Inject
+    private final UserNamePlaceholder userNamePlaceholder;
 
     @EventHandler
     public void onChat(PlayerJoinEvent event) {
@@ -42,5 +46,7 @@ public class JoinListener implements Listener {
             throwable.printStackTrace();
             return null;
         });
+
+        player.sendMessage(ColorUtil.colored("&aBased on UserNamePlaceholder, your name is: &e" + userNamePlaceholder.getValue(player) + "!"));
     }
 }
