@@ -4,7 +4,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import java.util.concurrent.Callable;
 
-public class EntityManagerTransactionUtils {
+public final class EntityManagerTransactionUtils {
     public static Object executeTransaction(EntityManager entityManager, Callable<Object> callable) {
         final EntityTransaction transaction = entityManager.getTransaction();
 
