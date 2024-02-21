@@ -10,6 +10,7 @@ import me.approximations.apxPlugin.persistence.jpa.config.discovery.PersistenceC
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
+import me.approximations.apxPlugin.persistence.jpa.service.register.ServicesRegister;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.hibernate.Session;
@@ -98,6 +99,8 @@ public abstract class ApxPlugin extends JavaPlugin {
                     }
                 }
             });
+
+            new ServicesRegister(reflections, entityManagerFactory, dependencyManager).register();
 
 
             this.listenerManager = new ListenerManager(this, reflections, dependencyManager);

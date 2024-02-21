@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class DependencyManager {
@@ -91,7 +92,9 @@ public class DependencyManager {
 
     private Set<Field> getInjectableFields(@NotNull Object object) {
         Objects.requireNonNull(object, "object cannot be null.");
+        final Stream<Field> classStream = Arrays.stream(object.getClass().getDeclaredFields());
+        final Stream<Field> superClassStream = Arrays.stream(object.getClass().getSuperclass().getDeclaredFields());
 
-        return Arrays.stream(object.getClass().getDeclaredFields()).filter(field -> field.isAnnotationPresent(Inject.class)).collect(Collectors.toSet());
+        return Stream.concat(classStream, superClassStream).filter(field -> field.isAnnotationPresent(Inject.class)).collect(Collectors.toSet());
     }
 }
