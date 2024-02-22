@@ -25,4 +25,18 @@ public class NumberUtilsTest {
         final double parsed = NumberUtils.parse(number);
         Assertions.assertEquals(123456789, parsed);
     }
+
+    @Test
+    public void shouldNotParseInvalidNumber() {
+        final String number = "invalid";
+        final double parsed = NumberUtils.parse(number);
+        Assertions.assertEquals(-1, parsed);
+    }
+
+    @Test
+    public void shouldNotParseNegativeNumber() {
+        final String number = "-3";
+        final double parsed = NumberUtils.parse(number);
+        Assertions.assertEquals(-1, parsed);
+    }
 }
