@@ -2,13 +2,17 @@ package me.approximations.apxPlugin.testPlugin.listener;
 
 import lombok.NoArgsConstructor;
 import me.approximations.apxPlugin.di.annotations.Inject;
+import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
+import me.approximations.apxPlugin.messaging.bungee.actions.responseable.GetPlayerServerAction;
 import me.approximations.apxPlugin.testPlugin.People;
 import me.approximations.apxPlugin.testPlugin.placeholders.UserNamePlaceholder;
 import me.approximations.apxPlugin.testPlugin.services.UserService;
 import me.approximations.apxPlugin.utils.ColorUtil;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +20,8 @@ import java.time.Instant;
 
 @NoArgsConstructor(force=true)
 public class JoinListener implements Listener {
+    @NotNull @Inject
+    private final BungeeChannel bungeeChannel;
     @NotNull @Inject
     private final UserService userService;
     @NotNull @Inject
@@ -48,5 +54,21 @@ public class JoinListener implements Listener {
         });
 
         player.sendMessage(ColorUtil.colored("&aBased on UserNamePlaceholder, your name is: &e" + userNamePlaceholder.getValue(player) + "!"));
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockPlaceEvent event) {
+        if (event.getBlock().getType() != Material.DIAMOND_BLOCK) return;
+
+        final Player player = event.getPlayer();
+        player.sendMessage("[ApxPlugin] - test message from BlockBreakEvent");
+
+        bungeeChannel.sendMessage(player, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
+            player.sendMessage("You are on server: " + serverName);
+        }).exceptionally(throwable -> {
+            player.sendMessage("An error occurred while trying to fetch your server.");
+            throwable.printStackTrace();
+            return null;
+        });
     }
 }
