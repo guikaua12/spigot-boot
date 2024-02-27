@@ -25,6 +25,7 @@ public class Main extends ApxPlugin {
         // you saw? no need to rack your brains filling your code with boilerplate
         // there are two types of Actions, normal ones, and responsible ones which return some value 
         // (such in the example above, we are using `GetPlayerServerAction` which extends `ResponseableMessageAction`)
+        // you can find all message actions here: https://github.com/guikaua12/ApxPlugin/tree/master/core/src/main/java/me/approximations/apxPlugin/messaging/bungee/actions
     }
 }
 ```
