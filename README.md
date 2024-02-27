@@ -14,9 +14,6 @@ public class Main extends ApxPlugin {
         BungeeChannel bungeeChannel = new BungeeChannel(this);
 
         // Send a message to BungeeCord to get the server name of a player by its name
-        // you saw? no need to rack your brains filling your code with boilerplate
-        // there are two types of Actions, normal ones, and responsible ones which return some value 
-        // (such in the example below, we are using `GetPlayerServerAction` which extends `ResponseableMessageAction`)
         bungeeChannel.sendMessage(null, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
             player.sendMessage("You are on server: " + serverName);
         }).exceptionally(throwable -> {
@@ -24,6 +21,10 @@ public class Main extends ApxPlugin {
             throwable.printStackTrace();
             return null;
         });
+
+        // you saw? no need to rack your brains filling your code with boilerplate
+        // there are two types of Actions, normal ones, and responsible ones which return some value 
+        // (such in the example above, we are using `GetPlayerServerAction` which extends `ResponseableMessageAction`)
     }
 }
 ```
