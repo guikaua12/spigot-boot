@@ -62,6 +62,7 @@ public abstract class ApxPlugin extends JavaPlugin {
 
             dependencyManager.registerDependency(Plugin.class, this);
             dependencyManager.registerDependency(JavaPlugin.class, this);
+            dependencyManager.registerDependency(ApxPlugin.class, this);
             dependencyManager.registerDependency(getClass(), this);
 
             final Optional<PersistenceConfig> persistenceConfigOptional = new PersistenceConfigDiscovery(reflections).discovery();
