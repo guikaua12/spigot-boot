@@ -39,6 +39,9 @@ public abstract class ApxPlugin extends JavaPlugin {
     private final List<Runnable> disableEntries = new ArrayList<>();
 
     @Getter
+    private static ApxPlugin instance;
+
+    @Getter
     private Reflections reflections;
     @Getter
     private DependencyManager dependencyManager;
@@ -52,6 +55,7 @@ public abstract class ApxPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         final Stopwatch stopwatch = Stopwatch.createStarted();
+        instance = this;
 
         try {
             Logger.getLogger("org.hibernate").setLevel(Level.OFF);

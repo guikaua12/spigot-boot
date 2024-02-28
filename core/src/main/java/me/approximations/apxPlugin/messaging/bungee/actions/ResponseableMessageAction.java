@@ -30,8 +30,9 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class ResponseableMessageAction<T> implements MessageAction {
-    public abstract CompletableFuture<T> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, T> responseHandler);
+    public abstract CompletableFuture<T> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, T> responseHandler) throws IOException;
 }

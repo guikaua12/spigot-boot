@@ -3,7 +3,7 @@ package me.approximations.apxPlugin.testPlugin.listener;
 import lombok.NoArgsConstructor;
 import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
-import me.approximations.apxPlugin.messaging.bungee.actions.responseable.GetPlayerServerAction;
+import me.approximations.apxPlugin.messaging.bungee.actions.responseable.ForwardAction;
 import me.approximations.apxPlugin.testPlugin.People;
 import me.approximations.apxPlugin.testPlugin.placeholders.UserNamePlaceholder;
 import me.approximations.apxPlugin.testPlugin.services.UserService;
@@ -16,7 +16,9 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.Optional;
 
 @NoArgsConstructor(force=true)
 public class JoinListener implements Listener {
@@ -63,12 +65,32 @@ public class JoinListener implements Listener {
         final Player player = event.getPlayer();
         player.sendMessage("[ApxPlugin] - test message from BlockBreakEvent");
 
-        bungeeChannel.sendMessage(player, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
-            player.sendMessage("You are on server: " + serverName);
-        }).exceptionally(throwable -> {
-            player.sendMessage("An error occurred while trying to fetch your server.");
-            throwable.printStackTrace();
-            return null;
-        });
+//        try {
+//            bungeeChannel.sendMessage(player, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
+//                player.sendMessage("You are on server: " + serverName);
+//            }).exceptionally(throwable -> {
+//                player.sendMessage("An error occurred while trying to fetch your server.");
+//                throwable.printStackTrace();
+//                return null;
+//            });
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+
+        final Optional<People> people = userService.getPeople(player.getUniqueId().toString()).join();
+
+        if (!people.isPresent()) {
+            player.sendMessage("People not in database!");
+            return;
+        }
+
+        try {
+            bungeeChannel.sendMessage(player, new ForwardAction<>(ForwardAction.SERVER_ALL, "test", people.get()))
+                    .thenAccept(response -> {
+                        System.out.println("[SendMessage] received response: " + response.getBody());
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

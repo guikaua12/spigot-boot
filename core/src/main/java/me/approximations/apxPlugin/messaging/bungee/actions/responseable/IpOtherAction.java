@@ -35,6 +35,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
@@ -50,7 +51,7 @@ public class IpOtherAction extends ResponseableMessageAction<InetSocketAddress> 
     }
 
     @Override
-    public CompletableFuture<InetSocketAddress> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, InetSocketAddress> responseHandler) {
+    public CompletableFuture<InetSocketAddress> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, InetSocketAddress> responseHandler) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
             output.writeUTF(playerName);

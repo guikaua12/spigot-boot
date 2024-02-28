@@ -11,22 +11,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.function.Consumer;
 
 public final class ChannelDataOutputUtils {
-    public static final Consumer<DataOutput> EMPTY_BODY = dataOutput -> {
+    public static final Consumer<ObjectOutputStream> EMPTY_BODY = dataOutput -> {
     };
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ByteArrayDataOutput write(Consumer<ByteArrayDataOutput> header, Consumer<DataOutput> body) {
+    public static ByteArrayDataOutput write(Consumer<ByteArrayDataOutput> header, Consumer<ObjectOutputStream> body) throws IOException {
         final ByteArrayDataOutput out = ByteStreams.newDataOutput();
 
         header.accept(out);
 
         final ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
-        final DataOutputStream msgout = new DataOutputStream(msgbytes);
+        final ObjectOutputStream msgout = new ObjectOutputStream(msgbytes);
 
         body.accept(msgout);
 
@@ -36,11 +36,11 @@ public final class ChannelDataOutputUtils {
         return out;
     }
 
-    public static ByteArrayDataOutput write(Consumer<ByteArrayDataOutput> header) {
+    public static ByteArrayDataOutput write(Consumer<ByteArrayDataOutput> header) throws IOException {
         return write(header, EMPTY_BODY);
     }
 
-    public static void sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull String channel, Consumer<ByteArrayDataOutput> header, Consumer<DataOutput> body) throws IllegalStateException {
+    public static void sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull String channel, Consumer<ByteArrayDataOutput> header, Consumer<ObjectOutputStream> body) throws IllegalStateException, IOException {
         final ByteArrayDataOutput out = ChannelDataOutputUtils.write(header, body);
 
         if (player == null) player = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
@@ -52,7 +52,7 @@ public final class ChannelDataOutputUtils {
         player.sendPluginMessage(plugin, BungeeChannel.NAME, out.toByteArray());
     }
 
-    public static void sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull String channel, Consumer<ByteArrayDataOutput> header) throws IllegalStateException {
+    public static void sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull String channel, Consumer<ByteArrayDataOutput> header) throws IllegalStateException, IOException {
         sendMessage(player, plugin, channel, header, EMPTY_BODY);
     }
 

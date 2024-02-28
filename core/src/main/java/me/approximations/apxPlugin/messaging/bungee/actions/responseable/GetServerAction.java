@@ -35,6 +35,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 @EqualsAndHashCode(callSuper=true)
@@ -48,7 +49,7 @@ public class GetServerAction extends ResponseableMessageAction<String> {
     }
 
     @Override
-    public CompletableFuture<String> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, String> responseHandler) {
+    public CompletableFuture<String> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, String> responseHandler) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
         });

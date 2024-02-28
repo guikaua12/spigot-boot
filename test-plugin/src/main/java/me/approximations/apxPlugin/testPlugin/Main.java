@@ -13,7 +13,13 @@ public class Main extends ApxPlugin {
     protected void onPluginEnable() {
         System.out.println(userRepository.findAll());
 
-        getDependencyManager().getDependency(BungeeChannel.class).init();
+        final BungeeChannel bungeeChannel = getDependencyManager().getDependency(BungeeChannel.class);
+        bungeeChannel.init();
+
+        bungeeChannel.subscribe("test", message -> {
+            System.out.println("[Subscriber] Received on channel `test` message: " + message.getBody());
+            message.respond("Response from any server!");
+        });
     }
 
     public static ApxPlugin getPlugin() {

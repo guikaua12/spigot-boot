@@ -35,6 +35,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -50,7 +51,7 @@ public class PlayerListAction extends ResponseableMessageAction<List<String>> {
     }
 
     @Override
-    public CompletableFuture<List<String>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, List<String>> responseHandler) {
+    public CompletableFuture<List<String>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, List<String>> responseHandler) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
             output.writeUTF(serverName);

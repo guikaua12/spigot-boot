@@ -34,6 +34,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 @EqualsAndHashCode(callSuper=true)
 @Data
 public class ConnectOtherAction extends NormalMessageAction {
@@ -47,7 +49,7 @@ public class ConnectOtherAction extends NormalMessageAction {
     }
 
     @Override
-    public void sendMessage(@Nullable Player player, @NotNull Plugin plugin) {
+    public void sendMessage(@Nullable Player player, @NotNull Plugin plugin) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
             output.writeUTF(playerName);
