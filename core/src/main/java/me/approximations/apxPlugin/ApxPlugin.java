@@ -51,6 +51,13 @@ public abstract class ApxPlugin extends JavaPlugin {
     @Getter
     private final PlaceholderManager placeholderManager = new PlaceholderManager();
 
+    @Override
+    public void onLoad() {
+        this.reflections = new Reflections(getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
+        this.dependencyManager = new DependencyManager(reflections);
+        onPluginLoad();
+    }
+
     @SuppressWarnings("rawtypes")
     @Override
     public void onEnable() {
@@ -59,9 +66,6 @@ public abstract class ApxPlugin extends JavaPlugin {
 
         try {
             Logger.getLogger("org.hibernate").setLevel(Level.OFF);
-
-            this.reflections = new Reflections(getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
-            this.dependencyManager = new DependencyManager(reflections);
             dependencyManager.registerDependencies();
 
             dependencyManager.registerDependency(Plugin.class, this);
@@ -71,7 +75,6 @@ public abstract class ApxPlugin extends JavaPlugin {
 
             final Optional<PersistenceConfig> persistenceConfigOptional = new PersistenceConfigDiscovery(reflections).discovery();
             persistenceConfigOptional.ifPresent(config -> {
-                dependencyManager.injectDependencies();
                 dependencyManager.injectDependencies(config);
 
                 final List<Class<?>> jpaEntities = getJpaEntities();
@@ -143,8 +146,10 @@ public abstract class ApxPlugin extends JavaPlugin {
         return new ArrayList<>(repositories);
     }
 
-    protected void onPluginEnable() {
+    protected void onPluginLoad() {
     }
+
+    protected abstract void onPluginEnable();
 
     @Override
     public void onDisable() {

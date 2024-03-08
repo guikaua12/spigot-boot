@@ -1,5 +1,6 @@
 package me.approximations.apxPlugin.di.manager;
 
+import lombok.Getter;
 import me.approximations.apxPlugin.di.annotations.DependencyRegister;
 import me.approximations.apxPlugin.di.annotations.Inject;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,7 @@ import java.util.stream.Stream;
 
 
 public class DependencyManager {
+    @Getter
     private final Map<Class<?>, Object> dependencies = new HashMap<>();
     private final Reflections reflections;
 
@@ -43,8 +45,6 @@ public class DependencyManager {
     }
 
     public void registerDependencies() {
-        this.dependencies.clear();
-
         final Set<Class<?>> dependencyRegisters = reflections.getTypesAnnotatedWith(DependencyRegister.class);
 
         for (Class<?> dependencyRegister : dependencyRegisters) {
