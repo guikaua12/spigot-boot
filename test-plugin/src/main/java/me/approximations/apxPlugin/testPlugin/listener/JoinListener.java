@@ -85,7 +85,7 @@ public class JoinListener implements Listener {
         }
 
         try {
-            bungeeChannel.sendMessage(player, new ForwardAction<>(ForwardAction.SERVER_ALL, "test", people.get()))
+            bungeeChannel.sendMessage(player, new ForwardAction<People, String>(ForwardAction.SERVER_ALL, "test", people.get()))
                     .thenAccept(response -> {
                         System.out.println("[SendMessage] received response: " + response.getBody());
                     });

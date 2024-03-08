@@ -71,6 +71,7 @@ public abstract class ApxPlugin extends JavaPlugin {
 
             final Optional<PersistenceConfig> persistenceConfigOptional = new PersistenceConfigDiscovery(reflections).discovery();
             persistenceConfigOptional.ifPresent(config -> {
+                dependencyManager.injectDependencies();
                 dependencyManager.injectDependencies(config);
 
                 final List<Class<?>> jpaEntities = getJpaEntities();
