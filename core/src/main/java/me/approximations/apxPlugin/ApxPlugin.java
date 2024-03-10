@@ -8,6 +8,7 @@ import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.discovery.PersistenceConfigDiscovery;
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
+import me.approximations.apxPlugin.persistence.jpa.config.manager.PersistenceConfigManager;
 import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
 import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
 import me.approximations.apxPlugin.persistence.jpa.service.register.ServicesRegister;
@@ -30,7 +31,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +50,8 @@ public abstract class ApxPlugin extends JavaPlugin {
     private EntityManagerFactory entityManagerFactory;
     @Getter
     private final PlaceholderManager placeholderManager = new PlaceholderManager();
+    @Getter
+    private final PersistenceConfigManager persistenceConfigManager = new PersistenceConfigManager();
 
     @Override
     public void onLoad() {
@@ -73,12 +75,16 @@ public abstract class ApxPlugin extends JavaPlugin {
             dependencyManager.registerDependency(ApxPlugin.class, this);
             dependencyManager.registerDependency(getClass(), this);
 
-            final Optional<PersistenceConfig> persistenceConfigOptional = new PersistenceConfigDiscovery(reflections).discovery();
-            persistenceConfigOptional.ifPresent(config -> {
-                dependencyManager.injectDependencies(config);
+            PersistenceConfig persistenceConfig = persistenceConfigManager.getPersistenceConfig();
+            if (persistenceConfig == null) {
+                persistenceConfig = new PersistenceConfigDiscovery(reflections).discovery().orElse(null);
+            }
+
+            if (persistenceConfig != null) {
+                dependencyManager.injectDependencies(persistenceConfig);
 
                 final List<Class<?>> jpaEntities = getJpaEntities();
-                final PersistenceUnitConfig persistenceUnitConfig = new HikariPersistenceUnitConfig(config, jpaEntities);
+                final PersistenceUnitConfig persistenceUnitConfig = new HikariPersistenceUnitConfig(persistenceConfig, jpaEntities);
 
                 final HibernatePersistenceProvider provider = new HibernatePersistenceProvider();
 
@@ -111,7 +117,7 @@ public abstract class ApxPlugin extends JavaPlugin {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            }
 
             new ServicesRegister(reflections, entityManagerFactory, dependencyManager).register();
             new PlaceholderRegister(this, reflections, dependencyManager, placeholderManager).register();
