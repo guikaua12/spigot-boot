@@ -3,6 +3,7 @@ package me.approximations.apxPlugin.di.manager;
 import lombok.Getter;
 import me.approximations.apxPlugin.di.annotations.DependencyRegister;
 import me.approximations.apxPlugin.di.annotations.Inject;
+import me.approximations.apxPlugin.di.annotations.PostInject;
 import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
 
@@ -66,6 +67,22 @@ public class DependencyManager {
         for (Object dependency : dependencies.values()) {
             injectDependencies(dependency);
         }
+
+        for (Object dependency : dependencies.values()) {
+            Arrays.stream(dependency.getClass().getDeclaredMethods())
+                    .filter(method -> method.isAnnotationPresent(PostInject.class))
+                    .forEach(method -> {
+                        try {
+                            method.setAccessible(true);
+                            method.invoke(dependency);
+                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            method.setAccessible(false);
+                        }
+                    });
+        }
+
     }
 
     public void injectDependencies(@NotNull Object object) {
