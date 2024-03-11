@@ -7,6 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -469,6 +470,24 @@ public final class NBTEditor {
                 e.printStackTrace();
             }
         }
+        head.setItemMeta(headMeta);
+        return head;
+    }
+
+    public static ItemStack getHeadByName(String name) {
+        Material material = Material.getMaterial("SKULL_ITEM");
+        if (material == null) {
+            // Most likely 1.13 materials
+            material = Material.getMaterial("PLAYER_HEAD");
+        }
+        final ItemStack head = new ItemStack(material, 1, (short) 3);
+        if (name == null || name.isEmpty()) {
+            return head;
+        }
+        final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
+        headMeta.setDisplayName(name);
+        headMeta.setOwner(name);
+
         head.setItemMeta(headMeta);
         return head;
     }
