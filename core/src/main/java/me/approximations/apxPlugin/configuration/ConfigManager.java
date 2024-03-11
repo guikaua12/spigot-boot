@@ -20,11 +20,11 @@
 
 package me.approximations.apxPlugin.configuration;
 
+import me.approximations.apxPlugin.ApxPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class ConfigManager {
      * @param plugin config owner.
      * @param name   config name. Do not include .yml in it.
      */
-    public ConfigManager(Plugin plugin, String name, String dir) {
+    public ConfigManager(ApxPlugin plugin, String name, String dir) {
         final File d = new File(dir);
         if (!d.exists()) {
             if (!d.mkdirs()) {
@@ -74,6 +74,8 @@ public class ConfigManager {
         yml = YamlConfiguration.loadConfiguration(config);
         yml.options().copyDefaults(true);
         this.name = name;
+
+        plugin.getDependencyManager().registerDependency(getClass(), this);
     }
 
     /**
