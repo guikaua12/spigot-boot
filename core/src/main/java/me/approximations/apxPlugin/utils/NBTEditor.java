@@ -485,8 +485,24 @@ public final class NBTEditor {
             return head;
         }
         final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        headMeta.setDisplayName(name);
-        headMeta.setOwner(name);
+        headMeta.setOwningPlayer(Bukkit.getOfflinePlayer(name));
+
+        head.setItemMeta(headMeta);
+        return head;
+    }
+
+    public static ItemStack getHeadByUuid(UUID uuid) {
+        Material material = Material.getMaterial("SKULL_ITEM");
+        if (material == null) {
+            // Most likely 1.13 materials
+            material = Material.getMaterial("PLAYER_HEAD");
+        }
+        final ItemStack head = new ItemStack(material, 1, (short) 3);
+        if (uuid == null) {
+            return head;
+        }
+        final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
+        headMeta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
 
         head.setItemMeta(headMeta);
         return head;
