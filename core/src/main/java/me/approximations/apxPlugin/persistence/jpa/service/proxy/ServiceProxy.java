@@ -51,6 +51,10 @@ public class ServiceProxy implements MethodHandler {
             throw new IllegalStateException(String.format("Service method %s must return CompletableFuture", MethodFormatUtils.formatMethod(thisMethod)));
         }
 
+        if (PersistenceContext.hasSession()) {
+            return proceed.invoke(self, args);
+        }
+
         return CompletableFuture.supplyAsync(() -> {
             final Session session = (Session) entityManagerFactory.createEntityManager();
             PersistenceContext.setSession(session);
