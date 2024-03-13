@@ -86,6 +86,7 @@ public class HikariPersistenceUnitConfig extends PersistenceUnitConfig implement
         properties.setProperty("hibernate.dialect", dialect.getName());
         properties.setProperty("hibernate.show_sql", String.valueOf(showSql));
         properties.setProperty("hibernate.hbm2ddl.auto", "update");
+        properties.setProperty("hibernate.jdbc.batch_size", "25");
         return properties;
     }
 }
