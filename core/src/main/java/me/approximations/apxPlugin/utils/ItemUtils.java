@@ -19,7 +19,7 @@ public final class ItemUtils {
             return head;
         }
         final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        headMeta.setOwningPlayer(Bukkit.getOfflinePlayer(name));
+        headMeta.setOwner(name);
 
         head.setItemMeta(headMeta);
         return head;
