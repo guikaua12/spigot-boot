@@ -68,7 +68,10 @@ public class ServiceProxy implements MethodHandler {
                 return result.join();
             } catch (Throwable throwable) {
                 transaction.rollback();
-                throw new RuntimeException(throwable);
+                if (!(throwable.getCause().getCause() instanceof RuntimeException)) {
+                    throw new IllegalStateException("Service method " + MethodFormatUtils.formatMethod(thisMethod) + " threw a checked exception", throwable.getCause().getCause());
+                }
+                throw (RuntimeException) throwable.getCause().getCause();
             } finally {
                 PersistenceContext.removeSession();
                 session.close();

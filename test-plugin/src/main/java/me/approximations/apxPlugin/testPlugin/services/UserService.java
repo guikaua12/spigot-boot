@@ -9,6 +9,7 @@ import me.approximations.apxPlugin.testPlugin.repositories.UserRepository;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @RequiredArgsConstructor
 @NoArgsConstructor(force=true)
@@ -21,6 +22,9 @@ public class UserService {
 
     @Service
     public CompletableFuture<Optional<People>> getPeople(String uuid) {
+        if (true) {
+            throw new CompletionException(new InvitedBySomeoneYouInvitedException("This is a test exception"));
+        }
         return CompletableFuture.completedFuture(Optional.ofNullable(userRepository.findById(uuid)));
     }
 
