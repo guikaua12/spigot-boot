@@ -30,6 +30,10 @@ public class Main extends ApxPlugin {
 }
 ```
 
+## Credits:
+- NBTEditor: https://github.com/BananaPuncher714/NBTEditor
+
+
 TODO:
 
 - [ ] Add support for custom subchannels and custom messages responses.
