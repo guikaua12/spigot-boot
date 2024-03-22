@@ -5,6 +5,8 @@ import java.util.List;
 public interface CrudRepository<T, KEY> extends Repository<T, KEY> {
     T save(T entity);
 
+    List<T> saveAll(Iterable<T> iterable);
+
     T findById(KEY id);
 
     List<T> findAll();

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.repository.JpaRepository;
 import org.hibernate.Session;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -15,6 +16,17 @@ public class SimpleJpaRepository<T, KEY> implements JpaRepository<T, KEY> {
     public T save(T entity) {
         entityManager.saveOrUpdate(entity);
         return entity;
+    }
+
+    @Override
+    public List<T> saveAll(Iterable<T> iterable) {
+        final List<T> result = new ArrayList<>();
+
+        for (T entity : iterable) {
+            result.add(save(entity));
+        }
+
+        return result;
     }
 
     @Override
