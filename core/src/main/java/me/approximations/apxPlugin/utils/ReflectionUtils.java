@@ -11,14 +11,14 @@ public final class ReflectionUtils {
     private static Set<Class<?>> pluginClasses;
 
     public static Set<Class<?>> getClassesAnnotatedWith(Class<? extends Annotation> annotationClass) {
-        return pluginClasses
+        return getAllPluginClasses()
                 .stream()
                 .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
                 .collect(ImmutableSet.toImmutableSet());
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz) {
-        return pluginClasses
+        return getAllPluginClasses()
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .map(c -> (Class<T>) c)
