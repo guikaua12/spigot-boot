@@ -104,6 +104,7 @@
             <artifactId>guava</artifactId>
             <version>31.1-jre</version>
             <type>javadoc</type>
+            <scope>provided</scope>
         </dependency>
 
     </dependencies>
