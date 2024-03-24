@@ -1,6 +1,7 @@
 package me.approximations.apxPlugin;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.reflect.ClassPath;
 import lombok.Getter;
 import me.approximations.apxPlugin.di.manager.DependencyManager;
 import me.approximations.apxPlugin.listener.manager.ListenerManager;
@@ -14,17 +15,16 @@ import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepo
 import me.approximations.apxPlugin.persistence.jpa.service.register.ServicesRegister;
 import me.approximations.apxPlugin.placeholder.manager.PlaceholderManager;
 import me.approximations.apxPlugin.placeholder.register.PlaceholderRegister;
+import me.approximations.apxPlugin.utils.ReflectionUtils;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.hibernate.Session;
 import org.hibernate.jpa.HibernatePersistenceProvider;
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
 
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
@@ -42,7 +42,7 @@ public abstract class ApxPlugin extends JavaPlugin {
     private static ApxPlugin instance;
 
     @Getter
-    private Reflections reflections;
+    private static ClassPath classPath;
     @Getter
     private DependencyManager dependencyManager;
     @Getter
@@ -55,8 +55,13 @@ public abstract class ApxPlugin extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        this.reflections = new Reflections(getClass().getPackage().getName(), new SubTypesScanner(), new TypeAnnotationsScanner());
-        this.dependencyManager = new DependencyManager(reflections);
+        try {
+            classPath = ClassPath.from(ClassLoader.getSystemClassLoader());
+        } catch (IOException e) {
+            getLogger().log(Level.SEVERE, "An error happened while getting ClassPath.");
+            throw new RuntimeException(e);
+        }
+        this.dependencyManager = new DependencyManager();
         onPluginLoad();
     }
 
@@ -77,7 +82,7 @@ public abstract class ApxPlugin extends JavaPlugin {
 
             PersistenceConfig persistenceConfig = persistenceConfigManager.getPersistenceConfig();
             if (persistenceConfig == null) {
-                persistenceConfig = new PersistenceConfigDiscovery(reflections).discovery().orElse(null);
+                persistenceConfig = new PersistenceConfigDiscovery().discovery().orElse(null);
             }
 
             if (persistenceConfig != null) {
@@ -119,11 +124,11 @@ public abstract class ApxPlugin extends JavaPlugin {
                 }
             }
 
-            new ServicesRegister(reflections, entityManagerFactory, dependencyManager).register();
-            new PlaceholderRegister(this, reflections, dependencyManager).register();
+            new ServicesRegister(entityManagerFactory, dependencyManager).register();
+            new PlaceholderRegister(this, dependencyManager).register();
 
 
-            this.listenerManager = new ListenerManager(this, reflections, dependencyManager);
+            this.listenerManager = new ListenerManager(this, dependencyManager);
 
             dependencyManager.injectDependencies();
             onPluginEnable();
@@ -141,13 +146,13 @@ public abstract class ApxPlugin extends JavaPlugin {
     }
 
     private List<Class<?>> getJpaEntities() {
-        final Set<Class<?>> entities = reflections.getTypesAnnotatedWith(Entity.class);
+        final Set<Class<?>> entities = ReflectionUtils.getClassesAnnotatedWith(Entity.class);
         return new ArrayList<>(entities);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private List<Class<? extends SimpleJpaRepository>> getRepositories() {
-        final Set<Class<? extends SimpleJpaRepository>> repositories = reflections.getSubTypesOf(SimpleJpaRepository.class);
+        final Set<Class<? extends SimpleJpaRepository>> repositories = ReflectionUtils.getSubClassesOf(SimpleJpaRepository.class);
 
         return new ArrayList<>(repositories);
     }

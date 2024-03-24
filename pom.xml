@@ -6,7 +6,7 @@
 
     <groupId>me.approximations.apxPlugin</groupId>
     <artifactId>ApxPlugin</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>pom</packaging>
     <modules>
         <module>test-plugin</module>
@@ -98,6 +98,14 @@
             <artifactId>annotations</artifactId>
             <version>24.0.1</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.1-jre</version>
+            <type>javadoc</type>
+        </dependency>
+
     </dependencies>
 
 </project>

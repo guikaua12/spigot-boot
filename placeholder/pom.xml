@@ -6,10 +6,11 @@
     <parent>
         <groupId>me.approximations.apxPlugin</groupId>
         <artifactId>ApxPlugin</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>placeholder</artifactId>
+    <version>1.0.2</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

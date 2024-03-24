@@ -4,8 +4,8 @@ import lombok.Getter;
 import me.approximations.apxPlugin.di.annotations.DependencyRegister;
 import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.di.annotations.PostInject;
+import me.approximations.apxPlugin.utils.ReflectionUtils;
 import org.jetbrains.annotations.NotNull;
-import org.reflections.Reflections;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -18,11 +18,6 @@ import java.util.stream.Stream;
 public class DependencyManager {
     @Getter
     private final Map<Class<?>, Object> dependencies = new HashMap<>();
-    private final Reflections reflections;
-
-    public DependencyManager(@NotNull Reflections reflections) {
-        this.reflections = reflections;
-    }
 
     @SuppressWarnings("unchecked")
     public <T> T getDependency(@NotNull Class<T> clazz) {
@@ -46,7 +41,7 @@ public class DependencyManager {
     }
 
     public void registerDependencies() {
-        final Set<Class<?>> dependencyRegisters = reflections.getTypesAnnotatedWith(DependencyRegister.class);
+        final Set<Class<?>> dependencyRegisters = ReflectionUtils.getClassesAnnotatedWith(DependencyRegister.class);
 
         for (Class<?> dependencyRegister : dependencyRegisters) {
             try {

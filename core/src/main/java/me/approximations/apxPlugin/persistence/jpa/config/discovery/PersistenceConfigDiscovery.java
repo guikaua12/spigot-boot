@@ -2,7 +2,7 @@ package me.approximations.apxPlugin.persistence.jpa.config.discovery;
 
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
-import org.reflections.Reflections;
+import me.approximations.apxPlugin.utils.ReflectionUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -13,11 +13,10 @@ import java.util.Set;
 
 @RequiredArgsConstructor
 public class PersistenceConfigDiscovery {
-    private final Reflections reflections;
 
     public Optional<PersistenceConfig> discovery() {
         // TODO: allow multiple PersistenceConfig implementations
-        final Set<Class<? extends PersistenceConfig>> configs = reflections.getSubTypesOf(PersistenceConfig.class);
+        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(PersistenceConfig.class);
 
         if (configs.isEmpty()) return Optional.empty();
 

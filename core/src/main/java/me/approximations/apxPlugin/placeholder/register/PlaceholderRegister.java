@@ -5,7 +5,7 @@ import me.approximations.apxPlugin.ApxPlugin;
 import me.approximations.apxPlugin.di.manager.DependencyManager;
 import me.approximations.apxPlugin.placeholder.Placeholder;
 import me.approximations.apxPlugin.placeholder.manager.PlaceholderManager;
-import org.reflections.Reflections;
+import me.approximations.apxPlugin.utils.ReflectionUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
@@ -15,7 +15,6 @@ import java.util.Set;
 public class PlaceholderRegister {
 
     private final ApxPlugin plugin;
-    private final Reflections reflections;
     private final DependencyManager dependencyManager;
 
     public void register() {
@@ -41,6 +40,6 @@ public class PlaceholderRegister {
     }
 
     private Set<Class<? extends Placeholder>> getPlaceholders() {
-        return reflections.getSubTypesOf(Placeholder.class);
+        return ReflectionUtils.getSubClassesOf(Placeholder.class);
     }
 }

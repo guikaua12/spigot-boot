@@ -6,11 +6,11 @@
     <parent>
         <groupId>me.approximations.apxPlugin</groupId>
         <artifactId>ApxPlugin</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>core</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -122,19 +122,19 @@
     </repositories>
 
     <dependencies>
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>0.9.12</version>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.reflections</groupId>-->
+        <!--            <artifactId>reflections</artifactId>-->
+        <!--            <version>0.9.12</version>-->
+        <!--        </dependency>-->
 
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>0.9.12</version>
-            <type>javadoc</type>
-            <scope>provided</scope>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.reflections</groupId>-->
+        <!--            <artifactId>reflections</artifactId>-->
+        <!--            <version>0.9.12</version>-->
+        <!--            <type>javadoc</type>-->
+        <!--            <scope>provided</scope>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>org.hibernate</groupId>
@@ -203,7 +203,7 @@
         <dependency>
             <groupId>me.approximations.apxPlugin</groupId>
             <artifactId>placeholder</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
         </dependency>
 
         <dependency>
