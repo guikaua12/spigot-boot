@@ -11,6 +11,7 @@
     <modules>
         <module>test-plugin</module>
         <module>core</module>
+        <module>placeholder</module>
     </modules>
 
     <properties>

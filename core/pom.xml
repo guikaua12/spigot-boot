@@ -180,13 +180,6 @@
         </dependency>
 
         <dependency>
-            <groupId>me.clip</groupId>
-            <artifactId>placeholderapi</artifactId>
-            <version>2.11.2</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.github.bananapuncher714</groupId>
             <artifactId>nbteditor</artifactId>
             <version>7.19.2</version>
@@ -205,6 +198,19 @@
             <version>3.9.0</version>
             <scope>test</scope>
             <type>javadoc</type>
+        </dependency>
+
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>placeholder</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.2</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

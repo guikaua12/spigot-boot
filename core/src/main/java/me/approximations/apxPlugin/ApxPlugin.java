@@ -120,7 +120,7 @@ public abstract class ApxPlugin extends JavaPlugin {
             }
 
             new ServicesRegister(reflections, entityManagerFactory, dependencyManager).register();
-            new PlaceholderRegister(this, reflections, dependencyManager, placeholderManager).register();
+            new PlaceholderRegister(this, reflections, dependencyManager).register();
 
 
             this.listenerManager = new ListenerManager(this, reflections, dependencyManager);
