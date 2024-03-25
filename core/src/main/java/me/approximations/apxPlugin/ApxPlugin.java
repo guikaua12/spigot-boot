@@ -55,8 +55,9 @@ public abstract class ApxPlugin extends JavaPlugin {
 
     @Override
     public void onLoad() {
+        instance = this;
         try {
-            classPath = ClassPath.from(ClassLoader.getSystemClassLoader());
+            classPath = ClassPath.from(getClass().getClassLoader());
         } catch (IOException e) {
             getLogger().log(Level.SEVERE, "An error happened while getting ClassPath.");
             throw new RuntimeException(e);
@@ -69,7 +70,6 @@ public abstract class ApxPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         final Stopwatch stopwatch = Stopwatch.createStarted();
-        instance = this;
 
         try {
             Logger.getLogger("org.hibernate").setLevel(Level.OFF);

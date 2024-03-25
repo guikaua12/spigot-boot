@@ -6,6 +6,7 @@ import me.approximations.apxPlugin.ApxPlugin;
 
 import java.lang.annotation.Annotation;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class ReflectionUtils {
     private static Set<Class<?>> pluginClasses;
@@ -27,11 +28,14 @@ public final class ReflectionUtils {
 
     public static Set<Class<?>> getAllPluginClasses() {
         if (pluginClasses == null) {
-            pluginClasses = ApxPlugin.getClassPath().getAllClasses()
-                    .stream()
-                    .filter(clazz -> clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
-                    .map(ClassPath.ClassInfo::load)
-                    .collect(ImmutableSet.toImmutableSet());
+            try {
+                pluginClasses = ApxPlugin.getClassPath().getAllClasses()
+                        .stream()
+                        .filter(clazz -> clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
+                        .map(ClassPath.ClassInfo::load)
+                        .collect(Collectors.toSet());
+            } catch (Exception ignored) {
+            }
         }
 
         return pluginClasses;
