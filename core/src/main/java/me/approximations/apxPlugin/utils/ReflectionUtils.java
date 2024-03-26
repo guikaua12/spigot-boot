@@ -1,6 +1,5 @@
 package me.approximations.apxPlugin.utils;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import me.approximations.apxPlugin.ApxPlugin;
 
@@ -15,7 +14,7 @@ public final class ReflectionUtils {
         return getAllPluginClasses()
                 .stream()
                 .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
-                .collect(ImmutableSet.toImmutableSet());
+                .collect(Collectors.toSet());
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz) {
@@ -23,7 +22,7 @@ public final class ReflectionUtils {
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .map(c -> (Class<T>) c)
-                .collect(ImmutableSet.toImmutableSet());
+                .collect(Collectors.toSet());
     }
 
     public static Set<Class<?>> getAllPluginClasses() {
@@ -31,7 +30,7 @@ public final class ReflectionUtils {
             try {
                 pluginClasses = ApxPlugin.getClassPath().getAllClasses()
                         .stream()
-                        .filter(clazz -> clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
+                        .filter(clazz -> !clazz.getPackageName().contains("libs") && clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
                         .map(ClassPath.ClassInfo::load)
                         .collect(Collectors.toSet());
             } catch (Exception ignored) {
