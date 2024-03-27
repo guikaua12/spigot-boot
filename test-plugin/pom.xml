@@ -132,6 +132,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>commands</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
     </dependencies>
 
 </project>
