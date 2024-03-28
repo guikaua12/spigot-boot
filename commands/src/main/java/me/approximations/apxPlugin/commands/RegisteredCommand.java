@@ -55,7 +55,7 @@ public class RegisteredCommand extends Command {
             return false;
         }
 
-        if (parameters.size() < 2) {
+        if (parameters.size() == 1) {
             subCommand.execute(commandSender);
             return true;
         }
