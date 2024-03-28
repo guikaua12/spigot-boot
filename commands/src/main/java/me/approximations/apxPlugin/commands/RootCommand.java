@@ -1,6 +1,7 @@
 package me.approximations.apxPlugin.commands;
 
 import lombok.Getter;
+import me.approximations.apxPlugin.commands.utils.CommandUtils;
 import me.approximations.apxPlugin.commands.utils.MethodFormatUtils;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
@@ -8,8 +9,6 @@ import org.bukkit.command.CommandSender;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Getter
 public abstract class RootCommand {
@@ -49,7 +48,7 @@ public abstract class RootCommand {
             throw new IllegalStateException("SubCommand " + MethodFormatUtils.formatMethod(method) + " first parameter must be a CommandSender");
         }
 
-        final Set<String> variables = getVariables(subCommandAnnotation.value());
+        final Set<String> variables = CommandUtils.getVariables(subCommandAnnotation.value());
 
 
         if (parameters.size() > 1) {
@@ -66,16 +65,6 @@ public abstract class RootCommand {
         }
     }
 
-    private static Set<String> getVariables(String subCommand) {
-        final Set<String> variables = new HashSet<>();
-        final Matcher matcher = Pattern.compile("\\{(.+?)}").matcher(subCommand);
-
-        while (matcher.find()) {
-            variables.add(matcher.group(1));
-        }
-
-        return variables;
-    }
 
     public void onRegister(CommandManager commandManager) {
         final Class<? extends RootCommand> clazz = getClass();

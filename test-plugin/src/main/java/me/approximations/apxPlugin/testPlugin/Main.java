@@ -23,6 +23,7 @@ public class Main extends ApxPlugin {
 //        });
 
         final CommandManager commandManager = new CommandManager(this);
+        getDependencyManager().registerDependency(CommandManager.class, commandManager);
         commandManager.registerCommand(new ApxPluginCommands());
     }
 

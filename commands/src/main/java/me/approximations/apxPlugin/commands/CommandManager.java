@@ -43,4 +43,8 @@ public class CommandManager {
     public void registerCommand(RootCommand rootCommand) {
         rootCommand.onRegister(this);
     }
+
+    public RegisteredCommand getCommand(String alias) {
+        return (RegisteredCommand) commandMap.getCommand(alias);
+    }
 }

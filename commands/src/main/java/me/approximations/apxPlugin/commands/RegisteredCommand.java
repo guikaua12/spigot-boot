@@ -11,10 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 
 public class RegisteredCommand extends Command {
@@ -76,4 +73,41 @@ public class RegisteredCommand extends Command {
         return true;
     }
 
+    @NotNull
+    @Override
+    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
+        sender.sendMessage(alias);
+        sender.sendMessage(Arrays.toString(args));
+
+        final Set<String> cmds = new HashSet<>();
+
+        final int cmdIndex = Math.max(0, args.length - 1);
+        final String arg = ApacheCommonsLangUtil.join(args, ' ');
+
+//        String argString = ApacheCommonsLangUtil.join(args, " ").toLowerCase(Locale.ENGLISH);
+
+        for (final RegisteredSubCommand subCommand : rootCommand.getSubCommands().values()) {
+            final Matcher matcher = subCommand.getAliasPattern().matcher(arg);
+
+            if (matcher.matches() || matcher.hitEnd()) {
+                cmds.add(subCommand.getAlias().split(" ")[cmdIndex]);
+                continue;
+            }
+//            final String[] aliasSplit = subCommand.getAlias().split(" ");
+//
+//            if (aliasSplit.length < args.length) {
+//                continue;
+//            }
+//
+//            final String patternString = ApacheCommonsLangUtil.join(subCommand.getAliasPattern().pattern().split(" "), ' ', 0, cmdIndex);
+//            final Pattern pattern = Pattern.compile(patternString);
+//            final Matcher matcher = pattern.matcher(arg);
+//
+//            if (matcher.lookingAt()) {
+//                cmds.add(aliasSplit[cmdIndex]);
+//            }
+        }
+
+        return new ArrayList<>(cmds);
+    }
 }

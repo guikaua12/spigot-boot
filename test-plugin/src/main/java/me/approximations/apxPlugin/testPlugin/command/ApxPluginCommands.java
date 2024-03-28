@@ -18,4 +18,14 @@ public class ApxPluginCommands extends RootCommand {
     public void pointsSeeOther(CommandSender commandSender, @CommandArgument("player") String player) {
         commandSender.sendMessage(ChatColor.GREEN + player + "'s points: 0");
     }
+
+    @SubCommand("player {player} points set")
+    public void pointsSet(CommandSender commandSender, @CommandArgument("player") String player) {
+        commandSender.sendMessage(ChatColor.GREEN + player + "'s points set to x succesfully.");
+    }
+
+    @SubCommand("player {player} limit see")
+    public void limitSee(CommandSender commandSender, @CommandArgument("player") String player) {
+        commandSender.sendMessage(ChatColor.GREEN + player + "'s limit is 5.");
+    }
 }
