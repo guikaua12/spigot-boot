@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.regex.Matcher;
 
@@ -31,7 +30,6 @@ public class RegisteredCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandSender commandSender, @NotNull String s, @NotNull String[] args) {
-        commandSender.sendMessage(rootCommand.getSubCommands().values().toString());
         final String join = ApacheCommonsLangUtil.join(args, ' ');
         final RegisteredSubCommand subCommand = rootCommand.findSubCommand(join);
 
@@ -42,33 +40,32 @@ public class RegisteredCommand extends Command {
 
         final Matcher matcher = subCommand.getAliasPattern().matcher(join);
 
-        if (!matcher.matches()) {
-            commandSender.sendMessage(ChatColor.RED + "No such command");
+        final Map<String, CommandArgument> arguments = subCommand.getArguments();
+
+        final Class<?> senderType = subCommand.getSenderType();
+
+        if (subCommand.getPermission() != null && !commandSender.hasPermission(subCommand.getPermission())) {
+            commandSender.sendMessage(ChatColor.RED + "You do not have permission to execute this command!");
             return false;
         }
 
-        final List<Parameter> parameters = Arrays.asList(subCommand.getParameters());
-
-        final Class<?> senderType = parameters.get(0).getType();
         if (!senderType.isAssignableFrom(commandSender.getClass())) {
             commandSender.sendMessage(ChatColor.RED + "You must be a " + SENDER_FORMAT.get(senderType) + " to execute this command!");
             return false;
         }
 
-        if (parameters.size() == 1) {
+        if (arguments.isEmpty()) {
             subCommand.execute(commandSender);
             return true;
         }
 
-        final List<Object> arguments = new ArrayList<>();
-
-        for (final Parameter parameter : parameters.subList(1, parameters.size())) {
-            final String parameterId = parameter.getAnnotation(CommandArgument.class).value();
-            final String group = matcher.group(parameterId);
-            arguments.add(group);
+        final List<Object> argumentValues = new ArrayList<>();
+        for (final Map.Entry<String, CommandArgument> entry : arguments.entrySet()) {
+            final String value = matcher.group(entry.getValue().getId());
+            argumentValues.add(value);
         }
 
-        subCommand.execute(commandSender, arguments);
+        subCommand.execute(commandSender, argumentValues);
 
         return true;
     }
@@ -79,15 +76,40 @@ public class RegisteredCommand extends Command {
         final Set<String> cmds = new HashSet<>();
 
         final int cmdIndex = Math.max(0, args.length - 1);
-        final String arg = ApacheCommonsLangUtil.join(args, ' ');
+        final String currentArg = args[cmdIndex];
+        final String argJoined = ApacheCommonsLangUtil.join(args, ' ');
 
         for (final RegisteredSubCommand subCommand : rootCommand.getSubCommands().values()) {
-            final Matcher matcher = subCommand.getAliasPattern().matcher(arg);
-
-            if (matcher.matches() || matcher.hitEnd()) {
-                cmds.add(subCommand.getAlias().split(" ")[cmdIndex]);
+            if (subCommand.getPermission() != null && !sender.hasPermission(subCommand.getPermission())) {
                 continue;
             }
+
+            final String[] subAliasSplit = subCommand.getAlias().split(" ");
+
+            if (subAliasSplit.length < args.length) continue;
+
+            final String subAlias = subAliasSplit[cmdIndex];
+
+            if (subCommand.matches(argJoined) || subCommand.partiallyMatches(argJoined)) {
+                final CommandArgument indexArgument = subCommand.getArguments().get(subAlias);
+
+                if (indexArgument != null) {
+                    final CommandCompletionHandler completion = rootCommand.getCommandManager().getCompletion(indexArgument.getCompletionId());
+                    if (completion != null) {
+                        final Collection<String> completionResult = completion.handle(new CommandCompletionContext(sender));
+
+                        for (final String s : completionResult) {
+                            if (s.startsWith(currentArg)) {
+                                cmds.add(s);
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                cmds.add(subAlias);
+            }
+
         }
 
         return new ArrayList<>(cmds);
