@@ -1,6 +1,10 @@
 package me.approximations.apxPlugin.testPlugin.command;
 
-import me.approximations.apxPlugin.commands.*;
+import me.approximations.apxPlugin.commands.RootCommand;
+import me.approximations.apxPlugin.commands.annotations.CommandAlias;
+import me.approximations.apxPlugin.commands.annotations.CommandArgument;
+import me.approximations.apxPlugin.commands.annotations.CommandDescription;
+import me.approximations.apxPlugin.commands.annotations.SubCommand;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,7 +19,7 @@ public class ApxPluginCommands extends RootCommand {
     }
 
     @SubCommand("player {player} points see")
-    public void pointsSeeOther(CommandSender commandSender, @CommandArgument("player") String player) {
+    public void pointsSeeOther(CommandSender commandSender, @CommandArgument(value="player", completion="players") String player) {
         commandSender.sendMessage(ChatColor.GREEN + player + "'s points: 0");
     }
 

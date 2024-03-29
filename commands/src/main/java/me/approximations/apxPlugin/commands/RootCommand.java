@@ -1,6 +1,8 @@
 package me.approximations.apxPlugin.commands;
 
 import lombok.Getter;
+import me.approximations.apxPlugin.commands.annotations.CommandArgument;
+import me.approximations.apxPlugin.commands.annotations.*;
 import me.approximations.apxPlugin.commands.utils.CommandUtils;
 import me.approximations.apxPlugin.commands.utils.MethodFormatUtils;
 import org.bukkit.command.CommandMap;
@@ -13,6 +15,7 @@ import java.util.*;
 @Getter
 public abstract class RootCommand {
     private final Map<String, RegisteredSubCommand> subCommands = new HashMap<>();
+    private CommandManager commandManager;
 
     public void registerSubCommand(Method method) {
         validateSubCommand(method);
@@ -27,7 +30,7 @@ public abstract class RootCommand {
                 alias.value(),
                 permission != null ? permission.value() : null,
                 description != null ? description.value() : "",
-                method.getParameters()
+                method.getParameters()[0].getType()
         );
         subCommands.put(alias.value(), registeredSubCommand);
 
@@ -49,7 +52,6 @@ public abstract class RootCommand {
         }
 
         final Set<String> variables = CommandUtils.getVariables(subCommandAnnotation.value());
-
 
         if (parameters.size() > 1) {
             final List<Parameter> argumentParameters = parameters.subList(1, parameters.size());
@@ -88,6 +90,7 @@ public abstract class RootCommand {
         );
         final CommandMap commandMap = commandManager.getCommandMap();
         commandMap.register(aliases.get(0), registeredCommand);
+        this.commandManager = commandManager;
 
         for (Method method : clazz.getDeclaredMethods()) {
             registerSubCommand(method);

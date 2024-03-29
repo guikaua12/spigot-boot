@@ -1,12 +1,14 @@
-package me.approximations.apxPlugin.commands;
+package me.approximations.apxPlugin.commands.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface SubCommand {
+public @interface CommandArgument {
     String value();
+
+    String completion() default "";
 }

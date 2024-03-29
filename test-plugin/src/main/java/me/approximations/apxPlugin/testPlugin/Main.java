@@ -5,6 +5,10 @@ import me.approximations.apxPlugin.commands.CommandManager;
 import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.testPlugin.command.ApxPluginCommands;
 import me.approximations.apxPlugin.testPlugin.repositories.UserRepository;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.stream.Collectors;
 
 public class Main extends ApxPlugin {
     @Inject
@@ -24,6 +28,11 @@ public class Main extends ApxPlugin {
 
         final CommandManager commandManager = new CommandManager(this);
         getDependencyManager().registerDependency(CommandManager.class, commandManager);
+
+        commandManager.registerCompletion("players", context ->
+                Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toSet())
+        );
+
         commandManager.registerCommand(new ApxPluginCommands());
     }
 

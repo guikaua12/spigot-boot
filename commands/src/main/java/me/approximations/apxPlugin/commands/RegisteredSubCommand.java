@@ -2,17 +2,15 @@ package me.approximations.apxPlugin.commands;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.commands.utils.CommandUtils;
 import org.bukkit.command.CommandSender;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Getter
@@ -23,8 +21,9 @@ public class RegisteredSubCommand {
     private Pattern aliasPattern;
     private final String permission;
     private final String description;
-    private final Parameter[] parameters;
-    private final Set<String> variables = new HashSet<>();
+    private final Class<?> senderType;
+    private final Map<String, CommandArgument> arguments = new HashMap<>();
+    private final ThreadLocal<Matcher> matcherThreadLocal = ThreadLocal.withInitial(() -> aliasPattern.matcher(""));
 
     public void execute(CommandSender commandSender, Object... args) {
         final Object[] arguments = new Object[args.length + 1];
@@ -44,7 +43,14 @@ public class RegisteredSubCommand {
 
     public void onRegister() {
         aliasPattern = subCommandToPattern(alias);
-        variables.addAll(CommandUtils.getVariables(alias).stream().map(s -> "{" + s + "}").collect(Collectors.toList()));
+
+        for (Parameter p : method.getParameters()) {
+            if (!p.isAnnotationPresent(me.approximations.apxPlugin.commands.annotations.CommandArgument.class))
+                continue;
+
+            final me.approximations.apxPlugin.commands.annotations.CommandArgument annotation = p.getAnnotation(me.approximations.apxPlugin.commands.annotations.CommandArgument.class);
+            arguments.put("{" + annotation.value() + "}", new CommandArgument(annotation.value(), p, p.getType(), annotation.completion()));
+        }
     }
 
     private Pattern subCommandToPattern(String subCommand) {
@@ -59,10 +65,14 @@ public class RegisteredSubCommand {
     }
 
     public boolean matches(String input) {
-        return aliasPattern.matcher(input).matches();
+        final Matcher matcher = matcherThreadLocal.get();
+        matcher.reset(input);
+        return matcher.matches();
     }
 
-    public boolean isVariable(String s) {
-        return variables.contains(s);
+    public boolean partiallyMatches(String input) {
+        final Matcher matcher = matcherThreadLocal.get();
+        matcher.reset(input);
+        return matcher.hitEnd();
     }
 }

@@ -1,12 +1,15 @@
 package me.approximations.apxPlugin.commands;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-@Target(ElementType.PARAMETER)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface CommandArgument {
-    String value();
+import java.lang.reflect.Parameter;
+
+@RequiredArgsConstructor
+@Getter
+public class CommandArgument {
+    private final String id;
+    private final Parameter parameter;
+    private final Class<?> type;
+    private final String completionId;
 }

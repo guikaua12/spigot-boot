@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CommandManager {
@@ -17,10 +18,19 @@ public class CommandManager {
     @Getter
     private CommandMap commandMap;
     private Map<String, Command> knownCommands;
+    private final Map<String, CommandCompletionHandler> completions = new HashMap<>();
 
     public CommandManager(Plugin plugin) {
         this.plugin = plugin;
         this.commandMap = this.hookCommandMap();
+    }
+
+    public void registerCompletion(String id, CommandCompletionHandler handler) {
+        completions.put(id, handler);
+    }
+
+    public CommandCompletionHandler getCompletion(String id) {
+        return completions.get(id);
     }
 
     private CommandMap hookCommandMap() {
