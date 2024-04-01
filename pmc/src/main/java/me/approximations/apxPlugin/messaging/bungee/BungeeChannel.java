@@ -2,10 +2,7 @@ package me.approximations.apxPlugin.messaging.bungee;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteStreams;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.ApxPlugin;
-import me.approximations.apxPlugin.di.annotations.Inject;
 import me.approximations.apxPlugin.messaging.Channel;
 import me.approximations.apxPlugin.messaging.bungee.actions.ChannelSubscriberCallback;
 import me.approximations.apxPlugin.messaging.bungee.actions.NormalMessageAction;
@@ -16,6 +13,7 @@ import me.approximations.apxPlugin.messaging.bungee.handler.impl.*;
 import me.approximations.apxPlugin.messaging.message.Message;
 import me.approximations.apxPlugin.messaging.message.MessageResponse;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,19 +25,17 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @RequiredArgsConstructor
-@NoArgsConstructor(force=true)
 public class BungeeChannel implements Channel, PluginMessageListener {
     public static final String NAME = "BungeeCord";
 
     private final Map<String, MessageResponseHandler<?, ?>> responseHandlerMap = new HashMap<>();
     private final Map<String, List<ChannelSubscriberCallback>> subscriberMap = new HashMap<>();
-    @NotNull @Inject
-    private final ApxPlugin plugin;
+    @NotNull
+    private final Plugin plugin;
 
     @Override
     public void init() {
         registerChannel();
-        plugin.addDisableEntry(this::unregisterChannel);
 
         responseHandlerMap.put(PlayerCountAction.SUB_CHANNEL, new PlayerCountHandler());
         responseHandlerMap.put(IpOtherAction.SUB_CHANNEL, new IpOtherHandler());

@@ -18,7 +18,7 @@ public class Main extends ApxPlugin {
     protected void onPluginEnable() {
         System.out.println(userRepository.findAll());
 
-//        final BungeeChannel bungeeChannel = getDependencyManager().getDependency(BungeeChannel.class);
+//        final BungeeChannel bungeeChannel = new BungeeChannel(this);
 //        bungeeChannel.init();
 //
 //        bungeeChannel.subscribe("test", message -> {

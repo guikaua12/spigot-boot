@@ -22,28 +22,26 @@
  * SOFTWARE.
  */
 
-package me.approximations.apxPlugin.messaging.bungee.actions.responseable;
+package me.approximations.apxPlugin.messaging.bungee.actions.normal;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
-import me.approximations.apxPlugin.messaging.bungee.actions.ResponseableMessageAction;
-import me.approximations.apxPlugin.messaging.bungee.handler.MessageResponseHandler;
-import me.approximations.apxPlugin.utils.ChannelDataOutputUtils;
+import me.approximations.apxPlugin.messaging.bungee.actions.NormalMessageAction;
+import me.approximations.apxPlugin.messaging.utils.ChannelDataOutputUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.concurrent.CompletableFuture;
 
 @EqualsAndHashCode(callSuper=true)
 @Data
-public class IpOtherAction extends ResponseableMessageAction<InetSocketAddress> {
-    public static final String SUB_CHANNEL = "IPOther";
+public class ConnectOtherAction extends NormalMessageAction {
+    public static final String SUB_CHANNEL = "ConnectOther";
     private final String playerName;
+    private final String serverName;
 
     @Override
     public @NotNull String getSubChannel() {
@@ -51,12 +49,12 @@ public class IpOtherAction extends ResponseableMessageAction<InetSocketAddress> 
     }
 
     @Override
-    public CompletableFuture<InetSocketAddress> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, InetSocketAddress> responseHandler) throws IOException {
+    public void sendMessage(@Nullable Player player, @NotNull Plugin plugin) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
             output.writeUTF(playerName);
+            output.writeUTF(serverName);
         });
-
-        return responseHandler.addFuture(playerName);
     }
+
 }

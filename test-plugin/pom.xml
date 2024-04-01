@@ -138,6 +138,13 @@
             <version>1.0.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>pmc</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+
     </dependencies>
 
 </project>
