@@ -26,13 +26,12 @@ package me.approximations.apxPlugin.messaging.bungee.actions.responseable;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import me.approximations.apxPlugin.ApxPlugin;
 import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
 import me.approximations.apxPlugin.messaging.bungee.actions.ResponseableMessageAction;
 import me.approximations.apxPlugin.messaging.bungee.handler.MessageResponseHandler;
 import me.approximations.apxPlugin.messaging.message.Message;
 import me.approximations.apxPlugin.messaging.message.MessageResponse;
-import me.approximations.apxPlugin.utils.ChannelDataOutputUtils;
+import me.approximations.apxPlugin.messaging.utils.ChannelDataOutputUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +52,7 @@ public class ForwardAction<I extends Serializable, O extends Serializable> exten
     private final @NotNull String server;
     private final @NotNull String subChannel;
     private final @NotNull I i;
-    private final @NotNull ApxPlugin plugin = ApxPlugin.getInstance();
+    private final @NotNull Plugin plugin;
 
     public @NotNull String getSubChannel() {
         return SUB_CHANNEL;
@@ -61,7 +60,7 @@ public class ForwardAction<I extends Serializable, O extends Serializable> exten
 
     @Override
     public CompletableFuture<MessageResponse<O>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, MessageResponse<O>> responseHandler) throws IOException {
-        final Message<I, O> message = new Message<>(UUID.randomUUID(), server, subChannel, i);
+        final Message<I, O> message = new Message<>(UUID.randomUUID(), server, subChannel, i, plugin);
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME,
                 output -> {
                     output.writeUTF(SUB_CHANNEL);

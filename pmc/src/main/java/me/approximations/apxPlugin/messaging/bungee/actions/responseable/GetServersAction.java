@@ -29,20 +29,20 @@ import lombok.EqualsAndHashCode;
 import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
 import me.approximations.apxPlugin.messaging.bungee.actions.ResponseableMessageAction;
 import me.approximations.apxPlugin.messaging.bungee.handler.MessageResponseHandler;
-import me.approximations.apxPlugin.utils.ChannelDataOutputUtils;
+import me.approximations.apxPlugin.messaging.utils.ChannelDataOutputUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @EqualsAndHashCode(callSuper=true)
 @Data
-public class GetPlayerServerAction extends ResponseableMessageAction<String> {
-    public static final String SUB_CHANNEL = "GetPlayerServer";
-    private final String playerName;
+public class GetServersAction extends ResponseableMessageAction<List<String>> {
+    public static final String SUB_CHANNEL = "GetServers";
 
     @Override
     public @NotNull String getSubChannel() {
@@ -50,12 +50,11 @@ public class GetPlayerServerAction extends ResponseableMessageAction<String> {
     }
 
     @Override
-    public CompletableFuture<String> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, String> responseHandler) throws IOException {
+    public CompletableFuture<List<String>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, List<String>> responseHandler) throws IOException {
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
             output.writeUTF(SUB_CHANNEL);
-            output.writeUTF(playerName);
         });
 
-        return responseHandler.addFuture(playerName);
+        return responseHandler.addFuture();
     }
 }

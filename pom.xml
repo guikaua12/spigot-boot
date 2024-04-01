@@ -12,6 +12,7 @@
         <module>test-plugin</module>
         <module>core</module>
         <module>placeholder</module>
+        <module>pmc</module>
     </modules>
 
     <properties>

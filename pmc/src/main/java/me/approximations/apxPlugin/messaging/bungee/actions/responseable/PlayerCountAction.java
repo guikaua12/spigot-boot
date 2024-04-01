@@ -29,7 +29,7 @@ import lombok.EqualsAndHashCode;
 import me.approximations.apxPlugin.messaging.bungee.BungeeChannel;
 import me.approximations.apxPlugin.messaging.bungee.actions.ResponseableMessageAction;
 import me.approximations.apxPlugin.messaging.bungee.handler.MessageResponseHandler;
-import me.approximations.apxPlugin.utils.ChannelDataOutputUtils;
+import me.approximations.apxPlugin.messaging.utils.ChannelDataOutputUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;

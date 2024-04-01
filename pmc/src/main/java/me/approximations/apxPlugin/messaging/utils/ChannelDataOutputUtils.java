@@ -1,4 +1,4 @@
-package me.approximations.apxPlugin.utils;
+package me.approximations.apxPlugin.messaging.utils;
 
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteArrayDataOutput;
