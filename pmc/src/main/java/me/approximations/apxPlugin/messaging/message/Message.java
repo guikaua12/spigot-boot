@@ -21,9 +21,8 @@ public class Message<I extends Serializable, O extends Serializable> implements 
     @NotNull private final String originServer;
     @NotNull private final String subChannel;
     @NotNull private final I body;
-    @NotNull private final Plugin plugin;
 
-    public void respond(O body) {
+    public void respond(O body, Plugin plugin) {
         final MessageResponse<O> response = new MessageResponse<>(id, body);
         try {
             ChannelDataOutputUtils.sendMessage(null, plugin, BungeeChannel.NAME,

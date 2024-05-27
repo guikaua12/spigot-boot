@@ -60,7 +60,7 @@ public class ForwardAction<I extends Serializable, O extends Serializable> exten
 
     @Override
     public CompletableFuture<MessageResponse<O>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, MessageResponse<O>> responseHandler) throws IOException {
-        final Message<I, O> message = new Message<>(UUID.randomUUID(), server, subChannel, i, plugin);
+        final Message<I, O> message = new Message<>(UUID.randomUUID(), server, subChannel, i);
         ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME,
                 output -> {
                     output.writeUTF(SUB_CHANNEL);
