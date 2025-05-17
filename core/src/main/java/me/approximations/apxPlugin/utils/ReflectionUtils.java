@@ -4,6 +4,7 @@ import com.google.common.reflect.ClassPath;
 import me.approximations.apxPlugin.ApxPlugin;
 
 import java.lang.annotation.Annotation;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,7 +32,12 @@ public final class ReflectionUtils {
                 pluginClasses = ApxPlugin.getClassPath().getAllClasses()
                         .stream()
                         .filter(clazz -> !clazz.getPackageName().contains("libs") && clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
-                        .map(ClassPath.ClassInfo::load)
+                        // skip module-info
+                        .filter(clazz -> !clazz.getName().equals("module-info"))
+                        // skip ant and other build tool classes
+                        .filter(clazz -> !clazz.getName().startsWith("org.apache.tools.ant"))
+                        .map(classInfo -> Utils.sneakThrow(classInfo::load))
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
             } catch (Exception ignored) {
             }

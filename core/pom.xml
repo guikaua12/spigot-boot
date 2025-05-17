@@ -203,6 +203,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.10.14</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>me.approximations.apxPlugin</groupId>
             <artifactId>placeholder</artifactId>
             <version>1.0.2</version>
