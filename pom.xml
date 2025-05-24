@@ -13,6 +13,7 @@
         <module>core</module>
         <module>placeholder</module>
         <module>pmc</module>
+        <module>di</module>
     </modules>
 
     <properties>
