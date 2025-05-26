@@ -1,6 +1,6 @@
 package me.approximations.apxPlugin.test;
 
-import me.approximations.apxPlugin.utils.ColorUtil;
+import me.approximations.apxPlugin.core.utils.ColorUtil;
 import org.junit.jupiter.api.Test;
 
 

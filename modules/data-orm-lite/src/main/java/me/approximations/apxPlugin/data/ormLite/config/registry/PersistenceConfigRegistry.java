@@ -3,9 +3,9 @@ package me.approximations.apxPlugin.data.ormLite.config.registry;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.data.ormLite.config.PersistenceConfig;
 import me.approximations.apxPlugin.data.ormLite.config.registry.discovery.PersistenceConfigDiscoveryService;
-import me.approximations.apxPlugin.di.annotations.Component;
-import me.approximations.apxPlugin.di.manager.DependencyManager;
-import me.approximations.apxPlugin.reflection.DiscoveryService;
+import me.approximations.apxPlugin.core.di.annotations.Component;
+import me.approximations.apxPlugin.core.di.manager.DependencyManager;
+import me.approximations.apxPlugin.core.reflection.DiscoveryService;
 import org.bukkit.plugin.Plugin;
 
 import java.util.concurrent.atomic.AtomicReference;

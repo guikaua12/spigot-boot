@@ -1,7 +1,7 @@
 package me.approximations.apxPlugin.placeholder.papi;
 
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.di.annotations.Component;
+import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.placeholder.metadata.PlaceholderMetadata;
 import me.approximations.apxPlugin.placeholder.registry.PlaceholderRegistry;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;

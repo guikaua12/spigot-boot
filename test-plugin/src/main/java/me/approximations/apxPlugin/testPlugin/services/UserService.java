@@ -1,7 +1,7 @@
 package me.approximations.apxPlugin.testPlugin.services;
 
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.di.annotations.Service;
+import me.approximations.apxPlugin.core.di.annotations.Service;
 import me.approximations.apxPlugin.testPlugin.People;
 import me.approximations.apxPlugin.testPlugin.repositories.UserRepository;
 

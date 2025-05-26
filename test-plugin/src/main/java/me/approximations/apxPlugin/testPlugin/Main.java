@@ -1,6 +1,6 @@
 package me.approximations.apxPlugin.testPlugin;
 
-import me.approximations.apxPlugin.ApxPlugin;
+import me.approximations.apxPlugin.core.ApxPlugin;
 
 public class Main extends ApxPlugin {
 //    private UserRepository userRepository;

@@ -2,13 +2,13 @@ package me.approximations.apxPlugin.placeholder.registry;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.di.manager.DependencyManager;
+import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.placeholder.annotations.Placeholder;
 import me.approximations.apxPlugin.placeholder.metadata.PlaceholderMetadata;
 import me.approximations.apxPlugin.placeholder.papi.PAPIExpansion;
 import me.approximations.apxPlugin.placeholder.registry.discovery.PlaceholderDiscoveryService;
-import me.approximations.apxPlugin.reflection.DiscoveryService;
-import me.approximations.apxPlugin.utils.ReflectionUtils;
+import me.approximations.apxPlugin.core.reflection.DiscoveryService;
+import me.approximations.apxPlugin.core.utils.ReflectionUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 

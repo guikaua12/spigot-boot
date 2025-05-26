@@ -7,8 +7,8 @@ import me.approximations.apxPlugin.data.config.impl.HikariPersistenceUnitConfig;
 import me.approximations.apxPlugin.data.ormLite.config.PersistenceConfig;
 import me.approximations.apxPlugin.data.ormLite.config.registry.PersistenceConfigRegistry;
 import me.approximations.apxPlugin.data.ormLite.repository.registry.OrmLiteRepositoryRegistry;
-import me.approximations.apxPlugin.di.manager.DependencyManager;
-import me.approximations.apxPlugin.module.Module;
+import me.approximations.apxPlugin.core.di.manager.DependencyManager;
+import me.approximations.apxPlugin.core.module.Module;
 
 import javax.sql.DataSource;
 

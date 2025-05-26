@@ -1,9 +1,9 @@
 package me.approximations.apxPlugin.placeholder;
 
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.ApxPlugin;
-import me.approximations.apxPlugin.module.Module;
-import me.approximations.apxPlugin.module.annotations.ConditionalOnClass;
+import me.approximations.apxPlugin.core.ApxPlugin;
+import me.approximations.apxPlugin.core.module.Module;
+import me.approximations.apxPlugin.core.module.annotations.ConditionalOnClass;
 import me.approximations.apxPlugin.placeholder.registry.PlaceholderRegistry;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
