@@ -14,6 +14,8 @@
         <module>placeholder</module>
         <module>pmc</module>
         <module>di</module>
+        <module>data</module>
+        <module>modules</module>
     </modules>
 
     <properties>

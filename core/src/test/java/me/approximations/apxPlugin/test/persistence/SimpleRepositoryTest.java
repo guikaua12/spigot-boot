@@ -4,8 +4,8 @@ import me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.PersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.config.impl.HikariPersistenceUnitConfig;
 import me.approximations.apxPlugin.persistence.jpa.proxy.handler.SharedSessionMethodHandler;
-import me.approximations.apxPlugin.persistence.jpa.repository.JpaRepository;
-import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
+import me.approximations.apxPlugin.persistence.jpa.repository.Repository;
+import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleRepository;
 import org.hibernate.Session;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.H2Dialect;
@@ -23,7 +23,7 @@ import java.util.List;
 
 public class SimpleRepositoryTest {
     public static final String H2_ADDRESS_FORMAT = "jdbc:h2:mem:%s";
-    static JpaRepository<People, Long> peopleRepository;
+    static Repository<People, Long> peopleRepository;
 
     @BeforeEach
     public void beforeEach() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
@@ -62,6 +62,11 @@ public class SimpleRepositoryTest {
             public Class<? extends Dialect> getDialect() {
                 return H2Dialect.class;
             }
+
+            @Override
+            public String getDdlAuto() {
+                return "none";
+            }
         };
 
         final PersistenceUnitConfig persistenceUnitConfig = new HikariPersistenceUnitConfig(config, Arrays.asList(People.class));
@@ -75,7 +80,7 @@ public class SimpleRepositoryTest {
 
         final Session sharedEntityManagerProxy = SharedSessionMethodHandler.createProxy(entityManagerFactory);
 
-        peopleRepository = new SimpleJpaRepository<>(sharedEntityManagerProxy, People.class);
+        peopleRepository = new SimpleRepository<>(sharedEntityManagerProxy, People.class);
         peopleRepository.deleteAll();
     }
 

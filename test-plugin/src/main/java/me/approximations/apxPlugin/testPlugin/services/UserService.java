@@ -3,7 +3,7 @@ package me.approximations.apxPlugin.testPlugin.services;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.di.annotations.Inject;
-import me.approximations.apxPlugin.persistence.jpa.service.annotations.Service;
+import me.approximations.apxPlugin.di.annotations.Service;
 import me.approximations.apxPlugin.testPlugin.People;
 import me.approximations.apxPlugin.testPlugin.repositories.UserRepository;
 
@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 @RequiredArgsConstructor
-@NoArgsConstructor(force=true)
+@NoArgsConstructor(force = true)
 @Service
 public class UserService {
     private final String name = "UserService";

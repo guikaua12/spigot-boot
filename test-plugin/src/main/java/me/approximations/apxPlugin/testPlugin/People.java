@@ -1,26 +1,29 @@
 package me.approximations.apxPlugin.testPlugin;
 
 import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 
 
 @Getter
 @Setter
-@NoArgsConstructor(force=true)
+@NoArgsConstructor(force = true)
 @AllArgsConstructor
 @ToString
 @Entity
-@Table(name="jpa_peoples")
+@Table(name = "jpa_peoples")
 public class People implements Serializable {
     @Id
-    private final String uuid;
+    @GeneratedValue(generator = "uuid-hibernate-generator")
+    @GenericGenerator(name = "uuid-hibernate-generator", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "uuid", updatable = false, nullable = false, columnDefinition = "VARCHAR(36)")
+    private final UUID uuid;
     private String name;
     private String email;
-    @Column(name="created_at") private final Instant createdAt;
+    @Column(name = "created_at")
+    private final Instant createdAt;
 }

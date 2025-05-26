@@ -1,13 +1,12 @@
 package me.approximations.apxPlugin.testPlugin.repositories;
 
-import me.approximations.apxPlugin.persistence.jpa.repository.impl.SimpleJpaRepository;
+import me.approximations.apxPlugin.persistence.jpa.repository.Query;
+import me.approximations.apxPlugin.persistence.jpa.repository.Repository;
 import me.approximations.apxPlugin.testPlugin.People;
-import org.hibernate.Session;
 
-public class UserRepository extends SimpleJpaRepository<People, String> {
-    private final String name = "UserRepository";
+import java.util.UUID;
 
-    public UserRepository(Session entityManager, Class<People> entityClass) {
-        super(entityManager, entityClass);
-    }
+public interface UserRepository extends Repository<People, UUID> {
+    @Query("SELECT u FROM People u WHERE u.uuid = :uuid")
+    People findById(String uuid);
 }

@@ -1,9 +1,8 @@
 package me.approximations.apxPlugin.testPlugin.configuration;
 
+import org.h2.Driver;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.MySQL8Dialect;
-
-import java.sql.Driver;
+import org.hibernate.dialect.H2Dialect;
 
 public class PersistenceConfig implements me.approximations.apxPlugin.persistence.jpa.config.PersistenceConfig {
     @Override
@@ -13,12 +12,12 @@ public class PersistenceConfig implements me.approximations.apxPlugin.persistenc
 
     @Override
     public String getAddress() {
-        return "jdbc:mysql://localhost:3306/test";
+        return "jdbc:h2:mem:test";
     }
 
     @Override
     public String getUsername() {
-        return "root";
+        return "sa";
     }
 
     @Override
@@ -28,11 +27,7 @@ public class PersistenceConfig implements me.approximations.apxPlugin.persistenc
 
     @Override
     public Class<? extends Driver> getJdbcDriver() {
-        try {
-            return (Class<? extends Driver>) Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return Driver.class;
     }
 
     @Override
@@ -42,6 +37,11 @@ public class PersistenceConfig implements me.approximations.apxPlugin.persistenc
 
     @Override
     public Class<? extends Dialect> getDialect() {
-        return MySQL8Dialect.class;
+        return H2Dialect.class;
+    }
+
+    @Override
+    public String getDdlAuto() {
+        return "update";
     }
 }

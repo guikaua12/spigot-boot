@@ -10,7 +10,7 @@ public class Main extends ApxPlugin {
 
     @Override
     protected void onPluginEnable() {
-        System.out.println(userRepository.findAll());
+//        System.out.println(userRepository.findAll());
 
 //        final BungeeChannel bungeeChannel = new BungeeChannel(this);
 //        bungeeChannel.init();

@@ -18,7 +18,7 @@ public class UserServiceTest {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
 
-        userService = plugin.getDependencyManager().getDependency(UserService.class);
+        userService = plugin.getDependencyManager().resolveDependency(UserService.class);
     }
 
     @Test

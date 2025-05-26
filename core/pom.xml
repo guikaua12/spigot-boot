@@ -122,41 +122,36 @@
     </repositories>
 
     <dependencies>
-        <!--        <dependency>-->
-        <!--            <groupId>org.reflections</groupId>-->
-        <!--            <artifactId>reflections</artifactId>-->
-        <!--            <version>0.9.12</version>-->
-        <!--        </dependency>-->
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.reflections</groupId>-->
-        <!--            <artifactId>reflections</artifactId>-->
-        <!--            <version>0.9.12</version>-->
-        <!--            <type>javadoc</type>-->
-        <!--            <scope>provided</scope>-->
-        <!--        </dependency>-->
-
+        <!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-core</artifactId>
-            <version>5.6.15.Final</version>
-            <exclusions>
-            </exclusions>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-core</artifactId>
-            <version>5.6.15.Final</version>
-            <type>javadoc</type>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
         <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>4.0.3</version>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>placeholder</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>di</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.bananapuncher714</groupId>
+            <artifactId>nbteditor</artifactId>
+            <version>7.19.2</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
@@ -172,19 +167,6 @@
             <artifactId>h2</artifactId>
             <version>2.2.224</version>
             <scope>test</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
-        <dependency>
-            <groupId>org.javassist</groupId>
-            <artifactId>javassist</artifactId>
-            <version>3.30.2-GA</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.bananapuncher714</groupId>
-            <artifactId>nbteditor</artifactId>
-            <version>7.19.2</version>
         </dependency>
 
         <dependency>
@@ -207,19 +189,6 @@
             <artifactId>ant</artifactId>
             <version>1.10.14</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>placeholder</artifactId>
-            <version>1.0.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>me.clip</groupId>
-            <artifactId>placeholderapi</artifactId>
-            <version>2.11.6</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 

@@ -1,26 +1,54 @@
 package me.approximations.apxPlugin.di;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class DIContainer {
-    private final Map<Class<?>, Class<?>> typeMappings = new HashMap<>();
+    private final Map<Class<?>, ClassMetadata<?>> typeMappings = new HashMap<>();
     private final Map<Class<?>, Object> singletons = new HashMap<>();
 
-    public <T> void register(Class<T> baseType, Class<? extends T> implType) {
-        typeMappings.put(baseType, implType);
+    @SuppressWarnings("unchecked")
+    public <T> ClassMetadata<T> register(Class<T> baseType, Class<? extends T> implType) {
+        if (implType.isInterface()) {
+            throw new IllegalArgumentException("Cannot register an interface: " + implType.getName());
+        }
+
+        ClassMetadata<T> classMetadata = new ClassMetadata<>((Class<T>) implType, getInjectConstructor((Class<T>) implType));
+        typeMappings.put(baseType, classMetadata);
+
+        return classMetadata;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> ClassMetadata<T> register(Class<? extends T> baseType, T dependency) {
+        ClassMetadata<T> classMetadata = new ClassMetadata<>((Class<T>) dependency.getClass(), getInjectConstructor((Class<T>) dependency.getClass()));
+        typeMappings.put(baseType, classMetadata);
+        singletons.put(baseType, dependency);
+
+        return classMetadata;
+    }
+
+    @SuppressWarnings("unchecked")
     public <T> T resolve(Class<T> type) {
+        if (!typeMappings.containsKey(type)) {
+            return null;
+        }
+
         try {
             if (singletons.containsKey(type)) {
                 return type.cast(singletons.get(type));
             }
-            Class<?> implType = typeMappings.getOrDefault(type, type);
-            T instance = (T) createInstance(implType);
+
+            ClassMetadata<?> implMetadata = typeMappings.get(type);
+
+            T instance = (T) createInstance(implMetadata);
             singletons.put(type, instance);
             return instance;
         } catch (Exception e) {
@@ -28,37 +56,18 @@ public class DIContainer {
         }
     }
 
-    private <T> T createInstance(Class<T> type) throws Exception {
-        // constructor injection
-        Constructor<?> injectCtor = null;
-        for (Constructor<?> ctor : type.getDeclaredConstructors()) {
-            if (ctor.isAnnotationPresent(Inject.class)) {
-                injectCtor = ctor;
-                break;
-            }
-        }
-        if (injectCtor != null) {
-            return instantiateWithConstructor(injectCtor, type);
-        }
+    private <T> T createInstance(ClassMetadata<T> metadata) throws Exception {
+        Constructor<T> constructor = metadata.getInjectConstructor();
 
-        Constructor<?>[] ctors = type.getDeclaredConstructors();
-        Constructor<?> selectedCtor = null;
-        int maxParams = -1;
-        for (Constructor<?> ctor : ctors) {
-            int paramCount = ctor.getParameterCount();
-            if (paramCount > maxParams) {
-                maxParams = paramCount;
-                selectedCtor = ctor;
-            }
-        }
-        if (selectedCtor != null && maxParams > 0) {
-            return instantiateWithConstructor(selectedCtor, type);
-        }
+        T instance = instantiateWithConstructor(metadata.getClazz(), constructor);
 
-        Constructor<T> ctor = type.getDeclaredConstructor();
-        T instance = ctor.newInstance();
+        setterInject(metadata.getClazz(), instance);
+        fieldInject(metadata.getClazz(), instance);
 
-        // setter injection
+        return instance;
+    }
+
+    private <T> void setterInject(Class<T> type, T instance) throws IllegalAccessException, InvocationTargetException {
         for (Method method : type.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
                 Class<?> depType = method.getParameterTypes()[0];
@@ -67,7 +76,9 @@ public class DIContainer {
                 method.invoke(instance, dep);
             }
         }
-        // field injection
+    }
+
+    private <T> void fieldInject(Class<T> type, T instance) throws IllegalAccessException {
         for (Field field : type.getDeclaredFields()) {
             if (field.isAnnotationPresent(Inject.class)) {
                 Object dep = resolve(field.getType());
@@ -75,32 +86,40 @@ public class DIContainer {
                 field.set(instance, dep);
             }
         }
-        return instance;
     }
 
-    private <T> T instantiateWithConstructor(Constructor<?> ctor, Class<T> type) throws Exception {
+    private <T> T instantiateWithConstructor(Class<T> type, Constructor<?> ctor) throws Exception {
         Class<?>[] paramTypes = ctor.getParameterTypes();
         Object[] params = new Object[paramTypes.length];
         for (int i = 0; i < paramTypes.length; i++) {
             params[i] = resolve(paramTypes[i]);
         }
         ctor.setAccessible(true);
-        T instance = type.cast(ctor.newInstance(params));
-        for (Method method : type.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
-                Object dep = resolve(method.getParameterTypes()[0]);
-                method.setAccessible(true);
-                method.invoke(instance, dep);
+        return type.cast(ctor.newInstance(params));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> @NotNull Constructor<T> getInjectConstructor(@NotNull Class<T> type) {
+        Objects.requireNonNull(type, "type cannot be null.");
+
+        for (Constructor<?> ctor : type.getDeclaredConstructors()) {
+            if (ctor.isAnnotationPresent(Inject.class)) {
+                return (Constructor<T>) ctor;
             }
         }
-        for (Field field : type.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class)) {
-                Object dep = resolve(field.getType());
-                field.setAccessible(true);
-                field.set(instance, dep);
+
+        Constructor<T>[] ctors = (Constructor<T>[]) type.getDeclaredConstructors();
+        Constructor<T> selectedCtor = null;
+        int maxParams = -1;
+        for (Constructor<T> ctor : ctors) {
+            int paramCount = ctor.getParameterCount();
+            if (paramCount > maxParams) {
+                maxParams = paramCount;
+                selectedCtor = ctor;
             }
         }
-        return instance;
+
+        return selectedCtor;
     }
 }
 

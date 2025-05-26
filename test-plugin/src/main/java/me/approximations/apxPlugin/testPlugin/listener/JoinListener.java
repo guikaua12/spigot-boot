@@ -34,7 +34,7 @@ public class JoinListener implements Listener {
         userService.getPeople(player.getUniqueId().toString()).thenAccept(peopleOptional -> {
             if (!peopleOptional.isPresent()) {
                 player.sendMessage("Not in database, creating...");
-                final People people = new People(event.getPlayer().getUniqueId().toString(),
+                final People people = new People(event.getPlayer().getUniqueId(),
                         player.getName(),
                         player.getName() + "@example.com",
                         Instant.now()
