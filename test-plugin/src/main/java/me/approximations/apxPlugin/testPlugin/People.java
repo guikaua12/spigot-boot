@@ -1,9 +1,10 @@
 package me.approximations.apxPlugin.testPlugin;
 
+import com.j256.ormlite.field.DataType;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
@@ -14,16 +15,14 @@ import java.util.UUID;
 @NoArgsConstructor(force = true)
 @AllArgsConstructor
 @ToString
-@Entity
-@Table(name = "jpa_peoples")
+@DatabaseTable(tableName = "person")
 public class People implements Serializable {
-    @Id
-    @GeneratedValue(generator = "uuid-hibernate-generator")
-    @GenericGenerator(name = "uuid-hibernate-generator", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "uuid", updatable = false, nullable = false, columnDefinition = "VARCHAR(36)")
+    @DatabaseField(generatedId = true, columnName = "id", canBeNull = false, dataType = DataType.UUID)
     private final UUID uuid;
+    @DatabaseField(columnName = "name", canBeNull = false)
     private String name;
+    @DatabaseField(columnName = "email", canBeNull = false)
     private String email;
-    @Column(name = "created_at")
+    @DatabaseField(columnName = "created_at", canBeNull = false)
     private final Instant createdAt;
 }

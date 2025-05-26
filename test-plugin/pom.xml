@@ -143,6 +143,18 @@
             <artifactId>pmc</artifactId>
             <version>1.0.2</version>
         </dependency>
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>data-orm-lite</artifactId>
+            <version>1.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.approximations.apxPlugin</groupId>
+            <artifactId>placeholder</artifactId>
+            <version>1.0.2</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 

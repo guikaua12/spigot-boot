@@ -23,11 +23,12 @@
             <artifactId>data</artifactId>
             <version>1.0.2</version>
         </dependency>
-        
+
         <dependency>
             <groupId>com.j256.ormlite</groupId>
             <artifactId>ormlite-jdbc</artifactId>
             <version>6.1</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>

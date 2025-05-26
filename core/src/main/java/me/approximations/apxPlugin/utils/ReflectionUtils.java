@@ -1,28 +1,57 @@
 package me.approximations.apxPlugin.utils;
 
-import lombok.Getter;
-import me.approximations.apxPlugin.ApxPlugin;
+import com.google.common.reflect.ClassPath;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public final class ReflectionUtils {
-    @Getter(lazy = true)
-    private static final Set<Class<?>> pluginClasses = getAllPluginClasses();
+    private static final Set<Class<?>> pluginClasses = new HashSet<>();
+    private static final Map<String, Set<Class<?>>> classes = new HashMap<>();
 
-    public static Set<Class<?>> getClassesAnnotatedWith(Class<? extends Annotation> annotationClass) {
-        return pluginClasses
+    public static Set<Class<?>> getClassesFromPackage(Class<?>... baseClasses) {
+        return Arrays.stream(baseClasses)
+                .flatMap((clazz) -> {
+                    try {
+                        String packageName = clazz.getPackage().getName();
+
+                        if (classes.containsKey(packageName)) {
+                            return classes.get(packageName).stream();
+                        }
+
+                        ClassPath classPath = null;
+
+                        classPath = ClassPath.from(clazz.getClassLoader());
+
+
+                        Set<Class<?>> loadedClasses = classPath.getAllClasses()
+                                .stream()
+                                .filter(classInfo -> classInfo.getPackageName().startsWith(packageName))
+                                .map(ClassPath.ClassInfo::load)
+                                .collect(Collectors.toSet());
+
+                        classes.put(packageName, loadedClasses);
+
+                        return loadedClasses.stream();
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to load classes from package: " + clazz.getPackage().getName(), e);
+                    }
+                }).collect(Collectors.toSet());
+    }
+
+    public static Set<Class<?>> getClassesAnnotatedWith(Class<?> baseClass, Class<? extends Annotation> annotationClass) {
+        return getClassesFromPackage(baseClass)
                 .stream()
                 .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz) {
-        return pluginClasses
+    public static <T> Set<Class<? extends T>> getSubClassesOf(Class<?> baseClass, Class<T> clazz) {
+        return getClassesFromPackage(baseClass)
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .filter(c -> !c.equals(clazz))
@@ -31,8 +60,8 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubInterfacesOf(Class<T> clazz) {
-        return pluginClasses
+    public static <T> Set<Class<? extends T>> getSubInterfacesOf(Class<?> baseClass, Class<T> clazz) {
+        return getClassesFromPackage(baseClass)
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .filter(Class::isInterface)
@@ -41,21 +70,33 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    private static Set<Class<?>> getAllPluginClasses() {
-        return ApxPlugin.getClassPath().getAllClasses()
-                .stream()
-                .filter(clazz -> !clazz.getPackageName().contains("libs") && clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
-                .filter(clazz -> !clazz.getName().equals("module-info"))
-                // skip ant and other build tool classes
-                .filter(clazz -> !clazz.getName().startsWith("org.apache.tools.ant"))
-                .map(classInfo -> Utils.sneakThrow(classInfo::load))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-    }
+//    public static Set<Class<?>> getAllPluginClasses() {
+//        if (!pluginClasses.isEmpty()) {
+//            return pluginClasses;
+//        }
+//
+//        pluginClasses.addAll(ApxPlugin.getClassPath().getAllClasses()
+//                .stream()
+//                .filter(clazz -> !clazz.getPackageName().contains("libs") && clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
+//                .filter(clazz -> !clazz.getName().equals("module-info"))
+//                // skip ant and other build tool classes
+//                .filter(clazz -> !clazz.getName().startsWith("org.apache.tools.ant"))
+//                .map(classInfo -> Utils.sneakThrow(classInfo::load))
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toSet()));
+//
+//        return pluginClasses;
+//    }
 
     public static Set<Field> getFieldsAnnotatedWith(Class<? extends Annotation> annotationClass, Class<?> clazz) {
         return Arrays.stream(clazz.getDeclaredFields())
-                .filter(field -> clazz.isAnnotationPresent(annotationClass))
+                .filter(field -> field.isAnnotationPresent(annotationClass))
+                .collect(Collectors.toSet());
+    }
+
+    public static Set<Method> getMethodsAnnotatedWith(Class<? extends Annotation> annotationClass, Class<?> clazz) {
+        return Arrays.stream(clazz.getMethods())
+                .filter(method -> method.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
     }
 }

@@ -6,17 +6,19 @@ import me.approximations.apxPlugin.data.ormLite.config.registry.discovery.Persis
 import me.approximations.apxPlugin.di.annotations.Component;
 import me.approximations.apxPlugin.di.manager.DependencyManager;
 import me.approximations.apxPlugin.reflection.DiscoveryService;
+import org.bukkit.plugin.Plugin;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 @RequiredArgsConstructor
 public class PersistenceConfigRegistry {
-    private final DiscoveryService<Class<? extends PersistenceConfig>> persistenceConfigDiscoveryService = new PersistenceConfigDiscoveryService();
     private final AtomicReference<PersistenceConfig> persistenceConfigAtomicReference = new AtomicReference<>();
     private final DependencyManager dependencyManager;
+    private final Plugin plugin;
 
     public PersistenceConfig initialize() {
+        final DiscoveryService<Class<? extends PersistenceConfig>> persistenceConfigDiscoveryService = new PersistenceConfigDiscoveryService(plugin);
         Class<? extends PersistenceConfig> persistenceConfigClass = persistenceConfigDiscoveryService.discover().orElseThrow(
                 () -> new IllegalStateException("data-orm-lite is on classpath but no persistence configuration is found. Ensure that a valid PersistenceConfig is provided.")
         );

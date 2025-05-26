@@ -27,13 +27,13 @@ public class ListenerManager {
     }
 
     public void registerListeners() {
-        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(Listener.class)) {
+        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(plugin.getClass(), Listener.class)) {
             if (!listener.isAnnotationPresent(ListenerRegister.class)) continue;
 
             try {
                 final Listener instance = listener.newInstance();
                 registerListener(instance);
-                dependencyManager.injectDependencies(instance);
+//                dependencyManager.injectDependencies(instance);
             } catch (InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

@@ -108,10 +108,6 @@
 
     <repositories>
         <repository>
-            <id>placeholderapi</id>
-            <url>https://repo.extendedclip.com/releases/</url>
-        </repository>
-        <repository>
             <id>CodeMC</id>
             <url>https://repo.codemc.org/repository/maven-public/</url>
         </repository>
@@ -127,19 +123,6 @@
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
             <version>3.30.2-GA</version>
-        </dependency>
-
-        <dependency>
-            <groupId>me.clip</groupId>
-            <artifactId>placeholderapi</artifactId>
-            <version>2.11.6</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>placeholder</artifactId>
-            <version>1.0.2</version>
         </dependency>
 
         <dependency>

@@ -1,5 +1,6 @@
 package me.approximations.apxPlugin.di;
 
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@Getter
 public class DIContainer {
     private final Map<Class<?>, ClassMetadata<?>> typeMappings = new HashMap<>();
     private final Map<Class<?>, Object> singletons = new HashMap<>();
@@ -61,10 +63,22 @@ public class DIContainer {
 
         T instance = instantiateWithConstructor(metadata.getClazz(), constructor);
 
-        setterInject(metadata.getClazz(), instance);
-        fieldInject(metadata.getClazz(), instance);
+        injectDependencies(instance);
 
         return instance;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> void injectDependencies(T instance) {
+        Objects.requireNonNull(instance, "instance cannot be null.");
+        Class<T> type = (Class<T>) instance.getClass();
+
+        try {
+            setterInject(type, instance);
+            fieldInject(type, instance);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException("Failed to inject dependencies for: " + type.getName(), e);
+        }
     }
 
     private <T> void setterInject(Class<T> type, T instance) throws IllegalAccessException, InvocationTargetException {
@@ -99,7 +113,7 @@ public class DIContainer {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> @NotNull Constructor<T> getInjectConstructor(@NotNull Class<T> type) {
+    public <T> @NotNull Constructor<T> getInjectConstructor(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null.");
 
         for (Constructor<?> ctor : type.getDeclaredConstructors()) {

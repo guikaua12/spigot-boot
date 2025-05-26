@@ -4,14 +4,17 @@ import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.data.ormLite.config.PersistenceConfig;
 import me.approximations.apxPlugin.reflection.DiscoveryService;
 import me.approximations.apxPlugin.utils.ReflectionUtils;
+import org.bukkit.plugin.Plugin;
 
 import java.util.Optional;
 import java.util.Set;
 
 @RequiredArgsConstructor
 public class PersistenceConfigDiscoveryService implements DiscoveryService<Class<? extends PersistenceConfig>> {
+    private final Plugin plugin;
+
     public Optional<Class<? extends PersistenceConfig>> discover() {
-        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(PersistenceConfig.class);
+        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(plugin.getClass(), PersistenceConfig.class);
 
         if (configs.isEmpty()) return Optional.empty();
 

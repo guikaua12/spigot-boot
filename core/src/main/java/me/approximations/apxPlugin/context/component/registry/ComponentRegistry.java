@@ -2,9 +2,11 @@ package me.approximations.apxPlugin.context.component.registry;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import me.approximations.apxPlugin.ApxPlugin;
 import me.approximations.apxPlugin.di.annotations.Component;
 import me.approximations.apxPlugin.di.manager.DependencyManager;
 import me.approximations.apxPlugin.utils.ReflectionUtils;
+import org.bukkit.plugin.Plugin;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
@@ -14,8 +16,8 @@ import java.util.stream.Collectors;
 @Getter
 @RequiredArgsConstructor
 public class ComponentRegistry {
-
     private final DependencyManager dependencyManager;
+    private final Plugin plugin;
 
     public RegisterResult registerComponents() {
         final Set<Class<? extends Annotation>> componentsAnnotations = discoverComponentsAnnotations();
@@ -30,8 +32,8 @@ public class ComponentRegistry {
 
     @SuppressWarnings("unchecked")
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getPluginClasses().stream()
-                .filter(clazz -> clazz.isAnnotation() && clazz.isAnnotationPresent(Component.class))
+        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, plugin.getClass()).stream()
+                .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
                 .map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
@@ -41,8 +43,9 @@ public class ComponentRegistry {
             return Collections.emptySet();
         }
 
-        return ReflectionUtils.getPluginClasses()
+        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, plugin.getClass())
                 .stream()
+                .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))
                 .collect(Collectors.toSet());
     }

@@ -8,6 +8,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 public class UserServiceTest {
     private ServerMock server;
     private Main plugin;
@@ -23,14 +25,14 @@ public class UserServiceTest {
 
     @Test
     public void test() throws InterruptedException {
-        userService.getPeople("Some uuid")
+
+        userService.getPeople(UUID.randomUUID())
                 .thenAccept(peopleOptional -> {
                     System.out.println(peopleOptional);
                 }).exceptionally(throwable -> {
                     throwable.printStackTrace();
                     throw new RuntimeException(throwable);
                 });
-
         Thread.sleep(5000);
     }
 

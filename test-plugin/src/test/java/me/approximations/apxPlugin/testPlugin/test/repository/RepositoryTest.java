@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class RepositoryTest {
     private ServerMock server;
@@ -35,12 +36,12 @@ public class RepositoryTest {
 
     @Test
     public void shouldInsert() {
-        final People people = new People(null, "test", "test@gmail.com", Instant.now());
-        Assertions.assertNull(people.getUuid());
+        final People people = new People(UUID.randomUUID(), "test", "test@gmail.com", Instant.now());
+        Assertions.assertNull(userRepository.findById(people.getUuid()));
 
         userRepository.save(people);
 
-        Assertions.assertNotNull(people.getUuid());
+        Assertions.assertNotNull(userRepository.findById(people.getUuid()));
     }
 
     @Test
@@ -59,7 +60,7 @@ public class RepositoryTest {
         userRepository.save(people);
 
         // findById is a custom method on UserRepository
-        final People foundPeople = userRepository.findById(people.getUuid().toString());
+        final People foundPeople = userRepository.findById(people.getUuid());
         Assertions.assertNotNull(foundPeople);
         Assertions.assertEquals(people.getUuid(), foundPeople.getUuid());
     }
