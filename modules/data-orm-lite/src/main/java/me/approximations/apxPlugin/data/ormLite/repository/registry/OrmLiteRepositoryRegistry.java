@@ -4,13 +4,13 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.data.ormLite.repository.OrmLiteRepository;
-import me.approximations.apxPlugin.data.ormLite.repository.annotations.OrmLiteDao;
-import me.approximations.apxPlugin.data.ormLite.repository.registry.discovery.OrmLiteRepositoryDiscoveryService;
 import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.reflection.DiscoveryService;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
+import me.approximations.apxPlugin.data.ormLite.repository.OrmLiteRepository;
+import me.approximations.apxPlugin.data.ormLite.repository.annotations.OrmLiteDao;
+import me.approximations.apxPlugin.data.ormLite.repository.registry.discovery.OrmLiteRepositoryDiscoveryService;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;

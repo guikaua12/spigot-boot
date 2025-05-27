@@ -29,8 +29,8 @@ public class DependencyManager {
             Constructor<?> injectConstructor = implMetadata.getInjectConstructor();
 
             Object[] objects = Arrays.stream(injectConstructor.getParameterTypes()).map(diContainer::resolve).toArray();
-            T componentProxy = ComponentMethodHandler.createProxy(implMetadata.getClazz(), injectConstructor.getParameterTypes(), objects);
 
+            T componentProxy = ComponentMethodHandler.createProxy(implMetadata.getClazz(), injectConstructor.getParameterTypes(), objects);
             diContainer.getSingletons().put(clazz, componentProxy);
             diContainer.injectDependencies(componentProxy);
 

@@ -1,8 +1,10 @@
 package me.approximations.apxPlugin.core.utils;
 
+import com.google.common.base.Strings;
 import com.google.common.reflect.ClassPath;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -13,34 +15,43 @@ public final class ReflectionUtils {
     private static final Set<Class<?>> pluginClasses = new HashSet<>();
     private static final Map<String, Set<Class<?>>> classes = new HashMap<>();
 
-    public static Set<Class<?>> getClassesFromPackage(Class<?>... baseClasses) {
-        return Arrays.stream(baseClasses)
-                .flatMap((clazz) -> {
+    public static Set<Class<?>> getClassesFromPackage(String... packages) {
+        return Arrays.stream(packages)
+                .map(packageName -> Strings.nullToEmpty(packageName).trim())
+                .flatMap((packageName) -> {
                     try {
-                        String packageName = clazz.getPackage().getName();
-
                         if (classes.containsKey(packageName)) {
                             return classes.get(packageName).stream();
                         }
 
-                        ClassPath classPath = null;
-
-                        classPath = ClassPath.from(clazz.getClassLoader());
-
+                        ClassPath classPath = ClassPath.from(ReflectionUtils.class.getClassLoader());
 
                         Set<Class<?>> loadedClasses = classPath.getAllClasses()
                                 .stream()
                                 .filter(classInfo -> classInfo.getPackageName().startsWith(packageName))
-                                .map(ClassPath.ClassInfo::load)
+                                .filter(cls -> !cls.getName().equals("module-info"))
+                                // skip ant and other build tool classes
+                                .filter(cls -> !cls.getName().startsWith("org.apache.tools.ant"))
+                                .map((cls) -> Utils.sneakThrow(cls::load))
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toSet());
 
                         classes.put(packageName, loadedClasses);
 
                         return loadedClasses.stream();
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to load classes from package: " + clazz.getPackage().getName(), e);
+                    } catch (Throwable e) {
+                        throw new RuntimeException("Failed to load classes from package: " + packageName, e);
                     }
                 }).collect(Collectors.toSet());
+    }
+
+    public static Set<Class<?>> getClassesFromPackage(Class<?>... classes) {
+        return getClassesFromPackage(
+                Arrays.stream(classes)
+                        .map(Class::getPackage)
+                        .map(Package::getName)
+                        .toArray(String[]::new)
+        );
     }
 
     public static Set<Class<?>> getClassesAnnotatedWith(Class<?> baseClass, Class<? extends Annotation> annotationClass) {
@@ -50,24 +61,26 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(Class<?> baseClass, Class<T> clazz) {
-        return getClassesFromPackage(baseClass)
+    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz, boolean ignoreInterfaces) {
+        return getClassesFromPackage(baseClass != null ? baseClass.getPackage().getName() : "")
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .filter(c -> !c.equals(clazz))
-                .filter(c -> !c.isInterface())
+                .filter(c -> !ignoreInterfaces || !c.isInterface())
                 .map(c -> (Class<T>) c)
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubInterfacesOf(Class<?> baseClass, Class<T> clazz) {
-        return getClassesFromPackage(baseClass)
-                .stream()
-                .filter(clazz::isAssignableFrom)
-                .filter(Class::isInterface)
-                .filter(c -> !c.equals(clazz))
-                .map(c -> (Class<T>) c)
-                .collect(Collectors.toSet());
+    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz) {
+        return getSubClassesOf(baseClass, clazz, false);
+    }
+
+    public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz, boolean ignoreInterfaces) {
+        return getSubClassesOf(null, clazz, ignoreInterfaces);
+    }
+
+    public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz) {
+        return getSubClassesOf(null, clazz);
     }
 
 //    public static Set<Class<?>> getAllPluginClasses() {
@@ -98,5 +111,14 @@ public final class ReflectionUtils {
         return Arrays.stream(clazz.getMethods())
                 .filter(method -> method.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Class<? extends Plugin> getRealPluginClass(Plugin plugin) {
+        if (plugin.getClass().getClassLoader().getClass().getName().toLowerCase().contains("mockbukkit")) {
+            return (Class<? extends Plugin>) plugin.getClass().getSuperclass();
+        }
+
+        return plugin.getClass();
     }
 }

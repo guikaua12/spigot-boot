@@ -27,7 +27,7 @@ public class ListenerManager {
     }
 
     public void registerListeners() {
-        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(plugin.getClass(), Listener.class)) {
+        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(ReflectionUtils.getRealPluginClass(plugin), Listener.class)) {
             if (!listener.isAnnotationPresent(ListenerRegister.class)) continue;
 
             try {

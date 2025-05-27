@@ -13,6 +13,6 @@ public class ModuleDiscoveryService {
     private final Plugin plugin;
 
     public Set<Class<? extends Module>> discoverModules() {
-        return ReflectionUtils.getSubClassesOf(plugin.getClass(), Module.class);
+        return ReflectionUtils.getSubClassesOf(Module.class);
     }
 }

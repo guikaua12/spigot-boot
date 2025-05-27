@@ -4,6 +4,7 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import lombok.*;
+import me.approximations.apxPlugin.data.ormLite.repository.persisters.InstantPersister;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -23,6 +24,6 @@ public class People implements Serializable {
     private String name;
     @DatabaseField(columnName = "email", canBeNull = false)
     private String email;
-    @DatabaseField(columnName = "created_at", canBeNull = false)
+    @DatabaseField(columnName = "created_at", canBeNull = false, persisterClass = InstantPersister.class)
     private final Instant createdAt;
 }

@@ -4,7 +4,6 @@ import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 @RequiredArgsConstructor
@@ -14,11 +13,11 @@ public class ComponentMethodHandler implements MethodHandler {
     public static <T> T createProxy(Class<T> clazz, Class<?>[] args, Object[] values) {
         final ProxyFactory proxyFactory = new ProxyFactory();
         proxyFactory.setSuperclass(clazz);
+        proxyFactory.setHandler(new ComponentMethodHandler());
 
         try {
-            return (T) proxyFactory.create(args, values, new ComponentMethodHandler());
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
-                 InvocationTargetException e) {
+            return (T) proxyFactory.createClass().getConstructor(args).newInstance(values);
+        } catch (Throwable e) {
             throw new RuntimeException("Failed to create proxy for class: " + clazz.getName(), e);
         }
     }

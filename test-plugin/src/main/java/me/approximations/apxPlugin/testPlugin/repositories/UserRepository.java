@@ -5,5 +5,5 @@ import me.approximations.apxPlugin.testPlugin.People;
 
 import java.util.UUID;
 
-public interface UserRepository extends OrmLiteRepository<People, UUID> {
+public abstract class UserRepository implements OrmLiteRepository<People, UUID> {
 }

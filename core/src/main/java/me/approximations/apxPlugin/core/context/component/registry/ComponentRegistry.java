@@ -7,6 +7,7 @@ import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
@@ -19,9 +20,9 @@ public class ComponentRegistry {
     private final DependencyManager dependencyManager;
     private final Plugin plugin;
 
-    public RegisterResult registerComponents() {
+    public RegisterResult registerComponents(@Nullable Class<?>... baseClasses) {
         final Set<Class<? extends Annotation>> componentsAnnotations = discoverComponentsAnnotations();
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(componentsAnnotations);
+        final Set<Class<?>> componentsClasses = discoverComponentsClasses(componentsAnnotations, baseClasses);
 
         for (Class<?> componentsClass : componentsClasses) {
             dependencyManager.registerDependency(componentsClass);
@@ -30,20 +31,26 @@ public class ComponentRegistry {
         return new RegisterResult(componentsClasses, componentsAnnotations);
     }
 
+    public RegisterResult registerComponents() {
+        return registerComponents(null);
+    }
+
     @SuppressWarnings("unchecked")
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, plugin.getClass()).stream()
+        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, ReflectionUtils.getRealPluginClass(plugin)).stream()
                 .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
                 .map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
 
-    private Set<Class<?>> discoverComponentsClasses(Set<Class<? extends Annotation>> componentsAnnotations) {
+    private Set<Class<?>> discoverComponentsClasses(Set<Class<? extends Annotation>> componentsAnnotations, @Nullable Class<?>... baseClasses) {
         if (componentsAnnotations.isEmpty()) {
             return Collections.emptySet();
         }
 
-        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, plugin.getClass())
+        Class<?>[] baseClassesToUse = baseClasses != null ? baseClasses : new Class<?>[]{ApxPlugin.class, ReflectionUtils.getRealPluginClass(plugin)};
+
+        return ReflectionUtils.getClassesFromPackage(baseClassesToUse)
                 .stream()
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))

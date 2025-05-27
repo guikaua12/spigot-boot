@@ -3,7 +3,6 @@ package me.approximations.apxPlugin.core.context.component;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.core.context.component.registry.ComponentRegistry;
-import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import org.bukkit.plugin.Plugin;
 
@@ -11,7 +10,6 @@ import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
 
-@Component
 @Getter
 @RequiredArgsConstructor
 public class ComponentManager {
@@ -29,5 +27,10 @@ public class ComponentManager {
 
         componentsAnnotations.addAll(registerResult.getRegisteredAnnotations());
         componentsClasses.addAll(registerResult.getRegisteredClasses());
+    }
+
+    public void registerComponents(Class<?>... baseClasses) {
+        ComponentRegistry.RegisterResult registerResult = new ComponentRegistry(dependencyManager, plugin).registerComponents(baseClasses);
+        dependencyManager.registerDependency(getClass(), this);
     }
 }

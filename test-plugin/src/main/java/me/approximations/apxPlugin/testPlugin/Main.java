@@ -5,6 +5,7 @@ import me.approximations.apxPlugin.core.ApxPlugin;
 public class Main extends ApxPlugin {
 //    private UserRepository userRepository;
 
+
     @Override
     protected void onPluginEnable() {
 //        System.out.println(userRepository.findAll());
