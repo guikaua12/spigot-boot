@@ -1,7 +1,9 @@
 package me.approximations.apxPlugin.core.di;
 
 import lombok.Getter;
+import me.approximations.apxPlugin.utils.ProxyUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -18,10 +20,6 @@ public class DIContainer {
 
     @SuppressWarnings("unchecked")
     public <T> ClassMetadata<T> register(Class<T> baseType, Class<? extends T> implType) {
-        if (implType.isInterface()) {
-            throw new IllegalArgumentException("Cannot register an interface: " + implType.getName());
-        }
-
         ClassMetadata<T> classMetadata = new ClassMetadata<>((Class<T>) implType, getInjectConstructor((Class<T>) implType));
         typeMappings.put(baseType, classMetadata);
 
@@ -30,7 +28,7 @@ public class DIContainer {
 
     @SuppressWarnings("unchecked")
     public <T> ClassMetadata<T> register(Class<? extends T> baseType, T dependency) {
-        ClassMetadata<T> classMetadata = new ClassMetadata<>((Class<T>) dependency.getClass(), getInjectConstructor((Class<T>) dependency.getClass()));
+        ClassMetadata<T> classMetadata = new ClassMetadata<>(ProxyUtils.getRealClass(dependency), getInjectConstructor(ProxyUtils.getRealClass(dependency)));
         typeMappings.put(baseType, classMetadata);
         singletons.put(baseType, dependency);
 
@@ -71,7 +69,7 @@ public class DIContainer {
     @SuppressWarnings("unchecked")
     public <T> void injectDependencies(T instance) {
         Objects.requireNonNull(instance, "instance cannot be null.");
-        Class<T> type = (Class<T>) instance.getClass();
+        Class<T> type = ProxyUtils.getRealClass(instance);
 
         try {
             setterInject(type, instance);
@@ -113,8 +111,12 @@ public class DIContainer {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> @NotNull Constructor<T> getInjectConstructor(@NotNull Class<T> type) {
+    public <T> @Nullable Constructor<T> getInjectConstructor(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null.");
+
+        if (type.isInterface()) {
+            return null;
+        }
 
         for (Constructor<?> ctor : type.getDeclaredConstructors()) {
             if (ctor.isAnnotationPresent(Inject.class)) {

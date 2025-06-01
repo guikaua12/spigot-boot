@@ -15,6 +15,7 @@
         <module>di</module>
         <module>data</module>
         <module>modules</module>
+        <module>utils</module>
     </modules>
 
     <properties>

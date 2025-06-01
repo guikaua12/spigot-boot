@@ -2,7 +2,6 @@ package me.approximations.apxPlugin.core.utils;
 
 import com.google.common.base.Strings;
 import com.google.common.reflect.ClassPath;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
@@ -83,24 +82,6 @@ public final class ReflectionUtils {
         return getSubClassesOf(null, clazz);
     }
 
-//    public static Set<Class<?>> getAllPluginClasses() {
-//        if (!pluginClasses.isEmpty()) {
-//            return pluginClasses;
-//        }
-//
-//        pluginClasses.addAll(ApxPlugin.getClassPath().getAllClasses()
-//                .stream()
-//                .filter(clazz -> !clazz.getPackageName().contains("libs") && clazz.getPackageName().startsWith(ApxPlugin.getInstance().getClass().getPackage().getName()))
-//                .filter(clazz -> !clazz.getName().equals("module-info"))
-//                // skip ant and other build tool classes
-//                .filter(clazz -> !clazz.getName().startsWith("org.apache.tools.ant"))
-//                .map(classInfo -> Utils.sneakThrow(classInfo::load))
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toSet()));
-//
-//        return pluginClasses;
-//    }
-
     public static Set<Field> getFieldsAnnotatedWith(Class<? extends Annotation> annotationClass, Class<?> clazz) {
         return Arrays.stream(clazz.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(annotationClass))
@@ -111,14 +92,5 @@ public final class ReflectionUtils {
         return Arrays.stream(clazz.getMethods())
                 .filter(method -> method.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
-    }
-
-    @SuppressWarnings("unchecked")
-    public static Class<? extends Plugin> getRealPluginClass(Plugin plugin) {
-        if (plugin.getClass().getClassLoader().getClass().getName().toLowerCase().contains("mockbukkit")) {
-            return (Class<? extends Plugin>) plugin.getClass().getSuperclass();
-        }
-
-        return plugin.getClass();
     }
 }

@@ -4,19 +4,17 @@ import com.google.common.base.Stopwatch;
 import com.google.common.reflect.ClassPath;
 import lombok.Getter;
 import me.approximations.apxPlugin.core.context.component.ComponentManager;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
 import me.approximations.apxPlugin.core.context.configuration.processor.ConfigurationProcessor;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.listener.manager.ListenerManager;
 import me.approximations.apxPlugin.core.module.ModuleManager;
-import me.approximations.apxPlugin.core.utils.ReflectionUtils;
+import me.approximations.apxPlugin.utils.ProxyUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.java.JavaPluginLoader;
-import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,23 +34,16 @@ public abstract class ApxPlugin extends JavaPlugin {
     @Getter
     private ListenerManager listenerManager;
 
-    protected ApxPlugin() {
-    }
-
-    protected ApxPlugin(@NotNull JavaPluginLoader loader, @NotNull PluginDescriptionFile description, @NotNull File dataFolder, @NotNull File file) {
-        super(loader, description, dataFolder, file);
-    }
-
     @Override
     public void onLoad() {
         instance = this;
         try {
-            classPath = ClassPath.from(ReflectionUtils.getRealPluginClass(this).getClassLoader());
+            classPath = ClassPath.from(ProxyUtils.getRealClass(this).getClassLoader());
         } catch (IOException e) {
             getLogger().log(Level.SEVERE, "An error happened while getting ClassPath.");
             throw new RuntimeException(e);
         }
-        this.dependencyManager = new DependencyManager();
+        this.dependencyManager = new DependencyManager(this);
         onPluginLoad();
     }
 
@@ -65,18 +56,27 @@ public abstract class ApxPlugin extends JavaPlugin {
             dependencyManager.registerDependency(Plugin.class, this);
             dependencyManager.registerDependency(JavaPlugin.class, this);
             dependencyManager.registerDependency(ApxPlugin.class, this);
-            dependencyManager.registerDependency(ReflectionUtils.getRealPluginClass(this), this);
+            dependencyManager.registerDependency(ProxyUtils.getRealClass(this), this);
             dependencyManager.registerDependency(dependencyManager);
 
             new ComponentManager(dependencyManager, this).registerComponents();
-            dependencyManager.resolveDependency(ConfigurationProcessor.class)
-                    .processFromPackage(ApxPlugin.class, ReflectionUtils.getRealPluginClass(this));
+            dependencyManager.resolveDependency(ConfigurationProcessor.class).processFromPackage(
+                    ApxPlugin.class,
+                    ProxyUtils.getRealClass(this)
+            );
+
+            MethodHandlerRegistry.registerAll(
+                    dependencyManager.resolveDependency(MethodHandlerProcessor.class).processFromPackage(
+                            ApxPlugin.class,
+                            ProxyUtils.getRealClass(this)
+                    )
+            );
 
             this.listenerManager = new ListenerManager(this, dependencyManager);
 
             dependencyManager.resolveDependency(ModuleManager.class).loadModules();
 
-
+            dependencyManager.injectDependencies(this);
             onPluginEnable();
 
             getLogger().info(String.format("Plugin enabled successfully! (%s)", stopwatch.stop()));

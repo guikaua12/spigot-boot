@@ -4,6 +4,7 @@ import me.approximations.apxPlugin.core.ApxPlugin;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.listener.annotations.ListenerRegister;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
+import me.approximations.apxPlugin.utils.ProxyUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -27,7 +28,7 @@ public class ListenerManager {
     }
 
     public void registerListeners() {
-        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(ReflectionUtils.getRealPluginClass(plugin), Listener.class)) {
+        for (final Class<? extends Listener> listener : ReflectionUtils.getSubClassesOf(ProxyUtils.getRealClass(plugin), Listener.class)) {
             if (!listener.isAnnotationPresent(ListenerRegister.class)) continue;
 
             try {

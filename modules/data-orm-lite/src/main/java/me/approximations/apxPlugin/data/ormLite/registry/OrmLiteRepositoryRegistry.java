@@ -1,4 +1,4 @@
-package me.approximations.apxPlugin.data.ormLite.repository.registry;
+package me.approximations.apxPlugin.data.ormLite.registry;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
@@ -8,20 +8,24 @@ import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.reflection.DiscoveryService;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
+import me.approximations.apxPlugin.data.ormLite.annotations.OrmLiteDao;
+import me.approximations.apxPlugin.data.ormLite.registry.discovery.OrmLiteRepositoryDiscoveryService;
 import me.approximations.apxPlugin.data.ormLite.repository.OrmLiteRepository;
-import me.approximations.apxPlugin.data.ormLite.repository.annotations.OrmLiteDao;
-import me.approximations.apxPlugin.data.ormLite.repository.registry.discovery.OrmLiteRepositoryDiscoveryService;
+import me.approximations.apxPlugin.data.ormLite.repository.impl.OrmLiteRepositoryImpl;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @SuppressWarnings("rawtypes")
 @RequiredArgsConstructor
 public class OrmLiteRepositoryRegistry {
+    private final Map<Class<?>, OrmLiteRepository<?, ?>> repositoryMap = new HashMap<>();
     private final DependencyManager dependencyManager;
     private final ConnectionSource connectionSource;
     private final Plugin plugin;
@@ -41,6 +45,9 @@ public class OrmLiteRepositoryRegistry {
                 Dao<?, ?> dao = DaoManager.createDao(connectionSource, entityClass);
 
                 OrmLiteRepository repository = dependencyManager.resolveDependency(repositoryClass);
+                OrmLiteRepositoryImpl defaultImpl = new OrmLiteRepositoryImpl<>(dao);
+
+                repositoryMap.put(entityClass, defaultImpl);
 
                 setDaoObject(repository, dao);
             } catch (Exception e) {
@@ -61,5 +68,10 @@ public class OrmLiteRepositoryRegistry {
         } catch (Exception e) {
             throw new RuntimeException("Failed to set DAO for repository: " + repository.getClass().getName(), e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T, ID> OrmLiteRepository<T, ID> getDao(Class<T> entityClass) {
+        return (OrmLiteRepository<T, ID>) repositoryMap.get(entityClass);
     }
 }

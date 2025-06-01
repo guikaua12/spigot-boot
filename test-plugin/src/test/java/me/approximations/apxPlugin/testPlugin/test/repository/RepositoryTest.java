@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -35,9 +36,10 @@ public class RepositoryTest {
     }
 
     @Test
-    public void shouldInsert() {
+    public void shouldInsert() throws SQLException {
         final People people = new People(UUID.randomUUID(), "test", "test@gmail.com", Instant.now());
-        Assertions.assertNull(userRepository.findById(people.getUuid()));
+//        Assertions.assertNull(userRepository.findById(people.getUuid()));
+        Assertions.assertNull(userRepository.findByEmail(people.getEmail()));
 
         userRepository.save(people);
 

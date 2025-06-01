@@ -25,8 +25,8 @@ public class ConfigurationProcessor {
 
     public void processClass(Class<?> clazz) {
         try {
-            Object configObject = clazz.getDeclaredConstructor().newInstance();
-            dependencyManager.registerDependency(clazz, configObject);
+            dependencyManager.registerDependency(clazz);
+            Object configObject = dependencyManager.resolveDependency(clazz);
 
             for (Method method : clazz.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(Bean.class)) continue;

@@ -2,6 +2,8 @@ package me.approximations.apxPlugin.core.module;
 
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.core.context.component.ComponentManager;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
 import me.approximations.apxPlugin.core.context.configuration.processor.ConfigurationProcessor;
 import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
@@ -15,10 +17,11 @@ public class ModuleManager {
     private final DependencyManager dependencyManager;
     private final ComponentManager componentManager;
     private final ConfigurationProcessor configurationProcessor;
+    private final MethodHandlerProcessor methodHandlerProcessor;
     private final Plugin plugin;
 
     public void loadModules() {
-        final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService(plugin);
+        final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
         for (Class<? extends Module> moduleClass : moduleDiscoveryService.discoverModules()) {
             loadModule(moduleClass);
         }
@@ -32,6 +35,11 @@ public class ModuleManager {
 
             componentManager.registerComponents(moduleClass);
             configurationProcessor.processFromPackage(moduleClass);
+            MethodHandlerRegistry.registerAll(
+                    methodHandlerProcessor.processFromPackage(
+                            moduleClass
+                    )
+            );
             dependencyManager.registerDependency(moduleClass);
 
             Module module = dependencyManager.resolveDependency(moduleClass);

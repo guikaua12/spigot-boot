@@ -1,4 +1,4 @@
-package me.approximations.apxPlugin.data.ormLite.repository.persisters;
+package me.approximations.apxPlugin.data.ormLite.persisters;
 
 import com.j256.ormlite.field.FieldType;
 import com.j256.ormlite.field.SqlType;

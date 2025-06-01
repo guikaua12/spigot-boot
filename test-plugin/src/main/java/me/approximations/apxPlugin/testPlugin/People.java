@@ -4,7 +4,7 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import lombok.*;
-import me.approximations.apxPlugin.data.ormLite.repository.persisters.InstantPersister;
+import me.approximations.apxPlugin.data.ormLite.persisters.InstantPersister;
 
 import java.io.Serializable;
 import java.time.Instant;

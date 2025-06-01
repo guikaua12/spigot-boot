@@ -1,4 +1,4 @@
-package me.approximations.apxPlugin.data.ormLite.repository.annotations;
+package me.approximations.apxPlugin.data.ormLite.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

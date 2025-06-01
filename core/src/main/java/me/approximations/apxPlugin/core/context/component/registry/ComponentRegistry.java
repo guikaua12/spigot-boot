@@ -6,6 +6,7 @@ import me.approximations.apxPlugin.core.ApxPlugin;
 import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
+import me.approximations.apxPlugin.utils.ProxyUtils;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +38,7 @@ public class ComponentRegistry {
 
     @SuppressWarnings("unchecked")
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, ReflectionUtils.getRealPluginClass(plugin)).stream()
+        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, ProxyUtils.getRealClass(plugin)).stream()
                 .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
                 .map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
@@ -48,7 +49,7 @@ public class ComponentRegistry {
             return Collections.emptySet();
         }
 
-        Class<?>[] baseClassesToUse = baseClasses != null ? baseClasses : new Class<?>[]{ApxPlugin.class, ReflectionUtils.getRealPluginClass(plugin)};
+        Class<?>[] baseClassesToUse = baseClasses != null ? baseClasses : new Class<?>[]{ApxPlugin.class, ProxyUtils.getRealClass(plugin)};
 
         return ReflectionUtils.getClassesFromPackage(baseClassesToUse)
                 .stream()
