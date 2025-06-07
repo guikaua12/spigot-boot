@@ -4,7 +4,8 @@ import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
-import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessResult;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Method;
@@ -36,18 +37,14 @@ public class ComponentProxy implements MethodHandler {
             return self.getClass().getSimpleName() + "@" + Integer.toHexString(self.hashCode());
         }
 
-        List<MethodHandlerProcessResult> handlersResult = MethodHandlerRegistry.getHandlersFor(self.getClass());
-        for (MethodHandlerProcessResult r : handlersResult) {
-            @SuppressWarnings("unchecked")
-            me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandler<Object> handler =
-                    (me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandler<Object>) r.getHandlerInstance();
+        final MethodHandlerContext context = new MethodHandlerContext(self, thisMethod, proceed, args);
 
-            if (handler.canHandle(self, thisMethod, proceed, args)) {
-                try {
-                    return handler.handle(self, thisMethod, proceed, args);
-                } catch (Throwable t) {
-                    throw new RuntimeException("Error handling method " + thisMethod.getName() + " in " + self.getClass().getName(), t);
-                }
+        List<RegisteredMethodHandler> handlers = MethodHandlerRegistry.getHandlersFor(context);
+        for (RegisteredMethodHandler handler : handlers) {
+            try {
+                return handler.getRunnable().handle(context);
+            } catch (Throwable t) {
+                throw new RuntimeException("Error handling method " + thisMethod.getName() + " in " + self.getClass().getName(), t);
             }
         }
 

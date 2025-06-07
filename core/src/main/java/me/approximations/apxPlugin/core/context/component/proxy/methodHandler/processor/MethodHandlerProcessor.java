@@ -1,15 +1,16 @@
 package me.approximations.apxPlugin.core.context.component.proxy.methodHandler.processor;
 
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.annotations.MethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import me.approximations.apxPlugin.core.di.annotations.Component;
 import me.approximations.apxPlugin.core.di.manager.DependencyManager;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,30 +19,32 @@ import java.util.stream.Collectors;
 public class MethodHandlerProcessor {
     private final DependencyManager dependencyManager;
 
-    @SuppressWarnings("unchecked")
-    public Map<Class<?>, List<MethodHandlerProcessResult>> processFromPackage(Class<?>... bases) {
+    public List<RegisteredMethodHandler> processFromPackage(Class<?>... bases) {
         return Arrays.stream(bases)
-                .map(base -> ReflectionUtils.getSubClassesOf(base, MethodHandler.class))
+                .map(base -> ReflectionUtils.getClassesAnnotatedWith(base, RegisterMethodHandler.class))
                 .flatMap(Set::stream)
-                .map(this::processClass)
-                .collect(Collectors.groupingBy(MethodHandlerProcessResult::getTargetClass));
+                .flatMap(clazz -> processClass(clazz).stream())
+                .collect(Collectors.toList());
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public MethodHandlerProcessResult processClass(Class<? extends MethodHandler> clazz) {
+    private List<RegisteredMethodHandler> processClass(Class<?> clazz) {
         try {
             dependencyManager.registerDependency(clazz);
-            MethodHandler<?> handler = dependencyManager.resolveDependency(clazz);
-            Class<?> target = Arrays.stream(clazz.getGenericInterfaces())
-                    .filter(i -> i instanceof ParameterizedType)
-                    .map(i -> (ParameterizedType) i)
-                    .filter(t -> MethodHandler.class.equals(t.getRawType()))
-                    .map(t -> (Class<?>) ((ParameterizedType) t.getActualTypeArguments()[0]).getRawType())
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException(
-                            "Invalid handler type: " + clazz.getName() + ". Ensure it implements MethodHandler<TargetClass>."
-                    ));
-            return new MethodHandlerProcessResult(target, handler);
+            Object handler = dependencyManager.resolveDependency(clazz);
+
+            return Arrays.stream(clazz.getDeclaredMethods())
+                    .filter(method -> method.isAnnotationPresent(MethodHandler.class))
+                    .filter(method -> method.getParameterCount() == 1 && method.getParameterTypes()[0] == MethodHandlerContext.class)
+                    .map(method -> {
+                        MethodHandler annotation = method.getAnnotation(MethodHandler.class);
+                        return new RegisteredMethodHandler(
+                                context -> method.invoke(handler, context),
+                                annotation.targetClass(),
+                                annotation.classAnnotatedWith(),
+                                annotation.methodAnnotatedWith()
+                        );
+                    })
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             throw new RuntimeException("Failed to process handler: " + clazz.getName(), e);
         }

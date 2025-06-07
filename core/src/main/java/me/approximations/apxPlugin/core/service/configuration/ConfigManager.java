@@ -18,7 +18,7 @@
  * Contact e-mail: andrew.dascalu@gmail.com
  */
 
-package me.approximations.apxPlugin.core.configuration;
+package me.approximations.apxPlugin.core.service.configuration;
 
 import me.approximations.apxPlugin.core.ApxPlugin;
 import org.bukkit.Bukkit;

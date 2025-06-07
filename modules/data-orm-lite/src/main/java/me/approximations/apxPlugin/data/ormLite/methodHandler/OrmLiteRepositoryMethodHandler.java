@@ -1,35 +1,31 @@
 package me.approximations.apxPlugin.data.ormLite.methodHandler;
 
 import lombok.RequiredArgsConstructor;
-import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.MethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.annotations.MethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import me.approximations.apxPlugin.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import me.approximations.apxPlugin.data.ormLite.repository.OrmLiteRepository;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 
 @RequiredArgsConstructor
-public class OrmLiteRepositoryMethodHandler implements MethodHandler<OrmLiteRepository<?, ?>> {
+@RegisterMethodHandler
+public class OrmLiteRepositoryMethodHandler {
     private final OrmLiteRepositoryRegistry repositoryRegistry;
 
-    @Override
-    public boolean canHandle(OrmLiteRepository<?, ?> self, Method thisMethod, Method proceed, Object[] args) throws Throwable {
-        if (self == null || thisMethod == null) {
-            return false;
+    @MethodHandler(targetClass = OrmLiteRepository.class)
+    public Object handle(MethodHandlerContext context) throws Throwable {
+        if (context.self() == null || context.thisMethod() == null) {
+            return null;
         }
 
-        return Arrays.stream(self.getClass().getInterfaces())
-                .anyMatch(OrmLiteRepository.class::isAssignableFrom);
-    }
-
-    @Override
-    public Object handle(OrmLiteRepository<?, ?> selfProxy, Method thisMethod, Method proceed, Object[] args) throws Throwable {
         try {
-            return proceed.invoke(selfProxy, args);
+            return context.proceed().invoke(context.self(), context.args());
         } catch (IllegalAccessException | IllegalArgumentException | NullPointerException e) {
-            Class<?> self = selfProxy.getClass().getInterfaces()[0];
+            Class<?> self = context.self().getClass().getInterfaces()[0];
             Type[] types = ((ParameterizedType) self.getGenericInterfaces()[0]).getActualTypeArguments();
             Class<?> entityType = (Class<?>) types[0];
 
@@ -39,9 +35,9 @@ public class OrmLiteRepositoryMethodHandler implements MethodHandler<OrmLiteRepo
                 throw new IllegalStateException("No repository found for entity type: " + entityType.getName());
             }
 
-            Method method = repositoryImpl.getClass().getMethod(thisMethod.getName(), thisMethod.getParameterTypes());
+            Method method = repositoryImpl.getClass().getMethod(context.thisMethod().getName(), context.thisMethod().getParameterTypes());
             method.setAccessible(true);
-            return method.invoke(repositoryImpl, args);
+            return method.invoke(repositoryImpl, context.args());
         }
     }
 }

@@ -1,29 +1,25 @@
 package me.approximations.apxPlugin.core.context.component.proxy.methodHandler;
 
-import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessResult;
+import me.approximations.apxPlugin.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class MethodHandlerRegistry {
-    private static final List<MethodHandlerProcessResult> handlers = new ArrayList<>();
+    private static final List<RegisteredMethodHandler> handlers = new ArrayList<>();
 
     private MethodHandlerRegistry() {
     }
 
-    public static void registerAll(Map<Class<?>, List<MethodHandlerProcessResult>> map) {
-        map.values().forEach(handlers::addAll);
+    public static void registerAll(List<RegisteredMethodHandler> handlers) {
+        MethodHandlerRegistry.handlers.addAll(handlers);
     }
 
-    public static List<MethodHandlerProcessResult> getHandlersFor(Class<?> target) {
-        List<MethodHandlerProcessResult> result = new ArrayList<>();
-        for (MethodHandlerProcessResult r : handlers) {
-            if (r.getTargetClass().isAssignableFrom(target)) {
-                result.add(r);
-            }
-        }
-        return Collections.unmodifiableList(result);
+    public static List<RegisteredMethodHandler> getHandlersFor(@NotNull MethodHandlerContext context) {
+        return handlers.stream()
+                .filter(handler -> handler.canHandle(context))
+                .collect(Collectors.toList());
     }
 }
