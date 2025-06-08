@@ -7,10 +7,12 @@ import me.approximations.apxPlugin.core.reflection.DiscoveryService;
 import me.approximations.apxPlugin.core.utils.ReflectionUtils;
 import me.approximations.apxPlugin.placeholder.annotations.Placeholder;
 import me.approximations.apxPlugin.placeholder.metadata.PlaceholderMetadata;
+import me.approximations.apxPlugin.placeholder.metadata.parser.PlaceholderParameterParser;
 import me.approximations.apxPlugin.placeholder.papi.PAPIExpansion;
 import me.approximations.apxPlugin.placeholder.registry.discovery.PlaceholderDiscoveryService;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -95,7 +97,10 @@ public class PlaceholderRegistry {
         }
     }
 
-    public PlaceholderMetadata getPlaceholderMetadata(String placeholder) {
-        return placeholders.get(placeholder);
+    public @Nullable PlaceholderMetadata findPlaceholderMetadata(String params) {
+        return placeholders.values().stream()
+                .filter(metadata -> metadata.getPlaceholder().equals(params) ||
+                        PlaceholderParameterParser.isValidPlaceholderPattern(metadata.getPlaceholder(), params)
+                ).findFirst().orElse(null);
     }
 }

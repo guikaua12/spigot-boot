@@ -5,14 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface Placeholder {
+public @interface Param {
     String value();
-
-    char delimiter() default '%';
-
-    String description() default "";
-
-    boolean placeholderApi() default true;
 }

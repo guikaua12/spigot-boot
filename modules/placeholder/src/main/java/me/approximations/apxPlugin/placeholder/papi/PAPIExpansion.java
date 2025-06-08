@@ -2,6 +2,7 @@ package me.approximations.apxPlugin.placeholder.papi;
 
 import lombok.RequiredArgsConstructor;
 import me.approximations.apxPlugin.core.di.annotations.Component;
+import me.approximations.apxPlugin.placeholder.converter.TypeConverterManager;
 import me.approximations.apxPlugin.placeholder.metadata.PlaceholderMetadata;
 import me.approximations.apxPlugin.placeholder.registry.PlaceholderRegistry;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -17,6 +18,7 @@ import java.util.StringJoiner;
 public class PAPIExpansion extends PlaceholderExpansion {
     private final Plugin plugin;
     private final PlaceholderRegistry placeholderRegistry;
+    private final TypeConverterManager typeConverterManager;
 
     @Override
     public @NotNull String getIdentifier() {
@@ -36,7 +38,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
-        final PlaceholderMetadata placeholder = placeholderRegistry.getPlaceholderMetadata(params);
-        return placeholder != null && placeholder.isPlaceholderApi() ? placeholder.getValue(player, params) : null;
+        final PlaceholderMetadata placeholder = placeholderRegistry.findPlaceholderMetadata(params);
+        return placeholder != null && placeholder.isPlaceholderApi() ? placeholder.getValue(player, params, typeConverterManager) : null;
     }
 }

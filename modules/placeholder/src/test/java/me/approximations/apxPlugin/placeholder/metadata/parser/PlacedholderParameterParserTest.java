@@ -1,0 +1,232 @@
+package me.approximations.apxPlugin.placeholder.metadata.parser;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class PlacedholderParameterParserTest {
+    @Test
+    public void testSimpleMultiplePlaceholders() {
+        String placeholderPattern = "user_<id>_name_<name>";
+        String actualValue = "user_123_name_JohnDoe";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(2, params.size());
+        assertEquals("123", params.get("id"));
+        assertEquals("JohnDoe", params.get("name"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderPresent() {
+        String placeholderPattern = "prefix_[optional]_suffix";
+        String actualValue = "prefix_opt_suffix";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertEquals("opt", params.get("optional"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderAbsent() {
+        String placeholderPattern = "prefix_[optional]_suffix";
+        String actualValue = "prefix__suffix";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertNull(params.get("optional"));
+    }
+
+    @Test
+    public void testNoMatch() {
+        String placeholderPattern = "pattern_<value>";
+        String actualValue = "another_string";
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern(placeholderPattern, actualValue));
+    }
+
+    @Test
+    public void testPlaceholderAtStartAndEnd() {
+        String placeholderPattern = "<start>_middle_<end>";
+        String actualValue = "begin_middle_finish";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(2, params.size());
+        assertEquals("begin", params.get("start"));
+        assertEquals("finish", params.get("end"));
+    }
+
+    @Test
+    public void testMultipleOptionalPlaceholdersPresent() {
+        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
+        String actualValue = "data_val1_val2_info";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(2, params.size());
+        assertEquals("val1", params.get("opt1"));
+        assertEquals("val2", params.get("opt2"));
+    }
+
+    @Test
+    public void testMultipleOptionalPlaceholdersAbsent() {
+        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
+        String actualValue = "data___info";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(2, params.size());
+        assertNull(params.get("opt1"));
+        assertNull(params.get("opt2"));
+    }
+
+    @Test
+    public void testMultipleOptionalPlaceholdersMixed() {
+        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
+        String actualValue = "data_val1__info";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(2, params.size());
+        assertEquals("val1", params.get("opt1"));
+        assertNull(params.get("opt2"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderAtStartPresent() {
+        String placeholderPattern = "[opt_start]_text";
+        String actualValue = "start_text";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertEquals("start", params.get("opt_start"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderAtStartAbsent() {
+        String placeholderPattern = "[opt_start]_text";
+        String actualValue = "_text";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertNull(params.get("opt_start"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderAtEndPresent() {
+        String placeholderPattern = "text_[opt_end]";
+        String actualValue = "text_end";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertEquals("end", params.get("opt_end"));
+    }
+
+    @Test
+    public void testOptionalPlaceholderAtEndAbsent() {
+        String placeholderPattern = "text_[opt_end]";
+        String actualValue = "text_";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertNull(params.get("opt_end"));
+    }
+
+    @Test
+    public void testPatternWithNoPlaceholders() {
+        String placeholderPattern = "just_literal_text";
+        String actualValue = "just_literal_text";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertTrue(params.isEmpty());
+    }
+
+    @Test
+    public void testPatternWithNoPlaceholdersNoMatch() {
+        String placeholderPattern = "just_literal_text";
+        String actualValue = "different_text";
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern(placeholderPattern, actualValue));
+    }
+
+    @Test
+    public void testEmptyActualValue() {
+        String placeholderPattern = "data_<value>";
+        String actualValue = "";
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern(placeholderPattern, actualValue));
+    }
+
+    @Test
+    public void testEmptyPattern() {
+        String placeholderPattern = "";
+        String actualValue = "some_value";
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern(placeholderPattern, actualValue));
+    }
+
+    @Test
+    public void testEmptyPatternAndEmptyActualValue() {
+        String placeholderPattern = "";
+        String actualValue = "";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertTrue(params.isEmpty());
+    }
+
+    @Test
+    public void testOptionalWithPrefixAndSuffixPresent() {
+        String placeholderPattern = "file_[prefix_<name>_suffix]_end";
+        String actualValue = "file_prefix_myfile_suffix_end";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertEquals("myfile", params.get("name"));
+    }
+
+    @Test
+    public void testOptionalWithPrefixAndSuffixAbsent() {
+        String placeholderPattern = "file_[prefix_<name>_suffix]_end";
+        String actualValue = "file__end";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertNull(params.get("name"));
+    }
+
+    @Test
+    public void testComplexOptionalBlockPresentAsWholePattern() {
+        String placeholderPattern = "[prefix_<val>_suffix]";
+        String actualValue = "prefix_content_suffix";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertEquals("content", params.get("val"));
+    }
+
+    @Test
+    public void testComplexOptionalBlockAbsentAsWholePattern() {
+        String placeholderPattern = "[prefix_<val>_suffix]";
+        String actualValue = "";
+        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
+        assertEquals(1, params.size());
+        assertNull(params.get("val"));
+    }
+
+    @Test
+    public void testMatches_SimpleNoMatch_ThrowsException() {
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("user_<id>", "admin_123"));
+    }
+
+    @Test
+    public void testMatches_OptionalAbsentNoMatchStructure_ThrowsException() {
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("prefix_[opt]_suffix", "prefix_suffix"));
+    }
+
+    @Test
+    public void testMatches_LiteralPatternNoMatch_ThrowsException() {
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("just_literal_text", "different_text"));
+    }
+
+    @Test
+    public void testMatches_EmptyPatternNonEmptyValue_ThrowsException() {
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("", "some_value"));
+    }
+
+    @Test
+    public void testMatches_PlaceholderAtStartAndEnd_NoMatch_ThrowsException() {
+        assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("<start>_middle_<end>", "begin_finish"));
+    }
+
+    @Test
+    public void testMatches_NonEmptyPatternEmptyValue_OptionalPlaceholderOnly_Parses() {
+        Map<String, String> params = PlaceholderParameterParser.parse("[optional_val]", "");
+        assertEquals(1, params.size());
+        assertNull(params.get("optional_val"));
+    }
+
+    @Test
+    public void testMatches_NonEmptyPatternEmptyValue_ComplexOptionalPlaceholderOnly_Parses() {
+        Map<String, String> params = PlaceholderParameterParser.parse("[prefix_<val>_suffix]", "");
+        assertEquals(1, params.size());
+        assertNull(params.get("val"));
+    }
+}
