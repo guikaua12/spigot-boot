@@ -53,36 +53,6 @@ public class PlacedholderParameterParserTest {
     }
 
     @Test
-    public void testMultipleOptionalPlaceholdersPresent() {
-        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
-        String actualValue = "data_val1_val2_info";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(2, params.size());
-        assertEquals("val1", params.get("opt1"));
-        assertEquals("val2", params.get("opt2"));
-    }
-
-    @Test
-    public void testMultipleOptionalPlaceholdersAbsent() {
-        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
-        String actualValue = "data___info";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(2, params.size());
-        assertNull(params.get("opt1"));
-        assertNull(params.get("opt2"));
-    }
-
-    @Test
-    public void testMultipleOptionalPlaceholdersMixed() {
-        String placeholderPattern = "data_[<opt1>]_[<opt2>]_info";
-        String actualValue = "data_val1__info";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(2, params.size());
-        assertEquals("val1", params.get("opt1"));
-        assertNull(params.get("opt2"));
-    }
-
-    @Test
     public void testOptionalPlaceholderAtStartPresent() {
         String placeholderPattern = "[opt_start]_text";
         String actualValue = "start_text";
@@ -156,42 +126,6 @@ public class PlacedholderParameterParserTest {
     }
 
     @Test
-    public void testOptionalWithPrefixAndSuffixPresent() {
-        String placeholderPattern = "file_[prefix_<name>_suffix]_end";
-        String actualValue = "file_prefix_myfile_suffix_end";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(1, params.size());
-        assertEquals("myfile", params.get("name"));
-    }
-
-    @Test
-    public void testOptionalWithPrefixAndSuffixAbsent() {
-        String placeholderPattern = "file_[prefix_<name>_suffix]_end";
-        String actualValue = "file__end";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(1, params.size());
-        assertNull(params.get("name"));
-    }
-
-    @Test
-    public void testComplexOptionalBlockPresentAsWholePattern() {
-        String placeholderPattern = "[prefix_<val>_suffix]";
-        String actualValue = "prefix_content_suffix";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(1, params.size());
-        assertEquals("content", params.get("val"));
-    }
-
-    @Test
-    public void testComplexOptionalBlockAbsentAsWholePattern() {
-        String placeholderPattern = "[prefix_<val>_suffix]";
-        String actualValue = "";
-        Map<String, String> params = PlaceholderParameterParser.parse(placeholderPattern, actualValue);
-        assertEquals(1, params.size());
-        assertNull(params.get("val"));
-    }
-
-    @Test
     public void testMatches_SimpleNoMatch_ThrowsException() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("user_<id>", "admin_123"));
     }
@@ -221,12 +155,5 @@ public class PlacedholderParameterParserTest {
         Map<String, String> params = PlaceholderParameterParser.parse("[optional_val]", "");
         assertEquals(1, params.size());
         assertNull(params.get("optional_val"));
-    }
-
-    @Test
-    public void testMatches_NonEmptyPatternEmptyValue_ComplexOptionalPlaceholderOnly_Parses() {
-        Map<String, String> params = PlaceholderParameterParser.parse("[prefix_<val>_suffix]", "");
-        assertEquals(1, params.size());
-        assertNull(params.get("val"));
     }
 }

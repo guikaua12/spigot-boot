@@ -9,13 +9,13 @@
     <version>1.0.2</version>
     <packaging>pom</packaging>
     <modules>
-        <module>test-plugin</module>
         <module>core</module>
         <module>pmc</module>
         <module>di</module>
         <module>data</module>
         <module>modules</module>
         <module>utils</module>
+        <module>tests</module>
     </modules>
 
     <properties>
@@ -55,6 +55,25 @@
                             <relocations>
                             </relocations>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
