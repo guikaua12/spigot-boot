@@ -9,11 +9,13 @@
         <artifactId>ApxPlugin</artifactId>
         <version>1.0.2</version>
     </parent>
+
+    <artifactId>tests</artifactId>
+    <version>1.0.2</version>
+
     <modules>
         <module>test-plugin</module>
     </modules>
-
-    <artifactId>tests</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
