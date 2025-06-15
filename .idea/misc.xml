@@ -5,9 +5,17 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/modules/data-orm-lite/pom.xml" />
+        <option value="$PROJECT_DIR$/modules/placeholder/pom.xml" />
+        <option value="$PROJECT_DIR$/test-plugin/pom.xml" />
       </list>
     </option>
-    <option name="workspaceImportForciblyTurnedOn" value="true" />
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/modules/data/pom.xml" />
+        <option value="$PROJECT_DIR$/placeholder/pom.xml" />
+      </set>
+    </option>
   </component>
   <component name="PWA">
     <option name="wasEnabledAtLeastOnce" value="true" />

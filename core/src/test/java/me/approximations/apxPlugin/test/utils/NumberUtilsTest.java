@@ -1,6 +1,6 @@
 package me.approximations.apxPlugin.test.utils;
 
-import me.approximations.apxPlugin.utils.NumberUtils;
+import me.approximations.apxPlugin.core.utils.NumberUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
