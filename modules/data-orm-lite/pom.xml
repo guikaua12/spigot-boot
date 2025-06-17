@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>me.approximations.apxPlugin</groupId>
-        <artifactId>modules</artifactId>
+        <groupId>me.approximations.spigot-boot</groupId>
+        <artifactId>spigot-boot-modules</artifactId>
         <version>2.0.0</version>
     </parent>
 
-    <artifactId>data-orm-lite</artifactId>
+    <artifactId>spigot-boot-data-orm-lite</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -19,8 +19,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>data</artifactId>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-data</artifactId>
             <version>2.0.0</version>
         </dependency>
 

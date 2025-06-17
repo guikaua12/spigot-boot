@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>me.approximations.apxPlugin</groupId>
-        <artifactId>ApxPlugin</artifactId>
+        <groupId>me.approximations.spigot-boot</groupId>
+        <artifactId>spigot-boot</artifactId>
         <version>2.0.0</version>
     </parent>
 
@@ -104,8 +104,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>core</artifactId>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-core</artifactId>
             <version>2.0.0</version>
         </dependency>
 
@@ -124,19 +124,19 @@
         </dependency>
 
         <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>pmc</artifactId>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-plugin-messaging</artifactId>
             <version>2.0.0</version>
         </dependency>
         <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>data-orm-lite</artifactId>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-data-orm-lite</artifactId>
             <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>me.approximations.apxPlugin</groupId>
-            <artifactId>placeholder</artifactId>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-placeholder</artifactId>
             <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
