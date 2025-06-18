@@ -3,7 +3,14 @@ package me.approximations.apxPlugin.testPlugin;
 import com.j256.ormlite.support.ConnectionSource;
 import me.approximations.apxPlugin.core.ApxPlugin;
 import me.approximations.apxPlugin.core.di.Inject;
+import me.approximations.spigotBoot.annotationProcessor.annotations.Plugin;
 
+@Plugin(
+        name = "TestPlugin",
+        version = "1.0.0",
+        description = "A test plugin for ApxPlugin framework.",
+        authors = {"Approximations"}
+)
 public class Main extends ApxPlugin {
     @Inject
     private ConnectionSource connectionSource;
