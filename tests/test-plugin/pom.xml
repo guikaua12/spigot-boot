@@ -64,10 +64,10 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <!--                            <relocations>-->
                             <!--                                <relocation>-->
-                            <!--                                    <pattern>me.approximations.apxPlugin</pattern>-->
-                            <!--                                    <shadedPattern>me.approximations.apxPlugin.testPlugin.libs.apxPlugin</shadedPattern>-->
+                            <!--                                    <pattern>me.approximations.spigotboot</pattern>-->
+                            <!--                                    <shadedPattern>me.approximations.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>-->
                             <!--                                    <excludes>-->
-                            <!--                                        <exclude>me.approximations.apxPlugin.testPlugin.**</exclude>-->
+                            <!--                                        <exclude>me.approximations.spigotboot.testPlugin.**</exclude>-->
                             <!--                                    </excludes>-->
                             <!--                                </relocation>-->
                             <!--                            </relocations>-->
