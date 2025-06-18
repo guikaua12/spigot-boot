@@ -1,0 +1,60 @@
+/*
+ * The MIT License
+ * Copyright © 2025 Guilherme Kauã da Silva
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package tech.guilhermekaua.spigotboot.messaging.bungee.actions.responseable;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.messaging.bungee.BungeeChannel;
+import tech.guilhermekaua.spigotboot.messaging.bungee.actions.ResponseableMessageAction;
+import tech.guilhermekaua.spigotboot.messaging.bungee.handler.MessageResponseHandler;
+import tech.guilhermekaua.spigotboot.messaging.utils.ChannelDataOutputUtils;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class PlayerListAction extends ResponseableMessageAction<List<String>> {
+    public static final String SUB_CHANNEL = "PlayerList";
+    private final String serverName;
+
+    @Override
+    public @NotNull String getSubChannel() {
+        return SUB_CHANNEL;
+    }
+
+    @Override
+    public CompletableFuture<List<String>> sendMessage(@Nullable Player player, @NotNull Plugin plugin, @NotNull MessageResponseHandler<Object, List<String>> responseHandler) throws IOException {
+        ChannelDataOutputUtils.sendMessage(player, plugin, BungeeChannel.NAME, output -> {
+            output.writeUTF(SUB_CHANNEL);
+            output.writeUTF(serverName);
+        });
+
+        return responseHandler.addFuture(serverName);
+    }
+}

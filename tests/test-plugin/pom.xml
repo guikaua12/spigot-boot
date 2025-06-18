@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>me.approximations.spigot-boot</groupId>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>tests</artifactId>
         <version>2.0.0</version>
     </parent>
@@ -64,10 +64,10 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <!--                            <relocations>-->
                             <!--                                <relocation>-->
-                            <!--                                    <pattern>me.approximations.spigotboot</pattern>-->
-                            <!--                                    <shadedPattern>me.approximations.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>-->
+                            <!--                                    <pattern>tech.guilhermekaua.spigotboot</pattern>-->
+                            <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>-->
                             <!--                                    <excludes>-->
-                            <!--                                        <exclude>me.approximations.spigotboot.testPlugin.**</exclude>-->
+                            <!--                                        <exclude>tech.guilhermekaua.spigotboot.testPlugin.**</exclude>-->
                             <!--                                    </excludes>-->
                             <!--                                </relocation>-->
                             <!--                            </relocations>-->
@@ -104,7 +104,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
             <version>2.0.0</version>
         </dependency>
@@ -124,18 +124,18 @@
         </dependency>
 
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-plugin-messaging</artifactId>
             <version>2.0.0</version>
         </dependency>
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-data-orm-lite</artifactId>
             <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-placeholder</artifactId>
             <version>2.0.0</version>
             <scope>compile</scope>

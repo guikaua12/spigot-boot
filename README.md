@@ -19,7 +19,7 @@ If you are using **Maven**, add the following dependency to your `pom.xml`:
 ```xml
 
 <dependency>
-    <groupId>me.approximations.spigot-boot</groupId>
+    <groupId>tech.guilhermekaua.spigot-boot</groupId>
     <artifactId>spigot-boot-core</artifactId>
     <version>2.0.0</version>
     <scope>provided</scope>
@@ -30,7 +30,7 @@ If you are using **Gradle**, add the following dependency to your `build.gradle`
 
 ```groovy
 dependencies {
-    compileOnly 'me.approximations.spigot-boot:spigot-boot-core:2.0.0'
+    compileOnly 'tech.guilhermekaua.spigot-boot:spigot-boot-core:2.0.0'
 }
 ```
 
@@ -40,12 +40,12 @@ Spigot Boot provides a powerful Dependency Injection system that allows you to m
 You can define beans and inject them into your classes using annotations.
 
 ```java
-import me.approximations.spigot.boot.core.annotations.Bean;
-import me.approximations.spigot.boot.core.annotations.Inject;
-import me.approximations.spigot.boot.core.annotations.OnEnable;
-import me.approximations.spigot.boot.core.annotations.OnDisable;
-import me.approximations.spigot.boot.core.annotations.Plugin;
-import me.approximations.spigot.boot.core.SpigotBootPlugin;
+import tech.guilhermekaua.spigot.boot.core.annotations.Bean;
+import tech.guilhermekaua.spigot.boot.core.annotations.Inject;
+import tech.guilhermekaua.spigot.boot.core.annotations.OnEnable;
+import tech.guilhermekaua.spigot.boot.core.annotations.OnDisable;
+import tech.guilhermekaua.spigot.boot.core.annotations.Plugin;
+import tech.guilhermekaua.spigot.boot.core.SpigotBootPlugin;
 
 @Plugin(name = "MyPlugin", version = "1.0.0")
 
