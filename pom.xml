@@ -7,6 +7,14 @@
     <groupId>me.approximations.spigot-boot</groupId>
     <artifactId>spigot-boot</artifactId>
     <version>2.0.0</version>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <packaging>pom</packaging>
     <modules>
         <module>core</module>
@@ -77,6 +85,26 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>4.2</version>
+                <configuration>
+                    <header>com/mycila/maven/plugin/license/templates/MIT.txt</header>
+                    <properties>
+                        <owner>Guilherme Kauã da Silva</owner>
+                        <email>guilhermeksilva556@gmail.com</email>
+                        <year>2025</year>
+                    </properties>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/core/utils/TypeUtil.java</exclude>
+                        <exclude>**/core/utils/ColorUtil.java</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
