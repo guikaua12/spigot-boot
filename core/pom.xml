@@ -49,53 +49,53 @@
                             <relocations>
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.reflections</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.reflections</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.reflections</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.hibernate</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.hibernate</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.hibernate</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.intellij.lang</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.intellij.lang</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.intellij.lang</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jboss</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jboss</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jboss</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jetbrains.annotations</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jetbrains.annotations-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jetbrains.annotations-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jvnet</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.jvnet</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jvnet</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.slf4j</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.org.slf4j</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.slf4j</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>net.bytebuddy</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.net.bytebuddy</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.net.bytebuddy</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.zaxxer.hikari</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.zaxxer.hikari</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.zaxxer.hikari</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.sun</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.sun</shadedPattern>-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.sun</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.fasterxml.classmate</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.com.fasterxml.classmate-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.fasterxml.classmate-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>javassist</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.apxPlugin.libs.javassist-->
+                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.javassist-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
                             </relocations>
@@ -158,6 +158,12 @@
         <dependency>
             <groupId>me.approximations.spigot-boot</groupId>
             <artifactId>spigot-boot-utils</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>me.approximations.spigot-boot</groupId>
+            <artifactId>spigot-boot-annotation-processor</artifactId>
             <version>2.0.0</version>
         </dependency>
 

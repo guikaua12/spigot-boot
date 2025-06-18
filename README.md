@@ -1,13 +1,68 @@
-# ApxPlugin
+# Spigot Boot
 
-ApxPlugin is basically a library inspirated on Spring Framework but for spigot plugins, it encapsulates a Dependency
-Injection, transactional services, repositories, using JPA with Hibernate, and more.
+Spigot Boot is a powerful library inspired by Spring Boot, designed specifically for Spigot plugins. It provides:
 
-## BungeeCord Plugin messaging channel
+- Robust Dependency Injection for managing your plugin's components
+- An IOC container that manages dependencies and method intercepts (beans)
+- A data module featuring OrmLite with automatic Transaction Management
+- A Placeholder module that integrates with [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) to
+  automatically handles placeholders
+- An improved API for Plugin Messaging Channel, making BungeeCord and Spigot communication easier
 
-ApxPlugin has a convenient API to send messages between BungeeCord and Spigot servers:
+With Spigot Boot, you can build modular, maintainable, and scalable Spigot plugins with ease.
+
+## Getting Started
+
+To get started, you need to add the dependency to your project.
+If you are using **Maven**, add the following dependency to your `pom.xml`:
+
+```xml
+
+<dependency>
+    <groupId>me.approximations.spigot-boot</groupId>
+    <artifactId>spigot-boot-core</artifactId>
+    <version>2.0.0</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+If you are using **Gradle**, add the following dependency to your `build.gradle`:
+
+```groovy
+dependencies {
+    compileOnly 'me.approximations.spigot-boot:spigot-boot-core:2.0.0'
+}
+```
+
+## Dependency Injection
+
+Spigot Boot provides a powerful Dependency Injection system that allows you to manage your plugin's components easily.
+You can define beans and inject them into your classes using annotations.
 
 ```java
+import me.approximations.spigot.boot.core.annotations.Bean;
+import me.approximations.spigot.boot.core.annotations.Inject;
+import me.approximations.spigot.boot.core.annotations.OnEnable;
+import me.approximations.spigot.boot.core.annotations.OnDisable;
+import me.approximations.spigot.boot.core.annotations.Plugin;
+import me.approximations.spigot.boot.core.SpigotBootPlugin;
+
+@Plugin(name = "MyPlugin", version = "1.0.0")
+
+##
+BungeeCord Plugin
+messaging channel
+
+ApxPlugin has
+a convenient
+API to
+send messages
+between BungeeCord
+and Spigot
+servers:
+
+        ```java
+
 public class Main extends ApxPlugin {
     @Override
     protected void onPluginEnable() {
@@ -31,8 +86,8 @@ public class Main extends ApxPlugin {
 ```
 
 ## Credits:
-- NBTEditor: https://github.com/BananaPuncher714/NBTEditor
 
+- NBTEditor: https://github.com/BananaPuncher714/NBTEditor
 
 TODO:
 

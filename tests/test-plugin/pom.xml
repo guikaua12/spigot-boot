@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>me.approximations.spigot-boot</groupId>
-        <artifactId>spigot-boot</artifactId>
+        <artifactId>tests</artifactId>
         <version>2.0.0</version>
     </parent>
 
@@ -64,10 +64,10 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <!--                            <relocations>-->
                             <!--                                <relocation>-->
-                            <!--                                    <pattern>me.approximations.apxPlugin</pattern>-->
-                            <!--                                    <shadedPattern>me.approximations.apxPlugin.testPlugin.libs.apxPlugin</shadedPattern>-->
+                            <!--                                    <pattern>me.approximations.spigotboot</pattern>-->
+                            <!--                                    <shadedPattern>me.approximations.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>-->
                             <!--                                    <excludes>-->
-                            <!--                                        <exclude>me.approximations.apxPlugin.testPlugin.**</exclude>-->
+                            <!--                                        <exclude>me.approximations.spigotboot.testPlugin.**</exclude>-->
                             <!--                                    </excludes>-->
                             <!--                                </relocation>-->
                             <!--                            </relocations>-->
