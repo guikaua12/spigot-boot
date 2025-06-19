@@ -257,10 +257,6 @@ public class OrmLiteRepositoryMethodHandler {
             methodAnnotatedWith = @SomeOtherAnnotation // Optional, if you want to intercept only methods annotated with a specific annotation
     )
     public Object handle(MethodHandlerContext context) throws Throwable {
-        if (context.thisMethod() == null) { // thisMethod can be null if you are intercepting methods of a interface class, which don't have a implementation for the method in question
-            return null;
-        }
-
         try {
             return context.proceed().invoke(context.self(), context.args());
         } catch (Exception e) {
