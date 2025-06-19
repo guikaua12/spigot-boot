@@ -191,6 +191,19 @@ public class MyComponent {
 ## Spigot Data Orm Lite
 
 Spigot Boot provides a data module that integrates with OrmLite, allowing you to manage your plugin's data easily.
+
+To use the OrmLite data module, you need to add the dependency to your project:
+
+```xml
+
+<dependency>
+    <groupId>tech.guilhermekaua.spigot-boot</groupId>
+    <artifactId>spigot-boot-data-orm-lite</artifactId>
+    <version>2.0.2-SNAPSHOT</version>
+    <scope>compile</scope>
+</dependency>
+```
+
 You can create a entity class as you would do with OrmLite:
 
 ```java
@@ -205,7 +218,7 @@ public class User {
 }
 ```
 
-And you can create repositories to manage your entities:
+Then you can create repositories to manage your entities:
 
 ```java
 import me.approximations.spigotboot.data.ormLite.repository.OrmLiteRepository;
@@ -265,7 +278,8 @@ the hood, such as transaction management and query building.
 
 ## Credits:
 
-- NBTEditor: https://github.com/BananaPuncher714/NBTEditor
+- Javassist (MPL 1.1): https://github.com/jboss-javassist/javassist
+- NBTEditor (MIT): https://github.com/BananaPuncher714/NBTEditor
 
 TODO:
 
