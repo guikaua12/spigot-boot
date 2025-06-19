@@ -37,7 +37,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SupportedAnnotationTypes("tech.guilhermekaua.spigotBoot.annotationProcessor.plugin.annotations.Plugin")
+@SupportedAnnotationTypes("tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class PluginAnnotationProcessor extends AbstractProcessor {
 
