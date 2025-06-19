@@ -29,9 +29,10 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/guikaua12/spigot-boot.git</connection>
-        <developerConnection>scm:git:ssh://github.com:guikaua12/spigot-boot.git</developerConnection>
-        <url>https://github.com/guikaua12/spigot-boot/tree/master</url>
+        <connection>scm:git:https://github.com/guikaua12/spigot-boot.git</connection>
+        <developerConnection>scm:git:git@github.com:guikaua12/spigot-boot.git</developerConnection>
+        <url>https://github.com/guikaua12/spigot-boot</url>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
