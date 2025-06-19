@@ -9,7 +9,7 @@
         <version>2.0.0</version>
     </parent>
 
-    <name>${project.artifactId}</name>
+    <name>${project.groupId}</name>
     <description>
         Spigot Boot Annotation Processor for generating plugin metadata and handling annotations.
         This project provides an annotation processor that integrates with Spigot Boot to enhance plugin development.
