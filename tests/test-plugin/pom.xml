@@ -109,7 +109,7 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>2.0.1-SNAPSHOT</version>
+            <version>2.0.1</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
