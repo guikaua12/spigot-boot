@@ -9,6 +9,7 @@
         <version>2.0.0</version>
     </parent>
 
+    <name>${project.artifactId}</name>
     <artifactId>test-plugin</artifactId>
     <version>2.0.0</version>
 
@@ -16,6 +17,8 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <central.publishing.skip>true</central.publishing.skip>
     </properties>
 
     <build>
@@ -60,38 +63,38 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <!--                            <relocations>-->
-                            <!--                                <relocation>-->
-                            <!--                                    <pattern>tech.guilhermekaua.spigotboot</pattern>-->
-                            <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>-->
-                            <!--                                    <excludes>-->
-                            <!--                                        <exclude>tech.guilhermekaua.spigotboot.testPlugin.**</exclude>-->
-                            <!--                                    </excludes>-->
-                            <!--                                </relocation>-->
-                            <!--                            </relocations>-->
-                        </configuration>
+                        <!--                        <configuration>-->
+                        <!--                            <createDependencyReducedPom>false</createDependencyReducedPom>-->
+                        <!--                            &lt;!&ndash;                            <relocations>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                <relocation>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                    <pattern>tech.guilhermekaua.spigotboot</pattern>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                    <shadedPattern>tech.guilhermekaua.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                    <excludes>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                        <exclude>tech.guilhermekaua.spigotboot.testPlugin.**</exclude>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                    </excludes>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                                </relocation>&ndash;&gt;-->
+                        <!--                            &lt;!&ndash;                            </relocations>&ndash;&gt;-->
+                        <!--                        </configuration>-->
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <outputDirectory>C:\Users\Approximations\Desktop\minecraft\spigot 1.20\plugins
-                    </outputDirectory>
-                    <finalName>ApxPlugin_Test-${project.version}</finalName>
-                </configuration>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-jar-plugin</artifactId>-->
+            <!--                <version>2.3.1</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <goals>-->
+            <!--                            <goal>jar</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--                <configuration>-->
+            <!--                    <outputDirectory>C:\Users\Approximations\Desktop\minecraft\spigot 1.20\plugins-->
+            <!--                    </outputDirectory>-->
+            <!--                    <finalName>ApxPlugin_Test-${project.version}</finalName>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 

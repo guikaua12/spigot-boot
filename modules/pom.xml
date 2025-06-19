@@ -9,8 +9,12 @@
         <version>2.0.0</version>
     </parent>
 
+    <name>${project.artifactId}</name>
+    <description>${project.artifactId} aggregator module for Spigot Boot modules.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-modules</artifactId>
     <packaging>pom</packaging>
+
     <modules>
         <module>data-orm-lite</module>
         <module>placeholder</module>

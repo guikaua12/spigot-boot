@@ -9,6 +9,9 @@
         <version>2.0.0</version>
     </parent>
 
+    <name>${project.artifactId}</name>
+    <description>${project.artifactId} dependency injection module for Spigot Boot.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-di</artifactId>
 
     <properties>
