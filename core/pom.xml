@@ -96,11 +96,10 @@
                                 <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.fasterxml.classmate-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>javassist</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.javassist-->
-                                <!--                                    </shadedPattern>-->
-                                <!--                                </relocation>-->
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
