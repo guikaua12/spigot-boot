@@ -24,7 +24,7 @@ package tech.guilhermekaua.spigotboot.data.ormLite.config.registry;
 
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;

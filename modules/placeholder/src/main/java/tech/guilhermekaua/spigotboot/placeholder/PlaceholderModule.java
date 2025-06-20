@@ -26,8 +26,8 @@ import lombok.RequiredArgsConstructor;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
 import tech.guilhermekaua.spigotboot.core.module.Module;
-import tech.guilhermekaua.spigotboot.core.module.annotations.ConditionalOnClass;
 import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
 
 @RequiredArgsConstructor

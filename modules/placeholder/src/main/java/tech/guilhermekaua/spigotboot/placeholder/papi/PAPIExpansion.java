@@ -28,7 +28,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager;
 import tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadata;
 import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;

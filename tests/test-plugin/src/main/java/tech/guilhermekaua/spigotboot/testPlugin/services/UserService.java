@@ -23,7 +23,7 @@
 package tech.guilhermekaua.spigotboot.testPlugin.services;
 
 import lombok.RequiredArgsConstructor;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Service;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Service;
 import tech.guilhermekaua.spigotboot.testPlugin.People;
 import tech.guilhermekaua.spigotboot.testPlugin.repositories.UserRepository;
 

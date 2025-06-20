@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.ApxPlugin;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;

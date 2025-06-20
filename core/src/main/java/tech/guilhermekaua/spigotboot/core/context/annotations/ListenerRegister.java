@@ -20,17 +20,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations;
-
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+package tech.guilhermekaua.spigotboot.core.context.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Component
-@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RegisterMethodHandler {
+@Target(ElementType.TYPE)
+public @interface ListenerRegister {
 }

@@ -22,8 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.annotations;
 
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

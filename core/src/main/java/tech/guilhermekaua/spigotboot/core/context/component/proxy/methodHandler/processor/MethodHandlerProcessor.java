@@ -23,11 +23,11 @@
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor;
 
 import lombok.RequiredArgsConstructor;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 

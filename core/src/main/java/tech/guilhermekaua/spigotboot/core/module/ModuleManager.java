@@ -25,13 +25,13 @@ package tech.guilhermekaua.spigotboot.core.module;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
 import tech.guilhermekaua.spigotboot.core.context.component.ComponentManager;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
-import tech.guilhermekaua.spigotboot.core.module.annotations.ConditionalOnClass;
 
 @Component
 @RequiredArgsConstructor
