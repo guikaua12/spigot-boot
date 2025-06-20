@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.context.configuration.annotations;
+package tech.guilhermekaua.spigotboot.core.context.di;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -28,6 +28,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
-public @interface Bean {
+@Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.FIELD})
+public @interface Inject {
 }
+

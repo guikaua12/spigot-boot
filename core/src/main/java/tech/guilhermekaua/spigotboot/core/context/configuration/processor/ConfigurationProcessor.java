@@ -23,8 +23,8 @@
 package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 
 import lombok.RequiredArgsConstructor;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;

@@ -20,10 +20,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin.configuration;
+package tech.guilhermekaua.spigotboot.core.context.annotations;
 
-import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Configuration
-public class MyConfiguration {
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface Bean {
 }

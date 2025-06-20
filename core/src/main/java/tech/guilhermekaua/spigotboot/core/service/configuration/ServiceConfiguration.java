@@ -24,8 +24,8 @@ package tech.guilhermekaua.spigotboot.core.service.configuration;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 
 import java.util.concurrent.Executors;
 

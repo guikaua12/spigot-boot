@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.context.configuration.annotations;
+package tech.guilhermekaua.spigotboot.core.context.annotations;
 
 import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
 

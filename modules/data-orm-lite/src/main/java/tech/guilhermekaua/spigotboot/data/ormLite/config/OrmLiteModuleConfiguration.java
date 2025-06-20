@@ -24,8 +24,8 @@ package tech.guilhermekaua.spigotboot.data.ormLite.config;
 
 import com.j256.ormlite.jdbc.DataSourceConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 import tech.guilhermekaua.spigotboot.data.config.impl.HikariPersistenceUnitConfig;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.PersistenceConfigRegistry;
 
