@@ -27,80 +27,146 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Field injection
- */
-@Getter
-class ServiceA {
-    @Inject
-    ServiceB serviceB;
-}
+class DIContainerTest {
 
-/**
- * Class to be injected
- */
-class ServiceB {
-    public String hello() {
-        return "hello";
-    }
-}
-
-/**
- * Constructor injection
- */
-@Getter
-class ServiceC {
-    private final ServiceB serviceB;
-
-    public ServiceC(ServiceB serviceB) {
-        this.serviceB = serviceB;
-    }
-}
-
-/**
- * Setter injection
- */
-@Getter
-class ServiceD {
-    private ServiceB serviceB;
-
-    @Inject
-    public void setServiceB(ServiceB serviceB) {
-        this.serviceB = serviceB;
+    interface Service {
+        String getValue();
     }
 
-}
-
-public class DIContainerTest {
-    @Test
-    void testFieldInjection() {
-        DIContainer container = new DIContainer();
-        ServiceA a = container.resolve(ServiceA.class);
-        assertNotNull(a.getServiceB());
-        assertEquals("hello", a.getServiceB().hello());
+    static class ServiceImpl implements Service {
+        @Override
+        public String getValue() {
+            return "service";
+        }
     }
 
-    @Test
-    void testConstructorInjection() {
-        DIContainer container = new DIContainer();
-        ServiceC c = container.resolve(ServiceC.class);
-        assertNotNull(c.getServiceB());
-        assertEquals("hello", c.getServiceB().hello());
+    static class ConstructorInjected {
+        private final Service service;
+
+        @Inject
+        public ConstructorInjected(Service service) {
+            this.service = service;
+        }
+
+        public Service getService() {
+            return service;
+        }
+    }
+
+    static class FieldInjected {
+        @Inject
+        Service service;
+    }
+
+    static class SetterInjected {
+        private Service service;
+
+        @Inject
+        public void setService(Service service) {
+            this.service = service;
+        }
+
+        public Service getService() {
+            return service;
+        }
+    }
+
+    @Getter
+    static class CircularA {
+        @Inject
+        private CircularB circularB;
+    }
+
+    @Getter
+    static class CircularB {
+        @Inject
+        private CircularA circularA;
     }
 
     @Test
-    void testSetterInjection() {
+    void testRegisterAndResolve() {
         DIContainer container = new DIContainer();
-        ServiceD d = container.resolve(ServiceD.class);
-        assertNotNull(d.getServiceB());
-        assertEquals("hello", d.getServiceB().hello());
+        container.register(Service.class, ServiceImpl.class);
+
+        Service service = container.resolve(Service.class);
+        assertNotNull(service);
+        assertEquals("service", service.getValue());
     }
 
     @Test
     void testSingletonBehavior() {
         DIContainer container = new DIContainer();
-        ServiceA a1 = container.resolve(ServiceA.class);
-        ServiceA a2 = container.resolve(ServiceA.class);
-        assertSame(a1, a2);
+        container.register(Service.class, ServiceImpl.class);
+
+        Service s1 = container.resolve(Service.class);
+        Service s2 = container.resolve(Service.class);
+
+        assertSame(s1, s2);
+    }
+
+    @Test
+    void testRegisterInstance() {
+        DIContainer container = new DIContainer();
+        ServiceImpl impl = new ServiceImpl();
+        container.register(Service.class, impl);
+
+        Service resolved = container.resolve(Service.class);
+        assertSame(impl, resolved);
+    }
+
+    @Test
+    void testConstructorInjection() {
+        DIContainer container = new DIContainer();
+        container.register(Service.class, ServiceImpl.class);
+        container.register(ConstructorInjected.class, ConstructorInjected.class);
+
+        ConstructorInjected obj = container.resolve(ConstructorInjected.class);
+        assertNotNull(obj);
+        assertNotNull(obj.getService());
+        assertEquals("service", obj.getService().getValue());
+    }
+
+    @Test
+    void testFieldInjection() {
+        DIContainer container = new DIContainer();
+        container.register(Service.class, ServiceImpl.class);
+        FieldInjected obj = new FieldInjected();
+        container.injectDependencies(obj);
+
+        assertNotNull(obj.service);
+        assertEquals("service", obj.service.getValue());
+    }
+
+    @Test
+    void testSetterInjection() {
+        DIContainer container = new DIContainer();
+        container.register(Service.class, ServiceImpl.class);
+        SetterInjected obj = new SetterInjected();
+        container.injectDependencies(obj);
+
+        assertNotNull(obj.getService());
+        assertEquals("service", obj.getService().getValue());
+    }
+
+    @Test
+    void testResolveUnregisteredTypeReturnsNull() {
+        DIContainer container = new DIContainer();
+        assertNull(container.resolve(Service.class));
+    }
+
+    @Test
+    void testCircularDependency() {
+        DIContainer container = new DIContainer();
+
+        container.register(CircularA.class, CircularA.class);
+        container.register(CircularB.class, CircularB.class);
+
+        // This should throw an exception due to circular dependency
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            container.resolve(CircularA.class);
+        });
+
+        assertTrue(exception.getMessage().contains("Failed to resolve type") ||
+                exception.getCause() instanceof StackOverflowError);
     }
 }

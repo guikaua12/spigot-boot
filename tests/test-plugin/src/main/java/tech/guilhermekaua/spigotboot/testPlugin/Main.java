@@ -25,7 +25,7 @@ package tech.guilhermekaua.spigotboot.testPlugin;
 import com.j256.ormlite.support.ConnectionSource;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.core.ApxPlugin;
-import tech.guilhermekaua.spigotboot.core.di.Inject;
+import tech.guilhermekaua.spigotboot.di.Inject;
 
 @Plugin(
         name = "TestPlugin",

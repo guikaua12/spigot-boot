@@ -26,8 +26,8 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
-import tech.guilhermekaua.spigotboot.core.di.ClassMetadata;
-import tech.guilhermekaua.spigotboot.core.di.DIContainer;
+import tech.guilhermekaua.spigotboot.di.ClassMetadata;
+import tech.guilhermekaua.spigotboot.di.DIContainer;
 
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
