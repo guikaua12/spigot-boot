@@ -63,7 +63,7 @@ public class DependencyManager {
             }
 
             if (qualifier != null) {
-                Dependency dependency = dependencies.stream().filter(dep -> dep.getQualifierName().equals(qualifier)).findFirst().orElse(null);
+                Dependency dependency = dependencies.stream().filter(dep -> qualifier.equals(dep.getQualifierName())).findFirst().orElse(null);
 
                 if (dependency == null) {
                     return null;
