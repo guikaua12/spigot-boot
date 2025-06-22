@@ -75,8 +75,8 @@ public final class ReflectionUtils {
         );
     }
 
-    public static Set<Class<?>> getClassesAnnotatedWith(Class<?> baseClass, Class<? extends Annotation> annotationClass) {
-        return getClassesFromPackage(baseClass)
+    public static Set<Class<?>> getClassesAnnotatedWith(String basePackage, Class<? extends Annotation> annotationClass) {
+        return getClassesFromPackage(basePackage)
                 .stream()
                 .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());

@@ -44,7 +44,7 @@ public class MethodHandlerProcessor {
 
     public List<RegisteredMethodHandler> processFromPackage(Class<?>... bases) {
         return Arrays.stream(bases)
-                .map(base -> ReflectionUtils.getClassesAnnotatedWith(base, RegisterMethodHandler.class))
+                .map(base -> ReflectionUtils.getClassesAnnotatedWith(base.getPackage().getName(), RegisterMethodHandler.class))
                 .flatMap(Set::stream)
                 .flatMap(clazz -> processClass(clazz).stream())
                 .collect(Collectors.toList());
