@@ -115,6 +115,16 @@ public class DependencyManagerTest {
     }
 
     @Test
+    void testRegisterInterfaceWithResolver() {
+        ServiceImpl serviceToBeResolved = new ServiceImpl();
+        dependencyManager.registerDependency(Service.class, null, false, (type) -> serviceToBeResolved);
+
+        Service service = dependencyManager.resolveDependency(Service.class, null);
+        assertNotNull(service);
+        assertSame(serviceToBeResolved, service);
+    }
+
+    @Test
     void testRegisterInterfaceWithoutResolver() {
         Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.registerDependency(Service.class, null, false, null));
         assertTrue(exception.getCause().getMessage().contains("cannot register an interface without a resolver"));
