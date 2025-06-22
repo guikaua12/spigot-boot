@@ -1,4 +1,4 @@
-package tech.guilhermekaua.spigotboot.test.di.annotations.manager;
+package tech.guilhermekaua.spigotboot.core.test.context.dependency.manager;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
 import lombok.Getter;

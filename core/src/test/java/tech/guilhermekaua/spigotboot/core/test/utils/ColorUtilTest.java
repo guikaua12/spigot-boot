@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.test;
+package tech.guilhermekaua.spigotboot.core.test.utils;
 
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.utils.ColorUtil;
