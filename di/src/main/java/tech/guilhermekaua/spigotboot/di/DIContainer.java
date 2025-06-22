@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.di;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.di.exceptions.CircularDependencyException;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.Constructor;
@@ -32,6 +33,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
@@ -39,6 +41,7 @@ import java.util.Objects;
 public class DIContainer {
     private final Map<Class<?>, ClassMetadata<?>> typeMappings = new HashMap<>();
     private final Map<Class<?>, Object> singletons = new HashMap<>();
+    private final LinkedList<Class<?>> resolutionPath = new LinkedList<>();
 
     @SuppressWarnings("unchecked")
     public <T> ClassMetadata<T> register(Class<T> baseType, Class<? extends T> implType) {
@@ -63,6 +66,13 @@ public class DIContainer {
             return null;
         }
 
+        int existingIndex = resolutionPath.indexOf(type);
+        if (existingIndex >= 0) {
+            throw new CircularDependencyException(type, resolutionPath, existingIndex);
+        }
+
+        resolutionPath.addLast(type);
+
         try {
             if (singletons.containsKey(type)) {
                 return type.cast(singletons.get(type));
@@ -73,8 +83,12 @@ public class DIContainer {
             T instance = (T) createInstance(implMetadata);
             singletons.put(type, instance);
             return instance;
+        } catch (CircularDependencyException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to resolve type: " + type, e);
+        } finally {
+            resolutionPath.removeLast();
         }
     }
 
@@ -88,7 +102,6 @@ public class DIContainer {
         return instance;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> void injectDependencies(T instance) {
         Objects.requireNonNull(instance, "instance cannot be null.");
         Class<T> type = ProxyUtils.getRealClass(instance);

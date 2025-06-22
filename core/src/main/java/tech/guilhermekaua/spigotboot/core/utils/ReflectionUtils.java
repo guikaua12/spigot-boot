@@ -115,4 +115,14 @@ public final class ReflectionUtils {
                 .filter(method -> method.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
     }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<Class<? super T>> getSuperInterfaces(Class<?> type) {
+        Objects.requireNonNull(type, "type cannot be null.");
+
+        return Arrays.stream(type.getInterfaces())
+                .map(clazz -> (Class<? super T>) clazz)
+                .collect(Collectors.toList());
+
+    }
 }

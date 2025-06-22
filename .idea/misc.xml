@@ -14,6 +14,7 @@
       <set>
         <option value="$PROJECT_DIR$/modules/data/pom.xml" />
         <option value="$PROJECT_DIR$/placeholder/pom.xml" />
+        <option value="$PROJECT_DIR$/tests/pom.xml" />
       </set>
     </option>
   </component>

@@ -27,8 +27,9 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.placeholder.annotations.Placeholder;
 import tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadata;
@@ -55,8 +56,8 @@ public class PlaceholderRegistry {
         final DiscoveryService<Class<?>> discoveryService = new PlaceholderDiscoveryService(plugin);
 
         for (Class<?> clazz : discoveryService.discoverAll()) {
-            dependencyManager.registerDependency(clazz);
-            Object handlerObject = dependencyManager.resolveDependency(clazz);
+            dependencyManager.registerDependency(clazz, BeanUtils.getQualifier(clazz), BeanUtils.getIsPrimary(clazz), null);
+            Object handlerObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             final Set<Method> handlerMethods = ReflectionUtils.getMethodsAnnotatedWith(Placeholder.class, clazz);
             for (Method method : handlerMethods) {

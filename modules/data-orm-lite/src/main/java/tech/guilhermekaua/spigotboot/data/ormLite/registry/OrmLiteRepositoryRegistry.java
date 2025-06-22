@@ -28,8 +28,10 @@ import com.j256.ormlite.support.ConnectionSource;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.annotations.OrmLiteDao;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery.OrmLiteRepositoryDiscoveryService;
@@ -52,13 +54,20 @@ public class OrmLiteRepositoryRegistry {
     private final ConnectionSource connectionSource;
     private final Plugin plugin;
 
+    @SuppressWarnings("unchecked")
     public void initialize() {
         final DiscoveryService<Class<? extends OrmLiteRepository>> discoveryService = new OrmLiteRepositoryDiscoveryService(plugin);
         Collection<Class<? extends OrmLiteRepository>> repositoryClasses = discoveryService.discoverAll();
 
         for (Class<? extends OrmLiteRepository> repositoryClass : repositoryClasses) {
             try {
-                dependencyManager.registerDependency(repositoryClass);
+                dependencyManager.registerDependency(
+                        (Class<OrmLiteRepository>) repositoryClass,
+                        repositoryClass,
+                        BeanUtils.getQualifier(repositoryClass),
+                        BeanUtils.getIsPrimary(repositoryClass),
+                        (clazz) -> ComponentProxy.createProxy(clazz, null, new Class[0], new Object[0])
+                );
 
                 Type[] types = ((ParameterizedType) repositoryClass.getGenericInterfaces()[0]).getActualTypeArguments();
                 Type entityType = types[0];
@@ -66,7 +75,7 @@ public class OrmLiteRepositoryRegistry {
                 Class<?> entityClass = Class.forName(entityType.getTypeName());
                 Dao<?, ?> dao = DaoManager.createDao(connectionSource, entityClass);
 
-                OrmLiteRepository repository = dependencyManager.resolveDependency(repositoryClass);
+                OrmLiteRepository repository = dependencyManager.resolveDependency(repositoryClass, BeanUtils.getQualifier(repositoryClass));
                 OrmLiteRepositoryImpl defaultImpl = new OrmLiteRepositoryImpl<>(dao);
 
                 repositoryMap.put(entityClass, defaultImpl);

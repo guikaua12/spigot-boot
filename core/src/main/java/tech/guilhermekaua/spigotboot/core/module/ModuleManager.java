@@ -27,17 +27,18 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
-import tech.guilhermekaua.spigotboot.core.context.component.ComponentManager;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 @Component
 @RequiredArgsConstructor
 public class ModuleManager {
     private final DependencyManager dependencyManager;
-    private final ComponentManager componentManager;
+    private final ComponentRegistry componentRegistry;
     private final ConfigurationProcessor configurationProcessor;
     private final MethodHandlerProcessor methodHandlerProcessor;
     private final Plugin plugin;
@@ -49,22 +50,23 @@ public class ModuleManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void loadModule(Class<? extends Module> moduleClass) {
         try {
             if (!verifyModuleDependencies(moduleClass)) {
                 return;
             }
 
-            componentManager.registerComponents(moduleClass);
+            componentRegistry.registerComponents(moduleClass);
             configurationProcessor.processFromPackage(moduleClass);
             MethodHandlerRegistry.registerAll(
                     methodHandlerProcessor.processFromPackage(
                             moduleClass
                     )
             );
-            dependencyManager.registerDependency(moduleClass);
+            dependencyManager.registerDependency(moduleClass, BeanUtils.getQualifier(moduleClass), BeanUtils.getIsPrimary(moduleClass), null);
 
-            Module module = dependencyManager.resolveDependency(moduleClass);
+            Module module = dependencyManager.resolveDependency(moduleClass, BeanUtils.getQualifier(moduleClass));
 
             module.initialize();
         } catch (Exception e) {

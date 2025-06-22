@@ -28,11 +28,11 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import tech.guilhermekaua.spigotboot.core.context.component.ComponentManager;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.listener.manager.ListenerManager;
 import tech.guilhermekaua.spigotboot.core.module.ModuleManager;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
@@ -75,20 +75,25 @@ public abstract class ApxPlugin extends JavaPlugin {
 
         try {
             Logger.getLogger("org.hibernate").setLevel(Level.OFF);
-            dependencyManager.registerDependency(Plugin.class, this);
-            dependencyManager.registerDependency(JavaPlugin.class, this);
-            dependencyManager.registerDependency(ApxPlugin.class, this);
-            dependencyManager.registerDependency(ProxyUtils.getRealClass(this), this);
-            dependencyManager.registerDependency(dependencyManager);
+            dependencyManager.registerDependency(Plugin.class, this, null, false);
+            dependencyManager.registerDependency(JavaPlugin.class, this, null, false);
+            dependencyManager.registerDependency(ApxPlugin.class, this, null, false);
+            dependencyManager.registerDependency(ProxyUtils.getRealClass(this), this, null, false);
+            dependencyManager.registerDependency(dependencyManager, null, false);
 
-            new ComponentManager(dependencyManager, this).registerComponents();
-            dependencyManager.resolveDependency(ConfigurationProcessor.class).processFromPackage(
+            ComponentRegistry componentRegistry = dependencyManager.resolveDependency(ComponentRegistry.class, null, () -> new ComponentRegistry(dependencyManager, this));
+
+            componentRegistry.registerComponents(ApxPlugin.class, ProxyUtils.getRealClass(this));
+            dependencyManager.resolveDependency(ModuleManager.class, null).loadModules();
+
+            componentRegistry.resolveAllComponents();
+            dependencyManager.resolveDependency(ConfigurationProcessor.class, null).processFromPackage(
                     ApxPlugin.class,
                     ProxyUtils.getRealClass(this)
             );
 
             MethodHandlerRegistry.registerAll(
-                    dependencyManager.resolveDependency(MethodHandlerProcessor.class).processFromPackage(
+                    dependencyManager.resolveDependency(MethodHandlerProcessor.class, null).processFromPackage(
                             ApxPlugin.class,
                             ProxyUtils.getRealClass(this)
                     )
@@ -96,7 +101,6 @@ public abstract class ApxPlugin extends JavaPlugin {
 
             this.listenerManager = new ListenerManager(this, dependencyManager);
 
-            dependencyManager.resolveDependency(ModuleManager.class).loadModules();
 
             dependencyManager.injectDependencies(this);
             onPluginEnable();

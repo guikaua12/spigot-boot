@@ -26,7 +26,8 @@ import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -45,10 +46,10 @@ public class ConfigurationProcessor {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void processClass(Class<?> clazz) {
         try {
-            dependencyManager.registerDependency(clazz);
-            Object configObject = dependencyManager.resolveDependency(clazz);
+            Object configObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             for (Method method : clazz.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(Bean.class)) continue;
@@ -58,12 +59,12 @@ public class ConfigurationProcessor {
                 }
 
                 try {
-                    Object[] parameterDependencies = Arrays.stream(method.getParameterTypes())
-                            .map(dependencyManager::resolveDependency)
+                    Object[] parameterDependencies = Arrays.stream(method.getParameters())
+                            .map(param -> dependencyManager.resolveDependency(param.getType(), BeanUtils.getQualifier(param)))
                             .toArray();
 
                     Object beanInstance = method.invoke(configObject, parameterDependencies);
-                    dependencyManager.registerDependency(method.getReturnType(), beanInstance);
+                    dependencyManager.registerDependency((Class<Object>) method.getReturnType(), beanInstance, BeanUtils.getQualifier(method), BeanUtils.getIsPrimary(method));
                 } catch (Throwable t) {
                     t.printStackTrace();
                 }

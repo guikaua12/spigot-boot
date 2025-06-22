@@ -25,8 +25,9 @@ package tech.guilhermekaua.spigotboot.data.ormLite.config.registry;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery.PersistenceConfigDiscoveryService;
 
@@ -45,8 +46,8 @@ public class PersistenceConfigRegistry {
                 () -> new IllegalStateException("data-orm-lite is on classpath but no persistence configuration is found. Ensure that a valid PersistenceConfig is provided.")
         );
 
-        dependencyManager.registerDependency(persistenceConfigClass);
-        PersistenceConfig persistenceConfig = dependencyManager.resolveDependency(persistenceConfigClass);
+        dependencyManager.registerDependency(persistenceConfigClass, BeanUtils.getQualifier(persistenceConfigClass), BeanUtils.getIsPrimary(persistenceConfigClass), null);
+        PersistenceConfig persistenceConfig = dependencyManager.resolveDependency(persistenceConfigClass, BeanUtils.getQualifier(persistenceConfigClass));
 
         persistenceConfigAtomicReference.set(persistenceConfig);
 

@@ -28,7 +28,7 @@ import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.ApxPlugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ListenerRegister;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 

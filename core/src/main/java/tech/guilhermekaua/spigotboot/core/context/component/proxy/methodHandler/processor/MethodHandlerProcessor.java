@@ -28,7 +28,8 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHand
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.util.Arrays;
@@ -51,8 +52,7 @@ public class MethodHandlerProcessor {
 
     private List<RegisteredMethodHandler> processClass(Class<?> clazz) {
         try {
-            dependencyManager.registerDependency(clazz);
-            Object handler = dependencyManager.resolveDependency(clazz);
+            Object handler = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(MethodHandler.class))

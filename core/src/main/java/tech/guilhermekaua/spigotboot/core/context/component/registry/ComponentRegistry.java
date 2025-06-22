@@ -28,34 +28,45 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.ApxPlugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.annotation.Annotation;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-@RequiredArgsConstructor
 public class ComponentRegistry {
+    private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
     private final DependencyManager dependencyManager;
     private final Plugin plugin;
 
-    public RegisterResult registerComponents(@Nullable Class<?>... baseClasses) {
-        final Set<Class<? extends Annotation>> componentsAnnotations = discoverComponentsAnnotations();
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(componentsAnnotations, baseClasses);
-
-        for (Class<?> componentsClass : componentsClasses) {
-            dependencyManager.registerDependency(componentsClass);
-        }
-
-        return new RegisterResult(componentsClasses, componentsAnnotations);
+    public ComponentRegistry(DependencyManager dependencyManager, Plugin plugin) {
+        this.dependencyManager = dependencyManager;
+        this.plugin = plugin;
+        this.componentsAnnotations.addAll(discoverComponentsAnnotations());
     }
 
-    public RegisterResult registerComponents() {
-        return registerComponents(null);
+    public void registerComponents(Class<?>... baseClasses) {
+        final Set<Class<?>> componentsClasses = discoverComponentsClasses(baseClasses);
+
+        for (Class<?> componentsClass : componentsClasses) {
+            dependencyManager.registerDependency(componentsClass, BeanUtils.getQualifier(componentsClass), BeanUtils.getIsPrimary(componentsClass), null);
+        }
+    }
+
+    public void resolveAllComponents() {
+        dependencyManager.getDependencyMap().values()
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(dep -> dep.getInstance() == null)
+                .collect(Collectors.toList())
+                .forEach(dep -> dependencyManager.resolveDependency(dep.getType(), dep.getQualifierName()));
     }
 
     @SuppressWarnings("unchecked")
@@ -66,14 +77,12 @@ public class ComponentRegistry {
                 .collect(Collectors.toSet());
     }
 
-    private Set<Class<?>> discoverComponentsClasses(Set<Class<? extends Annotation>> componentsAnnotations, @Nullable Class<?>... baseClasses) {
+    private Set<Class<?>> discoverComponentsClasses(@Nullable Class<?>... baseClasses) {
         if (componentsAnnotations.isEmpty()) {
             return Collections.emptySet();
         }
 
-        Class<?>[] baseClassesToUse = baseClasses != null ? baseClasses : new Class<?>[]{ApxPlugin.class, ProxyUtils.getRealClass(plugin)};
-
-        return ReflectionUtils.getClassesFromPackage(baseClassesToUse)
+        return ReflectionUtils.getClassesFromPackage(baseClasses)
                 .stream()
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))
