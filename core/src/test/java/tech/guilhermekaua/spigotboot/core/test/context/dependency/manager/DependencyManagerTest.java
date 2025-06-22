@@ -115,6 +115,51 @@ public class DependencyManagerTest {
     }
 
     @Test
+    void testRegisterAlreadyRegistered() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        });
+
+        assertTrue(exception.getCause().getMessage().contains("already exists"));
+    }
+
+    @Test
+    void testRegisterSameClassDifferentQualifier() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+
+        assertDoesNotThrow(() -> dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false));
+    }
+
+    @Test
+    void testResolveWithTwoDependenciesAndQualifier() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false);
+
+        Service service = assertDoesNotThrow(() -> dependencyManager.resolveDependency(Service.class, "someQualifier"));
+        assertNotNull(service);
+    }
+
+    @Test
+    void testResolveWithTwoDependenciesAndPrimary() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, true);
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false);
+
+        Service service = assertDoesNotThrow(() -> dependencyManager.resolveDependency(Service.class, null));
+        assertNotNull(service);
+    }
+
+    @Test
+    void testNotResolveWithTwoDependenciesAndNoPrimary() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false);
+
+        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.resolveDependency(Service.class, null));
+        assertTrue(exception.getCause().getMessage().contains("No primary dependency found for class"));
+    }
+
+    @Test
     void testRegisterInterfaceWithResolver() {
         ServiceImpl serviceToBeResolved = new ServiceImpl();
         dependencyManager.registerDependency(Service.class, null, false, (type) -> serviceToBeResolved);
