@@ -20,44 +20,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin.test.service;
+package tech.guilhermekaua.spigotboot.testPlugin.test.services;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
-import com.google.common.reflect.ClassPath;
+import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
+import tech.guilhermekaua.spigotboot.testPlugin.People;
+import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
-import java.io.IOException;
+import java.sql.SQLException;
+import java.util.UUID;
 
-public class GuiceTest {
+public class UserServiceTest {
     private ServerMock server;
     private Main plugin;
+    private UserService userService;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws SQLException {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
+
+        userService = plugin.getDependencyManager().resolveDependency(UserService.class, null);
+        ConnectionSource connectionSource = plugin.getDependencyManager().resolveDependency(ConnectionSource.class, null);
+        TableUtils.createTableIfNotExists(connectionSource, People.class);
+        TableUtils.clearTable(connectionSource, People.class);
     }
 
     @Test
-    public void test() {
-        try {
-            final ClassPath classPath = ClassPath.from(ClassLoader.getSystemClassLoader());
-            classPath.getAllClasses()
-                    .stream()
-                    .filter(clazz -> clazz.getPackageName().startsWith(Main.class.getPackageName()))
-                    .forEach(clazz -> System.out.println(clazz.getName()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public void test() throws InterruptedException {
+
+        System.out.println(Thread.currentThread().getName());
+        userService.getPeople(UUID.randomUUID())
+                .thenAccept(peopleOptional -> {
+                    System.out.println(Thread.currentThread().getName());
+                    System.out.println(peopleOptional);
+                }).exceptionally(throwable -> {
+                    throwable.printStackTrace();
+                    throw new RuntimeException(throwable);
+                });
+        Thread.sleep(5000);
     }
 
     @AfterEach
     public void tearDown() {
         MockBukkit.unmock();
     }
-
 }
