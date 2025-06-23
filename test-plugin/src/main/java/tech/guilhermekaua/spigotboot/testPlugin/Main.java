@@ -23,8 +23,9 @@
 package tech.guilhermekaua.spigotboot.testPlugin;
 
 import com.j256.ormlite.support.ConnectionSource;
+import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 
 @Plugin(
@@ -33,13 +34,13 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
         description = "A test plugin for ApxPlugin framework.",
         authors = {"Approximations"}
 )
-public class Main extends ApxPlugin {
+public class Main extends JavaPlugin {
     @Inject
     private ConnectionSource connectionSource;
 
-
     @Override
-    protected void onPluginEnable() {
+    public void onEnable() {
+        SpigotBoot.initialize(this);
 //        System.out.println(userRepository.findAll());
 
 //        final BungeeChannel bungeeChannel = new BungeeChannel(this);
@@ -56,7 +57,8 @@ public class Main extends ApxPlugin {
 //        });
     }
 
-    public static ApxPlugin getPlugin() {
-        return getPlugin(Main.class);
+    @Override
+    public void onDisable() {
+        SpigotBoot.onDisable(this);
     }
 }

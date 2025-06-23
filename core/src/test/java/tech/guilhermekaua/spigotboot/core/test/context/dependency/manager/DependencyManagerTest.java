@@ -1,9 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.test.context.dependency.manager;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
 import lombok.Getter;
-import org.bukkit.plugin.Plugin;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
@@ -13,19 +10,11 @@ import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DependencyManagerTest {
-
     private DependencyManager dependencyManager;
 
     @BeforeEach
     void setUp() {
-        MockBukkit.mock();
-        Plugin mockPlugin = MockBukkit.createMockPlugin();
-        dependencyManager = new DependencyManager(mockPlugin);
-    }
-
-    @AfterEach
-    void tearDown() {
-        MockBukkit.unmock();
+        dependencyManager = new DependencyManager();
     }
 
     interface Service {

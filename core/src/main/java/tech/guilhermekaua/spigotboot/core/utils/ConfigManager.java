@@ -26,7 +26,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.YamlConfiguration;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class ConfigManager {
      * @param plugin config owner.
      * @param name   config name. Do not include .yml in it.
      */
-    public ConfigManager(ApxPlugin plugin, String name, String dir) {
+    public ConfigManager(Plugin plugin, String name, String dir) {
         final File d = new File(dir);
         if (!d.exists()) {
             if (!d.mkdirs()) {

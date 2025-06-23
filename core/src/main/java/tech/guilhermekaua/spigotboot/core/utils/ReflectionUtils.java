@@ -82,8 +82,8 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz, boolean ignoreInterfaces) {
-        return getClassesFromPackage(baseClass != null ? baseClass.getPackage().getName() : "")
+    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable String basePackage, Class<T> clazz, boolean ignoreInterfaces) {
+        return getClassesFromPackage(basePackage != null ? basePackage : "")
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .filter(c -> !c.equals(clazz))
@@ -92,8 +92,8 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz) {
-        return getSubClassesOf(baseClass, clazz, false);
+    public static <T> Set<Class<? extends T>> getSubClassesOf(String basePackage, Class<T> clazz) {
+        return getSubClassesOf(basePackage, clazz, false);
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz, boolean ignoreInterfaces) {

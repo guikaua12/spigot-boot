@@ -36,18 +36,14 @@ import java.util.Arrays;
 @Component
 @RequiredArgsConstructor
 public class ConfigurationProcessor {
-    private final DependencyManager dependencyManager;
-
-    public void processFromPackage(Class<?>... clazz) {
-        for (Class<?> baseClass : clazz) {
-            for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(baseClass, Configuration.class)) {
-                processClass(configClass);
-            }
+    public void processFromPackage(String basePackage, DependencyManager dependencyManager) {
+        for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(basePackage, Configuration.class)) {
+            processClass(configClass, dependencyManager);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public void processClass(Class<?> clazz) {
+    public void processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
             Object configObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 

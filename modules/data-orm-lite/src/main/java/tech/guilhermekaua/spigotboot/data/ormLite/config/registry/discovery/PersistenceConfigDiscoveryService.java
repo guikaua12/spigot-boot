@@ -22,22 +22,17 @@
  */
 package tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery;
 
-import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.Optional;
 import java.util.Set;
 
-@RequiredArgsConstructor
-public class PersistenceConfigDiscoveryService implements DiscoveryService<Class<? extends PersistenceConfig>> {
-    private final Plugin plugin;
-
-    public Optional<Class<? extends PersistenceConfig>> discover() {
-        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(ProxyUtils.getRealClass(plugin), PersistenceConfig.class);
+@Component
+public class PersistenceConfigDiscoveryService {
+    public Optional<Class<? extends PersistenceConfig>> discoverFromPackage(String basePackage) {
+        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class);
 
         if (configs.isEmpty()) return Optional.empty();
 

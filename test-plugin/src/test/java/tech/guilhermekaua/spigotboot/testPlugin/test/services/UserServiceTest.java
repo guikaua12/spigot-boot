@@ -29,6 +29,7 @@ import com.j256.ormlite.table.TableUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
 import tech.guilhermekaua.spigotboot.testPlugin.People;
 import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
@@ -46,8 +47,8 @@ public class UserServiceTest {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
 
-        userService = plugin.getDependencyManager().resolveDependency(UserService.class, null);
-        ConnectionSource connectionSource = plugin.getDependencyManager().resolveDependency(ConnectionSource.class, null);
+        userService = SpigotBoot.getContext(plugin).getBean(UserService.class);
+        ConnectionSource connectionSource = SpigotBoot.getContext(plugin).getBean(ConnectionSource.class);
         TableUtils.createTableIfNotExists(connectionSource, People.class);
         TableUtils.clearTable(connectionSource, People.class);
     }

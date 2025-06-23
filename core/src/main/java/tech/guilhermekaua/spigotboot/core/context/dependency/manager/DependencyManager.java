@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
@@ -49,7 +48,6 @@ import java.util.stream.Collectors;
 public class DependencyManager {
     @Getter
     private final Map<Class<?>, List<Dependency>> dependencyMap = new HashMap<>();
-    private final Plugin plugin;
 
     @SuppressWarnings("unchecked")
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {

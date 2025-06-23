@@ -23,7 +23,7 @@
 package tech.guilhermekaua.spigotboot.core.service.configuration;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 
@@ -32,9 +32,9 @@ import java.util.concurrent.Executors;
 @Configuration
 public class ServiceConfiguration {
     @Bean
-    public ServiceProperties serviceConfiguration(Plugin plugin) {
+    public ServiceProperties serviceConfiguration(GlobalContext context) {
         return ServiceProperties.builder()
-                .executorService(Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build()))
+                .executorService(Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(context.getPlugin().getName() + "-Service-Thread-%d").build()))
                 .build();
     }
 }

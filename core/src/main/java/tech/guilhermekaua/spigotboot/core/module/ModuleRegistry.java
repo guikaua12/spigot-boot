@@ -22,55 +22,70 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
+import tech.guilhermekaua.spigotboot.core.context.PluginContext;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
-import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
-import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
-import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
-import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
 
 @Component
 @RequiredArgsConstructor
-public class ModuleManager {
-    private final DependencyManager dependencyManager;
-    private final ComponentRegistry componentRegistry;
-    private final ConfigurationProcessor configurationProcessor;
-    private final MethodHandlerProcessor methodHandlerProcessor;
-    private final Plugin plugin;
+public class ModuleRegistry {
+    private final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
+    @Getter
+    private final Map<Class<? extends Module>, Module> loadedModules = new HashMap<>();
+    private final Logger logger;
 
-    public void loadModules() {
-        final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
+    public void loadModules(GlobalContext globalContext) {
         for (Class<? extends Module> moduleClass : moduleDiscoveryService.discoverModules()) {
-            loadModule(moduleClass);
+            try {
+                loadModule(moduleClass, globalContext);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void loadModule(Class<? extends Module> moduleClass) {
+    public void initializeModules(PluginContext pluginContext) {
+        for (Module module : loadedModules.values()) {
+            try {
+                initializeModule(module, pluginContext);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void loadModule(Class<? extends Module> moduleClass, GlobalContext globalContext) {
         try {
             if (!verifyModuleDependencies(moduleClass)) {
                 return;
             }
 
-            componentRegistry.registerComponents(moduleClass);
-            configurationProcessor.processFromPackage(moduleClass);
-            MethodHandlerRegistry.registerAll(
-                    methodHandlerProcessor.processFromPackage(
-                            moduleClass
-                    )
-            );
-            dependencyManager.registerDependency(moduleClass, BeanUtils.getQualifier(moduleClass), BeanUtils.getIsPrimary(moduleClass), null);
+            globalContext.scan(moduleClass.getPackage().getName());
+            globalContext.registerBean(moduleClass);
 
-            Module module = dependencyManager.resolveDependency(moduleClass, BeanUtils.getQualifier(moduleClass));
+            Module module = globalContext.getBean(moduleClass);
+            module.onLoad(globalContext);
 
-            module.initialize();
+            loadedModules.put(moduleClass, module);
         } catch (Exception e) {
+            loadedModules.remove(moduleClass);
             throw new RuntimeException("Failed to load module: '" + moduleClass.getName() + "'", e);
+        }
+    }
+
+    private void initializeModule(Module module, PluginContext pluginContext) {
+        try {
+            module.onInitialize(pluginContext);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load module: '" + module.getClass().getName() + "'", e);
         }
     }
 
@@ -90,14 +105,14 @@ public class ModuleManager {
             }
             return true;
         } catch (TypeNotPresentException e) {
-            plugin.getLogger().info(
+            logger.info(
                     conditionalOnClass.message() != null ?
                             conditionalOnClass.message() :
                             "Skipping module '" + moduleClass.getName() + "' due to missing class: " + e.typeName()
             );
             return false;
         } catch (ClassNotFoundException e) {
-            plugin.getLogger().info(
+            logger.info(
                     conditionalOnClass.message() != null ?
                             conditionalOnClass.message() :
                             "Skipping module '" + moduleClass.getName() + "' due to missing class: " + className

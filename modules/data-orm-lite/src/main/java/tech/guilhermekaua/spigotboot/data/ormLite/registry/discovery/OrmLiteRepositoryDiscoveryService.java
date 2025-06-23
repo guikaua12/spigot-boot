@@ -22,22 +22,17 @@
  */
 package tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery;
 
-import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.Set;
 
-@SuppressWarnings("rawtypes")
-@RequiredArgsConstructor
-public class OrmLiteRepositoryDiscoveryService implements DiscoveryService<Class<? extends OrmLiteRepository>> {
-    private final Plugin plugin;
-
-    public Set<Class<? extends OrmLiteRepository>> discoverAll() {
-        return ReflectionUtils.getSubClassesOf(ProxyUtils.getRealClass(plugin), OrmLiteRepository.class);
+@Component
+public class OrmLiteRepositoryDiscoveryService {
+    @SuppressWarnings("rawtypes")
+    public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage) {
+        return ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class);
     }
 }
 

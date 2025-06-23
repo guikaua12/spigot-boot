@@ -24,14 +24,11 @@ package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.Collection;
@@ -43,24 +40,20 @@ import java.util.stream.Collectors;
 @Getter
 public class ComponentRegistry {
     private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
-    private final DependencyManager dependencyManager;
-    private final Plugin plugin;
 
-    public ComponentRegistry(DependencyManager dependencyManager, Plugin plugin) {
-        this.dependencyManager = dependencyManager;
-        this.plugin = plugin;
+    public ComponentRegistry() {
         this.componentsAnnotations.addAll(discoverComponentsAnnotations());
     }
 
-    public void registerComponents(Class<?>... baseClasses) {
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(baseClasses);
+    public void registerComponents(String basePackage, DependencyManager dependencyManager) {
+        final Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
 
         for (Class<?> componentsClass : componentsClasses) {
             dependencyManager.registerDependency(componentsClass, BeanUtils.getQualifier(componentsClass), BeanUtils.getIsPrimary(componentsClass), null);
         }
     }
 
-    public void resolveAllComponents() {
+    public void resolveAllComponents(DependencyManager dependencyManager) {
         dependencyManager.getDependencyMap().values()
                 .stream()
                 .flatMap(Collection::stream)
@@ -71,18 +64,18 @@ public class ComponentRegistry {
 
     @SuppressWarnings("unchecked")
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, ProxyUtils.getRealClass(plugin)).stream()
+        return ReflectionUtils.getClassesFromPackage("").stream()
                 .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
                 .map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
 
-    private Set<Class<?>> discoverComponentsClasses(@Nullable Class<?>... baseClasses) {
+    private Set<Class<?>> discoverComponentsClasses(@NotNull String... basePackages) {
         if (componentsAnnotations.isEmpty()) {
             return Collections.emptySet();
         }
 
-        return ReflectionUtils.getClassesFromPackage(baseClasses)
+        return ReflectionUtils.getClassesFromPackage(basePackages)
                 .stream()
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))

@@ -30,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
 import tech.guilhermekaua.spigotboot.testPlugin.People;
 import tech.guilhermekaua.spigotboot.testPlugin.repositories.UserRepository;
@@ -51,9 +52,9 @@ public class RepositoryTest {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
 
-        userRepository = plugin.getDependencyManager().resolveDependency(UserRepository.class, null);
+        userRepository = SpigotBoot.getContext(plugin).getBean(UserRepository.class);
 
-        ConnectionSource connectionSource = plugin.getDependencyManager().resolveDependency(ConnectionSource.class, null);
+        ConnectionSource connectionSource = SpigotBoot.getContext(plugin).getBean(ConnectionSource.class, null);
         TableUtils.createTableIfNotExists(connectionSource, People.class);
         TableUtils.clearTable(connectionSource, People.class);
     }
