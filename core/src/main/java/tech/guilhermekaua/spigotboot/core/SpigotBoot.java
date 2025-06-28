@@ -24,7 +24,9 @@ public final class SpigotBoot {
         return CONTEXT_MANAGER.getContext(plugin);
     }
 
-    public static void onDisable(JavaPlugin plugin) {
+    public static void onDisable(@NotNull JavaPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+
         PluginContext context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
             throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
@@ -38,7 +40,10 @@ public final class SpigotBoot {
         }
     }
 
-    public static void registerShutdownHook(JavaPlugin plugin, Runnable runnable) {
+    public static void registerShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+        Objects.requireNonNull(runnable, "runnable cannot be null");
+
         PluginContext context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
             throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
@@ -47,7 +52,10 @@ public final class SpigotBoot {
         context.registerShutdownHook(runnable);
     }
 
-    public static void unregisterShutdownHook(JavaPlugin plugin, Runnable runnable) {
+    public static void unregisterShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+        Objects.requireNonNull(runnable, "runnable cannot be null");
+
         PluginContext context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
             throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
