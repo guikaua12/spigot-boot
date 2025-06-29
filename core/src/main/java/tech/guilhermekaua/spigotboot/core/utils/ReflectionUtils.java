@@ -75,15 +75,15 @@ public final class ReflectionUtils {
         );
     }
 
-    public static Set<Class<?>> getClassesAnnotatedWith(Class<?> baseClass, Class<? extends Annotation> annotationClass) {
-        return getClassesFromPackage(baseClass)
+    public static Set<Class<?>> getClassesAnnotatedWith(String basePackage, Class<? extends Annotation> annotationClass) {
+        return getClassesFromPackage(basePackage)
                 .stream()
                 .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz, boolean ignoreInterfaces) {
-        return getClassesFromPackage(baseClass != null ? baseClass.getPackage().getName() : "")
+    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable String basePackage, Class<T> clazz, boolean ignoreInterfaces) {
+        return getClassesFromPackage(basePackage != null ? basePackage : "")
                 .stream()
                 .filter(clazz::isAssignableFrom)
                 .filter(c -> !c.equals(clazz))
@@ -92,8 +92,8 @@ public final class ReflectionUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable Class<?> baseClass, Class<T> clazz) {
-        return getSubClassesOf(baseClass, clazz, false);
+    public static <T> Set<Class<? extends T>> getSubClassesOf(String basePackage, Class<T> clazz) {
+        return getSubClassesOf(basePackage, clazz, false);
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(Class<T> clazz, boolean ignoreInterfaces) {
@@ -114,5 +114,15 @@ public final class ReflectionUtils {
         return Arrays.stream(clazz.getMethods())
                 .filter(method -> method.isAnnotationPresent(annotationClass))
                 .collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<Class<? super T>> getSuperInterfaces(Class<?> type) {
+        Objects.requireNonNull(type, "type cannot be null.");
+
+        return Arrays.stream(type.getInterfaces())
+                .map(clazz -> (Class<? super T>) clazz)
+                .collect(Collectors.toList());
+
     }
 }

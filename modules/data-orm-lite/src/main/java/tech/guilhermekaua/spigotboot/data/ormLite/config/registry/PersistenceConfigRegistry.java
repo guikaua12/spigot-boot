@@ -23,12 +23,12 @@
 package tech.guilhermekaua.spigotboot.data.ormLite.config.registry;
 
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
-import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery.PersistenceConfigDiscoveryService;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,24 +36,24 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class PersistenceConfigRegistry {
     private final AtomicReference<PersistenceConfig> persistenceConfigAtomicReference = new AtomicReference<>();
-    private final DependencyManager dependencyManager;
-    private final Plugin plugin;
+    private final PersistenceConfigDiscoveryService persistenceConfigDiscoveryService;
 
-    public PersistenceConfig initialize() {
-        final DiscoveryService<Class<? extends PersistenceConfig>> persistenceConfigDiscoveryService = new PersistenceConfigDiscoveryService(plugin);
-        Class<? extends PersistenceConfig> persistenceConfigClass = persistenceConfigDiscoveryService.discover().orElseThrow(
+    public PersistenceConfig initialize(PluginContext pluginContext) {
+        Class<? extends PersistenceConfig> persistenceConfigClass = persistenceConfigDiscoveryService.discoverFromPackage(
+                ProxyUtils.getRealClass(pluginContext.getPlugin()).getPackage().getName()
+        ).orElseThrow(
                 () -> new IllegalStateException("data-orm-lite is on classpath but no persistence configuration is found. Ensure that a valid PersistenceConfig is provided.")
         );
 
-        dependencyManager.registerDependency(persistenceConfigClass);
-        PersistenceConfig persistenceConfig = dependencyManager.resolveDependency(persistenceConfigClass);
+        pluginContext.registerBean(persistenceConfigClass);
+        PersistenceConfig persistenceConfig = pluginContext.getBean(persistenceConfigClass);
 
         persistenceConfigAtomicReference.set(persistenceConfig);
 
         return persistenceConfig;
     }
 
-    public PersistenceConfig getPersistenceConfig() {
+    public @Nullable PersistenceConfig getPersistenceConfig() {
         return persistenceConfigAtomicReference.get();
     }
 }

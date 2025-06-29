@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.di;
 
 import lombok.Getter;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.di.exceptions.CircularDependencyException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -161,12 +162,10 @@ class DIContainerTest {
         container.register(CircularA.class, CircularA.class);
         container.register(CircularB.class, CircularB.class);
 
-        // This should throw an exception due to circular dependency
-        Exception exception = assertThrows(RuntimeException.class, () -> {
+        Exception exception = assertThrows(CircularDependencyException.class, () -> {
             container.resolve(CircularA.class);
         });
 
-        assertTrue(exception.getMessage().contains("Failed to resolve type") ||
-                exception.getCause() instanceof StackOverflowError);
+        assertTrue(exception.getMessage().contains("Circular dependency detected"));
     }
 }

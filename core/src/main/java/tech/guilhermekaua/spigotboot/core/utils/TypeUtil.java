@@ -5,7 +5,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+
+import java.util.logging.Logger;
 
 /**
  * @author Yuhtin
@@ -31,7 +32,7 @@ public final class TypeUtil {
             try {
                 return new ItemStack(Material.getMaterial(materialName), 1, (short) damage);
             } catch (Exception exception) {
-                ApxPlugin.getInstance().getLogger().warning("Material " + materialName + " is invalid!");
+                Logger.getGlobal().warning("Material " + materialName + " is invalid!");
                 return null;
             }
         }
@@ -59,7 +60,7 @@ public final class TypeUtil {
             try {
                 return Material.getMaterial(materialName);
             } catch (Exception exception) {
-                ApxPlugin.getInstance().getLogger().warning("Material " + materialName + " is invalid!");
+                Logger.getGlobal().warning("Material " + materialName + " is invalid!");
                 return null;
             }
         }

@@ -28,7 +28,7 @@ import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
+import org.bukkit.plugin.Plugin;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -125,12 +125,12 @@ public class Utils {
         }
     }
 
-    public static void sync(Runnable runnable) {
-        Bukkit.getServer().getScheduler().runTask(ApxPlugin.getInstance(), runnable);
+    public static void sync(Plugin plugin, Runnable runnable) {
+        Bukkit.getServer().getScheduler().runTask(plugin, runnable);
     }
 
-    public static void syncLater(Runnable runnable, long delay) {
-        Bukkit.getServer().getScheduler().runTaskLater(ApxPlugin.getInstance(), runnable, delay);
+    public static void syncLater(Plugin plugin, Runnable runnable, long delay) {
+        Bukkit.getServer().getScheduler().runTaskLater(plugin, runnable, delay);
     }
 
     public static <T> T find(Collection<T> collection, Predicate<T> predicate) {
@@ -142,8 +142,8 @@ public class Utils {
         return null;
     }
 
-    public static void playSound(Player player, String name) {
-        Bukkit.getServer().getScheduler().runTask(ApxPlugin.getInstance(), () -> {
+    public static void playSound(Plugin plugin, Player player, String name) {
+        Bukkit.getServer().getScheduler().runTask(plugin, () -> {
             Utils.tryElsePrint(() -> {
                 final Sound sound = Sound.valueOf(name);
                 player.playSound(player.getEyeLocation(), sound, 1.0f, 1.0f);
