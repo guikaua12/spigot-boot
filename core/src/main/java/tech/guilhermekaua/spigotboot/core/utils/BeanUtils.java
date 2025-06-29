@@ -9,6 +9,7 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCal
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Objects;
 
 public final class BeanUtils {
     public static String getQualifier(@NotNull AnnotatedElement element) {
@@ -35,8 +36,8 @@ public final class BeanUtils {
                 }
 
                 try {
-                    Object[] dependencies = Arrays.stream(method.getParameterTypes())
-                            .map(param -> dependencyManager.resolveDependency(param, getQualifier(method)))
+                    Object[] dependencies = Arrays.stream(method.getParameters())
+                            .map(param -> dependencyManager.resolveDependency(param.getType(), getQualifier(param)))
                             .toArray(Object[]::new);
 
                     method.setAccessible(true);
