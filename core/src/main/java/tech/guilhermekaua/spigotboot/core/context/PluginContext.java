@@ -55,16 +55,6 @@ public class PluginContext implements Context {
     }
 
     @Override
-    public <T> T getBean(Class<T> type) {
-        return dependencyManager.resolveDependency(type, null);
-    }
-
-    @Override
-    public <T> T getBean(Class<T> type, String name) {
-        return dependencyManager.resolveDependency(type, name);
-    }
-
-    @Override
     public void registerBean(Object instance) {
         Class<?> clazz = instance.getClass();
 

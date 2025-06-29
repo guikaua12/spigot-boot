@@ -1,13 +1,19 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+
 public interface Context {
     void initialize();
 
     boolean isInitialized();
 
-    <T> T getBean(Class<T> type);
+    default <T> T getBean(Class<T> type) {
+        return getBean(type, null);
+    }
 
-    <T> T getBean(Class<T> type, String name);
+    default <T> T getBean(Class<T> type, String name) {
+        return getDependencyManager().resolveDependency(type, name);
+    }
 
     void registerBean(Object instance);
 
