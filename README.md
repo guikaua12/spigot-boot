@@ -253,8 +253,8 @@ method interceptors:
 public class OrmLiteRepositoryMethodHandler {
     @MethodHandler(
             targetClass = SomeClass.class,
-            classAnnotatedWith = @SomeAnnotation, // Optional, if you want to intercept only methods of a class annotated with a specific annotation
-            methodAnnotatedWith = @SomeOtherAnnotation // Optional, if you want to intercept only methods annotated with a specific annotation
+            classAnnotatedWith = SomeAnnotation.class, // Optional, if you want to intercept only methods of a class annotated with a specific annotation
+            methodAnnotatedWith = SomeOtherAnnotation.class // Optional, if you want to intercept only methods annotated with a specific annotation
     )
     public Object handle(MethodHandlerContext context) throws Throwable {
         try {
