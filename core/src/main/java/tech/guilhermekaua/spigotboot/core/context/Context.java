@@ -13,7 +13,13 @@ public interface Context {
 
     void registerBean(Class<?> clazz);
 
+    DependencyManager getDependencyManager();
+
     void scan(String basePackage);
+
+    default void reload() {
+        getDependencyManager().reloadDependencies();
+    }
 
     void destroy();
 }

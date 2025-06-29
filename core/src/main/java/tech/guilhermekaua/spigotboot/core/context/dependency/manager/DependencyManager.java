@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -145,40 +146,64 @@ public class DependencyManager {
 
     @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull T instance, @Nullable String qualifier, boolean primary) {
+        return registerDependency(instance, qualifier, primary, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T registerDependency(@NotNull T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyReloadCallback reloadCallback) {
         Class<T> dependencyClass = (Class<T>) instance.getClass();
 
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency(superInterface, dependencyClass, instance, qualifier, primary, null);
+            registerDependency(superInterface, dependencyClass, instance, qualifier, primary, null, reloadCallback);
         }
 
-        return (T) registerDependency(dependencyClass, dependencyClass, instance, qualifier, primary, null).getInstance();
+        return (T) registerDependency(dependencyClass, dependencyClass, instance, qualifier, primary, null, reloadCallback).getInstance();
     }
 
     @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull T instance, @Nullable String qualifier, boolean primary) {
-        return (T) registerDependency(clazz, (Class<? extends T>) instance.getClass(), instance, qualifier, primary, null).getInstance();
+        return registerDependency(clazz, instance, qualifier, primary, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyReloadCallback reloadCallback) {
+        return (T) registerDependency(clazz, (Class<? extends T>) instance.getClass(), instance, qualifier, primary, null, reloadCallback).getInstance();
     }
 
     @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull Class<T> dependencyClass, @Nullable String qualifier, boolean primary, DependencyResolveResolver<T> resolver) {
+        return registerDependency(dependencyClass, qualifier, primary, resolver, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T registerDependency(@NotNull Class<T> dependencyClass, @Nullable String qualifier, boolean primary, DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency((Class<T>) superInterface, dependencyClass, null, qualifier, primary, resolver);
+            registerDependency((Class<T>) superInterface, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
         }
 
-        return (T) registerDependency(dependencyClass, dependencyClass, null, qualifier, primary, resolver).getInstance();
+        return (T) registerDependency(dependencyClass, dependencyClass, null, qualifier, primary, resolver, reloadCallback).getInstance();
     }
 
     @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver) {
-        return (T) registerDependency(clazz, dependencyClass, null, qualifier, primary, resolver).getInstance();
+        return registerDependency(clazz, dependencyClass, qualifier, primary, resolver, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
+        return (T) registerDependency(clazz, dependencyClass, null, qualifier, primary, resolver, reloadCallback).getInstance();
     }
 
     @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary) {
-        return registerDependency(clazz, dependencyClass, qualifier, primary, null);
+        return registerDependency(clazz, dependencyClass, qualifier, primary, null, null);
     }
 
     public <T> Dependency registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver) {
+        return registerDependency(clazz, dependencyClass, instance, qualifier, primary, resolver, null);
+    }
+
+    public <T> Dependency registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
         try {
             Objects.requireNonNull(clazz, "clazz cannot be null.");
             Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
@@ -198,14 +223,28 @@ public class DependencyManager {
                 );
             }
 
-
-            Dependency dependency = new Dependency(dependencyClass, qualifier, primary, instance, resolver);
+            Dependency dependency = new Dependency(dependencyClass, qualifier, primary, instance, resolver, reloadCallback);
             dependencies.add(dependency);
 
             return dependency;
         } catch (Exception e) {
             throw new RuntimeException("Failed to register dependency using (" + clazz + " -> " + dependencyClass + "): ", e);
         }
+    }
+
+    public void reloadDependencies() {
+        dependencyMap.values().stream()
+                .flatMap(List::stream)
+                .filter(Dependency::isReloadable)
+                .filter(dependency -> !Objects.isNull(dependency.getInstance()))
+                .distinct()
+                .forEach(dependency -> {
+                    try {
+                        dependency.getReloadCallback().reload(dependency.getInstance(), this);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to reload dependency: " + dependency.identifier(), e);
+                    }
+                });
     }
 
     private <T> T createInstance(Class<T> type) throws Exception {

@@ -3,9 +3,14 @@ package tech.guilhermekaua.spigotboot.core.test.context.dependency.manager;
 import lombok.Getter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -160,14 +165,14 @@ public class DependencyManagerTest {
 
     @Test
     void testRegisterInterfaceWithoutResolver() {
-        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.registerDependency(Service.class, null, false, null));
+        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.registerDependency(Service.class, null, false, null, null));
         assertTrue(exception.getCause().getMessage().contains("cannot register an interface without a resolver"));
     }
 
     @Test
     void testConstructorInjection() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
-        dependencyManager.registerDependency(ConstructorInjected.class, null, false, null);
+        dependencyManager.registerDependency(ConstructorInjected.class, null, false, null, null);
 
         ConstructorInjected obj = dependencyManager.resolveDependency(ConstructorInjected.class, null);
         assertNotNull(obj);
@@ -178,7 +183,7 @@ public class DependencyManagerTest {
     @Test
     void testFieldInjectionViaResolve() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
-        dependencyManager.registerDependency(FieldInjected.class, null, false, null);
+        dependencyManager.registerDependency(FieldInjected.class, null, false, null, null);
 
         FieldInjected obj = dependencyManager.resolveDependency(FieldInjected.class, null);
         assertNotNull(obj);
@@ -199,7 +204,7 @@ public class DependencyManagerTest {
     @Test
     void testSetterInjectionViaResolve() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
-        dependencyManager.registerDependency(SetterInjected.class, null, false, null);
+        dependencyManager.registerDependency(SetterInjected.class, null, false, null, null);
 
         SetterInjected obj = dependencyManager.resolveDependency(SetterInjected.class, null);
         assertNotNull(obj);
@@ -224,8 +229,8 @@ public class DependencyManagerTest {
 
     @Test
     void testCircularDependency() {
-        dependencyManager.registerDependency(CircularA.class, null, false, null);
-        dependencyManager.registerDependency(CircularB.class, null, false, null);
+        dependencyManager.registerDependency(CircularA.class, null, false, null, null);
+        dependencyManager.registerDependency(CircularB.class, null, false, null, null);
 
         Exception exception = assertThrows(RuntimeException.class, () -> {
             dependencyManager.resolveDependency(CircularA.class, null);
@@ -237,5 +242,64 @@ public class DependencyManagerTest {
         }
         assertNotNull(cause);
         assertTrue(cause.getMessage().contains("Circular dependency detected"));
+    }
+
+    @Test
+    void testReloadDependencies() throws Exception {
+        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false, null, callback);
+
+        Service service = dependencyManager.resolveDependency(Service.class, null);
+
+        assertNotNull(service);
+
+        dependencyManager.reloadDependencies();
+
+        Mockito.verify(callback, Mockito.times(1)).reload(service, dependencyManager);
+    }
+
+    @Test
+    void testReloadWithNullCallback() throws Exception {
+        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+
+        Dependency mockedDependency = Mockito.mock(Dependency.class);
+        Mockito.doReturn(new ServiceImpl()).when(mockedDependency).getInstance();
+        Mockito.doReturn(false).when(mockedDependency).isReloadable();
+        Mockito.doReturn(callback).when(mockedDependency).getReloadCallback();
+
+        dependencyManager.getDependencyMap().put(Service.class, List.of(mockedDependency));
+
+        dependencyManager.reloadDependencies();
+
+        Mockito.verify(callback, Mockito.never()).reload(Mockito.any(), Mockito.eq(dependencyManager));
+    }
+
+    @Test
+    void testReloadWithNullInstance() throws Exception {
+        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false, null, callback);
+
+        dependencyManager.reloadDependencies();
+
+        Mockito.verify(callback, Mockito.never()).reload(Mockito.any(), Mockito.eq(dependencyManager));
+    }
+
+    @Test
+    void testReloadCallbackException() throws Exception {
+        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+        Mockito.doThrow(new RuntimeException("simulated exception"))
+                .when(callback)
+                .reload(Mockito.any(), Mockito.eq(dependencyManager));
+
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false, null, callback);
+        dependencyManager.resolveDependency(Service.class, null);
+
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            dependencyManager.reloadDependencies();
+        });
+
+        assertTrue(exception.getMessage().contains("Failed to reload dependency"));
+        assertEquals("simulated exception", exception.getCause().getMessage());
     }
 }
