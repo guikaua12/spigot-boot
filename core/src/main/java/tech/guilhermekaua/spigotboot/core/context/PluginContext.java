@@ -78,8 +78,9 @@ public class PluginContext implements Context {
 
     @Override
     public void scan(String basePackage) {
-        globalContext.getBean(ComponentRegistry.class)
-                .registerComponents(basePackage, dependencyManager);
+        ComponentRegistry componentRegistry = globalContext.getBean(ComponentRegistry.class);
+        componentRegistry.registerComponents(basePackage, dependencyManager);
+        componentRegistry.resolveAllComponents(dependencyManager);
 
         globalContext.getBean(ConfigurationProcessor.class)
                 .processFromPackage(basePackage, dependencyManager);
