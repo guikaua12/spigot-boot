@@ -56,7 +56,13 @@ public class PlaceholderRegistry {
         final DiscoveryService<Class<?>> discoveryService = new PlaceholderDiscoveryService(plugin);
 
         for (Class<?> clazz : discoveryService.discoverAll()) {
-            dependencyManager.registerDependency(clazz, BeanUtils.getQualifier(clazz), BeanUtils.getIsPrimary(clazz), null);
+            dependencyManager.registerDependency(
+                    clazz,
+                    BeanUtils.getQualifier(clazz),
+                    BeanUtils.getIsPrimary(clazz),
+                    null,
+                    BeanUtils.createDependencyReloadCallback(clazz)
+            );
             Object handlerObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             final Set<Method> handlerMethods = ReflectionUtils.getMethodsAnnotatedWith(Placeholder.class, clazz);

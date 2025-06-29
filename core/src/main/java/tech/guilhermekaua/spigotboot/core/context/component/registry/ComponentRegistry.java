@@ -49,7 +49,13 @@ public class ComponentRegistry {
         final Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
 
         for (Class<?> componentsClass : componentsClasses) {
-            dependencyManager.registerDependency(componentsClass, BeanUtils.getQualifier(componentsClass), BeanUtils.getIsPrimary(componentsClass), null);
+            dependencyManager.registerDependency(
+                    componentsClass,
+                    BeanUtils.getQualifier(componentsClass),
+                    BeanUtils.getIsPrimary(componentsClass),
+                    null,
+                    BeanUtils.createDependencyReloadCallback(componentsClass)
+            );
         }
     }
 

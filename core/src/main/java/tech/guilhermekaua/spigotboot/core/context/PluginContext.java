@@ -66,12 +66,24 @@ public class PluginContext implements Context {
 
     @Override
     public void registerBean(Object instance) {
-        dependencyManager.registerDependency(instance, BeanUtils.getQualifier(instance.getClass()), BeanUtils.getIsPrimary(instance.getClass()));
+        Class<?> clazz = instance.getClass();
+
+        dependencyManager.registerDependency(
+                instance,
+                BeanUtils.getQualifier(clazz),
+                BeanUtils.getIsPrimary(clazz),
+                BeanUtils.createDependencyReloadCallback(clazz)
+        );
     }
 
     @Override
     public void registerBean(Class<?> clazz) {
-        dependencyManager.registerDependency(clazz, BeanUtils.getQualifier(clazz), BeanUtils.getIsPrimary(clazz), null);
+        dependencyManager.registerDependency(
+                clazz,
+                BeanUtils.getQualifier(clazz),
+                BeanUtils.getIsPrimary(clazz),
+                BeanUtils.createDependencyReloadCallback(clazz)
+        );
     }
 
     @Override
