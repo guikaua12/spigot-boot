@@ -1,5 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.utils;
 
+import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
@@ -10,17 +11,23 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public final class BeanUtils {
-    public static String getQualifier(AnnotatedElement element) {
+    public static String getQualifier(@NotNull AnnotatedElement element) {
+        Objects.requireNonNull(element);
+
         return element.isAnnotationPresent(Qualifier.class) ?
                 element.getAnnotation(Qualifier.class).value() :
                 null;
     }
 
-    public static boolean getIsPrimary(AnnotatedElement element) {
+    public static boolean getIsPrimary(@NotNull AnnotatedElement element) {
+        Objects.requireNonNull(element);
+
         return element.isAnnotationPresent(Primary.class);
     }
 
-    public static DependencyReloadCallback createDependencyReloadCallback(Class<?> clazz) {
+    public static DependencyReloadCallback createDependencyReloadCallback(@NotNull Class<?> clazz) {
+        Objects.requireNonNull(clazz);
+
         return (instance, dependencyManager) -> {
             for (Method method : clazz.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(OnReload.class)) {
