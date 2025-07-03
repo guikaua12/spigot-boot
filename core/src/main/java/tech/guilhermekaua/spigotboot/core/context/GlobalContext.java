@@ -64,6 +64,7 @@ public class GlobalContext implements Context {
                 clazz,
                 BeanUtils.getQualifier(clazz),
                 BeanUtils.getIsPrimary(clazz),
+                null,
                 BeanUtils.createDependencyReloadCallback(clazz)
         );
     }
@@ -108,6 +109,8 @@ public class GlobalContext implements Context {
         if (!initialized) {
             return;
         }
+
+        dependencyManager.clear();
 
         initialized = false;
     }

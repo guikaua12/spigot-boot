@@ -14,7 +14,21 @@ public final class SpigotBoot {
     public static void initialize(@NotNull JavaPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
 
-        PluginContext ctx = CONTEXT_MANAGER.createContext(plugin);
+        GlobalContext globalContext = CONTEXT_MANAGER.createGlobalContextIfNotExists(plugin);
+
+        if (!globalContext.isInitialized()) {
+            globalContext.initialize();
+        }
+
+        PluginContext ctx = CONTEXT_MANAGER.getContext(plugin);
+        if (ctx == null) {
+            ctx = CONTEXT_MANAGER.createContext(plugin);
+        }
+
+        if (ctx.isInitialized()) {
+            throw new IllegalStateException("Context is already initialized for plugin: " + plugin.getName());
+        }
+
         ctx.initialize();
     }
 

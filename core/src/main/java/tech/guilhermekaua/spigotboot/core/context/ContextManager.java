@@ -17,14 +17,18 @@ public final class ContextManager {
             throw new IllegalStateException("Context already exists for plugin: " + plugin.getName());
         }
 
-        if (globalContext == null) {
-            globalContext = new GlobalContext(plugin);
-            globalContext.initialize();
-        }
-
         PluginContext ctx = new PluginContext(plugin, globalContext);
         contexts.put(plugin, ctx);
         return ctx;
+    }
+
+    public GlobalContext createGlobalContextIfNotExists(JavaPlugin plugin) {
+        if (globalContext != null) {
+            return globalContext;
+        }
+
+        globalContext = new GlobalContext(plugin);
+        return globalContext;
     }
 
     public PluginContext getContext(JavaPlugin plugin) {

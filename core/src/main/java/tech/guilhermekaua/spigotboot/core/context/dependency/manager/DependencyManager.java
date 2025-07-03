@@ -55,9 +55,9 @@ public class DependencyManager {
         try {
             Objects.requireNonNull(clazz, "class cannot be null.");
 
-            List<Dependency> dependencies = dependencyMap.computeIfAbsent(clazz, k -> new ArrayList<>());
+            List<Dependency> dependencies = dependencyMap.get(clazz);
 
-            if (dependencies.isEmpty()) {
+            if (dependencies == null || dependencies.isEmpty()) {
                 return null;
             }
 
@@ -340,5 +340,9 @@ public class DependencyManager {
                 field.set(instance, dep);
             }
         }
+    }
+
+    public void clear() {
+        dependencyMap.clear();
     }
 }

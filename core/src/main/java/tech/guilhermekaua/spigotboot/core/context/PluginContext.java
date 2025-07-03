@@ -72,6 +72,7 @@ public class PluginContext implements Context {
                 clazz,
                 BeanUtils.getQualifier(clazz),
                 BeanUtils.getIsPrimary(clazz),
+                null,
                 BeanUtils.createDependencyReloadCallback(clazz)
         );
     }
@@ -106,6 +107,8 @@ public class PluginContext implements Context {
             }
         }
         shutdownHooks.clear();
+
+        dependencyManager.clear();
 
         initialized = false;
     }

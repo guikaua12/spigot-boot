@@ -298,4 +298,16 @@ public class DependencyManagerTest {
         assertTrue(exception.getMessage().contains("Failed to reload dependency"));
         assertEquals("simulated exception", exception.getCause().getMessage());
     }
+
+    @Test
+    void testClearDependencies() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        assertEquals(1, dependencyManager.getDependencyMap().size());
+
+        assertNotNull(dependencyManager.resolveDependency(Service.class, null));
+        dependencyManager.clear();
+
+        assertNull(dependencyManager.resolveDependency(Service.class, null));
+        assertTrue(dependencyManager.getDependencyMap().isEmpty());
+    }
 }
