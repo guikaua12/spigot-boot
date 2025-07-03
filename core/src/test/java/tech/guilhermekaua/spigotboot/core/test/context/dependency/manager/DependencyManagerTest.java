@@ -230,18 +230,14 @@ public class DependencyManagerTest {
     @Test
     void testCircularDependency() {
         dependencyManager.registerDependency(CircularA.class, null, false, null, null);
-        dependencyManager.registerDependency(CircularB.class, null, false, null, null);
 
         Exception exception = assertThrows(RuntimeException.class, () -> {
-            dependencyManager.resolveDependency(CircularA.class, null);
+            dependencyManager.registerDependency(CircularB.class, null, false, null, null);
         });
 
         Throwable cause = exception.getCause();
-        while (cause != null && !(cause instanceof CircularDependencyException)) {
-            cause = cause.getCause();
-        }
-        assertNotNull(cause);
-        assertTrue(cause.getMessage().contains("Circular dependency detected"));
+        assertInstanceOf(CircularDependencyException.class, cause);
+        assertEquals("Circular dependency detected: CircularB -> CircularA -> CircularB", cause.getMessage());
     }
 
     @Test
