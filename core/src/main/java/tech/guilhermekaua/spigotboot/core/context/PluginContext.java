@@ -23,6 +23,8 @@ public class PluginContext implements Context {
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
 
+    private ComponentRegistry componentRegistry;
+
     public PluginContext(Plugin plugin, GlobalContext globalContext) {
         this.plugin = plugin;
         this.globalContext = globalContext;
@@ -42,9 +44,13 @@ public class PluginContext implements Context {
         registerBean(dependencyManager);
 
         scan(ProxyUtils.getRealClass(plugin).getPackage().getName());
-        dependencyManager.injectDependencies(plugin);
 
         globalContext.initializeModules(this);
+
+        componentRegistry.resolveAllComponents(dependencyManager);
+
+        dependencyManager.injectDependencies(plugin);
+
 
         initialized = true;
     }
@@ -79,9 +85,8 @@ public class PluginContext implements Context {
 
     @Override
     public void scan(String basePackage) {
-        ComponentRegistry componentRegistry = globalContext.getBean(ComponentRegistry.class);
+        componentRegistry = globalContext.getBean(ComponentRegistry.class);
         componentRegistry.registerComponents(basePackage, dependencyManager);
-        componentRegistry.resolveAllComponents(dependencyManager);
 
         globalContext.getBean(ConfigurationProcessor.class)
                 .processFromPackage(basePackage, dependencyManager);
