@@ -38,7 +38,6 @@
     <modules>
         <module>core</module>
         <module>pmc</module>
-        <module>di</module>
         <module>data</module>
         <module>modules</module>
         <module>utils</module>
