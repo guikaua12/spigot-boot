@@ -209,6 +209,8 @@ public class DependencyManager {
             Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
             Preconditions.checkArgument(!(dependencyClass.isInterface() && resolver == null), "You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
 
+            BeanUtils.detectCircularDependencies(dependencyClass, dependencyMap);
+
             List<Dependency> dependencies = dependencyMap.computeIfAbsent(clazz, k -> new ArrayList<>());
             boolean duplicateDependency = dependencies.stream()
                     .anyMatch(dependency ->
