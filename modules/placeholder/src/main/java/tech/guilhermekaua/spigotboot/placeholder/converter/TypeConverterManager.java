@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.placeholder.converter;
 
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 
 import java.util.HashMap;
 import java.util.Map;

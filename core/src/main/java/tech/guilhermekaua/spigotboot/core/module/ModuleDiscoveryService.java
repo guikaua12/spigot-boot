@@ -23,7 +23,7 @@
 package tech.guilhermekaua.spigotboot.core.module;
 
 import lombok.RequiredArgsConstructor;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.util.Set;

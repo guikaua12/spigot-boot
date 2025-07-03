@@ -37,6 +37,6 @@ public class PlaceholderDiscoveryService implements DiscoveryService<Class<?>> {
 
     @Override
     public Collection<Class<?>> discoverAll() {
-        return ReflectionUtils.getClassesAnnotatedWith(ProxyUtils.getRealClass(plugin), RegisterPlaceholder.class);
+        return ReflectionUtils.getClassesAnnotatedWith(ProxyUtils.getRealClass(plugin).getPackage().getName(), RegisterPlaceholder.class);
     }
 }

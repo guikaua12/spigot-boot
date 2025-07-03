@@ -23,10 +23,11 @@
 package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 
 import lombok.RequiredArgsConstructor;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.configuration.annotations.Configuration;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -35,20 +36,16 @@ import java.util.Arrays;
 @Component
 @RequiredArgsConstructor
 public class ConfigurationProcessor {
-    private final DependencyManager dependencyManager;
-
-    public void processFromPackage(Class<?>... clazz) {
-        for (Class<?> baseClass : clazz) {
-            for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(baseClass, Configuration.class)) {
-                processClass(configClass);
-            }
+    public void processFromPackage(String basePackage, DependencyManager dependencyManager) {
+        for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(basePackage, Configuration.class)) {
+            processClass(configClass, dependencyManager);
         }
     }
 
-    public void processClass(Class<?> clazz) {
+    @SuppressWarnings("unchecked")
+    public void processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
-            dependencyManager.registerDependency(clazz);
-            Object configObject = dependencyManager.resolveDependency(clazz);
+            Object configObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             for (Method method : clazz.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(Bean.class)) continue;
@@ -58,12 +55,12 @@ public class ConfigurationProcessor {
                 }
 
                 try {
-                    Object[] parameterDependencies = Arrays.stream(method.getParameterTypes())
-                            .map(dependencyManager::resolveDependency)
+                    Object[] parameterDependencies = Arrays.stream(method.getParameters())
+                            .map(param -> dependencyManager.resolveDependency(param.getType(), BeanUtils.getQualifier(param)))
                             .toArray();
 
                     Object beanInstance = method.invoke(configObject, parameterDependencies);
-                    dependencyManager.registerDependency(method.getReturnType(), beanInstance);
+                    dependencyManager.registerDependency((Class<Object>) method.getReturnType(), beanInstance, BeanUtils.getQualifier(method), BeanUtils.getIsPrimary(method));
                 } catch (Throwable t) {
                     t.printStackTrace();
                 }

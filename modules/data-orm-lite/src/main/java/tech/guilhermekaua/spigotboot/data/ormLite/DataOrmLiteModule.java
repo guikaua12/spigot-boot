@@ -22,16 +22,45 @@
  */
 package tech.guilhermekaua.spigotboot.data.ormLite;
 
+import com.j256.ormlite.jdbc.DataSourceConnectionSource;
+import com.j256.ormlite.support.ConnectionSource;
 import lombok.RequiredArgsConstructor;
+import tech.guilhermekaua.spigotboot.core.context.PluginContext;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.data.config.impl.HikariPersistenceUnitConfig;
+import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
+import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.PersistenceConfigRegistry;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
+
+import javax.sql.DataSource;
+import java.sql.SQLException;
 
 @RequiredArgsConstructor
 public class DataOrmLiteModule implements Module {
     private final OrmLiteRepositoryRegistry ormLiteRepositoryRegistry;
+    private final PersistenceConfigRegistry persistenceConfigRegistry;
 
     @Override
-    public void initialize() throws Exception {
-        ormLiteRepositoryRegistry.initialize();
+    public void onInitialize(PluginContext context) throws Exception {
+        registerConnectionSource(context);
+
+        ormLiteRepositoryRegistry.initialize(context);
+    }
+
+    private void registerConnectionSource(PluginContext context) throws SQLException {
+        PersistenceConfig persistenceConfig = persistenceConfigRegistry.initialize(context);
+        ConnectionSource connectionSource = createConnectionSource(persistenceConfig);
+
+        context.registerBean(connectionSource);
+    }
+
+    public ConnectionSource createConnectionSource(PersistenceConfig persistenceConfig) throws SQLException {
+        final DataSource dataSource = new HikariPersistenceUnitConfig().configure(
+                persistenceConfig.getAddress(),
+                persistenceConfig.getUsername(),
+                persistenceConfig.getPassword()
+        );
+
+        return new DataSourceConnectionSource(dataSource, persistenceConfig.getAddress());
     }
 }
