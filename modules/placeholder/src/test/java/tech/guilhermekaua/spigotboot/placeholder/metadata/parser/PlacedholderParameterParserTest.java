@@ -148,27 +148,27 @@ public class PlacedholderParameterParserTest {
     }
 
     @Test
-    public void testMatches_SimpleNoMatch_ThrowsException() {
+    public void testMatches_SimpleNoMatch_ShouldBeInvalid() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("user_<id>", "admin_123"));
     }
 
     @Test
-    public void testMatches_OptionalAbsentNoMatchStructure_ThrowsException() {
+    public void testMatches_OptionalAbsentNoMatchStructure_ShouldBeInvalid() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("prefix_[opt]_suffix", "prefix_suffix"));
     }
 
     @Test
-    public void testMatches_LiteralPatternNoMatch_ThrowsException() {
+    public void testMatches_LiteralPatternNoMatch_ShouldBeInvalid() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("just_literal_text", "different_text"));
     }
 
     @Test
-    public void testMatches_EmptyPatternNonEmptyValue_ThrowsException() {
+    public void testMatches_EmptyPatternNonEmptyValue_ShouldBeInvalid() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("", "some_value"));
     }
 
     @Test
-    public void testMatches_PlaceholderAtStartAndEnd_NoMatch_ThrowsException() {
+    public void testMatches_PlaceholderAtStartAndEnd_NoMatch_ShouldBeInvalid() {
         assertFalse(PlaceholderParameterParser.isValidPlaceholderPattern("<start>_middle_<end>", "begin_finish"));
     }
 
