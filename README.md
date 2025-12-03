@@ -1,5 +1,8 @@
 # Spigot Boot
 
+> [!IMPORTANT]  
+> Work In Progress
+
 Spigot Boot is the most complete library inspired by Spring Boot, designed specifically for Spigot plugins. It provides:
 
 - Robust Dependency Injection for managing your plugin's components
