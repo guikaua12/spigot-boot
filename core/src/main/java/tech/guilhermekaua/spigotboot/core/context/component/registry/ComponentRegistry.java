@@ -24,56 +24,64 @@ package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.core.ApxPlugin;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.annotation.Annotation;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-@RequiredArgsConstructor
 public class ComponentRegistry {
-    private final DependencyManager dependencyManager;
-    private final Plugin plugin;
+    private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
 
-    public RegisterResult registerComponents(@Nullable Class<?>... baseClasses) {
-        final Set<Class<? extends Annotation>> componentsAnnotations = discoverComponentsAnnotations();
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(componentsAnnotations, baseClasses);
-
-        for (Class<?> componentsClass : componentsClasses) {
-            dependencyManager.registerDependency(componentsClass);
-        }
-
-        return new RegisterResult(componentsClasses, componentsAnnotations);
+    public ComponentRegistry() {
+        this.componentsAnnotations.addAll(discoverComponentsAnnotations());
     }
 
-    public RegisterResult registerComponents() {
-        return registerComponents(null);
+    public void registerComponents(String basePackage, DependencyManager dependencyManager) {
+        final Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
+
+        for (Class<?> componentsClass : componentsClasses) {
+            dependencyManager.registerDependency(
+                    componentsClass,
+                    BeanUtils.getQualifier(componentsClass),
+                    BeanUtils.getIsPrimary(componentsClass),
+                    null,
+                    BeanUtils.createDependencyReloadCallback(componentsClass)
+            );
+        }
+    }
+
+    public void resolveAllComponents(DependencyManager dependencyManager) {
+        dependencyManager.getDependencyMap().values()
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(dep -> dep.getInstance() == null)
+                .collect(Collectors.toList())
+                .forEach(dep -> dependencyManager.resolveDependency(dep.getType(), dep.getQualifierName()));
     }
 
     @SuppressWarnings("unchecked")
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage(ApxPlugin.class, ProxyUtils.getRealClass(plugin)).stream()
+        return ReflectionUtils.getClassesFromPackage("").stream()
                 .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
                 .map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
 
-    private Set<Class<?>> discoverComponentsClasses(Set<Class<? extends Annotation>> componentsAnnotations, @Nullable Class<?>... baseClasses) {
+    private Set<Class<?>> discoverComponentsClasses(@NotNull String... basePackages) {
         if (componentsAnnotations.isEmpty()) {
             return Collections.emptySet();
         }
 
-        Class<?>[] baseClassesToUse = baseClasses != null ? baseClasses : new Class<?>[]{ApxPlugin.class, ProxyUtils.getRealClass(plugin)};
-
-        return ReflectionUtils.getClassesFromPackage(baseClassesToUse)
+        return ReflectionUtils.getClassesFromPackage(basePackages)
                 .stream()
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))

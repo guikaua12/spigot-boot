@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.placeholder.annotations;
 
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

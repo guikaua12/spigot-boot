@@ -23,12 +23,14 @@
 package tech.guilhermekaua.spigotboot.core.utils;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
+import java.util.Locale;
 
 public final class NumberUtils {
     public static final String INVALID_VALUE_STRING = "-1";
     public static final double INVALID_VALUE_NUMBER = -1;
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,###.##");
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     public static String format(double value) {
         if (isInvalid(value)) return INVALID_VALUE_STRING;

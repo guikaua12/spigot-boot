@@ -124,12 +124,6 @@
         </dependency>
 
         <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-di</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.github.bananapuncher714</groupId>
             <artifactId>nbteditor</artifactId>
             <version>7.19.2</version>

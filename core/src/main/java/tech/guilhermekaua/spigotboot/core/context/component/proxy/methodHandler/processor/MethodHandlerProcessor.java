@@ -22,37 +22,31 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor;
 
-import lombok.RequiredArgsConstructor;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.di.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class MethodHandlerProcessor {
-    private final DependencyManager dependencyManager;
-
-    public List<RegisteredMethodHandler> processFromPackage(Class<?>... bases) {
-        return Arrays.stream(bases)
-                .map(base -> ReflectionUtils.getClassesAnnotatedWith(base, RegisterMethodHandler.class))
-                .flatMap(Set::stream)
-                .flatMap(clazz -> processClass(clazz).stream())
+    public List<RegisteredMethodHandler> processFromPackage(String basePackage, DependencyManager dependencyManager) {
+        return ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class)
+                .stream()
+                .flatMap(clazz -> processClass(clazz, dependencyManager).stream())
                 .collect(Collectors.toList());
     }
 
-    private List<RegisteredMethodHandler> processClass(Class<?> clazz) {
+    private List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
-            dependencyManager.registerDependency(clazz);
-            Object handler = dependencyManager.resolveDependency(clazz);
+            Object handler = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(MethodHandler.class))

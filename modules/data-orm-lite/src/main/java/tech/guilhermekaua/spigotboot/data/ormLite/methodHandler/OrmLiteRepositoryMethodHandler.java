@@ -23,8 +23,8 @@
 package tech.guilhermekaua.spigotboot.data.ormLite.methodHandler;
 
 import lombok.RequiredArgsConstructor;
+import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;

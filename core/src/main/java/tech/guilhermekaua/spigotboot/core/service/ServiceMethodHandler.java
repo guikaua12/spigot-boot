@@ -23,10 +23,10 @@
 package tech.guilhermekaua.spigotboot.core.service;
 
 import lombok.RequiredArgsConstructor;
+import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Service;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
-import tech.guilhermekaua.spigotboot.core.di.annotations.Service;
 import tech.guilhermekaua.spigotboot.core.service.configuration.ServiceProperties;
 
 import java.util.concurrent.CompletableFuture;

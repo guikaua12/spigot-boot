@@ -22,6 +22,12 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
+import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
+import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+
 public interface Module {
-    void initialize() throws Exception;
+    default void onLoad(GlobalContext context) throws Exception {
+    }
+
+    void onInitialize(PluginContext context) throws Exception;
 }

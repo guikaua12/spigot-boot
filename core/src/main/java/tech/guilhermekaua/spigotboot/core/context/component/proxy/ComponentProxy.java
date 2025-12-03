@@ -25,7 +25,7 @@ package tech.guilhermekaua.spigotboot.core.context.component.proxy;
 import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
@@ -35,10 +35,10 @@ import java.util.List;
 
 @RequiredArgsConstructor
 public class ComponentProxy implements MethodHandler {
-    private final Plugin plugin;
+    private final Object realObject;
 
     @SuppressWarnings("unchecked")
-    public static <T> T createProxy(Class<T> clazz, Class<?>[] ctorArgs, Object[] ctorValues, Plugin plugin) {
+    public static <T> T createProxy(Class<T> clazz, @Nullable Object realObject, Class<?>[] ctorArgs, Object[] ctorValues) {
         ProxyFactory factory = new ProxyFactory();
         if (clazz.isInterface()) {
             factory.setInterfaces(new Class<?>[]{clazz});
@@ -47,7 +47,7 @@ public class ComponentProxy implements MethodHandler {
         }
 
         try {
-            return (T) factory.create(ctorArgs, ctorValues, new ComponentProxy(plugin));
+            return (T) factory.create(ctorArgs, ctorValues, new ComponentProxy(realObject));
         } catch (Throwable e) {
             throw new RuntimeException("Proxy creation failed for " + clazz.getName(), e);
         }
