@@ -6,14 +6,14 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.3-SNAPSHOT</version>
+        <version>0.0.1</version>
     </parent>
 
     <name>${project.artifactId}</name>
     <description>${project.artifactId} core module for Spigot Boot.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-core</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -154,13 +154,13 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-utils</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>0.0.1</version>
         </dependency>
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-annotation-processor</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>0.0.1</version>
         </dependency>
 
     </dependencies>
