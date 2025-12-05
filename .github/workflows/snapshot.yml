@@ -1,0 +1,84 @@
+name: Snapshot to Maven Central
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  snapshot:
+    name: Publish Snapshot to Maven Central
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate snapshot version
+        id: version
+        run: |
+          # get all tags matching v*.*.* pattern, sort by version
+          LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # no tags found, start with v0.1.0-SNAPSHOT
+            NEW_VERSION="0.1.0-SNAPSHOT"
+            NEW_TAG="v0.1.0-SNAPSHOT"
+          else
+            # strip 'v' prefix and '-SNAPSHOT' suffix if present
+            VERSION="${LATEST_TAG#v}"
+            VERSION="${VERSION%-SNAPSHOT}"
+          
+            # parse major.minor.patch
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+          
+            # increment minor, reset patch to 0, add -SNAPSHOT
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="${MAJOR}.${NEW_MINOR}.0-SNAPSHOT"
+            NEW_TAG="v${NEW_VERSION}"
+          fi
+          
+          echo "Latest tag: $LATEST_TAG"
+          echo "New version: $NEW_VERSION"
+          echo "New tag: $NEW_TAG"
+          
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.TAG }}
+          git push origin ${{ steps.version.outputs.TAG }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Set project version
+        run: mvn -B versions:set -DnewVersion=${{ steps.version.outputs.VERSION }} -DprocessAllModules=true -DgenerateBackupPoms=false
+
+      - name: Build and deploy to Maven Central
+        run: mvn clean deploy -B -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
