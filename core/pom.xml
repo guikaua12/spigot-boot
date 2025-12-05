@@ -4,13 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>me.approximations.spigot-boot</groupId>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.0</version>
+        <version>2.0.3-SNAPSHOT</version>
     </parent>
 
+    <name>${project.artifactId}</name>
+    <description>${project.artifactId} core module for Spigot Boot.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-core</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -49,55 +52,54 @@
                             <relocations>
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.reflections</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.reflections</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.reflections</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.hibernate</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.hibernate</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.hibernate</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.intellij.lang</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.intellij.lang</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.intellij.lang</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jboss</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jboss</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jboss</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jetbrains.annotations</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jetbrains.annotations-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jetbrains.annotations-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.jvnet</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.jvnet</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jvnet</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>org.slf4j</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.org.slf4j</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.slf4j</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>net.bytebuddy</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.net.bytebuddy</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.net.bytebuddy</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.zaxxer.hikari</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.zaxxer.hikari</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.zaxxer.hikari</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.sun</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.sun</shadedPattern>-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.sun</shadedPattern>-->
                                 <!--                                </relocation>-->
                                 <!--                                <relocation>-->
                                 <!--                                    <pattern>com.fasterxml.classmate</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.com.fasterxml.classmate-->
+                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.fasterxml.classmate-->
                                 <!--                                    </shadedPattern>-->
                                 <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>javassist</pattern>-->
-                                <!--                                    <shadedPattern>me.approximations.spigotboot.libs.javassist-->
-                                <!--                                    </shadedPattern>-->
-                                <!--                                </relocation>-->
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
@@ -119,12 +121,6 @@
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
             <version>3.30.2-GA</version>
-        </dependency>
-
-        <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
-            <artifactId>spigot-boot-di</artifactId>
-            <version>2.0.0</version>
         </dependency>
 
         <dependency>
@@ -156,15 +152,15 @@
         </dependency>
 
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-utils</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
 
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-annotation-processor</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

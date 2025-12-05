@@ -4,13 +4,17 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>me.approximations.spigot-boot</groupId>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.0</version>
+        <version>2.0.3-SNAPSHOT</version>
     </parent>
 
+    <name>${project.artifactId}</name>
+    <description>${project.artifactId} aggregator module for Spigot Boot modules.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-modules</artifactId>
     <packaging>pom</packaging>
+
     <modules>
         <module>data-orm-lite</module>
         <module>placeholder</module>
@@ -24,9 +28,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.approximations.spigot-boot</groupId>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
