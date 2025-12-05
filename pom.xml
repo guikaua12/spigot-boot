@@ -6,7 +6,7 @@
 
     <groupId>tech.guilhermekaua.spigot-boot</groupId>
     <artifactId>spigot-boot</artifactId>
-    <version>0.0.1</version>
+    <version>2.0.2</version>
     <name>${project.artifactId}</name>
     <description>${project.artifactId} parent project for Spigot Boot modules.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
