@@ -5,12 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -255,19 +253,12 @@ public class DependencyManagerTest {
     }
 
     @Test
-    void testReloadWithNullCallback() throws Exception {
-        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+    void testReloadWithNullCallback() {
+        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        dependencyManager.getBeanDefinitionRegistry().register(Service.class, definition);
+        dependencyManager.getBeanInstanceRegistry().put(definition, new ServiceImpl());
 
-        Dependency mockedDependency = Mockito.mock(Dependency.class);
-        Mockito.doReturn(new ServiceImpl()).when(mockedDependency).getInstance();
-        Mockito.doReturn(false).when(mockedDependency).isReloadable();
-        Mockito.doReturn(callback).when(mockedDependency).getReloadCallback();
-
-        dependencyManager.getDependencyMap().put(Service.class, List.of(mockedDependency));
-
-        dependencyManager.reloadDependencies();
-
-        Mockito.verify(callback, Mockito.never()).reload(Mockito.any(), Mockito.eq(dependencyManager));
+        assertDoesNotThrow(() -> dependencyManager.reloadDependencies());
     }
 
     @Test
@@ -302,12 +293,12 @@ public class DependencyManagerTest {
     @Test
     void testClearDependencies() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
-        assertEquals(1, dependencyManager.getDependencyMap().size());
+        assertEquals(1, dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().size());
 
         assertNotNull(dependencyManager.resolveDependency(Service.class, null));
         dependencyManager.clear();
 
         assertNull(dependencyManager.resolveDependency(Service.class, null));
-        assertTrue(dependencyManager.getDependencyMap().isEmpty());
+        assertTrue(dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().isEmpty());
     }
 }

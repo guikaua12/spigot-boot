@@ -6,7 +6,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
 
@@ -99,7 +99,7 @@ public final class BeanUtils {
      * @throws CircularDependencyException if a circular dependency path is detected in the graph
      */
     public static void detectCircularDependencies(@NotNull Class<?> newDependencyClass,
-                                                  @NotNull Map<Class<?>, List<Dependency>> dependencyMap) {
+                                                  @NotNull Map<Class<?>, List<BeanDefinition>> dependencyMap) {
         Objects.requireNonNull(newDependencyClass, "newDependencyClass cannot be null");
         Objects.requireNonNull(dependencyMap, "dependencyMap cannot be null");
 
@@ -128,7 +128,7 @@ public final class BeanUtils {
      * @return a result containing whether a circular dependency was found and the cycle path if applicable
      */
     private static CircularDependencyResult hasCircularDependency(@NotNull Class<?> currentClass,
-                                                                  @NotNull Map<Class<?>, List<Dependency>> dependencyMap,
+                                                                  @NotNull Map<Class<?>, List<BeanDefinition>> dependencyMap,
                                                                   @NotNull Set<Class<?>> visitedClasses,
                                                                   @NotNull Set<Class<?>> currentPath) {
         if (currentPath.contains(currentClass)) {
@@ -174,9 +174,9 @@ public final class BeanUtils {
 
                 // if the dependency is already registered, check its dependencies recursively
                 if (dependencyMap.containsKey(dependency)) {
-                    List<Dependency> registeredDeps = dependencyMap.get(dependency);
+                    List<BeanDefinition> registeredDeps = dependencyMap.get(dependency);
                     if (registeredDeps != null) {
-                        for (Dependency registeredDep : registeredDeps) {
+                        for (BeanDefinition registeredDep : registeredDeps) {
                             CircularDependencyResult result = hasCircularDependency(registeredDep.getType(), dependencyMap, visitedClasses, currentPath);
                             if (result.hasCircularDependency) {
                                 return result;

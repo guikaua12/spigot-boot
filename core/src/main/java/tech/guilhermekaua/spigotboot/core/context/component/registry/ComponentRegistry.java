@@ -26,15 +26,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.annotation.Annotation;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Getter
@@ -59,13 +57,18 @@ public class ComponentRegistry {
         }
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void resolveAllComponents(DependencyManager dependencyManager) {
-        dependencyManager.getDependencyMap().values()
-                .stream()
-                .flatMap(Collection::stream)
-                .filter(dep -> dep.getInstance() == null)
-                .collect(Collectors.toList())
-                .forEach(dep -> dependencyManager.resolveDependency(dep.getType(), dep.getQualifierName()));
+        for (Map.Entry<Class<?>, List<BeanDefinition>> entry : dependencyManager.getBeanDefinitionRegistry().asMapView().entrySet()) {
+            Class<?> requestedType = entry.getKey();
+            for (BeanDefinition definition : entry.getValue()) {
+                if (dependencyManager.getBeanInstanceRegistry().contains(definition)) {
+                    continue;
+                }
+
+                dependencyManager.resolveDependency((Class) requestedType, definition.getQualifierName());
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
