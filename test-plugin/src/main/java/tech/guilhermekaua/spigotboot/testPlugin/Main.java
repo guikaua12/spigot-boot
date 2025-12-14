@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.testPlugin;
 
-import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.jdbc.DataSourceConnectionSource;
 import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
@@ -39,7 +39,7 @@ import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
 )
 public class Main extends JavaPlugin {
     @Inject
-    private ConnectionSource connectionSource;
+    private DataSourceConnectionSource connectionSource;
 
     @Override
     public void onEnable() {

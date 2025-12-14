@@ -61,7 +61,7 @@ public class PluginContext implements Context {
 
         componentRegistry.resolveAllComponents(dependencyManager);
 
-        dependencyManager.injectDependencies(plugin);
+        dependencyManager.injectDependencies(ProxyUtils.getRealClass(plugin), plugin);
 
         initialized = true;
     }

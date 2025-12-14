@@ -309,17 +309,20 @@ public class DependencyManager {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> void injectDependencies(@NotNull T instance) {
+    public <T> void injectDependencies(Class<T> clazz, @NotNull T instance) {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
-        Class<T> type = (Class<T>) instance.getClass();
-
         try {
-            setterInject(type, instance);
-            fieldInject(type, instance);
+            setterInject(clazz, instance);
+            fieldInject(clazz, instance);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("Failed to inject dependencies for: " + type.getName(), e);
+            throw new RuntimeException("Failed to inject dependencies for: " + clazz.getName(), e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> void injectDependencies(@NotNull T instance) {
+        injectDependencies((Class<T>) instance.getClass(), instance);
     }
 
     private @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
