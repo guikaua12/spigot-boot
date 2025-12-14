@@ -1,5 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
+import org.bukkit.plugin.Plugin;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
 public interface Context {
@@ -28,4 +29,10 @@ public interface Context {
     }
 
     void destroy();
+
+    Plugin getPlugin();
+
+    void registerShutdownHook(Runnable runnable);
+
+    void unregisterShutdownHook(Runnable runnable);
 }

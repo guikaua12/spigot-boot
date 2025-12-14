@@ -1,17 +1,23 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.Getter;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
 import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.module.ModuleRegistry;
+import tech.guilhermekaua.spigotboot.core.service.configuration.ServiceProperties;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 @Getter
@@ -19,16 +25,17 @@ public class PluginContext implements Context {
     private final DependencyManager dependencyManager = new DependencyManager();
     private final Plugin plugin;
     private final Logger logger;
-    private final GlobalContext globalContext;
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
+    private final Class<? extends Module>[] modulesToLoad;
 
     private ComponentRegistry componentRegistry;
 
-    public PluginContext(Plugin plugin, GlobalContext globalContext) {
+    @SafeVarargs
+    public PluginContext(Plugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
         this.plugin = plugin;
-        this.globalContext = globalContext;
         this.logger = plugin.getLogger();
+        this.modulesToLoad = modulesToLoad;
     }
 
     @Override
@@ -45,14 +52,24 @@ public class PluginContext implements Context {
 
         scan(ProxyUtils.getRealClass(plugin).getPackage().getName());
 
-        globalContext.initializeModules(this);
+        // TODO: create a callback like BeanDefinitionRegistryPostProcessor instead of registering manually this
+        registerBean(ServiceProperties.builder()
+                .executorService(Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build()))
+                .build());
+
+        initializeModules();
 
         componentRegistry.resolveAllComponents(dependencyManager);
 
         dependencyManager.injectDependencies(plugin);
 
-
         initialized = true;
+    }
+
+    private void initializeModules() {
+        dependencyManager
+                .resolveDependency(ModuleRegistry.class, null, () -> new ModuleRegistry(modulesToLoad, logger))
+                .initializeModules(this);
     }
 
     @Override
@@ -63,6 +80,7 @@ public class PluginContext implements Context {
     @Override
     public void registerBean(Object instance) {
         Class<?> clazz = instance.getClass();
+
 
         dependencyManager.registerDependency(
                 instance,
@@ -85,14 +103,14 @@ public class PluginContext implements Context {
 
     @Override
     public void scan(String basePackage) {
-        componentRegistry = globalContext.getBean(ComponentRegistry.class);
+        componentRegistry = dependencyManager.resolveDependency(ComponentRegistry.class, null, ComponentRegistry::new);
         componentRegistry.registerComponents(basePackage, dependencyManager);
 
-        globalContext.getBean(ConfigurationProcessor.class)
+        dependencyManager.resolveDependency(ConfigurationProcessor.class, null, ConfigurationProcessor::new)
                 .processFromPackage(basePackage, dependencyManager);
 
         MethodHandlerRegistry.registerAll(
-                globalContext.getBean(MethodHandlerProcessor.class).processFromPackage(
+                dependencyManager.resolveDependency(MethodHandlerProcessor.class, null, MethodHandlerProcessor::new).processFromPackage(
                         basePackage, dependencyManager
                 )
         );
@@ -118,10 +136,12 @@ public class PluginContext implements Context {
         initialized = false;
     }
 
+    @Override
     public void registerShutdownHook(Runnable runnable) {
         shutdownHooks.add(runnable);
     }
 
+    @Override
     public void unregisterShutdownHook(Runnable runnable) {
         shutdownHooks.remove(runnable);
     }

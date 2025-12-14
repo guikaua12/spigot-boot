@@ -26,7 +26,10 @@ import com.j256.ormlite.support.ConnectionSource;
 import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
+import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
 
 @Plugin(
         name = "TestPlugin",
@@ -40,7 +43,10 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        SpigotBoot.initialize(this);
+        Context ctx = SpigotBoot.initialize(this,
+                DataOrmLiteModule.class,
+                PlaceholderModule.class
+        );
 //        System.out.println(userRepository.findAll());
 
 //        final BungeeChannel bungeeChannel = new BungeeChannel(this);

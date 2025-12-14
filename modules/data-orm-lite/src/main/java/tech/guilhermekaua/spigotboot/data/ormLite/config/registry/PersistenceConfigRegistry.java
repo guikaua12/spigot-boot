@@ -24,7 +24,7 @@ package tech.guilhermekaua.spigotboot.data.ormLite.config.registry;
 
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery.PersistenceConfigDiscoveryService;
@@ -38,15 +38,15 @@ public class PersistenceConfigRegistry {
     private final AtomicReference<PersistenceConfig> persistenceConfigAtomicReference = new AtomicReference<>();
     private final PersistenceConfigDiscoveryService persistenceConfigDiscoveryService;
 
-    public PersistenceConfig initialize(PluginContext pluginContext) {
+    public PersistenceConfig initialize(Context context) {
         Class<? extends PersistenceConfig> persistenceConfigClass = persistenceConfigDiscoveryService.discoverFromPackage(
-                ProxyUtils.getRealClass(pluginContext.getPlugin()).getPackage().getName()
+                ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName()
         ).orElseThrow(
                 () -> new IllegalStateException("data-orm-lite is on classpath but no persistence configuration is found. Ensure that a valid PersistenceConfig is provided.")
         );
 
-        pluginContext.registerBean(persistenceConfigClass);
-        PersistenceConfig persistenceConfig = pluginContext.getBean(persistenceConfigClass);
+        context.registerBean(persistenceConfigClass);
+        PersistenceConfig persistenceConfig = context.getBean(persistenceConfigClass);
 
         persistenceConfigAtomicReference.set(persistenceConfig);
 

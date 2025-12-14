@@ -25,7 +25,7 @@ package tech.guilhermekaua.spigotboot.placeholder;
 import lombok.RequiredArgsConstructor;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
@@ -38,17 +38,17 @@ public class PlaceholderModule implements Module {
     private final PlaceholderRegistry placeholderRegistry;
 
     @Override
-    public void onInitialize(PluginContext context) throws Exception {
-        context.getLogger().info("Initializing Placeholder Module...");
+    public void onInitialize(Context context) throws Exception {
+        context.getPlugin().getLogger().info("Initializing Placeholder Module...");
 
         if (!Bukkit.getPluginManager().isPluginEnabled(PAPI_NAME)) {
-            context.getLogger().info("PlaceholderAPI not found, skipping registration of placeholders.");
+            context.getPlugin().getLogger().info("PlaceholderAPI not found, skipping registration of placeholders.");
             return;
         }
 
         placeholderRegistry.initialize();
         context.registerShutdownHook(() -> {
-            context.getLogger().info("Unregistering PlaceholderAPI expansion...");
+            context.getPlugin().getLogger().info("Unregistering PlaceholderAPI expansion...");
             if (Bukkit.getPluginManager().isPluginEnabled(PAPI_NAME)) {
                 placeholderRegistry.unregister();
             }

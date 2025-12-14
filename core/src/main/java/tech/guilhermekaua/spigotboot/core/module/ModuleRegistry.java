@@ -22,71 +22,42 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
+import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Logger;
 
 @Component
 @RequiredArgsConstructor
 public class ModuleRegistry {
-    private final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
-    @Getter
-    private final Map<Class<? extends Module>, Module> loadedModules = new HashMap<>();
+    private final Class<? extends Module>[] modulesToLoad;
     private final Logger logger;
 
-    public void loadModules(GlobalContext globalContext) {
-        for (Class<? extends Module> moduleClass : moduleDiscoveryService.discoverModules()) {
+    public void initializeModules(Context context) {
+        for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
-                loadModule(moduleClass, globalContext);
-            } catch (Exception e) {
-                e.printStackTrace();
+                initializeModule(moduleClass, context);
+            } catch (Throwable t) {
+                throw new ModuleInitializationException("Failed to load module '" + moduleClass.getName() + "'", t);
             }
         }
     }
 
-    public void initializeModules(PluginContext pluginContext) {
-        for (Module module : loadedModules.values()) {
-            try {
-                initializeModule(module, pluginContext);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private void initializeModule(Class<? extends Module> moduleClass, Context context) throws Exception {
+        if (!verifyModuleDependencies(moduleClass)) {
+            return;
         }
-    }
 
-    private void loadModule(Class<? extends Module> moduleClass, GlobalContext globalContext) {
-        try {
-            if (!verifyModuleDependencies(moduleClass)) {
-                return;
-            }
+        context.scan(moduleClass.getPackage().getName());
+        context.registerBean(moduleClass);
 
-            globalContext.scan(moduleClass.getPackage().getName());
-            globalContext.registerBean(moduleClass);
+        Module module = context.getBean(moduleClass);
 
-            Module module = globalContext.getBean(moduleClass);
-            module.onLoad(globalContext);
-
-            loadedModules.put(moduleClass, module);
-        } catch (Exception e) {
-            loadedModules.remove(moduleClass);
-            throw new RuntimeException("Failed to load module: '" + moduleClass.getName() + "'", e);
-        }
-    }
-
-    private void initializeModule(Module module, PluginContext pluginContext) {
-        try {
-            module.onInitialize(pluginContext);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load module: '" + module.getClass().getName() + "'", e);
-        }
+        module.onInitialize(context);
     }
 
     private boolean verifyModuleDependencies(@NotNull Class<? extends Module> moduleClass) {
