@@ -4,11 +4,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.Getter;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
 import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.core.module.ModuleRegistry;
 import tech.guilhermekaua.spigotboot.core.service.configuration.ServiceProperties;
@@ -17,6 +19,7 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
@@ -44,17 +47,26 @@ public class PluginContext implements Context {
             throw new IllegalStateException("Context is already initialized.");
         }
 
-        registerBean(this);
+        registerBean(logger);
         dependencyManager.registerDependency(Plugin.class, plugin, null, false);
         dependencyManager.registerDependency(ProxyUtils.getRealClass(plugin), plugin, null, false);
+        dependencyManager.registerDependency(Logger.class, logger, null, false);
 
         registerBean(dependencyManager);
 
+        scan(SpigotBoot.class.getPackage().getName());
         scan(ProxyUtils.getRealClass(plugin).getPackage().getName());
 
         // TODO: create a callback like BeanDefinitionRegistryPostProcessor instead of registering manually this
+        ExecutorService serviceAsyncExecutor = dependencyManager.registerDependency(
+                ExecutorService.class,
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build()),
+                "serviceAsyncExecutor",
+                false,
+                null
+        );
         registerBean(ServiceProperties.builder()
-                .executorService(Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build()))
+                .executorService(serviceAsyncExecutor)
                 .build());
 
         initializeModules();
@@ -68,8 +80,8 @@ public class PluginContext implements Context {
 
     private void initializeModules() {
         dependencyManager
-                .resolveDependency(ModuleRegistry.class, null, () -> new ModuleRegistry(modulesToLoad, logger))
-                .initializeModules(this);
+                .resolveDependency(ModuleRegistry.class, null)
+                .initializeModules(this, modulesToLoad);
     }
 
     @Override
@@ -102,6 +114,11 @@ public class PluginContext implements Context {
     }
 
     @Override
+    public @NotNull <T> List<T> getBeansByType(@NotNull Class<T> type) {
+        return dependencyManager.getInstancesByType(type);
+    }
+
+    @Override
     public void scan(String basePackage) {
         componentRegistry = dependencyManager.resolveDependency(ComponentRegistry.class, null, ComponentRegistry::new);
         componentRegistry.registerComponents(basePackage, dependencyManager);
@@ -129,11 +146,20 @@ public class PluginContext implements Context {
                 e.printStackTrace();
             }
         }
+
+        callPreDestroyProcessors();
+
         shutdownHooks.clear();
 
         dependencyManager.clear();
 
         initialized = false;
+    }
+
+    private void callPreDestroyProcessors() {
+        for (ContextPreDestroyProcessor processor : getBeansByType(ContextPreDestroyProcessor.class)) {
+            processor.onPreDestroy(this);
+        }
     }
 
     @Override

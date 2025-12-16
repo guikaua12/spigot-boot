@@ -1,7 +1,10 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+
+import java.util.List;
 
 public interface Context {
     void initialize();
@@ -19,6 +22,8 @@ public interface Context {
     void registerBean(Object instance);
 
     void registerBean(Class<?> clazz);
+
+    <T> @NotNull List<T> getBeansByType(@NotNull Class<T> type);
 
     DependencyManager getDependencyManager();
 

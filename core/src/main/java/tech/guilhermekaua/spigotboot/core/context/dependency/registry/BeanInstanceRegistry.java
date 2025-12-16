@@ -4,13 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class BeanInstanceRegistry {
     private final Map<BeanDefinition, Object> instances = new HashMap<>();
+    private final Map<Class<?>, List<Object>> instancesByType = new HashMap<>();
 
     public boolean contains(@NotNull BeanDefinition definition) {
         Objects.requireNonNull(definition, "definition cannot be null.");
@@ -37,10 +35,21 @@ public class BeanInstanceRegistry {
         Objects.requireNonNull(definition, "definition cannot be null.");
         Objects.requireNonNull(instance, "instance cannot be null.");
         instances.put(definition, instance);
+
+        instancesByType.computeIfAbsent(definition.getRequestedType(), (type) -> new ArrayList<>())
+                .add(instance);
+        instancesByType.computeIfAbsent(definition.getType(), (type) -> new ArrayList<>())
+                .add(instance);
     }
 
     public @NotNull Map<BeanDefinition, Object> asMapView() {
         return Collections.unmodifiableMap(instances);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> @NotNull List<T> getInstancesByType(@NotNull Class<T> type) {
+        Objects.requireNonNull(type, "type cannot be null.");
+        return (List<T>) Collections.unmodifiableList(instancesByType.getOrDefault(type, new ArrayList<>()));
     }
 
     public void clear() {

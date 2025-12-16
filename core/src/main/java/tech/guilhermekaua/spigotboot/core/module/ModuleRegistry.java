@@ -34,10 +34,9 @@ import java.util.logging.Logger;
 @Component
 @RequiredArgsConstructor
 public class ModuleRegistry {
-    private final Class<? extends Module>[] modulesToLoad;
     private final Logger logger;
 
-    public void initializeModules(Context context) {
+    public void initializeModules(@NotNull Context context, @NotNull Class<? extends Module>[] modulesToLoad) {
         for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
                 initializeModule(moduleClass, context);

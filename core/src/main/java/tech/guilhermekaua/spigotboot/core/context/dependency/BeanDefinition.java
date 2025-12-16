@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"type", "qualifierName"})
 public class BeanDefinition {
+    private final Class<?> requestedType;
     private final Class<?> type;
     private final String qualifierName;
     private final boolean isPrimary;

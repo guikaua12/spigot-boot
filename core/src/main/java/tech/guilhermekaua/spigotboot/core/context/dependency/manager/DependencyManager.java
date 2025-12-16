@@ -233,7 +233,7 @@ public class DependencyManager {
 
             BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
 
-            BeanDefinition definition = new BeanDefinition(dependencyClass, qualifier, primary, resolver, reloadCallback);
+            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, qualifier, primary, resolver, reloadCallback);
             beanDefinitionRegistry.register(clazz, definition);
 
             if (instance != null) {
@@ -262,6 +262,10 @@ public class DependencyManager {
                         throw new RuntimeException("Failed to reload dependency: " + definition.identifier(), e);
                     }
                 });
+    }
+
+    public <T> @NotNull List<T> getInstancesByType(@NotNull Class<T> type) {
+        return beanInstanceRegistry.getInstancesByType(type);
     }
 
     private <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
