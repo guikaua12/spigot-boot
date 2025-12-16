@@ -293,7 +293,7 @@ public class DependencyManager {
         return requestedType.cast(instance);
     }
 
-    private Object createInstance(Class<?> type) throws Exception {
+    public Object createInstance(Class<?> type) throws Exception {
         Constructor<?> ctor = findInjectConstructor(type);
 
         if (ctor == null) {
@@ -302,8 +302,11 @@ public class DependencyManager {
 
         Class<?>[] paramTypes = ctor.getParameterTypes();
         Object[] params = new Object[paramTypes.length];
+
         for (int i = 0; i < paramTypes.length; i++) {
-            params[i] = resolveDependency(paramTypes[i], null);
+            Class<?> paramType = paramTypes[i];
+
+            params[i] = resolveDependency(paramType, BeanUtils.getQualifier(paramType));
         }
 
         ctor.setAccessible(true);
