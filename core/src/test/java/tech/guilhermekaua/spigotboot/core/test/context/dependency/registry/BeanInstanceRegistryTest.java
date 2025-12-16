@@ -40,6 +40,8 @@ class BeanInstanceRegistryTest {
         registry.clear();
         assertFalse(registry.contains(definition));
         assertNull(registry.get(definition));
+        assertTrue(registry.getInstancesByType(ServiceImpl.class).isEmpty(),
+                "instancesByType should also be cleared");
     }
 }
 
