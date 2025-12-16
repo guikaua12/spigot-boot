@@ -40,7 +40,7 @@ public final class SpigotBoot {
 
         Context context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
-            throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
+            return;
         }
 
         context.destroy();
