@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
@@ -36,6 +37,25 @@ public class DependencyManagerTest {
 
         @Inject
         public ConstructorInjected(Service service) {
+            this.service = service;
+        }
+
+        public Service getService() {
+            return service;
+        }
+    }
+
+    static class QualifiedServiceImpl implements Service {
+        @Override
+        public String getValue() {
+            return "qualified-service";
+        }
+    }
+
+    static class QualifiedConstructorInjected {
+        private final Service service;
+
+        public QualifiedConstructorInjected(@Qualifier("special") Service service) {
             this.service = service;
         }
 
@@ -121,7 +141,8 @@ public class DependencyManagerTest {
     void testRegisterSameClassDifferentQualifier() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
 
-        assertDoesNotThrow(() -> dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false));
+        assertDoesNotThrow(
+                () -> dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false));
     }
 
     @Test
@@ -147,7 +168,8 @@ public class DependencyManagerTest {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false);
 
-        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.resolveDependency(Service.class, null));
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> dependencyManager.resolveDependency(Service.class, null));
         assertTrue(exception.getCause().getMessage().contains("No primary dependency found for class"));
     }
 
@@ -163,7 +185,8 @@ public class DependencyManagerTest {
 
     @Test
     void testRegisterInterfaceWithoutResolver() {
-        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.registerDependency(Service.class, null, false, null, null));
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> dependencyManager.registerDependency(Service.class, null, false, null, null));
         assertTrue(exception.getCause().getMessage().contains("cannot register an interface without a resolver"));
     }
 
@@ -176,6 +199,19 @@ public class DependencyManagerTest {
         assertNotNull(obj);
         assertNotNull(obj.getService());
         assertEquals("service", obj.getService().getValue());
+    }
+
+    @Test
+    void testConstructorInjectionWithQualifier() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        dependencyManager.registerDependency(Service.class, QualifiedServiceImpl.class, "special", false);
+        dependencyManager.registerDependency(QualifiedConstructorInjected.class, null, false, null, null);
+
+        QualifiedConstructorInjected obj = dependencyManager.resolveDependency(QualifiedConstructorInjected.class, null);
+
+        assertNotNull(obj);
+        assertNotNull(obj.getService());
+        assertEquals("qualified-service", obj.getService().getValue());
     }
 
     @Test

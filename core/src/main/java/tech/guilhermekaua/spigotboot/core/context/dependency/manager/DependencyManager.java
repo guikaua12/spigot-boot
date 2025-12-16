@@ -37,10 +37,7 @@ import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorExceptio
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -300,17 +297,18 @@ public class DependencyManager {
             return null;
         }
 
-        Class<?>[] paramTypes = ctor.getParameterTypes();
-        Object[] params = new Object[paramTypes.length];
+        Parameter[] params = ctor.getParameters();
+        Object[] paramsInstances = new Object[params.length];
 
-        for (int i = 0; i < paramTypes.length; i++) {
-            Class<?> paramType = paramTypes[i];
+        for (int i = 0; i < params.length; i++) {
+            Parameter param = params[i];
+            Class<?> paramType = param.getType();
 
-            params[i] = resolveDependency(paramType, BeanUtils.getQualifier(paramType));
+            paramsInstances[i] = resolveDependency(paramType, BeanUtils.getQualifier(param));
         }
 
         ctor.setAccessible(true);
-        Object instance = ctor.newInstance(params);
+        Object instance = ctor.newInstance(paramsInstances);
         injectDependencies(instance);
         return instance;
     }
