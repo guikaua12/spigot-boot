@@ -254,7 +254,7 @@ public class DependencyManagerTest {
 
     @Test
     void testReloadWithNullCallback() {
-        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition definition = new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null);
         dependencyManager.getBeanDefinitionRegistry().register(Service.class, definition);
         dependencyManager.getBeanInstanceRegistry().put(definition, new ServiceImpl());
 

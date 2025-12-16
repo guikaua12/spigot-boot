@@ -15,7 +15,7 @@ class BeanInstanceRegistryTest {
     void shouldStoreAndRetrieveInstancesByDefinitionEquality() {
         BeanInstanceRegistry registry = new BeanInstanceRegistry();
 
-        BeanDefinition defA = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition defA = new BeanDefinition(ServiceImpl.class, ServiceImpl.class, null, false, null, null);
         ServiceImpl instance = new ServiceImpl();
         registry.put(defA, instance);
 
@@ -24,7 +24,7 @@ class BeanInstanceRegistryTest {
         assertSame(instance, registry.get(defA, ServiceImpl.class));
 
         // equality is based on (type, qualifierName) only
-        BeanDefinition equalKey = new BeanDefinition(ServiceImpl.class, null, true, null, null);
+        BeanDefinition equalKey = new BeanDefinition(ServiceImpl.class, ServiceImpl.class, null, true, null, null);
         assertTrue(registry.contains(equalKey));
         assertSame(instance, registry.get(equalKey));
     }
@@ -33,7 +33,7 @@ class BeanInstanceRegistryTest {
     void clearShouldRemoveAllInstances() {
         BeanInstanceRegistry registry = new BeanInstanceRegistry();
 
-        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, ServiceImpl.class, null, false, null, null);
         registry.put(definition, new ServiceImpl());
         assertTrue(registry.contains(definition));
 

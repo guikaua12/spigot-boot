@@ -25,7 +25,7 @@ class BeanDefinitionRegistryTest {
     void registerAndRetrieveDefinitions() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
 
-        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition definition = new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null);
         registry.register(Service.class, definition);
 
         List<BeanDefinition> definitions = registry.getDefinitions(Service.class);
@@ -38,10 +38,10 @@ class BeanDefinitionRegistryTest {
     void shouldRejectDuplicateDefinitionsForSameRequestedTypeAndQualifier() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
 
-        registry.register(Service.class, new BeanDefinition(ServiceImpl.class, null, false, null, null));
+        registry.register(Service.class, new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null));
 
         IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
-                registry.register(Service.class, new BeanDefinition(ServiceImpl.class, null, false, null, null))
+                registry.register(Service.class, new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null))
         );
 
         assertTrue(exception.getMessage().contains("already exists"));
@@ -51,10 +51,10 @@ class BeanDefinitionRegistryTest {
     void shouldAllowSameImplementationWithDifferentQualifier() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
 
-        registry.register(Service.class, new BeanDefinition(ServiceImpl.class, null, false, null, null));
+        registry.register(Service.class, new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null));
 
         assertDoesNotThrow(() ->
-                registry.register(Service.class, new BeanDefinition(ServiceImpl.class, "q", false, null, null))
+                registry.register(Service.class, new BeanDefinition(Service.class, ServiceImpl.class, "q", false, null, null))
         );
     }
 
@@ -62,7 +62,7 @@ class BeanDefinitionRegistryTest {
     void shouldAllowSameDefinitionUnderDifferentRequestedTypes() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
 
-        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition definition = new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null);
         registry.register(Service.class, definition);
 
         assertDoesNotThrow(() -> registry.register(OtherService.class, definition));
@@ -71,7 +71,7 @@ class BeanDefinitionRegistryTest {
     @Test
     void asMapViewShouldBeUnmodifiable() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
-        BeanDefinition definition = new BeanDefinition(ServiceImpl.class, null, false, null, null);
+        BeanDefinition definition = new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null);
         registry.register(Service.class, definition);
 
         Map<Class<?>, List<BeanDefinition>> view = registry.asMapView();
@@ -83,8 +83,8 @@ class BeanDefinitionRegistryTest {
     @Test
     void streamEntriesShouldFlattenAllDefinitions() {
         BeanDefinitionRegistry registry = new BeanDefinitionRegistry();
-        registry.register(Service.class, new BeanDefinition(ServiceImpl.class, null, false, null, null));
-        registry.register(OtherService.class, new BeanDefinition(ServiceImpl.class, "q", false, null, null));
+        registry.register(Service.class, new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null));
+        registry.register(OtherService.class, new BeanDefinition(OtherService.class, ServiceImpl.class, "q", false, null, null));
 
         long count = registry.streamEntries().count();
         assertEquals(2, count);
