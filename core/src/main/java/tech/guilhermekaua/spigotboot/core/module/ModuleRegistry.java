@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
 import java.util.logging.Logger;
@@ -35,6 +36,7 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class ModuleRegistry {
     private final Logger logger;
+    private final ComponentRegistry componentRegistry;
 
     public void initializeModules(@NotNull Context context, @NotNull Class<? extends Module>[] modulesToLoad) {
         for (Class<? extends Module> moduleClass : modulesToLoad) {
@@ -49,6 +51,12 @@ public class ModuleRegistry {
     private void initializeModule(Class<? extends Module> moduleClass, Context context) throws Exception {
         if (!verifyModuleDependencies(moduleClass)) {
             return;
+        }
+
+        if (componentRegistry.getComponentsAnnotations()
+                .stream()
+                .anyMatch(moduleClass::isAnnotationPresent)) {
+            throw new IllegalStateException("Stereotype annotations are not allowed on module classes.");
         }
 
         context.scan(moduleClass.getPackage().getName());
