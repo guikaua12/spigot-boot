@@ -20,6 +20,7 @@ public class ShutdownExecutorServicesContextPreDestroyProcessor implements Conte
                     executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 executorService.shutdownNow();
             }
         }
