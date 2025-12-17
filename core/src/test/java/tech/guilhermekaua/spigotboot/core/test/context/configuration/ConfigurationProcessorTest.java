@@ -100,6 +100,44 @@ public class ConfigurationProcessorTest {
         }
     }
 
+    public static class CtorDependency {
+        private final String value;
+
+        public CtorDependency(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    public static class CtorBean {
+        private final String value;
+
+        public CtorBean(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    @Configuration
+    public static class CtorInjectedConfiguration {
+        private final CtorDependency dep;
+
+        public CtorInjectedConfiguration(CtorDependency dep) {
+            this.dep = dep;
+        }
+
+        @Bean
+        public CtorBean ctorBean() {
+            return new CtorBean(dep.getValue());
+        }
+    }
+
     @Test
     void testBeanMethodRegisteredAsLazyDefinition() {
         processor.processClass(TestConfiguration.class, dependencyManager);
@@ -195,7 +233,6 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testConfigurationClassProxyDirectCreation() throws Exception {
-        TestConfiguration realConfig = new TestConfiguration();
         Set<Method> beanMethods = new HashSet<>();
         beanMethods.add(TestConfiguration.class.getMethod("testService"));
 
@@ -203,11 +240,10 @@ public class ConfigurationProcessorTest {
                 TestService.class,
                 null,
                 true,
-                (type) -> realConfig.testService());
+                (type) -> null);
 
         TestConfiguration proxy = ConfigurationClassProxy.createProxy(
                 TestConfiguration.class,
-                realConfig,
                 beanMethods,
                 dependencyManager);
 
@@ -215,5 +251,31 @@ public class ConfigurationProcessorTest {
         TestService service2 = proxy.testService();
 
         assertSame(service1, service2, "Proxy should return cached bean instances");
+    }
+
+    @Test
+    void testConfigurationProxyConstructorInjection() {
+        dependencyManager.registerDependency(new CtorDependency("ctor-value"), null, false);
+
+        processor.processClass(CtorInjectedConfiguration.class, dependencyManager);
+
+        CtorBean bean = dependencyManager.resolveDependency(CtorBean.class, null);
+        assertNotNull(bean, "CtorBean should not be null");
+        assertEquals("ctor-value", bean.getValue(), "CtorBean should be created using constructor-injected dependency");
+    }
+
+    @Test
+    void testInterBeanMethodCallUsesSameInstance() {
+        processor.processClass(TestConfiguration.class, dependencyManager);
+
+        AnotherService anotherService = dependencyManager.resolveDependency(AnotherService.class, null);
+
+        TestService directService = dependencyManager.resolveDependency(TestService.class, null);
+
+        assertSame(anotherService.getTestService(), directService,
+                "Inter-bean method call should return the same singleton instance as direct resolution");
+
+        assertEquals(1, testServiceCreationCount.get(),
+                "TestService should only be instantiated once even when called from another @Bean method");
     }
 }

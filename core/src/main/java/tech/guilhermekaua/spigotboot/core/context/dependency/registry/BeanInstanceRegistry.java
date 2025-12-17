@@ -38,8 +38,11 @@ public class BeanInstanceRegistry {
 
         instancesByType.computeIfAbsent(definition.getRequestedType(), (type) -> new ArrayList<>())
                 .add(instance);
-        instancesByType.computeIfAbsent(definition.getType(), (type) -> new ArrayList<>())
-                .add(instance);
+
+        if (definition.getRequestedType() != definition.getType()) {
+            instancesByType.computeIfAbsent(definition.getType(), (type) -> new ArrayList<>())
+                    .add(instance);
+        }
     }
 
     public @NotNull Map<BeanDefinition, Object> asMapView() {
@@ -54,6 +57,7 @@ public class BeanInstanceRegistry {
 
     public void clear() {
         instances.clear();
+        instancesByType.clear();
     }
 }
 

@@ -1,6 +1,5 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.Getter;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -13,14 +12,11 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyM
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.core.module.ModuleRegistry;
-import tech.guilhermekaua.spigotboot.core.service.configuration.ServiceProperties;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 @Getter
@@ -56,18 +52,6 @@ public class PluginContext implements Context {
 
         scan(SpigotBoot.class.getPackage().getName());
         scan(ProxyUtils.getRealClass(plugin).getPackage().getName());
-
-        // TODO: create a callback like BeanDefinitionRegistryPostProcessor instead of registering manually this
-        ExecutorService serviceAsyncExecutor = dependencyManager.registerDependency(
-                ExecutorService.class,
-                Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build()),
-                "serviceAsyncExecutor",
-                false,
-                null
-        );
-        registerBean(ServiceProperties.builder()
-                .executorService(serviceAsyncExecutor)
-                .build());
 
         initializeModules();
 

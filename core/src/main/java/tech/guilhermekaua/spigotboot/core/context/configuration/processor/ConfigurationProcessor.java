@@ -26,19 +26,15 @@ import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 
 @Component
 @RequiredArgsConstructor
@@ -53,17 +49,10 @@ public class ConfigurationProcessor {
     @SuppressWarnings("unchecked")
     public void processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
-            Object realConfigObject = dependencyManager.createInstance(clazz);
-
             Set<Method> beanMethods = collectBeanMethods(clazz);
-
-            for (Method method : beanMethods) {
-                registerBeanMethod(method, realConfigObject, dependencyManager);
-            }
 
             Object configProxy = ConfigurationClassProxy.createProxy(
                     clazz,
-                    realConfigObject,
                     beanMethods,
                     dependencyManager
             );
@@ -75,26 +64,13 @@ public class ConfigurationProcessor {
                     BeanUtils.getIsPrimary(clazz)
             );
 
+            for (Method method : beanMethods) {
+                registerBeanMethod(method, configProxy, dependencyManager);
+            }
+
         } catch (Throwable t) {
             throw new RuntimeException("Failed to process configuration class: '" + clazz.getName() + "'", t);
         }
-    }
-
-    private Constructor<?> findInjectConstructor(Class<?> clazz) {
-        List<Constructor<?>> annotatedCtors = Arrays.stream(clazz.getDeclaredConstructors())
-                .filter(ctor -> ctor.isAnnotationPresent(Inject.class))
-                .collect(Collectors.toList());
-
-        if (annotatedCtors.size() == 1) {
-            return annotatedCtors.get(0);
-        }
-
-        Constructor<?>[] ctors = clazz.getDeclaredConstructors();
-        if (ctors.length == 1) {
-            return ctors[0];
-        }
-
-        return null;
     }
 
     private Set<Method> collectBeanMethods(Class<?> clazz) {
@@ -104,7 +80,7 @@ public class ConfigurationProcessor {
     }
 
     @SuppressWarnings("unchecked")
-    private void registerBeanMethod(Method method, Object realConfigObject, DependencyManager dependencyManager) {
+    private void registerBeanMethod(Method method, Object configProxy, DependencyManager dependencyManager) {
         Class<?> returnType = method.getReturnType();
 
         if (!Object.class.isAssignableFrom(returnType)) {
@@ -121,15 +97,8 @@ public class ConfigurationProcessor {
                 isPrimary,
                 (type) -> {
                     try {
-                        Object[] parameterDependencies = Arrays.stream(method.getParameters())
-                                .map(param -> dependencyManager.resolveDependency(
-                                        param.getType(),
-                                        BeanUtils.getQualifier(param)
-                                ))
-                                .toArray();
-
                         method.setAccessible(true);
-                        return method.invoke(realConfigObject, parameterDependencies);
+                        return method.invoke(configProxy);
                     } catch (Throwable t) {
                         throw new RuntimeException("Failed to invoke @Bean method: " + method.getName(), t);
                     }

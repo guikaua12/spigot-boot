@@ -290,6 +290,23 @@ public class DependencyManager {
         return requestedType.cast(instance);
     }
 
+    public Object[] resolveArguments(@NotNull Parameter[] parameters) {
+        Objects.requireNonNull(parameters, "parameters cannot be null.");
+
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter param = parameters[i];
+            args[i] = resolveDependency(param.getType(), BeanUtils.getQualifier(param));
+        }
+
+        return args;
+    }
+
+    public Object[] resolveArguments(@NotNull Executable executable) {
+        Objects.requireNonNull(executable, "executable cannot be null.");
+        return resolveArguments(executable.getParameters());
+    }
+
     public Object createInstance(Class<?> type) throws Exception {
         Constructor<?> ctor = findInjectConstructor(type);
 
@@ -297,15 +314,7 @@ public class DependencyManager {
             return null;
         }
 
-        Parameter[] params = ctor.getParameters();
-        Object[] paramsInstances = new Object[params.length];
-
-        for (int i = 0; i < params.length; i++) {
-            Parameter param = params[i];
-            Class<?> paramType = param.getType();
-
-            paramsInstances[i] = resolveDependency(paramType, BeanUtils.getQualifier(param));
-        }
+        Object[] paramsInstances = resolveArguments(ctor);
 
         ctor.setAccessible(true);
         Object instance = ctor.newInstance(paramsInstances);
@@ -313,7 +322,6 @@ public class DependencyManager {
         return instance;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> void injectDependencies(Class<T> clazz, @NotNull T instance) {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
@@ -329,8 +337,8 @@ public class DependencyManager {
     public <T> void injectDependencies(@NotNull T instance) {
         injectDependencies((Class<T>) instance.getClass(), instance);
     }
-
-    private @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
+    
+    public @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
         Objects.requireNonNull(type, "type cannot be null.");
 
         if (type.isInterface()) {

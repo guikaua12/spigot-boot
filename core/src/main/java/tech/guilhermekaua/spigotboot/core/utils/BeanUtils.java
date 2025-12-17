@@ -74,9 +74,7 @@ public final class BeanUtils {
                 }
 
                 try {
-                    Object[] dependencies = Arrays.stream(method.getParameters())
-                            .map(param -> dependencyManager.resolveDependency(param.getType(), getQualifier(param)))
-                            .toArray(Object[]::new);
+                    Object[] dependencies = dependencyManager.resolveArguments(method);
 
                     method.setAccessible(true);
                     method.invoke(instance, dependencies);
