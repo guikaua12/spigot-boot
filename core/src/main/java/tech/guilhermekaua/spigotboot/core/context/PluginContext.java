@@ -142,7 +142,12 @@ public class PluginContext implements Context {
 
     private void callPreDestroyProcessors() {
         for (ContextPreDestroyProcessor processor : getBeansByType(ContextPreDestroyProcessor.class)) {
-            processor.onPreDestroy(this);
+            try {
+                processor.onPreDestroy(this);
+            } catch (Exception e) {
+                logger.severe("Error executing pre-destroy processor: " + processor.getClass().getName());
+                e.printStackTrace();
+            }
         }
     }
 
