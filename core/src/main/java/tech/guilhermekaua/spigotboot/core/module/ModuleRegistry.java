@@ -30,6 +30,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass
 import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 @Component
@@ -38,7 +39,7 @@ public class ModuleRegistry {
     private final Logger logger;
     private final ComponentRegistry componentRegistry;
 
-    public void initializeModules(@NotNull Context context, @NotNull Class<? extends Module>[] modulesToLoad) {
+    public void initializeModules(@NotNull Context context, @NotNull List<Class<? extends Module>> modulesToLoad) {
         for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
                 initializeModule(moduleClass, context);

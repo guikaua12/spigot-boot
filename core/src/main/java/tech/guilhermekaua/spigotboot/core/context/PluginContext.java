@@ -16,6 +16,8 @@ import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -26,7 +28,7 @@ public class PluginContext implements Context {
     private final Logger logger;
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
-    private final Class<? extends Module>[] modulesToLoad;
+    private final List<Class<? extends Module>> modulesToLoad;
 
     private ComponentRegistry componentRegistry;
 
@@ -34,7 +36,7 @@ public class PluginContext implements Context {
     public PluginContext(Plugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
-        this.modulesToLoad = modulesToLoad;
+        this.modulesToLoad = Collections.unmodifiableList(Arrays.asList(modulesToLoad));
     }
 
     @Override
