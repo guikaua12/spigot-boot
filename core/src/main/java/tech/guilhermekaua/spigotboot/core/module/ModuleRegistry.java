@@ -43,8 +43,8 @@ public class ModuleRegistry {
         for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
                 initializeModule(moduleClass, context);
-            } catch (Throwable t) {
-                throw new ModuleInitializationException("Failed to load module '" + moduleClass.getName() + "'", t);
+            } catch (Exception e) {
+                throw new ModuleInitializationException("Failed to load module '" + moduleClass.getName() + "'", e);
             }
         }
     }
