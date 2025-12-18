@@ -98,7 +98,7 @@ public class ConfigurationProcessor {
                 (type) -> {
                     try {
                         method.setAccessible(true);
-                        return method.invoke(configProxy);
+                        return method.invoke(configProxy, dependencyManager.resolveArguments(method));
                     } catch (Throwable t) {
                         throw new RuntimeException("Failed to invoke @Bean method: " + method.getName(), t);
                     }

@@ -64,7 +64,7 @@ public class ConfigurationProcessorTest {
     }
 
     @Configuration
-    public static class TestConfiguration {
+    public static class TestConfigurationInternalCall {
         @Bean
         @Primary
         public TestService testService() {
@@ -76,6 +76,26 @@ public class ConfigurationProcessorTest {
         public AnotherService anotherService() {
             anotherServiceCreationCount.incrementAndGet();
             return new AnotherService(testService());
+        }
+
+        public String nonBeanMethod() {
+            return "non-bean-result";
+        }
+    }
+
+    @Configuration
+    public static class TestConfigurationParameter {
+        @Bean
+        @Primary
+        public TestService testService() {
+            testServiceCreationCount.incrementAndGet();
+            return new TestServiceImpl("test-value");
+        }
+
+        @Bean
+        public AnotherService anotherService(TestService testService) {
+            anotherServiceCreationCount.incrementAndGet();
+            return new AnotherService(testService);
         }
 
         public String nonBeanMethod() {
@@ -140,7 +160,7 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testBeanMethodRegisteredAsLazyDefinition() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
         List<BeanDefinition> definitions = dependencyManager.getBeanDefinitionRegistry()
                 .getDefinitions(TestService.class);
@@ -151,7 +171,7 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testBeanOnlyCreatedOnFirstAccess() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
         assertEquals(0, testServiceCreationCount.get(), "Bean should not be created during processing");
 
@@ -164,7 +184,7 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testBeanCachedAfterFirstAccess() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
         TestService service1 = dependencyManager.resolveDependency(TestService.class, null);
         TestService service2 = dependencyManager.resolveDependency(TestService.class, null);
@@ -175,9 +195,9 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testConfigProxyRoutesBeanMethodsToDependencyManager() throws Exception {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
-        TestConfiguration configProxy = dependencyManager.resolveDependency(TestConfiguration.class, null);
+        TestConfigurationInternalCall configProxy = dependencyManager.resolveDependency(TestConfigurationInternalCall.class, null);
         assertNotNull(configProxy, "Config proxy should not be null");
 
         assertTrue(configProxy.getClass().getName().contains("$"), "Config should be a proxy class");
@@ -193,9 +213,9 @@ public class ConfigurationProcessorTest {
 
     @Test
     void testConfigProxyPassesNonBeanMethodsToRealObject() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
-        TestConfiguration configProxy = dependencyManager.resolveDependency(TestConfiguration.class, null);
+        TestConfigurationInternalCall configProxy = dependencyManager.resolveDependency(TestConfigurationInternalCall.class, null);
 
         String result = configProxy.nonBeanMethod();
 
@@ -203,8 +223,23 @@ public class ConfigurationProcessorTest {
     }
 
     @Test
+    void testBeanMethodWithDependenciesCallingInternalBean() {
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
+
+        AnotherService anotherService = dependencyManager.resolveDependency(AnotherService.class, null);
+
+        assertEquals(1, testServiceCreationCount.get(), "TestService should be created");
+        assertEquals(1, anotherServiceCreationCount.get(), "AnotherService should be created");
+
+        assertNotNull(anotherService, "AnotherService should not be null");
+        assertNotNull(anotherService.getTestService(), "Injected TestService should not be null");
+        assertEquals("test-value", anotherService.getTestService().getValue(),
+                "Injected TestService should have correct value");
+    }
+
+    @Test
     void testBeanMethodWithDependencies() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationParameter.class, dependencyManager);
 
         AnotherService anotherService = dependencyManager.resolveDependency(AnotherService.class, null);
 
@@ -234,7 +269,7 @@ public class ConfigurationProcessorTest {
     @Test
     void testConfigurationClassProxyDirectCreation() throws Exception {
         Set<Method> beanMethods = new HashSet<>();
-        beanMethods.add(TestConfiguration.class.getMethod("testService"));
+        beanMethods.add(TestConfigurationInternalCall.class.getMethod("testService"));
 
         dependencyManager.registerDependency(
                 TestService.class,
@@ -242,8 +277,8 @@ public class ConfigurationProcessorTest {
                 true,
                 (type) -> null);
 
-        TestConfiguration proxy = ConfigurationClassProxy.createProxy(
-                TestConfiguration.class,
+        TestConfigurationInternalCall proxy = ConfigurationClassProxy.createProxy(
+                TestConfigurationInternalCall.class,
                 beanMethods,
                 dependencyManager);
 
@@ -265,8 +300,23 @@ public class ConfigurationProcessorTest {
     }
 
     @Test
+    void testInterBeanMethodCallUsesSameInstanceCallingInternalBean() {
+        processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
+
+        AnotherService anotherService = dependencyManager.resolveDependency(AnotherService.class, null);
+
+        TestService directService = dependencyManager.resolveDependency(TestService.class, null);
+
+        assertSame(anotherService.getTestService(), directService,
+                "Inter-bean method call should return the same singleton instance as direct resolution");
+
+        assertEquals(1, testServiceCreationCount.get(),
+                "TestService should only be instantiated once even when called from another @Bean method");
+    }
+
+    @Test
     void testInterBeanMethodCallUsesSameInstance() {
-        processor.processClass(TestConfiguration.class, dependencyManager);
+        processor.processClass(TestConfigurationParameter.class, dependencyManager);
 
         AnotherService anotherService = dependencyManager.resolveDependency(AnotherService.class, null);
 
