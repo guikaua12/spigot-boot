@@ -24,7 +24,6 @@ package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 
 import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
@@ -36,7 +35,6 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Component
 @RequiredArgsConstructor
 public class ConfigurationProcessor {
 

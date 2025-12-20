@@ -27,8 +27,6 @@ public interface Context {
 
     DependencyManager getDependencyManager();
 
-    void scan(String basePackage);
-
     default void reload() {
         getDependencyManager().reloadDependencies();
     }

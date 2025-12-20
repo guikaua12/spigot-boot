@@ -3,17 +3,12 @@ package tech.guilhermekaua.spigotboot.core.context;
 import lombok.Getter;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.core.SpigotBoot;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor.MethodHandlerProcessor;
-import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
-import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextLifecycle;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
+import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
 import tech.guilhermekaua.spigotboot.core.module.Module;
-import tech.guilhermekaua.spigotboot.core.module.ModuleRegistry;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,8 +24,8 @@ public class PluginContext implements Context {
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
     private final List<Class<? extends Module>> modulesToLoad;
-
-    private ComponentRegistry componentRegistry;
+    private BeanRegistrar beanRegistrar;
+    private ContextLifecycle lifecycle;
 
     @SafeVarargs
     public PluginContext(Plugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
@@ -45,29 +40,10 @@ public class PluginContext implements Context {
             throw new IllegalStateException("Context is already initialized.");
         }
 
-        registerBean(logger);
-        dependencyManager.registerDependency(Plugin.class, plugin, null, false);
-        dependencyManager.registerDependency(ProxyUtils.getRealClass(plugin), plugin, null, false);
-        dependencyManager.registerDependency(Logger.class, logger, null, false);
-
-        registerBean(dependencyManager);
-
-        scan(SpigotBoot.class.getPackage().getName());
-        scan(ProxyUtils.getRealClass(plugin).getPackage().getName());
-
-        initializeModules();
-
-        componentRegistry.resolveAllComponents(dependencyManager);
-
-        dependencyManager.injectDependencies(ProxyUtils.getRealClass(plugin), plugin);
-
+        lifecycle = new ContextLifecycle(this, dependencyManager, modulesToLoad);
+        beanRegistrar = lifecycle.getBeanRegistrar();
+        lifecycle.initialize();
         initialized = true;
-    }
-
-    private void initializeModules() {
-        dependencyManager
-                .resolveDependency(ModuleRegistry.class, null)
-                .initializeModules(this, modulesToLoad);
     }
 
     @Override
@@ -77,10 +53,11 @@ public class PluginContext implements Context {
 
     @Override
     public void registerBean(Object instance) {
+        if (beanRegistrar == null) {
+            throw new IllegalStateException("Cannot register beans before context initialization");
+        }
         Class<?> clazz = instance.getClass();
-
-
-        dependencyManager.registerDependency(
+        beanRegistrar.registerInstance(
                 instance,
                 BeanUtils.getQualifier(clazz),
                 BeanUtils.getIsPrimary(clazz),
@@ -90,11 +67,13 @@ public class PluginContext implements Context {
 
     @Override
     public void registerBean(Class<?> clazz) {
-        dependencyManager.registerDependency(
+        if (beanRegistrar == null) {
+            throw new IllegalStateException("Cannot register beans before context initialization");
+        }
+        beanRegistrar.registerDefinition(
                 clazz,
                 BeanUtils.getQualifier(clazz),
                 BeanUtils.getIsPrimary(clazz),
-                null,
                 BeanUtils.createDependencyReloadCallback(clazz)
         );
     }
@@ -102,21 +81,6 @@ public class PluginContext implements Context {
     @Override
     public @NotNull <T> List<T> getBeansByType(@NotNull Class<T> type) {
         return dependencyManager.getInstancesByType(type);
-    }
-
-    @Override
-    public void scan(String basePackage) {
-        componentRegistry = dependencyManager.resolveDependency(ComponentRegistry.class, null, ComponentRegistry::new);
-        componentRegistry.registerComponents(basePackage, dependencyManager);
-
-        dependencyManager.resolveDependency(ConfigurationProcessor.class, null, ConfigurationProcessor::new)
-                .processFromPackage(basePackage, dependencyManager);
-
-        MethodHandlerRegistry.registerAll(
-                dependencyManager.resolveDependency(MethodHandlerProcessor.class, null, MethodHandlerProcessor::new).processFromPackage(
-                        basePackage, dependencyManager
-                )
-        );
     }
 
     @Override

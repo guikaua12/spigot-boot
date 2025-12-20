@@ -22,7 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor;
 
-import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
@@ -35,7 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
 public class MethodHandlerProcessor {
     public List<RegisteredMethodHandler> processFromPackage(String basePackage, DependencyManager dependencyManager) {
         return ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class)

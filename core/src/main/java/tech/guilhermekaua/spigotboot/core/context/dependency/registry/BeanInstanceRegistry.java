@@ -8,7 +8,6 @@ import java.util.*;
 
 public class BeanInstanceRegistry {
     private final Map<BeanDefinition, Object> instances = new HashMap<>();
-    private final Map<Class<?>, List<Object>> instancesByType = new HashMap<>();
 
     public boolean contains(@NotNull BeanDefinition definition) {
         Objects.requireNonNull(definition, "definition cannot be null.");
@@ -35,14 +34,6 @@ public class BeanInstanceRegistry {
         Objects.requireNonNull(definition, "definition cannot be null.");
         Objects.requireNonNull(instance, "instance cannot be null.");
         instances.put(definition, instance);
-
-        instancesByType.computeIfAbsent(definition.getRequestedType(), (type) -> new ArrayList<>())
-                .add(instance);
-
-        if (definition.getRequestedType() != definition.getType()) {
-            instancesByType.computeIfAbsent(definition.getType(), (type) -> new ArrayList<>())
-                    .add(instance);
-        }
     }
 
     public @NotNull Map<BeanDefinition, Object> asMapView() {
@@ -52,12 +43,18 @@ public class BeanInstanceRegistry {
     @SuppressWarnings("unchecked")
     public <T> @NotNull List<T> getInstancesByType(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null.");
-        return (List<T>) Collections.unmodifiableList(instancesByType.getOrDefault(type, new ArrayList<>()));
+
+        List<T> result = new ArrayList<>();
+        for (Object instance : instances.values()) {
+            if (type.isInstance(instance)) {
+                result.add((T) instance);
+            }
+        }
+        return Collections.unmodifiableList(result);
     }
 
     public void clear() {
         instances.clear();
-        instancesByType.clear();
     }
 }
 

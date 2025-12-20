@@ -60,7 +60,6 @@ public class ModuleRegistry {
             throw new IllegalStateException("Stereotype annotations are not allowed on module classes.");
         }
 
-        context.scan(moduleClass.getPackage().getName());
         context.registerBean(moduleClass);
 
         Module module = context.getBean(moduleClass);
