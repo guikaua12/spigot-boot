@@ -11,7 +11,7 @@ public interface BeanDefinitionsReadyListener {
      * but before instantiation begins.
      *
      * @param context            the context
-     * @param definitionRegistry read-only view of all bean definitions
+     * @param definitionRegistry registry containing all bean definitions; while writable, callers should prefer using the provided registrar for adding definitions
      * @param registrar          registrar to add new bean definitions
      */
     void onBeanDefinitionsReady(@NotNull Context context,
