@@ -211,7 +211,7 @@ public class DependencyManager {
                                                  @Nullable T instance,
                                                  @Nullable String qualifier,
                                                  boolean primary,
-                                                 @Nullable DependencyResolveResolver<T> resolver) {
+                                                 @Nullable DependencyResolveResolver<? extends T> resolver) {
         return registerDependency(clazz, dependencyClass, instance, qualifier, primary, resolver, null);
     }
 
@@ -220,7 +220,7 @@ public class DependencyManager {
                                                  @Nullable T instance,
                                                  @Nullable String qualifier,
                                                  boolean primary,
-                                                 @Nullable DependencyResolveResolver<T> resolver,
+                                                 @Nullable DependencyResolveResolver<? extends T> resolver,
                                                  @Nullable DependencyReloadCallback reloadCallback) {
         try {
             Objects.requireNonNull(clazz, "clazz cannot be null.");
@@ -337,7 +337,7 @@ public class DependencyManager {
     public <T> void injectDependencies(@NotNull T instance) {
         injectDependencies((Class<T>) instance.getClass(), instance);
     }
-    
+
     public @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
         Objects.requireNonNull(type, "type cannot be null.");
 

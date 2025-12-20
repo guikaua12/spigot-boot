@@ -83,11 +83,11 @@ public interface BeanRegistrar {
      * @param resolver           the resolver to create instances
      * @return the created bean definition
      */
-    <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                   @NotNull Class<? extends T> implementationType,
-                                                   @Nullable String qualifier,
-                                                   boolean primary,
-                                                   @Nullable DependencyResolveResolver<T> resolver);
+    <T, U extends T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
+                                                                @NotNull Class<U> implementationType,
+                                                                @Nullable String qualifier,
+                                                                boolean primary,
+                                                                @Nullable DependencyResolveResolver<U> resolver);
 
     /**
      * Register a bean definition with a resolver and reload callback.
@@ -100,12 +100,12 @@ public interface BeanRegistrar {
      * @param reloadCallback     optional reload callback
      * @return the created bean definition
      */
-    <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                   @NotNull Class<? extends T> implementationType,
-                                                   @Nullable String qualifier,
-                                                   boolean primary,
-                                                   @Nullable DependencyResolveResolver<T> resolver,
-                                                   @Nullable DependencyReloadCallback reloadCallback);
+    <T, U extends T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
+                                                                @NotNull Class<U> implementationType,
+                                                                @Nullable String qualifier,
+                                                                boolean primary,
+                                                                @Nullable DependencyResolveResolver<U> resolver,
+                                                                @Nullable DependencyReloadCallback reloadCallback);
 }
 
 

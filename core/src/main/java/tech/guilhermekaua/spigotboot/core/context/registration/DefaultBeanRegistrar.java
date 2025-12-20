@@ -65,21 +65,21 @@ public class DefaultBeanRegistrar implements BeanRegistrar {
     }
 
     @Override
-    public <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                          @NotNull Class<? extends T> implementationType,
-                                                          @Nullable String qualifier,
-                                                          boolean primary,
-                                                          @Nullable DependencyResolveResolver<T> resolver) {
+    public <T, U extends T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
+                                                                       @NotNull Class<U> implementationType,
+                                                                       @Nullable String qualifier,
+                                                                       boolean primary,
+                                                                       @Nullable DependencyResolveResolver<U> resolver) {
         return registerDefinition(requestedType, implementationType, qualifier, primary, resolver, null);
     }
 
     @Override
-    public <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                          @NotNull Class<? extends T> implementationType,
-                                                          @Nullable String qualifier,
-                                                          boolean primary,
-                                                          @Nullable DependencyResolveResolver<T> resolver,
-                                                          @Nullable DependencyReloadCallback reloadCallback) {
+    public <T, U extends T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
+                                                                       @NotNull Class<U> implementationType,
+                                                                       @Nullable String qualifier,
+                                                                       boolean primary,
+                                                                       @Nullable DependencyResolveResolver<U> resolver,
+                                                                       @Nullable DependencyReloadCallback reloadCallback) {
         phaseChecker.checkCanRegister();
         return dependencyManager.registerDependency(
                 requestedType,
