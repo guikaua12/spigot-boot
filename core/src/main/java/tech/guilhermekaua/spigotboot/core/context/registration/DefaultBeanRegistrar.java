@@ -51,11 +51,9 @@ public class DefaultBeanRegistrar implements BeanRegistrar {
                                                           boolean primary,
                                                           @Nullable DependencyReloadCallback reloadCallback) {
         phaseChecker.checkCanRegister();
-        @SuppressWarnings("unchecked")
-        Class<Object> objectClass = (Class<Object>) clazz;
         return dependencyManager.registerDependency(
-                objectClass,
-                objectClass,
+                clazz,
+                clazz,
                 null,
                 qualifier,
                 primary,
