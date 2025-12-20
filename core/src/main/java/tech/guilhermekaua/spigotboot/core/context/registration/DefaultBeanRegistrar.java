@@ -66,7 +66,7 @@ public class DefaultBeanRegistrar implements BeanRegistrar {
 
     @Override
     public <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                          @NotNull Class<T> implementationType,
+                                                          @NotNull Class<? extends T> implementationType,
                                                           @Nullable String qualifier,
                                                           boolean primary,
                                                           @Nullable DependencyResolveResolver<T> resolver) {
@@ -75,7 +75,7 @@ public class DefaultBeanRegistrar implements BeanRegistrar {
 
     @Override
     public <T> @NotNull BeanDefinition registerDefinition(@NotNull Class<T> requestedType,
-                                                          @NotNull Class<T> implementationType,
+                                                          @NotNull Class<? extends T> implementationType,
                                                           @Nullable String qualifier,
                                                           boolean primary,
                                                           @Nullable DependencyResolveResolver<T> resolver,
