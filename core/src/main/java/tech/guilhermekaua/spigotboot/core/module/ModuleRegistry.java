@@ -64,6 +64,13 @@ public class ModuleRegistry {
 
         Module module = context.getBean(moduleClass);
 
+        if (module == null) {
+            throw new IllegalStateException(
+                    "Failed to resolve module bean for '" + moduleClass.getName() + "' after registration. " +
+                            "Context.getBean(...) returned null, so the module cannot be initialized."
+            );
+        }
+
         module.onInitialize(context);
     }
 
