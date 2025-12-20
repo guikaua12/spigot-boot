@@ -57,16 +57,14 @@ public class ComponentRegistry {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public void resolveAllComponents(DependencyManager dependencyManager) {
         for (Map.Entry<Class<?>, List<BeanDefinition>> entry : dependencyManager.getBeanDefinitionRegistry().asMapView().entrySet()) {
-            Class<?> requestedType = entry.getKey();
             for (BeanDefinition definition : entry.getValue()) {
                 if (dependencyManager.getBeanInstanceRegistry().contains(definition)) {
                     continue;
                 }
 
-                dependencyManager.resolveDependency((Class) requestedType, definition.getQualifierName());
+                dependencyManager.resolveDependency(definition.getType(), definition.getQualifierName());
             }
         }
     }
