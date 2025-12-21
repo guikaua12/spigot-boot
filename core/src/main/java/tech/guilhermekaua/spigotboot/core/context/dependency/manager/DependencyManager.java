@@ -37,12 +37,11 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefini
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
+import tech.guilhermekaua.spigotboot.core.utils.CollectionTypeUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 // Context.initialize -> Context.scan -> DependencyManager.registerDependency -> Context.scan -> DependencyManager.resolveDependency
@@ -69,8 +68,23 @@ public class DependencyManager {
     }
 
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
+        return resolveDependency((Type) clazz, qualifier);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T resolveDependency(@NotNull Type type, @Nullable String qualifier) {
         try {
-            Objects.requireNonNull(clazz, "class cannot be null.");
+            Objects.requireNonNull(type, "type cannot be null.");
+
+            CollectionTypeUtils.CollectionTypeInfo collectionInfo = CollectionTypeUtils.extractCollectionTypeInfo(type);
+            if (collectionInfo != null) {
+                return (T) resolveCollectionDependency(collectionInfo.getCollectionClass(), collectionInfo.getElementType());
+            }
+
+            Class<T> clazz = CollectionTypeUtils.getRawClass(type);
+            if (clazz == null) {
+                return null;
+            }
 
             List<BeanDefinition> definitions = beanDefinitionRegistry.getDefinitions(clazz);
             if (definitions.isEmpty()) {
@@ -106,7 +120,7 @@ public class DependencyManager {
 
             return resolveFromDefinition(clazz, primary.get(0));
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve type: " + clazz, e);
+            throw new RuntimeException("Failed to resolve type: " + type, e);
         }
     }
 
@@ -303,7 +317,13 @@ public class DependencyManager {
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
-            args[i] = resolveDependency(param.getType(), BeanUtils.getQualifier(param));
+            Type paramType = param.getParameterizedType();
+
+            if (paramType == null) {
+                paramType = param.getType();
+            }
+
+            args[i] = resolveDependency(paramType, BeanUtils.getQualifier(param));
         }
 
         return args;
@@ -409,8 +429,11 @@ public class DependencyManager {
 
         for (Method method : type.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
-                Class<?> depType = method.getParameterTypes()[0];
-                Object dep = resolveDependency(depType, BeanUtils.getQualifier(method));
+                Type[] genericParameterTypes = method.getGenericParameterTypes();
+                Type paramType = genericParameterTypes.length > 0 ? genericParameterTypes[0] : method.getParameterTypes()[0];
+
+                Object dep = resolveDependency(paramType, BeanUtils.getQualifier(method));
+
                 method.setAccessible(true);
                 method.invoke(instance, dep);
             }
@@ -423,7 +446,10 @@ public class DependencyManager {
 
         for (Field field : type.getDeclaredFields()) {
             if (field.isAnnotationPresent(Inject.class)) {
-                Object dep = resolveDependency(field.getType(), BeanUtils.getQualifier(field));
+                Type fieldType = field.getGenericType();
+
+                Object dep = resolveDependency(fieldType, BeanUtils.getQualifier(field));
+
                 field.setAccessible(true);
                 field.set(instance, dep);
             }
@@ -433,5 +459,45 @@ public class DependencyManager {
     public void clear() {
         beanDefinitionRegistry.clear();
         beanInstanceRegistry.clear();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Collection<T> resolveCollectionDependency(@NotNull Class<?> collectionClass, @NotNull Class<?> elementType) {
+        List<BeanDefinition> definitions = beanDefinitionRegistry.getDefinitions(elementType);
+
+        List<Object> instances = new ArrayList<>();
+        for (BeanDefinition definition : definitions) {
+            try {
+                Object instance = resolveFromDefinition(elementType, definition);
+                if (instance != null) {
+                    instances.add(instance);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to resolve bean for collection injection: " + definition.identifier(), e);
+            }
+        }
+
+        Collection<Object> collection = createCollectionInstance(collectionClass);
+        collection.addAll(instances);
+        return (Collection<T>) collection;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<Object> createCollectionInstance(@NotNull Class<?> collectionClass) {
+        if (List.class.isAssignableFrom(collectionClass)) {
+            return new ArrayList<>();
+        }
+        if (Set.class.isAssignableFrom(collectionClass)) {
+            return new HashSet<>();
+        }
+        if (Collection.class.isAssignableFrom(collectionClass)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            return (Collection<Object>) collectionClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate collection type: " + collectionClass.getName(), e);
+        }
     }
 }
