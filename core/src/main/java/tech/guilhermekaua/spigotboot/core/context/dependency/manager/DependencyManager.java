@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.BeanProxyDecider;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
@@ -53,17 +53,19 @@ public class DependencyManager {
     @Getter
     private final BeanInstanceRegistry beanInstanceRegistry;
 
-    private volatile boolean proxyDecidersBootstrapped = false;
-    private final ThreadLocal<Boolean> bootstrappingProxyDeciders = ThreadLocal.withInitial(() -> false);
+    @Getter
+    private final BeanProxyDeciderResolver beanProxyDeciderResolver;
 
     public DependencyManager() {
-        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry());
+        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver());
     }
 
     public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
-                             @NotNull BeanInstanceRegistry beanInstanceRegistry) {
+                             @NotNull BeanInstanceRegistry beanInstanceRegistry,
+                             @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver) {
         this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null.");
         this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
+        this.beanProxyDeciderResolver = Objects.requireNonNull(beanProxyDeciderResolver, "beanProxyDeciderResolver cannot be null.");
     }
 
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
@@ -270,7 +272,7 @@ public class DependencyManager {
         return beanInstanceRegistry.getInstancesByType(type);
     }
 
-    private <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
+    public <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
         Objects.requireNonNull(requestedType, "requestedType cannot be null.");
         Objects.requireNonNull(definition, "definition cannot be null.");
 
@@ -293,51 +295,6 @@ public class DependencyManager {
 
         beanInstanceRegistry.put(definition, instance);
         return requestedType.cast(instance);
-    }
-
-    private void ensureProxyDecidersBootstrapped() throws Exception {
-        if (proxyDecidersBootstrapped) {
-            return;
-        }
-
-        if (Boolean.TRUE.equals(bootstrappingProxyDeciders.get())) {
-            return;
-        }
-
-        bootstrappingProxyDeciders.set(true);
-        try {
-            for (BeanDefinition definition : beanDefinitionRegistry.getDefinitions(BeanProxyDecider.class)) {
-                // resolve each definition directly to avoid qualifier/primary ambiguity
-                resolveFromDefinition(BeanProxyDecider.class, definition);
-            }
-            proxyDecidersBootstrapped = true;
-        } finally {
-            bootstrappingProxyDeciders.set(false);
-        }
-    }
-
-    private boolean shouldProxy(@NotNull BeanDefinition definition) throws Exception {
-        Objects.requireNonNull(definition, "definition cannot be null.");
-
-        Class<?> type = definition.getType();
-        if (type == null) {
-            return false;
-        }
-
-        // never proxy deciders themselves (avoids recursion and weird double-proxying)
-        if (BeanProxyDecider.class.isAssignableFrom(type)) {
-            return false;
-        }
-
-        ensureProxyDecidersBootstrapped();
-
-        for (BeanProxyDecider decider : getInstancesByType(BeanProxyDecider.class)) {
-            if (decider.shouldProxy(definition, this)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public Object[] resolveArguments(@NotNull Parameter[] parameters) {
@@ -375,7 +332,7 @@ public class DependencyManager {
 
         Object[] ctorArgs = resolveArguments(ctor);
 
-        if (shouldProxy(definition)) {
+        if (beanProxyDeciderResolver.shouldProxy(definition, this)) {
             if (Modifier.isFinal(type.getModifiers())) {
                 throw new IllegalStateException("Cannot proxy final class: " + type.getName());
             }
