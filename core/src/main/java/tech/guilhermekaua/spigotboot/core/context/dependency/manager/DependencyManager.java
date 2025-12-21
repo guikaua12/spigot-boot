@@ -28,6 +28,8 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
@@ -51,14 +53,19 @@ public class DependencyManager {
     @Getter
     private final BeanInstanceRegistry beanInstanceRegistry;
 
+    @Getter
+    private final BeanProxyDeciderResolver beanProxyDeciderResolver;
+
     public DependencyManager() {
-        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry());
+        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver());
     }
 
     public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
-                             @NotNull BeanInstanceRegistry beanInstanceRegistry) {
+                             @NotNull BeanInstanceRegistry beanInstanceRegistry,
+                             @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver) {
         this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null.");
         this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
+        this.beanProxyDeciderResolver = Objects.requireNonNull(beanProxyDeciderResolver, "beanProxyDeciderResolver cannot be null.");
     }
 
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
@@ -265,7 +272,7 @@ public class DependencyManager {
         return beanInstanceRegistry.getInstancesByType(type);
     }
 
-    private <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
+    public <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
         Objects.requireNonNull(requestedType, "requestedType cannot be null.");
         Objects.requireNonNull(definition, "definition cannot be null.");
 
@@ -279,7 +286,7 @@ public class DependencyManager {
             DependencyResolveResolver<T> resolver = (DependencyResolveResolver<T>) definition.getResolver();
             instance = resolver.resolve(requestedType);
         } else {
-            instance = createInstance(definition.getType());
+            instance = createInstance(definition);
         }
 
         if (instance == null) {
@@ -307,18 +314,43 @@ public class DependencyManager {
         return resolveArguments(executable.getParameters());
     }
 
-    public Object createInstance(Class<?> type) throws Exception {
-        Constructor<?> ctor = findInjectConstructor(type);
+    private Object createInstance(@NotNull BeanDefinition definition) throws Exception {
+        Objects.requireNonNull(definition, "definition cannot be null.");
 
+        Class<?> type = definition.getType();
+        if (type == null) {
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        Class<Object> rawType = (Class<Object>) type;
+
+        Constructor<?> ctor = findInjectConstructor(type);
         if (ctor == null) {
             return null;
         }
 
-        Object[] paramsInstances = resolveArguments(ctor);
+        Object[] ctorArgs = resolveArguments(ctor);
+
+        if (beanProxyDeciderResolver.shouldProxy(definition, this)) {
+            if (Modifier.isFinal(type.getModifiers())) {
+                throw new IllegalStateException("Cannot proxy final class: " + type.getName());
+            }
+
+            Object proxy = ComponentProxy.createProxy(
+                    rawType,
+                    null,
+                    ctor.getParameterTypes(),
+                    ctorArgs
+            );
+
+            injectDependencies(rawType, proxy);
+            return proxy;
+        }
 
         ctor.setAccessible(true);
-        Object instance = ctor.newInstance(paramsInstances);
-        injectDependencies(instance);
+        Object instance = ctor.newInstance(ctorArgs);
+        injectDependencies(rawType, instance);
         return instance;
     }
 
