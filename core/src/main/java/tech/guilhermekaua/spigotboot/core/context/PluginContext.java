@@ -23,7 +23,7 @@ public class PluginContext implements Context {
     private final Logger logger;
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
-    private final List<Class<? extends Module>> modulesToLoad;
+    private List<Class<? extends Module>> modulesToLoad;
     private BeanRegistrar beanRegistrar;
     private ContextLifecycle lifecycle;
 
@@ -104,6 +104,11 @@ public class PluginContext implements Context {
         dependencyManager.clear();
 
         initialized = false;
+    }
+
+    @Override
+    public void setModulesToLoad(List<Class<? extends Module>> modulesToLoad) {
+        this.modulesToLoad = Collections.unmodifiableList(modulesToLoad);
     }
 
     private void callPreDestroyProcessors() {

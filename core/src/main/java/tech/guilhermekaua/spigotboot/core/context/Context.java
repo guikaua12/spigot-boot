@@ -3,6 +3,7 @@ package tech.guilhermekaua.spigotboot.core.context;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.module.Module;
 
 import java.util.List;
 
@@ -32,6 +33,10 @@ public interface Context {
     }
 
     void destroy();
+
+    List<Class<? extends Module>> getModulesToLoad();
+
+    void setModulesToLoad(List<Class<? extends Module>> modulesToLoad);
 
     Plugin getPlugin();
 

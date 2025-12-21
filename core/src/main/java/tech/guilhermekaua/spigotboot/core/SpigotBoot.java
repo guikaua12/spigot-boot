@@ -6,6 +6,7 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.ContextManager;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public final class SpigotBoot {
@@ -25,6 +26,7 @@ public final class SpigotBoot {
             throw new IllegalStateException("Context is already initialized for plugin: " + plugin.getName());
         }
 
+        ctx.setModulesToLoad(Arrays.asList(modulesToLoad));
         ctx.initialize();
         return ctx;
     }
