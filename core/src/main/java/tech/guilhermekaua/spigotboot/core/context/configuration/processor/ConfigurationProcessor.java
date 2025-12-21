@@ -24,18 +24,20 @@ package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 
 import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@Component
 @RequiredArgsConstructor
 public class ConfigurationProcessor {
+
     public void processFromPackage(String basePackage, DependencyManager dependencyManager) {
         for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(basePackage, Configuration.class)) {
             processClass(configClass, dependencyManager);
@@ -45,28 +47,59 @@ public class ConfigurationProcessor {
     @SuppressWarnings("unchecked")
     public void processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
-            Object configObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
+            Set<Method> beanMethods = collectBeanMethods(clazz);
 
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (!method.isAnnotationPresent(Bean.class)) continue;
+            Object configProxy = ConfigurationClassProxy.createProxy(
+                    clazz,
+                    beanMethods,
+                    dependencyManager
+            );
 
-                if (!Object.class.isAssignableFrom(method.getReturnType())) {
-                    throw new RuntimeException("Method '" + method.getName() + "' in class '" + clazz.getName() + "' must return an Object type.");
-                }
+            dependencyManager.registerDependency(
+                    (Class<Object>) clazz,
+                    configProxy,
+                    BeanUtils.getQualifier(clazz),
+                    BeanUtils.getIsPrimary(clazz)
+            );
 
-                try {
-                    Object[] parameterDependencies = Arrays.stream(method.getParameters())
-                            .map(param -> dependencyManager.resolveDependency(param.getType(), BeanUtils.getQualifier(param)))
-                            .toArray();
-
-                    Object beanInstance = method.invoke(configObject, parameterDependencies);
-                    dependencyManager.registerDependency((Class<Object>) method.getReturnType(), beanInstance, BeanUtils.getQualifier(method), BeanUtils.getIsPrimary(method));
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
+            for (Method method : beanMethods) {
+                registerBeanMethod(method, configProxy, dependencyManager);
             }
+
         } catch (Throwable t) {
             throw new RuntimeException("Failed to process configuration class: '" + clazz.getName() + "'", t);
         }
+    }
+
+    private Set<Method> collectBeanMethods(Class<?> clazz) {
+        return Arrays.stream(clazz.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(Bean.class))
+                .collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerBeanMethod(Method method, Object configProxy, DependencyManager dependencyManager) {
+        Class<?> returnType = method.getReturnType();
+
+        if (!Object.class.isAssignableFrom(returnType)) {
+            throw new RuntimeException("Method '" + method.getName() + "' in class '" +
+                    method.getDeclaringClass().getName() + "' must return an Object type.");
+        }
+
+        String qualifier = BeanUtils.getQualifier(method);
+        boolean isPrimary = BeanUtils.getIsPrimary(method);
+
+        dependencyManager.registerDependency(
+                (Class<Object>) returnType,
+                qualifier,
+                isPrimary,
+                (type) -> {
+                    try {
+                        method.setAccessible(true);
+                        return method.invoke(configProxy, dependencyManager.resolveArguments(method));
+                    } catch (Throwable t) {
+                        throw new RuntimeException("Failed to invoke @Bean method: " + method.getName(), t);
+                    }
+                });
     }
 }

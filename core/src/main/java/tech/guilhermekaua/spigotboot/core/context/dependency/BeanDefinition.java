@@ -3,20 +3,18 @@ package tech.guilhermekaua.spigotboot.core.context.dependency;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 @Getter
-@Setter
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"type", "qualifierName"})
-public class Dependency {
+public class BeanDefinition {
+    private final Class<?> requestedType;
     private final Class<?> type;
     private final String qualifierName;
     private final boolean isPrimary;
     @Nullable
-    private Object instance;
-    private final DependencyResolveResolver resolver;
+    private final DependencyResolveResolver<?> resolver;
     @Nullable
     private final DependencyReloadCallback reloadCallback;
 
@@ -30,3 +28,4 @@ public class Dependency {
         return reloadCallback != null;
     }
 }
+

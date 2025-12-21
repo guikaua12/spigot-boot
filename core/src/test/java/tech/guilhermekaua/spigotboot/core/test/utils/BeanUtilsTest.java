@@ -6,7 +6,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
@@ -19,11 +19,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 public class BeanUtilsTest {
 
-    private Map<Class<?>, List<Dependency>> dependencyMap;
+    private Map<Class<?>, List<BeanDefinition>> dependencyMap;
 
     @BeforeEach
     void setUp() {
@@ -43,12 +42,19 @@ public class BeanUtilsTest {
     }
 
     static class WithReloadMethod {
+        private String stringDep;
+        private Integer integerDep;
+        private String anotherStringDep;
+
         @OnReload
         public void onReload(String dependency) {
+            this.stringDep = dependency;
         }
 
         @OnReload
         public void anotherReload(Integer dependency, String anotherDep) {
+            this.integerDep = dependency;
+            this.anotherStringDep = anotherDep;
         }
 
         public void normalMethod() {
@@ -204,17 +210,17 @@ public class BeanUtilsTest {
 
     @Test
     void testCreateDependencyReloadCallback() {
-        DependencyManager mockDependencyManager = mock(DependencyManager.class);
-        when(mockDependencyManager.resolveDependency(String.class, null)).thenReturn("test");
-        when(mockDependencyManager.resolveDependency(Integer.class, null)).thenReturn(42);
+        DependencyManager dependencyManager = new DependencyManager();
+        dependencyManager.registerDependency(String.class, "test", null, false);
+        dependencyManager.registerDependency(Integer.class, 42, null, false);
 
         DependencyReloadCallback callback = BeanUtils.createDependencyReloadCallback(WithReloadMethod.class);
         WithReloadMethod instance = new WithReloadMethod();
 
-        assertDoesNotThrow(() -> callback.reload(instance, mockDependencyManager));
-
-        verify(mockDependencyManager, times(2)).resolveDependency(String.class, null);
-        verify(mockDependencyManager, times(1)).resolveDependency(Integer.class, null);
+        assertDoesNotThrow(() -> callback.reload(instance, dependencyManager));
+        assertEquals("test", instance.stringDep);
+        assertEquals(42, instance.integerDep);
+        assertEquals("test", instance.anotherStringDep);
     }
 
     @Test
@@ -224,20 +230,18 @@ public class BeanUtilsTest {
 
     @Test
     void testCreateDependencyReloadCallback_NoReloadMethods() {
-        DependencyManager mockDependencyManager = mock(DependencyManager.class);
+        DependencyManager dependencyManager = new DependencyManager();
         DependencyReloadCallback callback = BeanUtils.createDependencyReloadCallback(NonPrimaryClass.class);
         NonPrimaryClass instance = new NonPrimaryClass();
 
-        assertDoesNotThrow(() -> callback.reload(instance, mockDependencyManager));
-
-        verifyNoInteractions(mockDependencyManager);
+        assertDoesNotThrow(() -> callback.reload(instance, dependencyManager));
+        assertTrue(dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().isEmpty());
     }
 
     @Test
     void testDetectCircularDependencies_SimpleCircular() {
         dependencyMap.put(CircularA.class, List.of(
-                new Dependency(CircularA.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(CircularA.class, CircularA.class, null, false, null, null)));
 
         CircularDependencyException exception = assertThrows(CircularDependencyException.class, () ->
                 BeanUtils.detectCircularDependencies(CircularB.class, dependencyMap)
@@ -248,11 +252,9 @@ public class BeanUtilsTest {
     @Test
     void testDetectCircularDependencies_ComplexCircular() {
         dependencyMap.put(CircularC.class, List.of(
-                new Dependency(CircularC.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(CircularC.class, CircularC.class, null, false, null, null)));
         dependencyMap.put(CircularD.class, List.of(
-                new Dependency(CircularD.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(CircularD.class, CircularD.class, null, false, null, null)));
 
         // should detect circular dependency (E -> C -> D -> E)
         CircularDependencyException exception = assertThrows(CircularDependencyException.class, () ->
@@ -264,11 +266,9 @@ public class BeanUtilsTest {
     @Test
     void testDetectCircularDependencies_NonCircular() {
         dependencyMap.put(NonCircularB.class, List.of(
-                new Dependency(NonCircularB.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(NonCircularB.class, NonCircularB.class, null, false, null, null)));
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
 
         assertDoesNotThrow(() ->
                 BeanUtils.detectCircularDependencies(NonCircularA.class, dependencyMap)
@@ -296,8 +296,7 @@ public class BeanUtilsTest {
     @Test
     void testDetectCircularDependencies_SelfDependency() {
         dependencyMap.put(SelfDependent.class, List.of(
-                new Dependency(SelfDependent.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(SelfDependent.class, SelfDependent.class, null, false, null, null)));
 
         assertThrows(CircularDependencyException.class, () ->
                 BeanUtils.detectCircularDependencies(SelfDependent.class, dependencyMap)
@@ -307,14 +306,11 @@ public class BeanUtilsTest {
     @Test
     void testDetectCircularDependencies_MixedInjectionTypes() {
         dependencyMap.put(Mixed1.class, List.of(
-                new Dependency(Mixed1.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(Mixed1.class, Mixed1.class, null, false, null, null)));
         dependencyMap.put(Mixed3.class, List.of(
-                new Dependency(Mixed3.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(Mixed3.class, Mixed3.class, null, false, null, null)));
         dependencyMap.put(Mixed4.class, List.of(
-                new Dependency(Mixed4.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(Mixed4.class, Mixed4.class, null, false, null, null)));
 
         // should detect circular dependency through field injection
         assertThrows(CircularDependencyException.class, () ->
@@ -332,8 +328,7 @@ public class BeanUtilsTest {
     @Test
     void testCircularDependencyMessage() {
         dependencyMap.put(CircularA.class, List.of(
-                new Dependency(CircularA.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(CircularA.class, CircularA.class, null, false, null, null)));
 
         CircularDependencyException exception = assertThrows(CircularDependencyException.class, () ->
                 BeanUtils.detectCircularDependencies(CircularB.class, dependencyMap)
@@ -345,8 +340,7 @@ public class BeanUtilsTest {
     @Test
     void testGetAllDependencies_ConstructorInjection() {
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
 
         // should not throw since String doesn't depend on ConstructorInjection
         assertDoesNotThrow(() ->
@@ -357,8 +351,7 @@ public class BeanUtilsTest {
     @Test
     void testGetAllDependencies_FieldInjection() {
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
 
         assertDoesNotThrow(() ->
                 BeanUtils.detectCircularDependencies(FieldInjection.class, dependencyMap)
@@ -368,8 +361,7 @@ public class BeanUtilsTest {
     @Test
     void testGetAllDependencies_SetterInjection() {
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
 
         assertDoesNotThrow(() ->
                 BeanUtils.detectCircularDependencies(SetterInjection.class, dependencyMap)
@@ -379,14 +371,11 @@ public class BeanUtilsTest {
     @Test
     void testGetAllDependencies_MixedInjection() {
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
         dependencyMap.put(Integer.class, List.of(
-                new Dependency(Integer.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(Integer.class, Integer.class, null, false, null, null)));
         dependencyMap.put(Double.class, List.of(
-                new Dependency(Double.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(Double.class, Double.class, null, false, null, null)));
 
         assertDoesNotThrow(() ->
                 BeanUtils.detectCircularDependencies(MixedInjection.class, dependencyMap)
@@ -403,8 +392,7 @@ public class BeanUtilsTest {
     @Test
     void testFindInjectConstructor_SingleConstructor() {
         dependencyMap.put(String.class, List.of(
-                new Dependency(String.class, null, false, null, null, null)
-        ));
+                new BeanDefinition(String.class, String.class, null, false, null, null)));
 
         assertDoesNotThrow(() ->
                 BeanUtils.detectCircularDependencies(SingleConstructor.class, dependencyMap)

@@ -1,31 +1,47 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.module.Module;
+
+import java.util.List;
 
 public interface Context {
     void initialize();
 
     boolean isInitialized();
 
-    default <T> T getBean(Class<T> type) {
+    default <T> @Nullable T getBean(@NotNull Class<T> type) {
         return getBean(type, null);
     }
 
-    default <T> T getBean(Class<T> type, String name) {
+    default <T> @Nullable T getBean(@NotNull Class<T> type, @Nullable String name) {
         return getDependencyManager().resolveDependency(type, name);
     }
 
-    void registerBean(Object instance);
+    void registerBean(@NotNull Object instance);
 
-    void registerBean(Class<?> clazz);
+    void registerBean(@NotNull Class<?> clazz);
 
-    DependencyManager getDependencyManager();
+    <T> @NotNull List<T> getBeansByType(@NotNull Class<T> type);
 
-    void scan(String basePackage);
+    @NotNull DependencyManager getDependencyManager();
 
     default void reload() {
         getDependencyManager().reloadDependencies();
     }
 
     void destroy();
+
+    @NotNull List<Class<? extends Module>> getModulesToLoad();
+
+    void setModulesToLoad(@NotNull List<Class<? extends Module>> modulesToLoad);
+
+    Plugin getPlugin();
+
+    void registerShutdownHook(@NotNull Runnable runnable);
+
+    void unregisterShutdownHook(@NotNull Runnable runnable);
 }

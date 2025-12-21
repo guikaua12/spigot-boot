@@ -29,10 +29,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.messaging.bungee.BungeeChannel;
 import tech.guilhermekaua.spigotboot.testPlugin.placeholders.Placeholders;
 import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
+@Component
 @RequiredArgsConstructor
 public class JoinListener implements Listener {
     private final BungeeChannel bungeeChannel;

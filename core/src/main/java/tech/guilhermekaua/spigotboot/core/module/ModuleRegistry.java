@@ -22,71 +22,56 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
+import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.logging.Logger;
 
 @Component
 @RequiredArgsConstructor
 public class ModuleRegistry {
-    private final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
-    @Getter
-    private final Map<Class<? extends Module>, Module> loadedModules = new HashMap<>();
     private final Logger logger;
+    private final ComponentRegistry componentRegistry;
 
-    public void loadModules(GlobalContext globalContext) {
-        for (Class<? extends Module> moduleClass : moduleDiscoveryService.discoverModules()) {
+    public void initializeModules(@NotNull Context context, @NotNull List<Class<? extends Module>> modulesToLoad) {
+        for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
-                loadModule(moduleClass, globalContext);
+                initializeModule(moduleClass, context);
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ModuleInitializationException("Failed to load module '" + moduleClass.getName() + "'", e);
             }
         }
     }
 
-    public void initializeModules(PluginContext pluginContext) {
-        for (Module module : loadedModules.values()) {
-            try {
-                initializeModule(module, pluginContext);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private void initializeModule(Class<? extends Module> moduleClass, Context context) throws Exception {
+        if (!verifyModuleDependencies(moduleClass)) {
+            return;
         }
-    }
 
-    private void loadModule(Class<? extends Module> moduleClass, GlobalContext globalContext) {
-        try {
-            if (!verifyModuleDependencies(moduleClass)) {
-                return;
-            }
-
-            globalContext.scan(moduleClass.getPackage().getName());
-            globalContext.registerBean(moduleClass);
-
-            Module module = globalContext.getBean(moduleClass);
-            module.onLoad(globalContext);
-
-            loadedModules.put(moduleClass, module);
-        } catch (Exception e) {
-            loadedModules.remove(moduleClass);
-            throw new RuntimeException("Failed to load module: '" + moduleClass.getName() + "'", e);
+        if (componentRegistry.getComponentsAnnotations()
+                .stream()
+                .anyMatch(moduleClass::isAnnotationPresent)) {
+            throw new IllegalStateException("Stereotype annotations are not allowed on module classes.");
         }
-    }
 
-    private void initializeModule(Module module, PluginContext pluginContext) {
-        try {
-            module.onInitialize(pluginContext);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load module: '" + module.getClass().getName() + "'", e);
+        context.registerBean(moduleClass);
+
+        Module module = context.getBean(moduleClass);
+
+        if (module == null) {
+            throw new IllegalStateException(
+                    "Failed to resolve module bean for '" + moduleClass.getName() + "' after registration. " +
+                            "Context.getBean(...) returned null, so the module cannot be initialized."
+            );
         }
+
+        module.onInitialize(context);
     }
 
     private boolean verifyModuleDependencies(@NotNull Class<? extends Module> moduleClass) {

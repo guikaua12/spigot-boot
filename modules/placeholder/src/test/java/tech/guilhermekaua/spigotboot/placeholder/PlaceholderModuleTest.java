@@ -29,10 +29,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
-
-import java.util.logging.Logger;
 
 import static org.mockito.Mockito.*;
 
@@ -40,21 +38,19 @@ class PlaceholderModuleTest {
 
     private ServerMock server;
     private Plugin plugin;
-    private Logger logger;
 
     private PlaceholderRegistry registry;
-    private PluginContext pluginContext;
+    private Context context;
 
     @BeforeEach
     void setUp() {
         server = MockBukkit.mock();
         plugin = MockBukkit.createMockPlugin();
-        logger = mock(Logger.class);
 
         registry = mock(PlaceholderRegistry.class);
 
-        pluginContext = mock(PluginContext.class);
-        when(pluginContext.getLogger()).thenReturn(logger);
+        context = mock(Context.class);
+        when(context.getPlugin()).thenReturn(plugin);
     }
 
     @AfterEach
@@ -64,40 +60,37 @@ class PlaceholderModuleTest {
 
     @Test
     void testInitialize_PlaceholderApiPresent() throws Exception {
-        Plugin papi = MockBukkit.createMockPlugin("PlaceholderAPI");
+        MockBukkit.createMockPlugin("PlaceholderAPI");
 
         PlaceholderModule module = new PlaceholderModule(registry);
-        module.onInitialize(pluginContext);
+        module.onInitialize(context);
 
-        verify(logger).info("Initializing Placeholder Module...");
         verify(registry).initialize();
+        verify(context).registerShutdownHook(any());
     }
 
     @Test
     void testInitialize_PlaceholderApiAbsent() throws Exception {
         PlaceholderModule module = new PlaceholderModule(registry);
-        module.onInitialize(pluginContext);
+        module.onInitialize(context);
 
-        verify(logger).info("Initializing Placeholder Module...");
-        verify(logger).info("PlaceholderAPI not found, skipping registration of placeholders.");
         verify(registry, never()).initialize();
-        verify(pluginContext, never()).registerShutdownHook(any());
+        verify(context, never()).registerShutdownHook(any());
     }
 
     @Test
     void testDisableEntry_UnregistersIfPluginEnabled() throws Exception {
-        Plugin papi = MockBukkit.createMockPlugin("PlaceholderAPI");
+        MockBukkit.createMockPlugin("PlaceholderAPI");
 
         PlaceholderModule module = new PlaceholderModule(registry);
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
 
-        module.onInitialize(pluginContext);
-        verify(pluginContext).registerShutdownHook(captor.capture());
+        module.onInitialize(context);
+        verify(context).registerShutdownHook(captor.capture());
 
         Runnable disableEntry = captor.getValue();
         disableEntry.run();
 
-        verify(logger).info("Unregistering PlaceholderAPI expansion...");
         verify(registry).unregister();
     }
 
@@ -108,15 +101,14 @@ class PlaceholderModuleTest {
         PlaceholderModule module = new PlaceholderModule(registry);
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
 
-        module.onInitialize(pluginContext);
-        verify(pluginContext).registerShutdownHook(captor.capture());
+        module.onInitialize(context);
+        verify(context).registerShutdownHook(captor.capture());
 
         server.getPluginManager().disablePlugin(papi);
 
         Runnable disableEntry = captor.getValue();
         disableEntry.run();
 
-        verify(logger).info("Unregistering PlaceholderAPI expansion...");
         verify(registry, never()).unregister();
     }
 }
