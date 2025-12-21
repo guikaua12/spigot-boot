@@ -22,10 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler;
 
+import javassist.util.proxy.ProxyObject;
 import lombok.Getter;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Objects;
 
 @Getter
 public class RegisteredMethodHandler {
@@ -47,18 +50,86 @@ public class RegisteredMethodHandler {
 
     @SuppressWarnings("RedundantIfStatement")
     public boolean canHandle(MethodHandlerContext context) {
-        if (targetClass != null && !targetClass.isInstance(context.self())) {
+        Objects.requireNonNull(context, "context cannot be null.");
+
+        Object self = context.self();
+        Method thisMethod = context.thisMethod();
+        Method proceed = context.proceed();
+
+        if (targetClass != null && (self == null || !targetClass.isInstance(self))) {
             return false;
         }
 
-        if (classTargetAnnotation != null && context.thisMethod().getAnnotation(classTargetAnnotation) == null) {
+        Class<?> realClass = self != null ? getRealClass(self) : null;
+
+        if (classTargetAnnotation != null && (realClass == null || !realClass.isAnnotationPresent(classTargetAnnotation))) {
             return false;
         }
 
-        if (methodTargetAnnotation != null && context.thisMethod().getAnnotation(methodTargetAnnotation) == null) {
+        if (methodTargetAnnotation != null && !isMethodAnnotated(realClass, thisMethod, proceed, methodTargetAnnotation)) {
             return false;
         }
 
         return true;
+    }
+
+    private Class<?> getRealClass(Object self) {
+        if (self == null) {
+            return null;
+        }
+
+        Class<?> clazz = self.getClass();
+        if (self instanceof ProxyObject && clazz.getSuperclass() != null) {
+            return clazz.getSuperclass();
+        }
+
+        return clazz;
+    }
+
+    private boolean isMethodAnnotated(Class<?> realClass,
+                                      Method thisMethod,
+                                      Method proceed,
+                                      Class<? extends Annotation> annotation) {
+        if (annotation == null) {
+            return false;
+        }
+
+        if (thisMethod != null && thisMethod.isAnnotationPresent(annotation)) {
+            return true;
+        }
+
+        if (proceed != null && proceed.isAnnotationPresent(annotation)) {
+            return true;
+        }
+
+        if (realClass != null && thisMethod != null) {
+            Method real = findMethod(realClass, thisMethod);
+            if (real != null && real.isAnnotationPresent(annotation)) {
+                return true;
+            }
+
+            for (Class<?> iface : realClass.getInterfaces()) {
+                Method ifaceMethod = findMethod(iface, thisMethod);
+                if (ifaceMethod != null && ifaceMethod.isAnnotationPresent(annotation)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private Method findMethod(Class<?> type, Method signatureSource) {
+        try {
+            return type.getMethod(signatureSource.getName(), signatureSource.getParameterTypes());
+        } catch (NoSuchMethodException ignored) {
+            // fall through
+        }
+
+        try {
+            return type.getDeclaredMethod(signatureSource.getName(), signatureSource.getParameterTypes());
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
 }

@@ -28,6 +28,8 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.BeanProxyDecider;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
@@ -50,6 +52,9 @@ public class DependencyManager {
 
     @Getter
     private final BeanInstanceRegistry beanInstanceRegistry;
+
+    private volatile boolean proxyDecidersBootstrapped = false;
+    private final ThreadLocal<Boolean> bootstrappingProxyDeciders = ThreadLocal.withInitial(() -> false);
 
     public DependencyManager() {
         this(new BeanDefinitionRegistry(), new BeanInstanceRegistry());
@@ -279,7 +284,7 @@ public class DependencyManager {
             DependencyResolveResolver<T> resolver = (DependencyResolveResolver<T>) definition.getResolver();
             instance = resolver.resolve(requestedType);
         } else {
-            instance = createInstance(definition.getType());
+            instance = createInstance(definition);
         }
 
         if (instance == null) {
@@ -288,6 +293,51 @@ public class DependencyManager {
 
         beanInstanceRegistry.put(definition, instance);
         return requestedType.cast(instance);
+    }
+
+    private void ensureProxyDecidersBootstrapped() throws Exception {
+        if (proxyDecidersBootstrapped) {
+            return;
+        }
+
+        if (Boolean.TRUE.equals(bootstrappingProxyDeciders.get())) {
+            return;
+        }
+
+        bootstrappingProxyDeciders.set(true);
+        try {
+            for (BeanDefinition definition : beanDefinitionRegistry.getDefinitions(BeanProxyDecider.class)) {
+                // resolve each definition directly to avoid qualifier/primary ambiguity
+                resolveFromDefinition(BeanProxyDecider.class, definition);
+            }
+            proxyDecidersBootstrapped = true;
+        } finally {
+            bootstrappingProxyDeciders.set(false);
+        }
+    }
+
+    private boolean shouldProxy(@NotNull BeanDefinition definition) throws Exception {
+        Objects.requireNonNull(definition, "definition cannot be null.");
+
+        Class<?> type = definition.getType();
+        if (type == null) {
+            return false;
+        }
+
+        // never proxy deciders themselves (avoids recursion and weird double-proxying)
+        if (BeanProxyDecider.class.isAssignableFrom(type)) {
+            return false;
+        }
+
+        ensureProxyDecidersBootstrapped();
+
+        for (BeanProxyDecider decider : getInstancesByType(BeanProxyDecider.class)) {
+            if (decider.shouldProxy(definition, this)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public Object[] resolveArguments(@NotNull Parameter[] parameters) {
@@ -307,18 +357,43 @@ public class DependencyManager {
         return resolveArguments(executable.getParameters());
     }
 
-    public Object createInstance(Class<?> type) throws Exception {
-        Constructor<?> ctor = findInjectConstructor(type);
+    private Object createInstance(@NotNull BeanDefinition definition) throws Exception {
+        Objects.requireNonNull(definition, "definition cannot be null.");
 
+        Class<?> type = definition.getType();
+        if (type == null) {
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        Class<Object> rawType = (Class<Object>) type;
+
+        Constructor<?> ctor = findInjectConstructor(type);
         if (ctor == null) {
             return null;
         }
 
-        Object[] paramsInstances = resolveArguments(ctor);
+        Object[] ctorArgs = resolveArguments(ctor);
+
+        if (shouldProxy(definition)) {
+            if (Modifier.isFinal(type.getModifiers())) {
+                throw new IllegalStateException("Cannot proxy final class: " + type.getName());
+            }
+
+            Object proxy = ComponentProxy.createProxy(
+                    rawType,
+                    null,
+                    ctor.getParameterTypes(),
+                    ctorArgs
+            );
+
+            injectDependencies(rawType, proxy);
+            return proxy;
+        }
 
         ctor.setAccessible(true);
-        Object instance = ctor.newInstance(paramsInstances);
-        injectDependencies(instance);
+        Object instance = ctor.newInstance(ctorArgs);
+        injectDependencies(rawType, instance);
         return instance;
     }
 

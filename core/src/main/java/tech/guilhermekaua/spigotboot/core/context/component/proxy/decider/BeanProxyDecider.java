@@ -20,37 +20,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler;
+package tech.guilhermekaua.spigotboot.core.context.component.proxy.decider;
 
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-public final class MethodHandlerRegistry {
-    private static final List<RegisteredMethodHandler> handlers = new ArrayList<>();
-
-    private MethodHandlerRegistry() {
-    }
-
-    public static void registerAll(List<RegisteredMethodHandler> handlers) {
-        MethodHandlerRegistry.handlers.addAll(handlers);
-    }
-
-    public static @NotNull List<RegisteredMethodHandler> getAllHandlers() {
-        return Collections.unmodifiableList(handlers);
-    }
-
-    public static List<RegisteredMethodHandler> getHandlersFor(@NotNull MethodHandlerContext context) {
-        return handlers.stream()
-                .filter(handler -> handler.canHandle(context))
-                .collect(Collectors.toList());
-    }
-
-    public static void clear() {
-        handlers.clear();
-    }
+@FunctionalInterface
+public interface BeanProxyDecider {
+    /**
+     * Decide whether the given bean should be instantiated as a proxy.
+     *
+     * <p>Implementations should be lightweight and side-effect free.</p>
+     */
+    boolean shouldProxy(@NotNull BeanDefinition definition, @NotNull DependencyManager dependencyManager);
 }
+
+
