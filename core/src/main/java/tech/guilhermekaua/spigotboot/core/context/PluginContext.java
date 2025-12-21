@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 
 @Getter
@@ -22,7 +23,7 @@ public class PluginContext implements Context {
     private final Plugin plugin;
     private final Logger logger;
     private boolean initialized = false;
-    private final List<Runnable> shutdownHooks = new ArrayList<>();
+    private final List<Runnable> shutdownHooks = new CopyOnWriteArrayList<>();
     private final List<Class<? extends Module>> modulesToLoad = new ArrayList<>();
     private BeanRegistrar beanRegistrar;
     private ContextLifecycle lifecycle;
