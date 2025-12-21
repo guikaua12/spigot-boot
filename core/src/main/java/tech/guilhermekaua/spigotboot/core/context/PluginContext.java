@@ -23,7 +23,7 @@ public class PluginContext implements Context {
     private final Logger logger;
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new ArrayList<>();
-    private List<Class<? extends Module>> modulesToLoad;
+    private final List<Class<? extends Module>> modulesToLoad = new ArrayList<>();
     private BeanRegistrar beanRegistrar;
     private ContextLifecycle lifecycle;
 
@@ -31,7 +31,7 @@ public class PluginContext implements Context {
     public PluginContext(Plugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
-        this.modulesToLoad = Collections.unmodifiableList(Arrays.asList(modulesToLoad));
+        this.modulesToLoad.addAll(Arrays.asList(modulesToLoad));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class PluginContext implements Context {
     }
 
     @Override
-    public void registerBean(Object instance) {
+    public void registerBean(@NotNull Object instance) {
         if (beanRegistrar == null) {
             throw new IllegalStateException("Cannot register beans before context initialization");
         }
@@ -66,7 +66,7 @@ public class PluginContext implements Context {
     }
 
     @Override
-    public void registerBean(Class<?> clazz) {
+    public void registerBean(@NotNull Class<?> clazz) {
         if (beanRegistrar == null) {
             throw new IllegalStateException("Cannot register beans before context initialization");
         }
@@ -107,8 +107,18 @@ public class PluginContext implements Context {
     }
 
     @Override
-    public void setModulesToLoad(List<Class<? extends Module>> modulesToLoad) {
-        this.modulesToLoad = Collections.unmodifiableList(modulesToLoad);
+    public @NotNull List<Class<? extends Module>> getModulesToLoad() {
+        return Collections.unmodifiableList(modulesToLoad);
+    }
+
+    @Override
+    public void setModulesToLoad(@NotNull List<Class<? extends Module>> modulesToLoad) {
+        if (initialized) {
+            throw new IllegalStateException("Cannot change modules after context initialization");
+        }
+
+        this.modulesToLoad.clear();
+        this.modulesToLoad.addAll(modulesToLoad);
     }
 
     private void callPreDestroyProcessors() {
@@ -123,12 +133,12 @@ public class PluginContext implements Context {
     }
 
     @Override
-    public void registerShutdownHook(Runnable runnable) {
+    public void registerShutdownHook(@NotNull Runnable runnable) {
         shutdownHooks.add(runnable);
     }
 
     @Override
-    public void unregisterShutdownHook(Runnable runnable) {
+    public void unregisterShutdownHook(@NotNull Runnable runnable) {
         shutdownHooks.remove(runnable);
     }
 }
