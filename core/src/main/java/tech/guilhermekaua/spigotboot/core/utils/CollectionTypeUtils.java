@@ -47,19 +47,14 @@ public final class CollectionTypeUtils {
     /**
      * Extracts collection type information from a {@link Type}, identifying both the collection class
      * and its element type.
-     * <p>
      * This method analyzes parameterized types to determine if they represent a collection (e.g., {@code List},
      * {@code Set}, {@code Collection}) and extracts the generic element type.
-     * </p>
-     * <p>
      * The method handles:
      * <ul>
      *   <li>Parameterized collection types (e.g., {@code List<String>}, {@code Set<Service>})</li>
      *   <li>Wildcard types with upper bounds (e.g., {@code List<? extends Service>})</li>
      *   <li>Raw types and non-collection types return {@code null}</li>
      * </ul>
-     * </p>
-     * <p>
      * Examples:
      * <ul>
      *   <li>{@code extractCollectionTypeInfo(new TypeToken<List<String>>(){}.getType())} returns
@@ -69,7 +64,6 @@ public final class CollectionTypeUtils {
      *   <li>{@code extractCollectionTypeInfo(String.class)} returns {@code null} (not a collection)</li>
      *   <li>{@code extractCollectionTypeInfo(List.class)} returns {@code null} (raw type, no generics)</li>
      * </ul>
-     * </p>
      *
      * @param type the type to analyze, not null
      * @return a {@link CollectionTypeInfo} containing the collection class and element type,
@@ -119,19 +113,15 @@ public final class CollectionTypeUtils {
 
     /**
      * Extracts the raw class from a {@link Type}, handling both simple classes and parameterized types.
-     * <p>
      * This method is useful when you need to work with the actual class type, ignoring generic type parameters.
      * For parameterized types (e.g., {@code List<String>}), it returns the raw type (e.g., {@code List.class}).
      * For simple class types, it returns the class itself.
-     * </p>
-     * <p>
      * Examples:
      * <ul>
      *   <li>{@code getRawClass(String.class)} returns {@code String.class}</li>
      *   <li>{@code getRawClass(new TypeToken<List<String>>(){}.getType())} returns {@code List.class}</li>
      *   <li>{@code getRawClass(new TypeToken<Map<String, Integer>>(){}.getType())} returns {@code Map.class}</li>
      * </ul>
-     * </p>
      *
      * @param type the type to extract the raw class from, not null
      * @param <T>  the type parameter for the returned class
