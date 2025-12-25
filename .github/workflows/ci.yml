@@ -8,6 +8,9 @@ on:
       - '**/pom.xml'
   push:
     branches: [ master, dev ]
+    paths:
+      - '**.java'
+      - '**/pom.xml'
 
 jobs:
   test:
