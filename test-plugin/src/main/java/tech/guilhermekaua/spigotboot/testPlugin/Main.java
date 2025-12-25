@@ -22,12 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.testPlugin;
 
-import com.j256.ormlite.jdbc.DataSourceConnectionSource;
 import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
 import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
 
@@ -38,8 +36,6 @@ import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
         authors = {"Approximations"}
 )
 public class Main extends JavaPlugin {
-    @Inject
-    private DataSourceConnectionSource connectionSource;
 
     @Override
     public void onEnable() {
@@ -47,20 +43,6 @@ public class Main extends JavaPlugin {
                 DataOrmLiteModule.class,
                 PlaceholderModule.class
         );
-//        System.out.println(userRepository.findAll());
-
-//        final BungeeChannel bungeeChannel = new BungeeChannel(this);
-//        bungeeChannel.init();
-//
-//        bungeeChannel.subscribe("test", message -> {
-//            System.out.println("[Subscriber] Received on channel `test` message: " + message.getBody());
-//            message.respond("Response from any server!");
-//        });
-
-//        bungeeChannel.subscribe("test", message -> {
-//            System.out.println("[Subscriber] Received on channel `test` message: " + message.getBody());
-//            message.respond("Response from any server!");
-//        });
     }
 
     @Override
