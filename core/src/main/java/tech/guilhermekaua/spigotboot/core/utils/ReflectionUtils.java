@@ -25,6 +25,9 @@ package tech.guilhermekaua.spigotboot.core.utils;
 import com.google.common.base.Strings;
 import com.google.common.reflect.ClassPath;
 import org.jetbrains.annotations.Nullable;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -76,20 +79,15 @@ public final class ReflectionUtils {
     }
 
     public static Set<Class<?>> getClassesAnnotatedWith(String basePackage, Class<? extends Annotation> annotationClass) {
-        return getClassesFromPackage(basePackage)
-                .stream()
-                .filter(clazz -> clazz.isAnnotationPresent(annotationClass))
-                .collect(Collectors.toSet());
+        Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
+
+        return reflections.getTypesAnnotatedWith(annotationClass);
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable String basePackage, Class<T> clazz, boolean ignoreInterfaces) {
-        return getClassesFromPackage(basePackage != null ? basePackage : "")
-                .stream()
-                .filter(clazz::isAssignableFrom)
-                .filter(c -> !c.equals(clazz))
-                .filter(c -> !ignoreInterfaces || !c.isInterface())
-                .map(c -> (Class<T>) c)
-                .collect(Collectors.toSet());
+        Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
+
+        return reflections.getSubTypesOf(clazz);
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(String basePackage, Class<T> clazz) {
