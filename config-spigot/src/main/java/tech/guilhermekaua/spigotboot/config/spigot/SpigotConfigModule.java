@@ -20,39 +20,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin;
+package tech.guilhermekaua.spigotboot.config.spigot;
 
-import org.bukkit.plugin.java.JavaPlugin;
-import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigModule;
-import tech.guilhermekaua.spigotboot.core.SpigotBoot;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
-import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
-import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
+import tech.guilhermekaua.spigotboot.core.module.Module;
 
-@Plugin(
-        name = "TestPlugin",
-        version = "1.0.0",
-        description = "A test plugin for ApxPlugin framework.",
-        authors = {"Approximations"}
-)
-public class Main extends JavaPlugin {
+import java.util.logging.Logger;
 
-    @Override
-    public void onEnable() {
-        Context ctx = SpigotBoot.initialize(this,
-                DataOrmLiteModule.class,
-                PlaceholderModule.class,
-                SpigotConfigModule.class
-        );
-
-        MainConfig mainConfig = ctx.getBean(MainConfig.class);
-        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
-    }
+/**
+ * Spigot Boot module providing configuration management.
+ * <p>
+ * Scans for @Config annotated classes, loads configs, and registers them as beans.
+ */
+public class SpigotConfigModule implements Module {
 
     @Override
-    public void onDisable() {
-        SpigotBoot.onDisable(this);
+    public void onInitialize(@NotNull Context context) throws Exception {
+        Plugin plugin = context.getPlugin();
+        Logger logger = plugin.getLogger();
+
+        logger.info("Initializing Config Module...");
+
+        SpigotConfigManager configManager = new SpigotConfigManager(plugin);
+        context.registerBean(configManager);
+
+        context.getBean(ConfigRegistry.class)
+                .registerConfigs(context);
+
+        logger.info("Config Module initialized.");
+
+        context.registerShutdownHook(() -> {
+            logger.info("Config Module shutting down...");
+        });
     }
 }

@@ -302,7 +302,7 @@ public class DependencyManager {
         try {
             Objects.requireNonNull(clazz, "clazz cannot be null.");
             Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
-            Preconditions.checkArgument(!(dependencyClass.isInterface() && resolver == null),
+            Preconditions.checkArgument(!(dependencyClass.isInterface() && (resolver == null && instance == null)),
                     "You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
 
             BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
