@@ -87,7 +87,13 @@ public final class ReflectionUtils {
     public static <T> Set<Class<? extends T>> getSubClassesOf(@Nullable String basePackage, Class<T> clazz, boolean ignoreInterfaces) {
         Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
 
-        return reflections.getSubTypesOf(clazz);
+        Set<Class<? extends T>> subTypes = reflections.getSubTypesOf(clazz);
+        if (ignoreInterfaces) {
+            return subTypes.stream()
+                    .filter(c -> !c.isInterface())
+                    .collect(Collectors.toSet());
+        }
+        return subTypes;
     }
 
     public static <T> Set<Class<? extends T>> getSubClassesOf(String basePackage, Class<T> clazz) {
