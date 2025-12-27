@@ -23,28 +23,28 @@
 package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
-import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 public class ComponentRegistry {
     private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
 
-    public ComponentRegistry() {
-        this.componentsAnnotations.addAll(discoverComponentsAnnotations());
-    }
-
     public void registerComponents(String basePackage, DependencyManager dependencyManager) {
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
+        this.componentsAnnotations.addAll(discoverComponentsAnnotations(basePackage));
+
+        Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
 
         for (Class<?> componentsClass : componentsClasses) {
             dependencyManager.registerDependency(
@@ -69,11 +69,15 @@ public class ComponentRegistry {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage("").stream()
-                .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
-                .map(clazz -> (Class<? extends Annotation>) clazz)
+    private Set<Class<? extends Annotation>> discoverComponentsAnnotations(String basePackage) {
+        Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
+
+        return Stream.concat(
+                        Stream.of(Component.class),
+                        reflections.getTypesAnnotatedWith(Component.class)
+                                .stream()
+                                .filter(Class::isAnnotation)
+                ).map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
 
@@ -82,18 +86,12 @@ public class ComponentRegistry {
             return Collections.emptySet();
         }
 
-        return ReflectionUtils.getClassesFromPackage(basePackages)
-                .stream()
+        Reflections reflections = new Reflections(basePackages, new SubTypesScanner(), new TypeAnnotationsScanner());
+
+        return componentsAnnotations.stream()
+                .map(reflections::getTypesAnnotatedWith)
+                .flatMap(Collection::stream)
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
-                .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))
                 .collect(Collectors.toSet());
-    }
-
-    @RequiredArgsConstructor
-    @Getter
-    public static class RegisterResult {
-        private final Set<Class<?>> registeredClasses;
-        private final Set<Class<? extends Annotation>> registeredAnnotations;
-
     }
 }
