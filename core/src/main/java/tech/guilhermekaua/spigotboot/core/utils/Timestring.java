@@ -22,111 +22,179 @@
  */
 package tech.guilhermekaua.spigotboot.core.utils;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A utility class for parsing durations
+ * A utility class for parsing duration strings into numeric values.
  */
-public class Timestring {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class Timestring {
+    private static final Map<String, Double> UNIT_RATIOS = new HashMap<>();
 
     /**
-     * conversion ratios
+     * Regex for matching duration components.
+     * Group 1: number (including optional scientific notation)
+     * Group 2: unit letters (including Unicode µ/μ for microseconds)
      */
-    private static final Map<String, Double> parse = new HashMap<>();
-    /**
-     * regex for matching durations
-     */
-    private static final Pattern durationRE = Pattern.compile(
-            "(-?(?:\\d+\\.?\\d*|\\d*\\.?\\d+)(?:e[-+]?\\d+)?)\\s*([\\p{L}]*)",
-            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern DURATION_PATTERN = Pattern.compile(
+            "(-?(?:\\d+\\.?\\d*|\\d*\\.?\\d+)(?:e[-+]?\\d+)?)\\s*([a-zA-Zµμ]*)",
+            Pattern.CASE_INSENSITIVE);
 
     static {
-        parse.put("nanosecond", 1 / 1e6);
-        parse.put("ns", 1 / 1e6);
-        parse.put("µs", 1 / 1e3);
-        parse.put("μs", 1 / 1e3);
-        parse.put("us", 1 / 1e3);
-        parse.put("microsecond", 1 / 1e3);
-        parse.put("millisecond", 1.0);
-        parse.put("ms", 1.0);
-        parse.put("", 1.0);
-        parse.put("second", parse.get("ms") * 1000);
-        parse.put("sec", parse.get("ms") * 1000);
-        parse.put("s", parse.get("ms") * 1000);
-        parse.put("minute", parse.get("s") * 60);
-        parse.put("min", parse.get("s") * 60);
-        parse.put("m", parse.get("s") * 60);
-        parse.put("hour", parse.get("m") * 60);
-        parse.put("hr", parse.get("m") * 60);
-        parse.put("h", parse.get("m") * 60);
-        parse.put("day", parse.get("h") * 24);
-        parse.put("d", parse.get("h") * 24);
-        parse.put("week", parse.get("d") * 7);
-        parse.put("wk", parse.get("d") * 7);
-        parse.put("w", parse.get("d") * 7);
-        parse.put("month", parse.get("d") * (365.25 / 12));
-        parse.put("b", parse.get("d") * (365.25 / 12));
+        UNIT_RATIOS.put("nanosecond", 1 / 1e6);
+        UNIT_RATIOS.put("ns", 1 / 1e6);
+        UNIT_RATIOS.put("µs", 1 / 1e3);  // U+00B5
+        UNIT_RATIOS.put("μs", 1 / 1e3);  // U+03BC
+        UNIT_RATIOS.put("us", 1 / 1e3);
+        UNIT_RATIOS.put("microsecond", 1 / 1e3);
+
+        UNIT_RATIOS.put("millisecond", 1.0);
+        UNIT_RATIOS.put("ms", 1.0);
+        UNIT_RATIOS.put("", 1.0);
+
+        double second = 1000.0;
+        UNIT_RATIOS.put("second", second);
+        UNIT_RATIOS.put("sec", second);
+        UNIT_RATIOS.put("s", second);
+
+        double minute = second * 60;
+        UNIT_RATIOS.put("minute", minute);
+        UNIT_RATIOS.put("min", minute);
+        UNIT_RATIOS.put("m", minute);
+
+        double hour = minute * 60;
+        UNIT_RATIOS.put("hour", hour);
+        UNIT_RATIOS.put("hr", hour);
+        UNIT_RATIOS.put("h", hour);
+
+        double day = hour * 24;
+        UNIT_RATIOS.put("day", day);
+        UNIT_RATIOS.put("d", day);
+
+        double week = day * 7;
+        UNIT_RATIOS.put("week", week);
+        UNIT_RATIOS.put("wk", week);
+        UNIT_RATIOS.put("w", week);
+
+        double month = day * (365.25 / 12);
+        UNIT_RATIOS.put("month", month);
+        UNIT_RATIOS.put("mo", month);
+
+        double year = day * 365.25;
+        UNIT_RATIOS.put("year", year);
+        UNIT_RATIOS.put("yr", year);
+        UNIT_RATIOS.put("y", year);
     }
 
     /**
-     * convert `str` to ms
+     * Convert a duration string to the specified time unit.
+     * <p>
+     * Examples:
+     * <ul>
+     *   <li>{@code duration("5m 30s", "s")} returns {@code 330.0}</li>
+     *   <li>{@code duration("1h30m", "m")} returns {@code 90.0}</li>
+     *   <li>{@code duration("2.5d", "h")} returns {@code 60.0}</li>
+     *   <li>{@code duration("1e3ms", "s")} returns {@code 1.0}</li>
+     * </ul>
      *
-     * @param str    the string to parse
-     * @param format the format to return
-     * @return the parsed value in the specified format
+     * @param str    the string to parse (e.g., "5m 30s", "1h30m", "2.5d")
+     * @param format the unit to return the result in (e.g., "s", "ms", "h"). If null, returns milliseconds.
+     * @return the parsed value in the specified format, or -1 if parsing fails
      */
-    public static double duration(String str, String format) {
+    public static double duration(@NotNull String str, @Nullable String format) {
+        Objects.requireNonNull(str, "str cannot be null");
+
+        if (str.isEmpty()) {
+            return -1;
+        }
+
         try {
-            Double result = null;
+            double result = 0;
+            boolean hasMatch = false;
+
             // ignore commas/placeholders
-            str = (str).replaceAll("(\\d),_", "$1$2");
-            final boolean isNegative = str.charAt(0) == '-';
-            final Matcher matcher = durationRE.matcher(str.toLowerCase());
+            str = str.replaceAll("(\\d)[,_](\\d)", "$1$2");
+
+            final boolean isNegative = str.trim().charAt(0) == '-';
+            final Matcher matcher = DURATION_PATTERN.matcher(str);
+
             while (matcher.find()) {
-                final String group = matcher.group();
-                final double n = Double.parseDouble(group.replaceAll("[\\p{L}]+", ""));
-                final String units = group.replaceAll("[0-9.]+", "");
-                final Double unitRatio = unitRatio(units);
+                String numberPart = matcher.group(1);
+                String unitPart = matcher.group(2);
+
+                if (numberPart == null || numberPart.isEmpty()) {
+                    continue;
+                }
+
+                double n = Double.parseDouble(numberPart);
+                Double unitRatio = unitRatio(unitPart);
+
                 if (unitRatio != null) {
-                    result = (result == null ? 0 : result) + Math.abs(n) * unitRatio;
+                    result += Math.abs(n) * unitRatio;
+                    hasMatch = true;
                 }
             }
 
-            if (result != null) {
-                return result / (unitRatio(format) == null ? 1 : unitRatio(format)) *
-                        (isNegative ? -1 : 1);
-            } else {
-                return result;
+            if (!hasMatch) {
+                return -1;
             }
-        } catch (Throwable throwable) {
+
+            Double formatRatio = unitRatio(format);
+            double divisor = (formatRatio == null) ? 1.0 : formatRatio;
+
+            return (result / divisor) * (isNegative ? -1 : 1);
+
+        } catch (Exception e) {
             return -1;
         }
     }
 
     /**
-     * convert `str` to ms
+     * Convert a duration string to the specified time unit as a long.
      *
      * @param str    the string to parse
-     * @param format the format to return
-     * @return the parsed value in the specified format
+     * @param format the unit to return the result in
+     * @return the parsed value in the specified format, or -1 if parsing fails
      */
-    public static long durationLong(String str, String format) {
+    public static long durationLong(@NotNull String str, @Nullable String format) {
         return (long) duration(str, format);
     }
 
     /**
-     * get the ratio for a unit
+     * Get the ratio (in milliseconds) for a unit string.
      *
      * @param str the unit to get the ratio for
-     * @return the ratio for the unit
+     * @return the ratio for the unit in milliseconds, or null if not found
      */
-    private static Double unitRatio(String str) {
-        return str == null ? null : (parse.containsKey(str) ?
-                parse.get(str) :
-                ((parse.getOrDefault(str.toLowerCase().replaceAll(
-                        "s$", ""), null))));
+    @Nullable
+    private static Double unitRatio(@Nullable String str) {
+        if (str == null) {
+            return null;
+        }
+
+        if (UNIT_RATIOS.containsKey(str)) {
+            return UNIT_RATIOS.get(str);
+        }
+
+        String lower = str.toLowerCase();
+        if (UNIT_RATIOS.containsKey(lower)) {
+            return UNIT_RATIOS.get(lower);
+        }
+
+        if (lower.endsWith("s") && lower.length() > 1) {
+            String singular = lower.substring(0, lower.length() - 1);
+            return UNIT_RATIOS.getOrDefault(singular, null);
+        }
+
+        return null;
     }
 }
