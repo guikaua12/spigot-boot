@@ -124,7 +124,7 @@ public final class Timestring {
             // ignore commas/placeholders
             str = str.replaceAll("(\\d)[,_](\\d)", "$1$2");
 
-            final boolean isNegative = str.charAt(0) == '-';
+            final boolean isNegative = str.trim().charAt(0) == '-';
             final Matcher matcher = DURATION_PATTERN.matcher(str);
 
             while (matcher.find()) {
