@@ -228,6 +228,11 @@ public class TimestringTest {
     }
 
     @Test
+    void testBlankString() {
+        assertEquals(-1.0, Timestring.duration("         ", "ms"), DELTA);
+    }
+
+    @Test
     void testInvalidInput() {
         assertEquals(-1.0, Timestring.duration("abc", "ms"), DELTA);
         assertEquals(-1.0, Timestring.duration("not a duration", "ms"), DELTA);
