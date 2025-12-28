@@ -49,53 +49,55 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+
+                            <!-- filter to minimize included classes from javassist -->
+                            <filters>
+                                <filter>
+                                    <artifact>org.javassist:javassist</artifact>
+                                    <excludes>
+                                        <exclude>javassist/compiler/**</exclude>
+                                        <exclude>javassist/convert/**</exclude>
+                                        <exclude>javassist/expr/**</exclude>
+                                        <exclude>javassist/runtime/**</exclude>
+                                        <exclude>javassist/scopedpool/**</exclude>
+                                        <exclude>javassist/tools/**</exclude>
+                                        <exclude>javassist/bytecode/analysis/**</exclude>
+
+                                        <exclude>javassist/ByteArrayClassPath*.class</exclude>
+                                        <exclude>javassist/ClassClassPath.class</exclude>
+                                        <exclude>javassist/ClassMap.class</exclude>
+                                        <exclude>javassist/ClassPath.class</exclude>
+                                        <exclude>javassist/ClassPathList.class</exclude>
+                                        <exclude>javassist/ClassPool*.class</exclude>
+                                        <exclude>javassist/CodeConverter*.class</exclude>
+                                        <exclude>javassist/CtArray.class</exclude>
+                                        <exclude>javassist/CtBehavior.class</exclude>
+                                        <exclude>javassist/CtClass*.class</exclude>
+                                        <exclude>javassist/CtConstructor.class</exclude>
+                                        <exclude>javassist/CtField*.class</exclude>
+                                        <exclude>javassist/CtMember*.class</exclude>
+                                        <exclude>javassist/CtMethod*.class</exclude>
+                                        <exclude>javassist/CtNewClass.class</exclude>
+                                        <exclude>javassist/CtNewConstructor.class</exclude>
+                                        <exclude>javassist/CtNewMethod.class</exclude>
+                                        <exclude>javassist/CtNewWrappedConstructor.class</exclude>
+                                        <exclude>javassist/CtNewWrappedMethod.class</exclude>
+                                        <exclude>javassist/CtPrimitiveType.class</exclude>
+                                        <exclude>javassist/DirClassPath.class</exclude>
+                                        <exclude>javassist/FieldInitLink.class</exclude>
+                                        <exclude>javassist/JarClassPath.class</exclude>
+                                        <exclude>javassist/JarDirClassPath*.class</exclude>
+                                        <exclude>javassist/Loader*.class</exclude>
+                                        <exclude>javassist/SerialVersionUID*.class</exclude>
+                                        <exclude>javassist/Translator.class</exclude>
+                                        <exclude>javassist/URLClassPath.class</exclude>
+
+                                        <exclude>javassist/util/HotSwapper*.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+
                             <relocations>
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.reflections</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.reflections</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.hibernate</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.hibernate</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.intellij.lang</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.intellij.lang</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.jboss</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jboss</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.jetbrains.annotations</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jetbrains.annotations-->
-                                <!--                                    </shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.jvnet</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.jvnet</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>org.slf4j</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.org.slf4j</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>net.bytebuddy</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.net.bytebuddy</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>com.zaxxer.hikari</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.zaxxer.hikari</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>com.sun</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.sun</shadedPattern>-->
-                                <!--                                </relocation>-->
-                                <!--                                <relocation>-->
-                                <!--                                    <pattern>com.fasterxml.classmate</pattern>-->
-                                <!--                                    <shadedPattern>tech.guilhermekaua.spigotboot.libs.com.fasterxml.classmate-->
-                                <!--                                    </shadedPattern>-->
-                                <!--                                </relocation>-->
                                 <relocation>
                                     <pattern>javassist</pattern>
                                     <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
