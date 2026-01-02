@@ -33,6 +33,7 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strate
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
@@ -55,16 +56,42 @@ public class DependencyManager {
     @Getter
     private final BeanProxyDeciderResolver beanProxyDeciderResolver;
 
+    @Getter
+    private final CustomInjectorRegistry customInjectorRegistry;
+
+    private final BeanNamingDefiner beanNamingDefiner = new DefaultBeanNamingDefiner();
+
     public DependencyManager() {
-        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver());
+        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new DefaultCustomInjectorRegistry());
     }
 
     public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
                              @NotNull BeanInstanceRegistry beanInstanceRegistry,
                              @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver) {
+        this(beanDefinitionRegistry, beanInstanceRegistry, beanProxyDeciderResolver, new DefaultCustomInjectorRegistry());
+    }
+
+    public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
+                             @NotNull BeanInstanceRegistry beanInstanceRegistry,
+                             @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver,
+                             @NotNull CustomInjectorRegistry customInjectorRegistry) {
         this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null.");
         this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
         this.beanProxyDeciderResolver = Objects.requireNonNull(beanProxyDeciderResolver, "beanProxyDeciderResolver cannot be null.");
+        this.customInjectorRegistry = Objects.requireNonNull(customInjectorRegistry, "customInjectorRegistry cannot be null.");
+    }
+
+    /**
+     * Registers a custom injector.
+     * <p>
+     * Custom injectors allow modules to provide alternative ways of resolving dependencies.
+     * They are consulted in order before falling back to the default bean resolution.
+     *
+     * @param injector the custom injector to register, not null
+     */
+    public void registerInjector(@NotNull CustomInjector injector) {
+        Objects.requireNonNull(injector, "injector cannot be null");
+        customInjectorRegistry.register(injector);
     }
 
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
@@ -141,6 +168,32 @@ public class DependencyManager {
         return registerDependency(instance, qualifier, false);
     }
 
+    /**
+     * Resolves a dependency for the given injection point.
+     * <p>
+     * This method first consults all registered custom injectors in order. If any injector
+     * handles the injection point, its result is returned. Otherwise, the default resolution
+     * using the bean registry is performed.
+     *
+     * @param injectionPoint the injection point to resolve, not null
+     * @return the resolved dependency, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public <T> @Nullable T resolveDependency(@NotNull InjectionPoint injectionPoint) {
+        Objects.requireNonNull(injectionPoint, "injectionPoint cannot be null");
+
+        for (CustomInjector injector : customInjectorRegistry.getInjectors()) {
+            if (injector.supports(injectionPoint)) {
+                InjectionResult result = injector.resolve(injectionPoint);
+                if (result.isHandled()) {
+                    return (T) result.getValue();
+                }
+            }
+        }
+
+        return resolveDependency(injectionPoint.getType(), injectionPoint.getQualifier());
+    }
+
     public <T> T registerDependency(@NotNull T instance, @Nullable String qualifier, boolean primary) {
         return registerDependency(instance, qualifier, primary, null);
     }
@@ -153,12 +206,13 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         Class<T> dependencyClass = (Class<T>) instance.getClass();
+        String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, instance, null, qualifier);
 
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency(superInterface, dependencyClass, instance, qualifier, primary, null, reloadCallback);
+            registerDependency(superInterface, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
         }
 
-        registerDependency(dependencyClass, dependencyClass, instance, qualifier, primary, null, reloadCallback);
+        registerDependency(dependencyClass, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
         return instance;
     }
 
@@ -194,11 +248,13 @@ public class DependencyManager {
                                     @Nullable DependencyReloadCallback reloadCallback) {
         Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
 
+        String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, null, resolver, qualifier);
+
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency((Class<T>) superInterface, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+            registerDependency((Class<T>) superInterface, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
         }
 
-        registerDependency(dependencyClass, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+        registerDependency(dependencyClass, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
         return null;
     }
 
@@ -251,7 +307,9 @@ public class DependencyManager {
 
             BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
 
-            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, qualifier, primary, resolver, reloadCallback);
+            String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, instance, resolver, qualifier);
+
+            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, resolvedQualifier, primary, resolver, reloadCallback);
             beanDefinitionRegistry.register(clazz, definition);
 
             if (instance != null) {
@@ -317,13 +375,8 @@ public class DependencyManager {
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
-            Type paramType = param.getParameterizedType();
-
-            if (paramType == null) {
-                paramType = param.getType();
-            }
-
-            args[i] = resolveDependency(paramType, BeanUtils.getQualifier(param));
+            InjectionPoint injectionPoint = InjectionPoint.fromParameter(param);
+            args[i] = resolveDependency(injectionPoint);
         }
 
         return args;
@@ -428,11 +481,16 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Method method : type.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
-                Type[] genericParameterTypes = method.getGenericParameterTypes();
-                Type paramType = genericParameterTypes.length > 0 ? genericParameterTypes[0] : method.getParameterTypes()[0];
+            if (method.getParameterCount() != 1) {
+                continue;
+            }
 
-                Object dep = resolveDependency(paramType, BeanUtils.getQualifier(method));
+            InjectionPoint injectionPoint = InjectionPoint.fromSetterMethod(method);
+            boolean hasInjectAnnotation = method.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
+
+            if (hasInjectAnnotation || customInjectorSupports) {
+                Object dep = resolveDependency(injectionPoint);
 
                 method.setAccessible(true);
                 method.invoke(instance, dep);
@@ -445,10 +503,12 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Field field : type.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class)) {
-                Type fieldType = field.getGenericType();
+            InjectionPoint injectionPoint = InjectionPoint.fromField(field);
+            boolean hasInjectAnnotation = field.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
 
-                Object dep = resolveDependency(fieldType, BeanUtils.getQualifier(field));
+            if (hasInjectAnnotation || customInjectorSupports) {
+                Object dep = resolveDependency(injectionPoint);
 
                 field.setAccessible(true);
                 field.set(instance, dep);

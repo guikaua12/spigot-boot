@@ -273,7 +273,7 @@ public class ConfigurationProcessorTest {
 
         dependencyManager.registerDependency(
                 TestService.class,
-                null,
+                "testService",
                 true,
                 (type) -> null);
 
