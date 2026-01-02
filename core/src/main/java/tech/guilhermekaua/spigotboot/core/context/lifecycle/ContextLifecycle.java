@@ -9,6 +9,7 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjectorRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.listeners.BeanDefinitionsReadyListener;
@@ -68,6 +69,9 @@ public class ContextLifecycle {
         beanRegistrar.registerInstance(Plugin.class, plugin, null, false);
         beanRegistrar.registerInstance(ProxyUtils.getRealClass(plugin), plugin, null, false);
         beanRegistrar.registerInstance(dependencyManager, null, false);
+
+        CustomInjectorRegistry customInjectorRegistry = dependencyManager.getCustomInjectorRegistry();
+        beanRegistrar.registerInstance(CustomInjectorRegistry.class, customInjectorRegistry, null, false);
     }
 
     private void scanPackages() {

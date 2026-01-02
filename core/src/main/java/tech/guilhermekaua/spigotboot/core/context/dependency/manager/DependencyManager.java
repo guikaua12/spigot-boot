@@ -33,10 +33,7 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strate
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
-import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjector;
-import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjectorRegistry;
-import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
-import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionResult;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
@@ -63,13 +60,13 @@ public class DependencyManager {
     private final CustomInjectorRegistry customInjectorRegistry;
 
     public DependencyManager() {
-        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new CustomInjectorRegistry());
+        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new DefaultCustomInjectorRegistry());
     }
 
     public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
                              @NotNull BeanInstanceRegistry beanInstanceRegistry,
                              @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver) {
-        this(beanDefinitionRegistry, beanInstanceRegistry, beanProxyDeciderResolver, new CustomInjectorRegistry());
+        this(beanDefinitionRegistry, beanInstanceRegistry, beanProxyDeciderResolver, new DefaultCustomInjectorRegistry());
     }
 
     public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,

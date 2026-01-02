@@ -24,8 +24,7 @@ package tech.guilhermekaua.spigotboot.core.context.dependency.injector;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
 
 /**
  * Registry that holds and manages custom injectors.
@@ -36,9 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p>
  * The registry is thread-safe and can be modified during the application lifecycle.
  */
-public final class CustomInjectorRegistry {
-    private final List<CustomInjector> injectors = new CopyOnWriteArrayList<>();
-    private volatile List<CustomInjector> sortedView = Collections.emptyList();
+public interface CustomInjectorRegistry {
 
     /**
      * Registers a custom injector.
@@ -49,12 +46,7 @@ public final class CustomInjectorRegistry {
      * @param injector the custom injector to register, not null
      * @throws NullPointerException if injector is null
      */
-    public void register(@NotNull CustomInjector injector) {
-        Objects.requireNonNull(injector, "injector cannot be null");
-
-        injectors.add(injector);
-        updateSortedView();
-    }
+    void register(@NotNull CustomInjector injector);
 
     /**
      * Unregisters a custom injector.
@@ -62,15 +54,7 @@ public final class CustomInjectorRegistry {
      * @param injector the custom injector to remove, not null
      * @return true if the injector was found and removed, false otherwise
      */
-    public boolean unregister(@NotNull CustomInjector injector) {
-        Objects.requireNonNull(injector, "injector cannot be null");
-
-        boolean removed = injectors.remove(injector);
-        if (removed) {
-            updateSortedView();
-        }
-        return removed;
-    }
+    boolean unregister(@NotNull CustomInjector injector);
 
     /**
      * Returns an unmodifiable ordered view of all registered injectors.
@@ -79,9 +63,7 @@ public final class CustomInjectorRegistry {
      *
      * @return an unmodifiable list of injectors in order of priority
      */
-    public @NotNull List<CustomInjector> getInjectors() {
-        return sortedView;
-    }
+    @NotNull List<CustomInjector> getInjectors();
 
     /**
      * Checks if any registered custom injector supports the given injection point.
@@ -89,47 +71,24 @@ public final class CustomInjectorRegistry {
      * @param injectionPoint the injection point to check
      * @return true if any custom injector supports this injection point
      */
-    public boolean customInjectorSupported(@NotNull InjectionPoint injectionPoint) {
-        for (CustomInjector injector : getInjectors()) {
-            if (injector.supports(injectionPoint)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    boolean customInjectorSupported(@NotNull InjectionPoint injectionPoint);
 
     /**
      * Clears all registered injectors.
      */
-    public void clear() {
-        injectors.clear();
-        sortedView = Collections.emptyList();
-    }
+    void clear();
 
     /**
      * Returns the number of registered injectors.
      *
      * @return the count of registered injectors
      */
-    public int size() {
-        return injectors.size();
-    }
+    int size();
 
     /**
      * Checks if the registry is empty.
      *
      * @return true if no injectors are registered
      */
-    public boolean isEmpty() {
-        return injectors.isEmpty();
-    }
-
-    /**
-     * Updates the sorted view after modifications.
-     */
-    private void updateSortedView() {
-        List<CustomInjector> sorted = new ArrayList<>(injectors);
-        sorted.sort(Comparator.comparingInt(CustomInjector::getOrder));
-        sortedView = Collections.unmodifiableList(sorted);
-    }
+    boolean isEmpty();
 }
