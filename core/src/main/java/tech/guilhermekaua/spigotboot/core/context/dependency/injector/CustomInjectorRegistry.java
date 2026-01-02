@@ -84,6 +84,21 @@ public final class CustomInjectorRegistry {
     }
 
     /**
+     * Checks if any registered custom injector supports the given injection point.
+     *
+     * @param injectionPoint the injection point to check
+     * @return true if any custom injector supports this injection point
+     */
+    public boolean customInjectorSupported(@NotNull InjectionPoint injectionPoint) {
+        for (CustomInjector injector : getInjectors()) {
+            if (injector.supports(injectionPoint)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Clears all registered injectors.
      */
     public void clear() {

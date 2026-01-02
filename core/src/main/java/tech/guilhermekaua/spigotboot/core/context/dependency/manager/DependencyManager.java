@@ -477,8 +477,15 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Method method : type.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
-                InjectionPoint injectionPoint = InjectionPoint.fromSetterMethod(method);
+            if (method.getParameterCount() != 1) {
+                continue;
+            }
+
+            InjectionPoint injectionPoint = InjectionPoint.fromSetterMethod(method);
+            boolean hasInjectAnnotation = method.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
+
+            if (hasInjectAnnotation || customInjectorSupports) {
                 Object dep = resolveDependency(injectionPoint);
 
                 method.setAccessible(true);
@@ -492,8 +499,11 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Field field : type.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class)) {
-                InjectionPoint injectionPoint = InjectionPoint.fromField(field);
+            InjectionPoint injectionPoint = InjectionPoint.fromField(field);
+            boolean hasInjectAnnotation = field.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
+
+            if (hasInjectAnnotation || customInjectorSupports) {
                 Object dep = resolveDependency(injectionPoint);
 
                 field.setAccessible(true);

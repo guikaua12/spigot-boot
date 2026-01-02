@@ -74,6 +74,21 @@ public class CustomInjectorTest {
         }
     }
 
+    static class FieldInjectedWithoutInjectBean {
+        @CustomValue("field-no-inject")
+        String customField;
+
+        String plainField;
+
+        public String getCustomField() {
+            return customField;
+        }
+
+        public String getPlainField() {
+            return plainField;
+        }
+    }
+
     static class ConstructorInjectedBean {
         private final String customValue;
 
@@ -97,6 +112,28 @@ public class CustomInjectorTest {
 
         public String getCustomValue() {
             return customValue;
+        }
+    }
+
+    static class SetterInjectedWithoutInjectBean {
+        private String customValue;
+        private String plainValue;
+
+        @CustomValue("setter-no-inject")
+        public void setCustomValue(String customValue) {
+            this.customValue = customValue;
+        }
+
+        public void setPlainValue(String plainValue) {
+            this.plainValue = plainValue;
+        }
+
+        public String getCustomValue() {
+            return customValue;
+        }
+
+        public String getPlainValue() {
+            return plainValue;
         }
     }
 
@@ -168,6 +205,30 @@ public class CustomInjectorTest {
 
         assertNotNull(bean);
         assertEquals("setter-injected:setter-key", bean.getCustomValue());
+    }
+
+    @Test
+    void testFieldInjectionWithoutInjectAnnotation() {
+        dependencyManager.registerInjector(new CustomValueInjector("no-inject"));
+        dependencyManager.registerDependency(FieldInjectedWithoutInjectBean.class, null, false, null, null);
+
+        FieldInjectedWithoutInjectBean bean = dependencyManager.resolveDependency(FieldInjectedWithoutInjectBean.class, null);
+
+        assertNotNull(bean);
+        assertEquals("no-inject:field-no-inject", bean.getCustomField());
+        assertNull(bean.getPlainField());
+    }
+
+    @Test
+    void testSetterInjectionWithoutInjectAnnotation() {
+        dependencyManager.registerInjector(new CustomValueInjector("no-inject-setter"));
+        dependencyManager.registerDependency(SetterInjectedWithoutInjectBean.class, null, false, null, null);
+
+        SetterInjectedWithoutInjectBean bean = dependencyManager.resolveDependency(SetterInjectedWithoutInjectBean.class, null);
+
+        assertNotNull(bean);
+        assertEquals("no-inject-setter:setter-no-inject", bean.getCustomValue());
+        assertNull(bean.getPlainValue());
     }
 
     @Test
