@@ -40,9 +40,12 @@ import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorExceptio
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.CollectionTypeUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
+import java.beans.Introspector;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 // Context.initialize -> Context.scan -> DependencyManager.registerDependency -> Context.scan -> DependencyManager.resolveDependency
@@ -58,6 +61,8 @@ public class DependencyManager {
 
     @Getter
     private final CustomInjectorRegistry customInjectorRegistry;
+
+    private final AtomicInteger generatedQualifierCounter = new AtomicInteger(0);
 
     public DependencyManager() {
         this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new DefaultCustomInjectorRegistry());
@@ -204,12 +209,13 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         Class<T> dependencyClass = (Class<T>) instance.getClass();
+        String resolvedQualifier = resolveQualifier(dependencyClass, instance, null, qualifier);
 
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency(superInterface, dependencyClass, instance, qualifier, primary, null, reloadCallback);
+            registerDependency(superInterface, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
         }
 
-        registerDependency(dependencyClass, dependencyClass, instance, qualifier, primary, null, reloadCallback);
+        registerDependency(dependencyClass, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
         return instance;
     }
 
@@ -245,11 +251,13 @@ public class DependencyManager {
                                     @Nullable DependencyReloadCallback reloadCallback) {
         Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
 
+        String resolvedQualifier = resolveQualifier(dependencyClass, null, resolver, qualifier);
+
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency((Class<T>) superInterface, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+            registerDependency((Class<T>) superInterface, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
         }
 
-        registerDependency(dependencyClass, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+        registerDependency(dependencyClass, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
         return null;
     }
 
@@ -302,7 +310,9 @@ public class DependencyManager {
 
             BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
 
-            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, qualifier, primary, resolver, reloadCallback);
+            String resolvedQualifier = resolveQualifier(dependencyClass, instance, resolver, qualifier);
+
+            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, resolvedQualifier, primary, resolver, reloadCallback);
             beanDefinitionRegistry.register(clazz, definition);
 
             if (instance != null) {
@@ -313,6 +323,64 @@ public class DependencyManager {
         } catch (Exception e) {
             throw new RuntimeException("Failed to register dependency using (" + clazz + " -> " + dependencyClass + "): ", e);
         }
+    }
+
+    private @Nullable String normalizeQualifier(@Nullable String qualifier) {
+        if (qualifier == null) {
+            return null;
+        }
+
+        String normalized = qualifier.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        return normalized;
+    }
+
+    private @NotNull String resolveQualifier(@NotNull Class<?> dependencyClass,
+                                             @Nullable Object instance,
+                                             @Nullable DependencyResolveResolver<?> resolver,
+                                             @Nullable String qualifier) {
+        String normalizedQualifier = normalizeQualifier(qualifier);
+        if (normalizedQualifier != null) {
+            return normalizedQualifier;
+        }
+
+        Class<?> namingClass = dependencyClass;
+        if (instance != null) {
+            namingClass = ProxyUtils.getRealClass(instance);
+        }
+
+        String baseName = Introspector.decapitalize(getSimpleNameOrFallback(namingClass));
+        if (baseName.isEmpty()) {
+            baseName = "bean";
+        }
+
+        if (!dependencyClass.isInterface()) {
+            return baseName;
+        }
+
+        if (resolver == null) {
+            return baseName;
+        }
+
+        return baseName + "#" + generatedQualifierCounter.incrementAndGet();
+    }
+
+    private @NotNull String getSimpleNameOrFallback(@NotNull Class<?> type) {
+        String simpleName = type.getSimpleName();
+        if (!simpleName.isEmpty()) {
+            return simpleName;
+        }
+
+        String name = type.getName();
+        int lastDotIndex = name.lastIndexOf('.');
+        if (lastDotIndex >= 0) {
+            return name.substring(lastDotIndex + 1);
+        }
+
+        return name;
     }
 
     public void reloadDependencies() {

@@ -107,6 +107,9 @@ public class ConfigurationClassProxy implements MethodHandler {
             throws Throwable {
         Class<?> returnType = beanMethod.getReturnType();
         String qualifier = BeanUtils.getQualifier(beanMethod);
+        if (qualifier == null || qualifier.trim().isEmpty()) {
+            qualifier = beanMethod.getName();
+        }
 
         BeanDefinition definition = findBeanDefinition(returnType, qualifier);
         if (definition == null) {

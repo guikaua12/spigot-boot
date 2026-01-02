@@ -80,7 +80,52 @@ public class CustomInjectorRegistryFactoryTest {
     }
 
     @Test
+    void testFactoryAppliesMultipleUnqualifiedCustomizers() {
+        List<String> callOrder = new ArrayList<>();
+
+        dependencyManager.registerDependency(
+                CustomInjectorRegistryCustomizer.class,
+                null,
+                false,
+                type -> new CustomInjectorRegistryCustomizer() {
+                    @Override
+                    public void customize(@NotNull CustomInjectorRegistry registry) {
+                        callOrder.add("first");
+                    }
+
+                    @Override
+                    public int getOrder() {
+                        return -10;
+                    }
+                }
+        );
+
+        dependencyManager.registerDependency(
+                CustomInjectorRegistryCustomizer.class,
+                null,
+                false,
+                type -> new CustomInjectorRegistryCustomizer() {
+                    @Override
+                    public void customize(@NotNull CustomInjectorRegistry registry) {
+                        callOrder.add("second");
+                    }
+
+                    @Override
+                    public int getOrder() {
+                        return 10;
+                    }
+                }
+        );
+
+        CustomInjectorRegistryFactory factory = new CustomInjectorRegistryFactory();
+        factory.onBeanDefinitionsReady(mockContext, definitionRegistry, mockRegistrar);
+
+        assertEquals(List.of("first", "second"), callOrder);
+    }
+
+    @Test
     void testFactoryResolvesCustomizerFromDefinitionAndAppliesIt() {
+
         CustomInjector injector = createTestInjector(0);
 
         dependencyManager.registerDependency(

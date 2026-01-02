@@ -87,6 +87,9 @@ public class ConfigurationProcessor {
         }
 
         String qualifier = BeanUtils.getQualifier(method);
+        if (qualifier == null || qualifier.trim().isEmpty()) {
+            qualifier = method.getName();
+        }
         boolean isPrimary = BeanUtils.getIsPrimary(method);
 
         dependencyManager.registerDependency(
