@@ -27,8 +27,11 @@ import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
+import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollections;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
+import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.proxy.ConfigProxy;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
@@ -37,12 +40,16 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Logger;
 
 @Component
 public class ConfigRegistry {
 
     /**
-     * Scans for and registers all @Config annotated classes.
+     * Scans for and registers all @Config and @ConfigCollection annotated classes.
      *
      * @param context the context
      */
@@ -55,8 +62,22 @@ public class ConfigRegistry {
             throw new IllegalStateException("ConfigManager is null");
         }
 
+        Logger logger = context.getPlugin().getLogger();
+
         for (Class<?> configClass : reflections.getTypesAnnotatedWith(Config.class)) {
             processConfigClass(configClass, context, configManager);
+        }
+
+        if (configManager instanceof SpigotConfigManager) {
+            SpigotConfigManager spigotConfigManager = (SpigotConfigManager) configManager;
+
+            for (Class<?> itemClass : reflections.getTypesAnnotatedWith(ConfigCollection.class)) {
+                processCollectionClass(itemClass, spigotConfigManager, logger);
+            }
+
+            for (Class<?> itemClass : reflections.getTypesAnnotatedWith(ConfigCollections.class)) {
+                processCollectionClass(itemClass, spigotConfigManager, logger);
+            }
         }
     }
 
@@ -80,6 +101,51 @@ public class ConfigRegistry {
         } catch (Exception e) {
             throw new RuntimeException("Failed to register config: " + configClass.getName(), e);
         }
+    }
+
+    /**
+     * Processes a class annotated with @ConfigCollection.
+     *
+     * @param itemClass           the collection item class
+     * @param spigotConfigManager the config manager
+     * @param logger              the logger
+     */
+    @SuppressWarnings("unchecked")
+    public <T> void processCollectionClass(
+            Class<T> itemClass,
+            SpigotConfigManager spigotConfigManager,
+            Logger logger) {
+        try {
+            List<ConfigCollection> annotations = getConfigCollectionAnnotations(itemClass);
+
+            if (annotations.isEmpty()) {
+                return;
+            }
+
+            for (ConfigCollection annotation : annotations) {
+                spigotConfigManager.registerCollection(itemClass, annotation);
+            }
+        } catch (ConfigException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.warning("Failed to register collection for " + itemClass.getName() + ": " + e.getMessage());
+        }
+    }
+
+    private List<ConfigCollection> getConfigCollectionAnnotations(Class<?> itemClass) {
+        List<ConfigCollection> result = new ArrayList<>();
+
+        ConfigCollection single = itemClass.getAnnotation(ConfigCollection.class);
+        if (single != null) {
+            result.add(single);
+        }
+
+        ConfigCollections container = itemClass.getAnnotation(ConfigCollections.class);
+        if (container != null) {
+            result.addAll(Arrays.asList(container.value()));
+        }
+
+        return result;
     }
 
     private <T> T createConfigProxy(Class<T> configClass, ConfigManager configManager) {

@@ -210,8 +210,7 @@ public class DefaultBinder implements Binder {
         }
     }
 
-    @Nullable
-    private Object[] resolveConstructorArgs(
+    private @Nullable Object[] resolveConstructorArgs(
             @NotNull Constructor<?> ctor,
             @NotNull ConfigNode node,
             @NotNull List<BindingError> errors
@@ -265,8 +264,7 @@ public class DefaultBinder implements Binder {
         }
     }
 
-    @Nullable
-    private Object deserializeField(
+    private @Nullable Object deserializeField(
             @NotNull Field field,
             @NotNull ConfigNode node,
             @NotNull PropertyPath path,
@@ -288,9 +286,8 @@ public class DefaultBinder implements Binder {
         return deserializeValue(node, field.getType(), path, errors);
     }
 
-    @Nullable
     @SuppressWarnings("unchecked")
-    private Object deserializeValue(
+    private @Nullable Object deserializeValue(
             @NotNull ConfigNode node,
             @NotNull Class<?> type,
             @NotNull PropertyPath path,
@@ -331,8 +328,7 @@ public class DefaultBinder implements Binder {
         return node.get(type);
     }
 
-    @NotNull
-    private List<Object> deserializeList(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
+    private @NotNull List<Object> deserializeList(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
         List<Object> result = new ArrayList<>();
         int index = 0;
         for (ConfigNode child : node.childrenList()) {
@@ -345,8 +341,7 @@ public class DefaultBinder implements Binder {
         return result;
     }
 
-    @NotNull
-    private Map<String, Object> deserializeMap(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
+    private @NotNull Map<String, Object> deserializeMap(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
         Map<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends ConfigNode> entry : node.childrenMap().entrySet()) {
             Object value = deserializeValue(entry.getValue(), Object.class, path.child(entry.getKey()), errors);
@@ -357,8 +352,7 @@ public class DefaultBinder implements Binder {
         return result;
     }
 
-    @Nullable
-    private Object parseDefaultValue(@NotNull String defaultStr, @NotNull Class<?> type) {
+    private @Nullable Object parseDefaultValue(@NotNull String defaultStr, @NotNull Class<?> type) {
         if (defaultStr.isEmpty()) {
             return null;
         }
@@ -417,8 +411,7 @@ public class DefaultBinder implements Binder {
         node.set(value);
     }
 
-    @NotNull
-    private String getConfigKey(@NotNull Field field) {
+    private @NotNull String getConfigKey(@NotNull Field field) {
         ConfigProperty property = field.getAnnotation(ConfigProperty.class);
         if (property != null && !property.value().isEmpty()) {
             return property.value();
@@ -437,43 +430,37 @@ public class DefaultBinder implements Binder {
         private boolean useConstructorBinding = true;
 
         @Override
-        @NotNull
-        public Builder namingStrategy(@NotNull NamingStrategy strategy) {
+        public @NotNull Builder namingStrategy(@NotNull NamingStrategy strategy) {
             this.namingStrategy = Objects.requireNonNull(strategy);
             return this;
         }
 
         @Override
-        @NotNull
-        public Builder serializers(@NotNull TypeSerializerRegistry registry) {
+        public @NotNull Builder serializers(@NotNull TypeSerializerRegistry registry) {
             this.serializers = Objects.requireNonNull(registry);
             return this;
         }
 
         @Override
-        @NotNull
-        public Builder validator(@NotNull Validator validator) {
+        public @NotNull Builder validator(@NotNull Validator validator) {
             this.validator = Objects.requireNonNull(validator);
             return this;
         }
 
         @Override
-        @NotNull
-        public Builder implicitDefaults(boolean enabled) {
+        public @NotNull Builder implicitDefaults(boolean enabled) {
             this.implicitDefaults = enabled;
             return this;
         }
 
         @Override
-        @NotNull
-        public Builder useConstructorBinding(boolean enabled) {
+        public @NotNull Builder useConstructorBinding(boolean enabled) {
             this.useConstructorBinding = enabled;
             return this;
         }
 
         @Override
-        @NotNull
-        public Binder build() {
+        public @NotNull Binder build() {
             return new DefaultBinder(namingStrategy, serializers, validator, implicitDefaults, useConstructorBinding);
         }
     }

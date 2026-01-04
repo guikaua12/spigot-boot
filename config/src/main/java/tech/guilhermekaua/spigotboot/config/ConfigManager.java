@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.config;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
@@ -57,6 +58,9 @@ public interface ConfigManager {
 
     /**
      * Gets a config collection (folder-based).
+     * <p>
+     * If multiple collections exist for this item type, throws an exception
+     * instructing to use {@link #getCollection(Class, String)} instead.
      *
      * @param configClass the config class
      * @param <T>         the config type
@@ -65,13 +69,36 @@ public interface ConfigManager {
     <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass);
 
     /**
-     * Gets a live collection that updates on reload.
+     * Gets a config collection by item type and collection name.
+     *
+     * @param configClass    the config class
+     * @param collectionName the collection name
+     * @param <T>            the config type
+     * @return the collection of config instances
+     */
+    <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass, @NotNull String collectionName);
+
+    /**
+     * Gets a live config collection reference with edit capabilities.
+     * <p>
+     * If multiple collections exist for this item type, throws an exception
+     * instructing to use {@link #getCollectionRef(Class, String)} instead.
      *
      * @param configClass the config class
      * @param <T>         the config type
-     * @return the config reference wrapping the collection
+     * @return the collection reference
      */
-    <T> @NotNull ConfigRef<Collection<T>> getCollectionRef(@NotNull Class<T> configClass);
+    <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass);
+
+    /**
+     * Gets a live config collection reference by item type and collection name.
+     *
+     * @param configClass    the config class
+     * @param collectionName the collection name
+     * @param <T>            the config type
+     * @return the collection reference
+     */
+    <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass, @NotNull String collectionName);
 
     /**
      * Gets a value by path.
@@ -172,11 +199,23 @@ public interface ConfigManager {
 
     /**
      * Reloads a specific file in a collection.
+     * <p>
+     * If multiple collections exist for this item type, throws an exception
+     * instructing to use {@link #reloadCollectionItem(Class, String, String)} instead.
      *
      * @param configClass the config class
      * @param itemId      the item ID (filename without extension)
      */
     void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String itemId);
+
+    /**
+     * Reloads a specific file in a collection by name.
+     *
+     * @param configClass    the config class
+     * @param collectionName the collection name
+     * @param itemId         the item ID (filename without extension)
+     */
+    void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String collectionName, @NotNull String itemId);
 
     /**
      * Reloads all managed configs.

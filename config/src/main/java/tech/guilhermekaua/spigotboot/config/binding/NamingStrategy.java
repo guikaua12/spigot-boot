@@ -37,14 +37,12 @@ public enum NamingStrategy {
      */
     IDENTITY {
         @Override
-        @NotNull
-        public String toConfig(@NotNull String javaName) {
+        public @NotNull String toConfig(@NotNull String javaName) {
             return javaName;
         }
 
         @Override
-        @NotNull
-        public String toJava(@NotNull String configName) {
+        public @NotNull String toJava(@NotNull String configName) {
             return configName;
         }
     },
@@ -54,8 +52,7 @@ public enum NamingStrategy {
      */
     SNAKE_CASE {
         @Override
-        @NotNull
-        public String toConfig(@NotNull String javaName) {
+        public @NotNull String toConfig(@NotNull String javaName) {
             if (javaName == null || javaName.isEmpty()) {
                 return javaName == null ? "" : javaName;
             }
@@ -71,8 +68,7 @@ public enum NamingStrategy {
         }
 
         @Override
-        @NotNull
-        public String toJava(@NotNull String configName) {
+        public @NotNull String toJava(@NotNull String configName) {
             if (configName == null || configName.isEmpty()) {
                 return configName == null ? "" : configName;
             }
@@ -98,14 +94,12 @@ public enum NamingStrategy {
      */
     KEBAB_CASE {
         @Override
-        @NotNull
-        public String toConfig(@NotNull String javaName) {
+        public @NotNull String toConfig(@NotNull String javaName) {
             return SNAKE_CASE.toConfig(javaName).replace('_', '-');
         }
 
         @Override
-        @NotNull
-        public String toJava(@NotNull String configName) {
+        public @NotNull String toJava(@NotNull String configName) {
             return SNAKE_CASE.toJava(configName.replace('-', '_'));
         }
     },
@@ -115,8 +109,7 @@ public enum NamingStrategy {
      */
     LOWER_CAMEL {
         @Override
-        @NotNull
-        public String toConfig(@NotNull String javaName) {
+        public @NotNull String toConfig(@NotNull String javaName) {
             if (javaName == null || javaName.isEmpty()) {
                 return javaName == null ? "" : javaName;
             }
@@ -124,8 +117,7 @@ public enum NamingStrategy {
         }
 
         @Override
-        @NotNull
-        public String toJava(@NotNull String configName) {
+        public @NotNull String toJava(@NotNull String configName) {
             return configName == null ? "" : configName;
         }
     };
@@ -136,8 +128,7 @@ public enum NamingStrategy {
      * @param javaName the Java field name
      * @return the config key
      */
-    @NotNull
-    public abstract String toConfig(@NotNull String javaName);
+    public abstract @NotNull String toConfig(@NotNull String javaName);
 
     /**
      * Converts a config key to a Java field name.
@@ -145,6 +136,5 @@ public enum NamingStrategy {
      * @param configName the config key
      * @return the Java field name
      */
-    @NotNull
-    public abstract String toJava(@NotNull String configName);
+    public abstract @NotNull String toJava(@NotNull String configName);
 }

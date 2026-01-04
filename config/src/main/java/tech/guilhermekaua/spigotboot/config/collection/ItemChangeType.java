@@ -20,38 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot;
-
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
-import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.core.module.Module;
-
-import java.util.logging.Logger;
+package tech.guilhermekaua.spigotboot.config.collection;
 
 /**
- * Spigot Boot module providing configuration management.
- * <p>
- * Scans for @Config and @ConfigCollection annotated classes,
- * loads configs, and registers them as beans.
+ * Type of change that occurred to a collection item.
  */
-public class SpigotConfigModule implements Module {
+public enum ItemChangeType {
+    /**
+     * A new item was added to the collection.
+     */
+    ADDED,
 
-    @Override
-    public void onInitialize(@NotNull Context context) throws Exception {
-        Plugin plugin = context.getPlugin();
-        Logger logger = plugin.getLogger();
+    /**
+     * An existing item was modified.
+     */
+    MODIFIED,
 
-        logger.info("Initializing Config Module...");
-
-        context.getBean(ConfigRegistry.class)
-                .registerConfigs(context);
-
-        logger.info("Config Module initialized.");
-
-        context.registerShutdownHook(() -> {
-            logger.info("Config Module shutting down...");
-        });
-    }
+    /**
+     * An item was removed from the collection.
+     */
+    REMOVED
 }

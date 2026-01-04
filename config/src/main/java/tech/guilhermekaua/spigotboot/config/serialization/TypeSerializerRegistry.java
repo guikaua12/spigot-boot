@@ -49,8 +49,7 @@ public interface TypeSerializerRegistry {
      * @param <T>  the type parameter
      * @return the serializer, or null if not found
      */
-    @Nullable
-    <T> TypeSerializer<T> get(@NotNull Class<T> type);
+    <T> @Nullable TypeSerializer<T> get(@NotNull Class<T> type);
 
     /**
      * Gets a serializer, checking superclasses and interfaces if no exact match exists.
@@ -59,24 +58,21 @@ public interface TypeSerializerRegistry {
      * @param <T>  the type parameter
      * @return the serializer, or null if not found
      */
-    @Nullable
-    <T> TypeSerializer<T> getWithInheritance(@NotNull Class<T> type);
+    <T> @Nullable TypeSerializer<T> getWithInheritance(@NotNull Class<T> type);
 
     /**
      * Creates a copy of this registry.
      *
      * @return a new registry with the same serializers
      */
-    @NotNull
-    TypeSerializerRegistry copy();
+    @NotNull TypeSerializerRegistry copy();
 
     /**
      * Creates a registry with default serializers for common types.
      *
      * @return a new registry with defaults
      */
-    @NotNull
-    static TypeSerializerRegistry defaults() {
+    static @NotNull TypeSerializerRegistry defaults() {
         return DefaultTypeSerializerRegistry.createWithDefaults();
     }
 
@@ -85,8 +81,7 @@ public interface TypeSerializerRegistry {
      *
      * @return a new empty registry
      */
-    @NotNull
-    static TypeSerializerRegistry create() {
+    static @NotNull TypeSerializerRegistry create() {
         return new DefaultTypeSerializerRegistry();
     }
 }

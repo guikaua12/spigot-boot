@@ -41,8 +41,7 @@ public interface ConfigLoader {
      * @return the root configuration node
      * @throws ConfigException if loading fails
      */
-    @NotNull
-    ConfigNode load(@NotNull ConfigSource source) throws ConfigException;
+    @NotNull ConfigNode load(@NotNull ConfigSource source) throws ConfigException;
 
     /**
      * Saves configuration to the given target.
@@ -58,14 +57,12 @@ public interface ConfigLoader {
      *
      * @return a new empty node
      */
-    @NotNull
-    MutableConfigNode createNode();
+    @NotNull MutableConfigNode createNode();
 
     /**
      * Gets the file extensions this loader handles.
      *
      * @return array of extensions (e.g., "yml", "yaml")
      */
-    @NotNull
-    String[] extensions();
+    @NotNull String[] extensions();
 }

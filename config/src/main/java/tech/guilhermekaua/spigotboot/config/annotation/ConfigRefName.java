@@ -20,38 +20,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot;
+package tech.guilhermekaua.spigotboot.config.annotation;
 
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
-import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.core.module.Module;
-
-import java.util.logging.Logger;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Spigot Boot module providing configuration management.
+ * Specifies the collection name for injecting a {@code ConfigCollectionRef}.
  * <p>
- * Scans for @Config and @ConfigCollection annotated classes,
- * loads configs, and registers them as beans.
+ * Use this annotation to disambiguate when multiple collections of the same
+ * item type exist. If only one collection exists for the item type, this
+ * annotation is optional.
+ * <p>
+ * Example usage:
+ * <pre>
+ * &#064;ConfigRefName("admin_boosters")
+ * private ConfigCollectionRef&lt;Booster&gt; adminBoosters;
+ *
+ * &#064;ConfigRefName("user_boosters")
+ * private ConfigCollectionRef&lt;Booster&gt; userBoosters;
+ * </pre>
  */
-public class SpigotConfigModule implements Module {
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
+public @interface ConfigRefName {
 
-    @Override
-    public void onInitialize(@NotNull Context context) throws Exception {
-        Plugin plugin = context.getPlugin();
-        Logger logger = plugin.getLogger();
-
-        logger.info("Initializing Config Module...");
-
-        context.getBean(ConfigRegistry.class)
-                .registerConfigs(context);
-
-        logger.info("Config Module initialized.");
-
-        context.registerShutdownHook(() -> {
-            logger.info("Config Module shutting down...");
-        });
-    }
+    /**
+     * The collection name to select.
+     *
+     * @return the collection name
+     */
+    String value();
 }

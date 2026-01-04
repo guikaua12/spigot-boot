@@ -90,8 +90,7 @@ public final class BindingError {
      *
      * @return the cause, or null
      */
-    @Nullable
-    public Throwable getCause() {
+    public @Nullable Throwable getCause() {
         return cause;
     }
 
@@ -100,8 +99,7 @@ public final class BindingError {
      *
      * @return the formatted error
      */
-    @NotNull
-    public String format() {
+    public @NotNull String format() {
         StringBuilder sb = new StringBuilder();
         sb.append("[").append(path.asString()).append("] ");
         sb.append(field).append(": ").append(message);

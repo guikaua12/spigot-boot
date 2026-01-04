@@ -20,38 +20,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot;
+package tech.guilhermekaua.spigotboot.config.collection;
 
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
-import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.core.module.Module;
-
-import java.util.logging.Logger;
 
 /**
- * Spigot Boot module providing configuration management.
- * <p>
- * Scans for @Config and @ConfigCollection annotated classes,
- * loads configs, and registers them as beans.
+ * Functional interface for listening to collection item changes.
+ *
+ * @param <T> the item type
  */
-public class SpigotConfigModule implements Module {
+@FunctionalInterface
+public interface CollectionChangeListener<T> {
 
-    @Override
-    public void onInitialize(@NotNull Context context) throws Exception {
-        Plugin plugin = context.getPlugin();
-        Logger logger = plugin.getLogger();
-
-        logger.info("Initializing Config Module...");
-
-        context.getBean(ConfigRegistry.class)
-                .registerConfigs(context);
-
-        logger.info("Config Module initialized.");
-
-        context.registerShutdownHook(() -> {
-            logger.info("Config Module shutting down...");
-        });
-    }
+    /**
+     * Called when a collection item changes.
+     *
+     * @param change the change details
+     */
+    void onItemChange(@NotNull CollectionItemChange<T> change);
 }
