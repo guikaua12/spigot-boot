@@ -22,8 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.dependency.manager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,6 +41,7 @@ import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 // Context.initialize -> Context.scan -> DependencyManager.registerDependency -> Context.scan -> DependencyManager.resolveDependency
@@ -302,8 +301,9 @@ public class DependencyManager {
         try {
             Objects.requireNonNull(clazz, "clazz cannot be null.");
             Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
-            Preconditions.checkArgument(!(dependencyClass.isInterface() && (resolver == null && instance == null)),
-                    "You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
+            if (dependencyClass.isInterface() && resolver == null && instance == null) {
+                throw new IllegalArgumentException("You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
+            }
 
             BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
 
