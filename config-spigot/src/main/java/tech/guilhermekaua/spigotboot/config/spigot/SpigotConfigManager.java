@@ -22,6 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.config.spigot;
 
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -553,29 +556,10 @@ public class SpigotConfigManager implements ConfigManager {
         }
     }
 
-    /**
-     * Key for collection storage.
-     */
-    private static final class CollectionKey {
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @Data
+    private static class CollectionKey {
         private final Class<?> itemType;
         private final String collectionName;
-
-        CollectionKey(@NotNull Class<?> itemType, @NotNull String collectionName) {
-            this.itemType = itemType;
-            this.collectionName = collectionName;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof CollectionKey)) return false;
-            CollectionKey that = (CollectionKey) o;
-            return itemType.equals(that.itemType) && collectionName.equals(that.collectionName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(itemType, collectionName);
-        }
     }
 }
