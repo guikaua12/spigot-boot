@@ -31,7 +31,6 @@ import java.lang.annotation.Annotation;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -40,7 +39,6 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ClassPathScanner {
     private static final Logger LOGGER = Logger.getLogger(ClassPathScanner.class.getName());
@@ -225,18 +223,12 @@ public class ClassPathScanner {
     private void scanDirectory(@NotNull URL resource, @NotNull String packageName) {
         try {
             Path basePath = Paths.get(resource.toURI());
+            List<Path> classFiles = ResourceScanUtils.scanDirectoryRecursive(basePath,
+                    path -> ResourceScanUtils.hasExtension(path.toString(), "class"));
 
-            if (!Files.exists(basePath) || !Files.isDirectory(basePath)) {
-                return;
-            }
-
-            try (Stream<Path> paths = Files.walk(basePath)) {
-                paths.filter(Files::isRegularFile)
-                        .filter(path -> path.toString().endsWith(CLASS_EXTENSION))
-                        .forEach(path -> {
-                            String className = pathToClassName(basePath, path, packageName);
-                            loadAndAddClass(className);
-                        });
+            for (Path path : classFiles) {
+                String className = pathToClassName(basePath, path, packageName);
+                loadAndAddClass(className);
             }
         } catch (URISyntaxException | IOException e) {
             LOGGER.log(Level.WARNING, "Failed to scan directory: " + resource, e);
