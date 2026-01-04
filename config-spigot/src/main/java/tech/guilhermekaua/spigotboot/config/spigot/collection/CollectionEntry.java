@@ -36,15 +36,21 @@ import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
+import tech.guilhermekaua.spigotboot.core.scanner.ResourceScanUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -158,7 +164,8 @@ public final class CollectionEntry<T> {
     }
 
     /**
-     * Copies default files from resources if the folder is empty.
+     * Copies default YAML files from resources if the folder is empty.
+     * Automatically discovers all .yml/.yaml files in the resource path.
      */
     private void copyDefaultsFromResources() {
         String resourcePath = annotation.resource();
@@ -173,24 +180,55 @@ public final class CollectionEntry<T> {
                 }
             }
 
-            if (!resourcePath.endsWith("/")) {
-                resourcePath += "/";
-            }
+            String normalizedPath = ResourceScanUtils.normalizePath(resourcePath);
 
-            try (InputStream indexStream = plugin.getResource(resourcePath + "index.txt")) {
-                if (indexStream != null) {
-                    try (Scanner scanner = new Scanner(indexStream)) {
-                        while (scanner.hasNextLine()) {
-                            String fileName = scanner.nextLine().trim();
-                            if (!fileName.isEmpty()) {
-                                copyResourceFile(resourcePath + fileName, fileName);
-                            }
-                        }
-                    }
-                }
+            URL jarUrl = plugin.getClass().getProtectionDomain()
+                    .getCodeSource().getLocation();
+
+            if (jarUrl != null && jarUrl.getPath().endsWith(".jar")) {
+                copyFromJar(jarUrl, normalizedPath);
+            } else {
+                copyFromFilesystem(normalizedPath);
             }
         } catch (IOException e) {
             logger.warning("Failed to copy defaults from resources: " + e.getMessage());
+        }
+    }
+
+    private void copyFromJar(URL jarUrl, String resourcePath) {
+        try {
+            File jarFile = new File(jarUrl.toURI());
+            try (JarFile jar = new JarFile(jarFile)) {
+                List<String> entries = ResourceScanUtils.scanJar(jar, resourcePath,
+                        entry -> ResourceScanUtils.hasExtension(entry.getName(), EXTENSIONS));
+
+                for (String entryName : entries) {
+                    String fileName = entryName.substring(resourcePath.length());
+                    copyResourceFile(entryName, fileName);
+                }
+            }
+        } catch (URISyntaxException | IOException e) {
+            logger.warning("Failed to scan JAR for resources: " + e.getMessage());
+        }
+    }
+
+    private void copyFromFilesystem(String resourcePath) {
+        URL resourceUrl = plugin.getClass().getClassLoader().getResource(resourcePath);
+        if (resourceUrl == null) {
+            return;
+        }
+
+        try {
+            Path resourceDir = Paths.get(resourceUrl.toURI());
+            List<Path> files = ResourceScanUtils.scanDirectory(resourceDir,
+                    p -> ResourceScanUtils.hasExtension(p.getFileName().toString(), EXTENSIONS));
+
+            for (Path file : files) {
+                String fileName = file.getFileName().toString();
+                copyResourceFile(resourcePath + fileName, fileName);
+            }
+        } catch (URISyntaxException | IOException e) {
+            logger.warning("Failed to scan filesystem for resources: " + e.getMessage());
         }
     }
 
