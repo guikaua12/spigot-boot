@@ -24,12 +24,10 @@ package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.lang.annotation.Annotation;
@@ -70,11 +68,11 @@ public class ComponentRegistry {
     }
 
     private Set<Class<? extends Annotation>> discoverComponentsAnnotations(String basePackage) {
-        Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
+        ClassPathScanner scanner = new ClassPathScanner(getClass().getClassLoader(), basePackage);
 
         return Stream.concat(
                         Stream.of(Component.class),
-                        reflections.getTypesAnnotatedWith(Component.class)
+                        scanner.getTypesAnnotatedWith(Component.class)
                                 .stream()
                                 .filter(Class::isAnnotation)
                 ).map(clazz -> (Class<? extends Annotation>) clazz)
@@ -86,10 +84,10 @@ public class ComponentRegistry {
             return Collections.emptySet();
         }
 
-        Reflections reflections = new Reflections(basePackages, new SubTypesScanner(), new TypeAnnotationsScanner());
+        ClassPathScanner scanner = new ClassPathScanner(getClass().getClassLoader(), basePackages);
 
         return componentsAnnotations.stream()
-                .map(reflections::getTypesAnnotatedWith)
+                .map(scanner::getTypesAnnotatedWith)
                 .flatMap(Collection::stream)
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .collect(Collectors.toSet());
