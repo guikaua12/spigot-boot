@@ -177,13 +177,14 @@ public final class CollectionEntry<T> {
                 resourcePath += "/";
             }
 
-            InputStream indexStream = plugin.getResource(resourcePath + "index.txt");
-            if (indexStream != null) {
-                try (Scanner scanner = new Scanner(indexStream)) {
-                    while (scanner.hasNextLine()) {
-                        String fileName = scanner.nextLine().trim();
-                        if (!fileName.isEmpty()) {
-                            copyResourceFile(resourcePath + fileName, fileName);
+            try (InputStream indexStream = plugin.getResource(resourcePath + "index.txt")) {
+                if (indexStream != null) {
+                    try (Scanner scanner = new Scanner(indexStream)) {
+                        while (scanner.hasNextLine()) {
+                            String fileName = scanner.nextLine().trim();
+                            if (!fileName.isEmpty()) {
+                                copyResourceFile(resourcePath + fileName, fileName);
+                            }
                         }
                     }
                 }
