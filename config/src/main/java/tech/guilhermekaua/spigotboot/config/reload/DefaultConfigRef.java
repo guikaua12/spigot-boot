@@ -63,8 +63,7 @@ public class DefaultConfigRef<T> implements ConfigRef<T> {
     }
 
     @Override
-    @NotNull
-    public T get() {
+    public @NotNull T get() {
         T current = value;
         if (current == null) {
             throw new IllegalStateException("Config not loaded: " + configClass.getName());
@@ -105,8 +104,7 @@ public class DefaultConfigRef<T> implements ConfigRef<T> {
     }
 
     @Override
-    @NotNull
-    public Class<T> getConfigClass() {
+    public @NotNull Class<T> getConfigClass() {
         return configClass;
     }
 

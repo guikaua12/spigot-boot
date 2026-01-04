@@ -44,8 +44,7 @@ public interface ConfigSource {
      * @return the input stream
      * @throws IOException if the stream cannot be opened
      */
-    @NotNull
-    InputStream openRead() throws IOException;
+    @NotNull InputStream openRead() throws IOException;
 
     /**
      * Opens an output stream to write the configuration.
@@ -53,8 +52,7 @@ public interface ConfigSource {
      * @return the output stream
      * @throws IOException if the stream cannot be opened
      */
-    @NotNull
-    OutputStream openWrite() throws IOException;
+    @NotNull OutputStream openWrite() throws IOException;
 
     /**
      * Checks if this source exists.
@@ -68,16 +66,14 @@ public interface ConfigSource {
      *
      * @return the source name
      */
-    @NotNull
-    String name();
+    @NotNull String name();
 
     /**
      * Gets the file path for file-based sources.
      *
      * @return the path, or null if not file-based
      */
-    @Nullable
-    Path path();
+    @Nullable Path path();
 
     /**
      * Creates a file-based configuration source.
@@ -85,8 +81,7 @@ public interface ConfigSource {
      * @param path the file path
      * @return a new ConfigSource
      */
-    @NotNull
-    static ConfigSource file(@NotNull Path path) {
+    static @NotNull ConfigSource file(@NotNull Path path) {
         Objects.requireNonNull(path, "path cannot be null");
         return new FileConfigSource(path);
     }
@@ -97,8 +92,7 @@ public interface ConfigSource {
      * @param file the file
      * @return a new ConfigSource
      */
-    @NotNull
-    static ConfigSource file(@NotNull File file) {
+    static @NotNull ConfigSource file(@NotNull File file) {
         Objects.requireNonNull(file, "file cannot be null");
         return new FileConfigSource(file.toPath());
     }
@@ -110,8 +104,7 @@ public interface ConfigSource {
      * @param path   the resource path
      * @return a new ConfigSource
      */
-    @NotNull
-    static ConfigSource resource(@NotNull ClassLoader loader, @NotNull String path) {
+    static @NotNull ConfigSource resource(@NotNull ClassLoader loader, @NotNull String path) {
         Objects.requireNonNull(loader, "loader cannot be null");
         Objects.requireNonNull(path, "path cannot be null");
         return new ResourceConfigSource(loader, path);
@@ -128,14 +121,12 @@ public interface ConfigSource {
         }
 
         @Override
-        @NotNull
-        public InputStream openRead() throws IOException {
+        public @NotNull InputStream openRead() throws IOException {
             return Files.newInputStream(filePath);
         }
 
         @Override
-        @NotNull
-        public OutputStream openWrite() throws IOException {
+        public @NotNull OutputStream openWrite() throws IOException {
             Path parent = filePath.getParent();
             if (parent != null && !Files.exists(parent)) {
                 Files.createDirectories(parent);
@@ -149,14 +140,12 @@ public interface ConfigSource {
         }
 
         @Override
-        @NotNull
-        public String name() {
+        public @NotNull String name() {
             return filePath.getFileName().toString();
         }
 
         @Override
-        @NotNull
-        public Path path() {
+        public @NotNull Path path() {
             return filePath;
         }
     }
@@ -174,8 +163,7 @@ public interface ConfigSource {
         }
 
         @Override
-        @NotNull
-        public InputStream openRead() throws IOException {
+        public @NotNull InputStream openRead() throws IOException {
             InputStream stream = loader.getResourceAsStream(resourcePath);
             if (stream == null) {
                 throw new IOException("Resource not found: " + resourcePath);
@@ -184,8 +172,7 @@ public interface ConfigSource {
         }
 
         @Override
-        @NotNull
-        public OutputStream openWrite() throws IOException {
+        public @NotNull OutputStream openWrite() throws IOException {
             throw new IOException("Cannot write to classpath resource: " + resourcePath);
         }
 
@@ -195,15 +182,13 @@ public interface ConfigSource {
         }
 
         @Override
-        @NotNull
-        public String name() {
+        public @NotNull String name() {
             int lastSlash = resourcePath.lastIndexOf('/');
             return lastSlash >= 0 ? resourcePath.substring(lastSlash + 1) : resourcePath;
         }
 
         @Override
-        @Nullable
-        public Path path() {
+        public @Nullable Path path() {
             return null;
         }
     }

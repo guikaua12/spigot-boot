@@ -45,17 +45,15 @@ public class DefaultTypeSerializerRegistry implements TypeSerializerRegistry {
     }
 
     @Override
-    @Nullable
     @SuppressWarnings("unchecked")
-    public <T> TypeSerializer<T> get(@NotNull Class<T> type) {
+    public <T> @Nullable TypeSerializer<T> get(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null");
         return (TypeSerializer<T>) serializers.get(type);
     }
 
     @Override
-    @Nullable
     @SuppressWarnings("unchecked")
-    public <T> TypeSerializer<T> getWithInheritance(@NotNull Class<T> type) {
+    public <T> @Nullable TypeSerializer<T> getWithInheritance(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null");
 
         TypeSerializer<T> exact = get(type);
@@ -89,8 +87,7 @@ public class DefaultTypeSerializerRegistry implements TypeSerializerRegistry {
     }
 
     @Override
-    @NotNull
-    public TypeSerializerRegistry copy() {
+    public @NotNull TypeSerializerRegistry copy() {
         DefaultTypeSerializerRegistry copy = new DefaultTypeSerializerRegistry();
         copy.serializers.putAll(this.serializers);
         return copy;
@@ -101,8 +98,7 @@ public class DefaultTypeSerializerRegistry implements TypeSerializerRegistry {
      *
      * @return a new registry with defaults
      */
-    @NotNull
-    static DefaultTypeSerializerRegistry createWithDefaults() {
+    static @NotNull DefaultTypeSerializerRegistry createWithDefaults() {
         DefaultTypeSerializerRegistry registry = new DefaultTypeSerializerRegistry();
         PrimitiveSerializers.registerAll(registry);
         return registry;

@@ -56,8 +56,7 @@ public final class BindingResult<T> {
      * @param <T>   the type
      * @return a successful result
      */
-    @NotNull
-    public static <T> BindingResult<T> success(@NotNull T value) {
+    public static <T> @NotNull BindingResult<T> success(@NotNull T value) {
         Objects.requireNonNull(value, "value cannot be null");
         return new BindingResult<>(value, Collections.emptyList(), Collections.emptyList());
     }
@@ -69,8 +68,7 @@ public final class BindingResult<T> {
      * @param <T>    the type
      * @return a result with errors
      */
-    @NotNull
-    public static <T> BindingResult<T> failure(@NotNull List<BindingError> errors) {
+    public static <T> @NotNull BindingResult<T> failure(@NotNull List<BindingError> errors) {
         Objects.requireNonNull(errors, "errors cannot be null");
         return new BindingResult<>(null, new ArrayList<>(errors), Collections.emptyList());
     }

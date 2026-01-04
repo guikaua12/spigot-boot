@@ -22,36 +22,28 @@
  */
 package tech.guilhermekaua.spigotboot.config.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-/**
- * Watch mode for config collections.
- */
-enum CollectionWatchMode {
-    /**
-     * Reload entire collection on any file change.
-     */
-    FULL,
-    /**
-     * Track individual file changes, reload only affected.
-     */
-    GRANULAR,
-    /**
-     * Support both modes, configurable at runtime.
-     */
-    BOTH
-}
+import java.lang.annotation.*;
 
 /**
  * Marks a class as a folder-based config collection.
  * Each file in the folder becomes an instance of this class.
+ * <p>
+ * This annotation is repeatable, allowing one item class to be used
+ * for multiple collections from different folders.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Repeatable(ConfigCollections.class)
 public @interface ConfigCollection {
+
+    /**
+     * Collection name used for lookup and injection.
+     * If empty, the name is derived from the folder path
+     * (last segment after normalizing slashes).
+     *
+     * @return the collection name
+     */
+    String name() default "";
 
     /**
      * Folder path relative to plugin data folder.
@@ -62,15 +54,8 @@ public @interface ConfigCollection {
     String folder();
 
     /**
-     * File pattern to match.
-     *
-     * @return the file pattern
-     */
-    String pattern() default "*.yml";
-
-    /**
      * Field to inject the instance ID (filename without extension).
-     * If empty, filename is used as-is.
+     * If empty, looks for a field annotated with @NodeKey.
      *
      * @return the ID field name
      */
@@ -82,21 +67,17 @@ public @interface ConfigCollection {
      *
      * @return the order field name
      */
-    String orderBy() default "";
+    String orderBy() default "filename";
 
     /**
      * Field that controls whether instance is enabled.
+     * Set to empty string to disable enabled filtering.
+     * If the specified field does not exist on the class,
+     * enabled filtering is automatically disabled.
      *
      * @return the enabled field name
      */
-    String enabledField() default "enabled";
-
-    /**
-     * Watch mode for reloading.
-     *
-     * @return the watch mode
-     */
-    CollectionWatchMode watchMode() default CollectionWatchMode.FULL;
+    String enabledField() default "";
 
     /**
      * Resource folder path (inside JAR) to copy defaults from.
@@ -106,4 +87,12 @@ public @interface ConfigCollection {
      * @return the resource folder path
      */
     String resource() default "";
+
+    /**
+     * Prefix for files to exclude from loading.
+     * Files starting with this prefix will be ignored.
+     *
+     * @return the exclude prefix
+     */
+    String excludePrefix() default "_";
 }

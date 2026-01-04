@@ -27,9 +27,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.BindingResult;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
+import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
@@ -37,6 +39,7 @@ import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.reload.DefaultConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
+import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
@@ -60,6 +63,8 @@ public class SpigotConfigManager implements ConfigManager {
 
     private final Map<Class<?>, ConfigEntry<?>> configs = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> configsByName = new ConcurrentHashMap<>();
+
+    private final Map<CollectionKey, CollectionEntry<?>> collections = new ConcurrentHashMap<>();
 
     public SpigotConfigManager(@NotNull Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
@@ -108,15 +113,113 @@ public class SpigotConfigManager implements ConfigManager {
         return entry.getRef();
     }
 
+    // ==================== Collection API ====================
+
     @Override
     public <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass) {
-        throw new UnsupportedOperationException("Not supported");
+        return getCollection(configClass, findSingleCollectionName(configClass));
     }
 
     @Override
-    public <T> @NotNull ConfigRef<Collection<T>> getCollectionRef(@NotNull Class<T> configClass) {
-        throw new UnsupportedOperationException("Not supported");
+    @SuppressWarnings("unchecked")
+    public <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass, @NotNull String collectionName) {
+        Objects.requireNonNull(configClass, "configClass cannot be null");
+        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+
+        CollectionEntry<T> entry = (CollectionEntry<T>) collections.get(new CollectionKey(configClass, collectionName));
+        if (entry == null) {
+            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+        }
+        return entry.getRef().get().values();
     }
+
+    @Override
+    public <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass) {
+        return getCollectionRef(configClass, findSingleCollectionName(configClass));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass, @NotNull String collectionName) {
+        Objects.requireNonNull(configClass, "configClass cannot be null");
+        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+
+        CollectionEntry<T> entry = (CollectionEntry<T>) collections.get(new CollectionKey(configClass, collectionName));
+        if (entry == null) {
+            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+        }
+        return entry.getRef();
+    }
+
+    /**
+     * Registers a config collection.
+     *
+     * @param itemType   the item type class
+     * @param annotation the @ConfigCollection annotation
+     * @param <T>        the item type
+     */
+    public <T> void registerCollection(@NotNull Class<T> itemType, @NotNull ConfigCollection annotation) {
+        Objects.requireNonNull(itemType, "itemType cannot be null");
+        Objects.requireNonNull(annotation, "annotation cannot be null");
+
+        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder);
+        entry.initialize();
+
+        CollectionKey key = new CollectionKey(itemType, entry.getCollectionName());
+        collections.put(key, entry);
+
+        plugin.getLogger().info("Registered collection: " + entry.getCollectionName() +
+                " (" + itemType.getSimpleName() + ") from " + entry.getFolder());
+    }
+
+    /**
+     * Gets a collection entry by item type and name.
+     *
+     * @param itemType       the item type
+     * @param collectionName the collection name
+     * @param <T>            the item type
+     * @return the entry, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public <T> @Nullable CollectionEntry<T> getCollectionEntry(@NotNull Class<T> itemType, @NotNull String collectionName) {
+        return (CollectionEntry<T>) collections.get(new CollectionKey(itemType, collectionName));
+    }
+
+    /**
+     * Gets all collection names for an item type.
+     *
+     * @param itemType the item type
+     * @return the set of collection names
+     */
+    public @NotNull Set<String> getCollectionNames(@NotNull Class<?> itemType) {
+        Set<String> names = new LinkedHashSet<>();
+        for (CollectionKey key : collections.keySet()) {
+            if (key.itemType.equals(itemType)) {
+                names.add(key.collectionName);
+            }
+        }
+        return names;
+    }
+
+    private <T> String findSingleCollectionName(Class<T> itemType) {
+        List<String> names = new ArrayList<>();
+        for (CollectionKey key : collections.keySet()) {
+            if (key.itemType.equals(itemType)) {
+                names.add(key.collectionName);
+            }
+        }
+
+        if (names.isEmpty()) {
+            throw new ConfigException("No collection registered for type: " + itemType.getName());
+        }
+        if (names.size() > 1) {
+            throw new ConfigException("Multiple collections exist for type " + itemType.getName() +
+                    ": " + names + ". Use the overload with collectionName parameter, or add @ConfigRefName on the injection point.");
+        }
+        return names.get(0);
+    }
+
+    // ==================== Standard config methods ====================
 
     @Override
     public @Nullable Object get(@NotNull String path) {
@@ -327,7 +430,21 @@ public class SpigotConfigManager implements ConfigManager {
 
     @Override
     public void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String itemId) {
-        throw new UnsupportedOperationException("Not supported");
+        reloadCollectionItem(configClass, findSingleCollectionName(configClass), itemId);
+    }
+
+    @Override
+    public void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String collectionName, @NotNull String itemId) {
+        Objects.requireNonNull(configClass, "configClass cannot be null");
+        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        Objects.requireNonNull(itemId, "itemId cannot be null");
+
+        CollectionEntry<?> entry = collections.get(new CollectionKey(configClass, collectionName));
+        if (entry == null) {
+            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+        }
+
+        entry.reloadItem(itemId);
     }
 
     @Override
@@ -337,6 +454,15 @@ public class SpigotConfigManager implements ConfigManager {
                 reload(configClass);
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to reload " + configClass.getSimpleName() + ": " + e.getMessage());
+            }
+        }
+
+        for (CollectionEntry<?> entry : collections.values()) {
+            try {
+                entry.reloadAll();
+                plugin.getLogger().info("Reloaded collection: " + entry.getCollectionName());
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to reload collection " + entry.getCollectionName() + ": " + e.getMessage());
             }
         }
     }
@@ -424,6 +550,32 @@ public class SpigotConfigManager implements ConfigManager {
             this.instance = newInstance;
             this.node = newNode;
             this.ref.update(newInstance);
+        }
+    }
+
+    /**
+     * Key for collection storage.
+     */
+    private static final class CollectionKey {
+        private final Class<?> itemType;
+        private final String collectionName;
+
+        CollectionKey(@NotNull Class<?> itemType, @NotNull String collectionName) {
+            this.itemType = itemType;
+            this.collectionName = collectionName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CollectionKey)) return false;
+            CollectionKey that = (CollectionKey) o;
+            return itemType.equals(that.itemType) && collectionName.equals(that.collectionName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemType, collectionName);
         }
     }
 }
