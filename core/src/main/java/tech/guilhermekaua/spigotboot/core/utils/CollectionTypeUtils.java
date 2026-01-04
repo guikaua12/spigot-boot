@@ -70,8 +70,7 @@ public final class CollectionTypeUtils {
      * or {@code null} if the type is not a parameterized collection type
      * @throws NullPointerException if {@code type} is null
      */
-    @Nullable
-    public static CollectionTypeInfo extractCollectionTypeInfo(@NotNull Type type) {
+    public static @Nullable CollectionTypeInfo extractCollectionTypeInfo(@NotNull Type type) {
         if (!(type instanceof ParameterizedType)) {
             return null;
         }
@@ -129,8 +128,7 @@ public final class CollectionTypeUtils {
      * @throws NullPointerException if {@code type} is null
      */
     @SuppressWarnings("unchecked")
-    @Nullable
-    public static <T> Class<T> getRawClass(@NotNull Type type) {
+    public static <T> @Nullable Class<T> getRawClass(@NotNull Type type) {
         if (type instanceof Class) {
             return (Class<T>) type;
         }
