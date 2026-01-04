@@ -22,9 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.config.spigot.registry;
 
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
@@ -35,6 +32,7 @@ import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.proxy.ConfigProxy;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
@@ -55,7 +53,7 @@ public class ConfigRegistry {
      */
     public void registerConfigs(Context context) {
         String basePackage = ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName();
-        Reflections reflections = new Reflections(basePackage, new SubTypesScanner(), new TypeAnnotationsScanner());
+        ClassPathScanner scanner = new ClassPathScanner(context.getPlugin().getClass().getClassLoader(), basePackage);
 
         ConfigManager configManager = context.getBean(ConfigManager.class);
         if (configManager == null) {
@@ -64,18 +62,18 @@ public class ConfigRegistry {
 
         Logger logger = context.getPlugin().getLogger();
 
-        for (Class<?> configClass : reflections.getTypesAnnotatedWith(Config.class)) {
+        for (Class<?> configClass : scanner.getTypesAnnotatedWith(Config.class)) {
             processConfigClass(configClass, context, configManager);
         }
 
         if (configManager instanceof SpigotConfigManager) {
             SpigotConfigManager spigotConfigManager = (SpigotConfigManager) configManager;
 
-            for (Class<?> itemClass : reflections.getTypesAnnotatedWith(ConfigCollection.class)) {
+            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(ConfigCollection.class)) {
                 processCollectionClass(itemClass, spigotConfigManager, logger);
             }
 
-            for (Class<?> itemClass : reflections.getTypesAnnotatedWith(ConfigCollections.class)) {
+            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(ConfigCollections.class)) {
                 processCollectionClass(itemClass, spigotConfigManager, logger);
             }
         }
