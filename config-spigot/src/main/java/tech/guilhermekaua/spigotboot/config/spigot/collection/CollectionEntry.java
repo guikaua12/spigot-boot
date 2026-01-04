@@ -267,7 +267,7 @@ public final class CollectionEntry<T> {
                 itemType, collectionName, itemsById, orderedValues, enabledItems
         ));
 
-        logger.info("Loaded " + itemsById.size() + " items in collection '" + collectionName + "'");
+        logger.fine("Loaded " + itemsById.size() + " items in collection '" + collectionName + "'");
     }
 
     /**
