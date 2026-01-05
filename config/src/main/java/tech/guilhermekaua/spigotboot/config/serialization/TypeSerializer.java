@@ -63,6 +63,6 @@ public interface TypeSerializer<T> {
      * @return true if this serializer can handle the type
      */
     default boolean canHandle(@NotNull Class<?> type) {
-        return true;
+        return false;
     }
 }
