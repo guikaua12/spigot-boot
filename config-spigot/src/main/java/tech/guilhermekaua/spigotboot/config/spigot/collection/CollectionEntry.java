@@ -29,6 +29,7 @@ import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
 import tech.guilhermekaua.spigotboot.config.annotation.NodeKey;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.BindingResult;
+import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import tech.guilhermekaua.spigotboot.config.collection.CollectionItemChange;
 import tech.guilhermekaua.spigotboot.config.collection.ConfigNodeHash;
 import tech.guilhermekaua.spigotboot.config.collection.EditResult;
@@ -73,6 +74,7 @@ public final class CollectionEntry<T> {
     private final ConfigCollection annotation;
     private final YamlConfigLoader loader;
     private final Binder binder;
+    private final NamingStrategy namingStrategy;
     private final Plugin plugin;
     private final Logger logger;
 
@@ -84,23 +86,26 @@ public final class CollectionEntry<T> {
     /**
      * Creates a new collection entry.
      *
-     * @param itemType   the item type class
-     * @param annotation the @{@link ConfigCollection} annotation
-     * @param plugin     the owning plugin
-     * @param loader     the YAML loader
-     * @param binder     the config binder
+     * @param itemType       the item type class
+     * @param annotation     the @{@link ConfigCollection} annotation
+     * @param plugin         the owning plugin
+     * @param loader         the YAML loader
+     * @param binder         the config binder
+     * @param namingStrategy the naming strategy for field to config key conversion
      */
     public CollectionEntry(
             @NotNull Class<T> itemType,
             @NotNull ConfigCollection annotation,
             @NotNull Plugin plugin,
             @NotNull YamlConfigLoader loader,
-            @NotNull Binder binder) {
+            @NotNull Binder binder,
+            @NotNull NamingStrategy namingStrategy) {
         this.itemType = Objects.requireNonNull(itemType, "itemType cannot be null");
         this.annotation = Objects.requireNonNull(annotation, "annotation cannot be null");
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         this.loader = Objects.requireNonNull(loader, "loader cannot be null");
         this.binder = Objects.requireNonNull(binder, "binder cannot be null");
+        this.namingStrategy = Objects.requireNonNull(namingStrategy, "namingStrategy cannot be null");
         this.logger = plugin.getLogger();
 
         String name = annotation.name();
@@ -391,7 +396,7 @@ public final class CollectionEntry<T> {
         Path itemPath = resolveItemPath(id);
         try {
             MutableConfigNode node = loader.createNode();
-            binder.unbind(value, node);
+            binder.unbind(value, node, namingStrategy);
             loader.save(node, ConfigSource.file(itemPath));
 
             T loadedItem = loadItem(itemPath, id);
@@ -469,8 +474,8 @@ public final class CollectionEntry<T> {
     public @Nullable T copyItem(@NotNull T item) {
         try {
             MutableConfigNode node = loader.createNode();
-            binder.unbind(item, node);
-            BindingResult<T> result = binder.bind(node, itemType);
+            binder.unbind(item, node, namingStrategy);
+            BindingResult<T> result = binder.bind(node, itemType, namingStrategy);
             if (result.hasErrors() || result.hasValidationErrors()) {
                 return null;
             }
@@ -518,7 +523,7 @@ public final class CollectionEntry<T> {
     private @Nullable T loadItem(Path path, String id) {
         try {
             ConfigNode node = loader.load(ConfigSource.file(path));
-            BindingResult<T> result = binder.bind(node, itemType);
+            BindingResult<T> result = binder.bind(node, itemType, namingStrategy);
 
             if (result.hasErrors()) {
                 logger.warning("Binding errors loading " + path + ": " + result.errors());

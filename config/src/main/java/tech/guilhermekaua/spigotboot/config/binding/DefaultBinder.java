@@ -47,20 +47,17 @@ import java.util.*;
  */
 public class DefaultBinder implements Binder {
 
-    private final NamingStrategy namingStrategy;
     private final TypeSerializerRegistry serializers;
     private final Validator validator;
     private final boolean implicitDefaults;
     private final boolean useConstructorBinding;
 
     private DefaultBinder(
-            @NotNull NamingStrategy namingStrategy,
             @NotNull TypeSerializerRegistry serializers,
             @Nullable Validator validator,
             boolean implicitDefaults,
             boolean useConstructorBinding
     ) {
-        this.namingStrategy = namingStrategy;
         this.serializers = serializers;
         this.validator = validator;
         this.implicitDefaults = implicitDefaults;
@@ -68,20 +65,21 @@ public class DefaultBinder implements Binder {
     }
 
     @Override
-    public <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull Class<T> type) {
+    public <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull Class<T> type, @NotNull NamingStrategy namingStrategy) {
         Objects.requireNonNull(node, "node cannot be null");
         Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(namingStrategy, "namingStrategy cannot be null");
 
         List<BindingError> errors = new ArrayList<>();
         T instance;
 
         try {
-            instance = createInstance(type, node, errors);
+            instance = createInstance(type, node, namingStrategy, errors);
             if (instance == null) {
                 return BindingResult.failure(errors);
             }
 
-            bindFields(instance, node, PropertyPath.root(), errors);
+            bindFields(instance, node, PropertyPath.root(), namingStrategy, errors);
 
             List<ValidationError> validationErrors = Collections.emptyList();
             if (validator != null) {
@@ -108,12 +106,13 @@ public class DefaultBinder implements Binder {
     }
 
     @Override
-    public <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull T instance) {
+    public <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull T instance, @NotNull NamingStrategy namingStrategy) {
         Objects.requireNonNull(node, "node cannot be null");
         Objects.requireNonNull(instance, "instance cannot be null");
+        Objects.requireNonNull(namingStrategy, "namingStrategy cannot be null");
 
         List<BindingError> errors = new ArrayList<>();
-        bindFields(instance, node, PropertyPath.root(), errors);
+        bindFields(instance, node, PropertyPath.root(), namingStrategy, errors);
 
         List<ValidationError> validationErrors = Collections.emptyList();
         if (validator != null) {
@@ -133,9 +132,10 @@ public class DefaultBinder implements Binder {
     }
 
     @Override
-    public <T> void unbind(@NotNull T object, @NotNull MutableConfigNode node) {
+    public <T> void unbind(@NotNull T object, @NotNull MutableConfigNode node, @NotNull NamingStrategy namingStrategy) {
         Objects.requireNonNull(object, "object cannot be null");
         Objects.requireNonNull(node, "node cannot be null");
+        Objects.requireNonNull(namingStrategy, "namingStrategy cannot be null");
 
         Class<?> type = object.getClass();
         for (Field field : type.getDeclaredFields()) {
@@ -151,7 +151,7 @@ public class DefaultBinder implements Binder {
                 continue;
             }
 
-            String configKey = getConfigKey(field);
+            String configKey = getConfigKey(field, namingStrategy);
             field.setAccessible(true);
 
             try {
@@ -167,14 +167,14 @@ public class DefaultBinder implements Binder {
                     childNode.setComment(comment.value());
                 }
 
-                serializeValue(value, childNode, field.getType());
+                serializeValue(value, childNode, field.getType(), namingStrategy);
             } catch (Exception ignored) {
             }
         }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> @Nullable T createInstance(@NotNull Class<T> type, @NotNull ConfigNode node, @NotNull List<BindingError> errors) {
+    private <T> @Nullable T createInstance(@NotNull Class<T> type, @NotNull ConfigNode node, @NotNull NamingStrategy namingStrategy, @NotNull List<BindingError> errors) {
         try {
             Constructor<T> noArgCtor = null;
 
@@ -190,7 +190,7 @@ public class DefaultBinder implements Binder {
                 if (constructors.length == 1) {
                     Constructor<T> ctor = (Constructor<T>) constructors[0];
                     ctor.setAccessible(true);
-                    Object[] args = resolveConstructorArgs(ctor, node, errors);
+                    Object[] args = resolveConstructorArgs(ctor, node, namingStrategy, errors);
                     if (args != null) {
                         return ctor.newInstance(args);
                     }
@@ -211,6 +211,7 @@ public class DefaultBinder implements Binder {
     private @Nullable Object[] resolveConstructorArgs(
             @NotNull Constructor<?> ctor,
             @NotNull ConfigNode node,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
         Parameter[] params = ctor.getParameters();
@@ -223,7 +224,7 @@ public class DefaultBinder implements Binder {
             ConfigNode childNode = node.node(configKey);
 
             try {
-                args[i] = deserializeValue(childNode, param.getParameterizedType(), PropertyPath.of(configKey), errors);
+                args[i] = deserializeValue(childNode, param.getParameterizedType(), PropertyPath.of(configKey), namingStrategy, errors);
             } catch (Exception e) {
                 errors.add(new BindingError(PropertyPath.of(configKey), paramName,
                         "Failed to deserialize constructor parameter", e));
@@ -238,6 +239,7 @@ public class DefaultBinder implements Binder {
             @NotNull Object instance,
             @NotNull ConfigNode node,
             @NotNull PropertyPath basePath,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
         Class<?> type = instance.getClass();
@@ -246,13 +248,13 @@ public class DefaultBinder implements Binder {
                 continue;
             }
 
-            String configKey = getConfigKey(field);
+            String configKey = getConfigKey(field, namingStrategy);
             PropertyPath fieldPath = basePath.child(configKey);
             ConfigNode childNode = node.node(configKey);
             field.setAccessible(true);
 
             try {
-                Object value = deserializeField(field, childNode, fieldPath, instance, errors);
+                Object value = deserializeField(field, childNode, fieldPath, instance, namingStrategy, errors);
                 if (value != null || childNode.isNull()) {
                     field.set(instance, value);
                 }
@@ -267,6 +269,7 @@ public class DefaultBinder implements Binder {
             @NotNull ConfigNode node,
             @NotNull PropertyPath path,
             @NotNull Object instance,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) throws IllegalAccessException {
         if (node.isVirtual() || node.isNull()) {
@@ -281,7 +284,7 @@ public class DefaultBinder implements Binder {
             return null;
         }
 
-        return deserializeValue(node, field.getGenericType(), path, errors);
+        return deserializeValue(node, field.getGenericType(), path, namingStrategy, errors);
     }
 
     @SuppressWarnings("unchecked")
@@ -289,6 +292,7 @@ public class DefaultBinder implements Binder {
             @NotNull ConfigNode node,
             @NotNull Type type,
             @NotNull PropertyPath path,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
         if (node.isVirtual() || node.isNull()) {
@@ -311,17 +315,17 @@ public class DefaultBinder implements Binder {
         }
 
         if (List.class.isAssignableFrom(rawClass)) {
-            return deserializeList(node, type, path, errors);
+            return deserializeList(node, type, path, namingStrategy, errors);
         }
         if (Set.class.isAssignableFrom(rawClass)) {
-            return new HashSet<>(deserializeList(node, type, path, errors));
+            return new HashSet<>(deserializeList(node, type, path, namingStrategy, errors));
         }
         if (Map.class.isAssignableFrom(rawClass)) {
-            return deserializeMap(node, type, path, errors);
+            return deserializeMap(node, type, path, namingStrategy, errors);
         }
 
         if (!rawClass.isPrimitive() && !rawClass.getName().startsWith("java.")) {
-            BindingResult<?> result = bind(node, rawClass);
+            BindingResult<?> result = bind(node, rawClass, namingStrategy);
             if (result.hasErrors()) {
                 errors.addAll(result.errors());
             }
@@ -335,6 +339,7 @@ public class DefaultBinder implements Binder {
             @NotNull ConfigNode node,
             @NotNull Type genericType,
             @NotNull PropertyPath path,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
         CollectionTypeUtils.CollectionTypeInfo typeInfo = CollectionTypeUtils.extractCollectionTypeInfo(genericType);
@@ -343,7 +348,7 @@ public class DefaultBinder implements Binder {
         List<Object> result = new ArrayList<>();
         int index = 0;
         for (ConfigNode child : node.childrenList()) {
-            Object value = deserializeValue(child, elementType, path.child(index), errors);
+            Object value = deserializeValue(child, elementType, path.child(index), namingStrategy, errors);
             if (value != null) {
                 result.add(value);
             }
@@ -356,6 +361,7 @@ public class DefaultBinder implements Binder {
             @NotNull ConfigNode node,
             @NotNull Type genericType,
             @NotNull PropertyPath path,
+            @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
         CollectionTypeUtils.MapTypeInfo typeInfo = CollectionTypeUtils.extractMapTypeInfo(genericType);
@@ -363,7 +369,7 @@ public class DefaultBinder implements Binder {
 
         Map<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends ConfigNode> entry : node.childrenMap().entrySet()) {
-            Object value = deserializeValue(entry.getValue(), valueType, path.child(entry.getKey()), errors);
+            Object value = deserializeValue(entry.getValue(), valueType, path.child(entry.getKey()), namingStrategy, errors);
             if (value != null) {
                 result.put(entry.getKey(), value);
             }
@@ -394,7 +400,7 @@ public class DefaultBinder implements Binder {
     }
 
     @SuppressWarnings("unchecked")
-    private void serializeValue(@NotNull Object value, @NotNull MutableConfigNode node, @NotNull Class<?> type) {
+    private void serializeValue(@NotNull Object value, @NotNull MutableConfigNode node, @NotNull Class<?> type, @NotNull NamingStrategy namingStrategy) {
         TypeSerializer<Object> serializer = (TypeSerializer<Object>) serializers.getWithInheritance(type);
         if (serializer != null) {
             serializer.serialize(value, node);
@@ -405,7 +411,7 @@ public class DefaultBinder implements Binder {
             for (Object item : (Collection<?>) value) {
                 MutableConfigNode itemNode = node.appendListItem();
                 if (item != null) {
-                    serializeValue(item, itemNode, item.getClass());
+                    serializeValue(item, itemNode, item.getClass(), namingStrategy);
                 }
             }
             return;
@@ -416,21 +422,21 @@ public class DefaultBinder implements Binder {
                 String key = String.valueOf(entry.getKey());
                 Object val = entry.getValue();
                 if (val != null) {
-                    serializeValue(val, node.node(key), val.getClass());
+                    serializeValue(val, node.node(key), val.getClass(), namingStrategy);
                 }
             }
             return;
         }
 
         if (!type.isPrimitive() && !type.getName().startsWith("java.")) {
-            unbind(value, node);
+            unbind(value, node, namingStrategy);
             return;
         }
 
         node.set(value);
     }
 
-    private @NotNull String getConfigKey(@NotNull Field field) {
+    private @NotNull String getConfigKey(@NotNull Field field, @NotNull NamingStrategy namingStrategy) {
         ConfigProperty property = field.getAnnotation(ConfigProperty.class);
         if (property != null && !property.value().isEmpty()) {
             return property.value();
@@ -442,17 +448,10 @@ public class DefaultBinder implements Binder {
      * Builder for DefaultBinder.
      */
     public static class Builder implements Binder.Builder {
-        private NamingStrategy namingStrategy = NamingStrategy.SNAKE_CASE;
         private TypeSerializerRegistry serializers = TypeSerializerRegistry.defaults();
         private Validator validator = null;
         private boolean implicitDefaults = true;
         private boolean useConstructorBinding = true;
-
-        @Override
-        public @NotNull Builder namingStrategy(@NotNull NamingStrategy strategy) {
-            this.namingStrategy = Objects.requireNonNull(strategy);
-            return this;
-        }
 
         @Override
         public @NotNull Builder serializers(@NotNull TypeSerializerRegistry registry) {
@@ -480,7 +479,7 @@ public class DefaultBinder implements Binder {
 
         @Override
         public @NotNull Binder build() {
-            return new DefaultBinder(namingStrategy, serializers, validator, implicitDefaults, useConstructorBinding);
+            return new DefaultBinder(serializers, validator, implicitDefaults, useConstructorBinding);
         }
     }
 }
