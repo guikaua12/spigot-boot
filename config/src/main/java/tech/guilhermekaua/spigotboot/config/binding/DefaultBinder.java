@@ -33,15 +33,13 @@ import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
+import tech.guilhermekaua.spigotboot.core.utils.CollectionTypeUtils;
 import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 import tech.guilhermekaua.spigotboot.core.validation.ValidationError;
 import tech.guilhermekaua.spigotboot.core.validation.ValidationResult;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -225,7 +223,7 @@ public class DefaultBinder implements Binder {
             ConfigNode childNode = node.node(configKey);
 
             try {
-                args[i] = deserializeValue(childNode, param.getType(), PropertyPath.of(configKey), errors);
+                args[i] = deserializeValue(childNode, param.getParameterizedType(), PropertyPath.of(configKey), errors);
             } catch (Exception e) {
                 errors.add(new BindingError(PropertyPath.of(configKey), paramName,
                         "Failed to deserialize constructor parameter", e));
@@ -283,13 +281,13 @@ public class DefaultBinder implements Binder {
             return null;
         }
 
-        return deserializeValue(node, field.getType(), path, errors);
+        return deserializeValue(node, field.getGenericType(), path, errors);
     }
 
     @SuppressWarnings("unchecked")
     private @Nullable Object deserializeValue(
             @NotNull ConfigNode node,
-            @NotNull Class<?> type,
+            @NotNull Type type,
             @NotNull PropertyPath path,
             @NotNull List<BindingError> errors
     ) {
@@ -297,42 +295,55 @@ public class DefaultBinder implements Binder {
             return null;
         }
 
-        TypeSerializer<?> serializer = serializers.getWithInheritance(type);
+        Class<?> rawClass = CollectionTypeUtils.getRawClass(type);
+        if (rawClass == null) {
+            return null;
+        }
+
+        TypeSerializer<?> serializer = serializers.getWithInheritance(rawClass);
         if (serializer != null) {
             try {
-                return ((TypeSerializer<Object>) serializer).deserialize(node, (Class<Object>) type);
+                return ((TypeSerializer<Object>) serializer).deserialize(node, (Class<Object>) rawClass);
             } catch (SerializationException e) {
-                errors.add(new BindingError(path, type.getSimpleName(), e.getMessage(), e));
+                errors.add(new BindingError(path, rawClass.getSimpleName(), e.getMessage(), e));
                 return null;
             }
         }
 
-        if (List.class.isAssignableFrom(type)) {
-            return deserializeList(node, path, errors);
+        if (List.class.isAssignableFrom(rawClass)) {
+            return deserializeList(node, type, path, errors);
         }
-        if (Set.class.isAssignableFrom(type)) {
-            return new HashSet<>(deserializeList(node, path, errors));
+        if (Set.class.isAssignableFrom(rawClass)) {
+            return new HashSet<>(deserializeList(node, type, path, errors));
         }
-        if (Map.class.isAssignableFrom(type)) {
-            return deserializeMap(node, path, errors);
+        if (Map.class.isAssignableFrom(rawClass)) {
+            return deserializeMap(node, type, path, errors);
         }
 
-        if (!type.isPrimitive() && !type.getName().startsWith("java.")) {
-            BindingResult<?> result = bind(node, type);
+        if (!rawClass.isPrimitive() && !rawClass.getName().startsWith("java.")) {
+            BindingResult<?> result = bind(node, rawClass);
             if (result.hasErrors()) {
                 errors.addAll(result.errors());
             }
             return result.orElse(null);
         }
 
-        return node.get(type);
+        return node.get(rawClass);
     }
 
-    private @NotNull List<Object> deserializeList(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
+    private @NotNull List<Object> deserializeList(
+            @NotNull ConfigNode node,
+            @NotNull Type genericType,
+            @NotNull PropertyPath path,
+            @NotNull List<BindingError> errors
+    ) {
+        CollectionTypeUtils.CollectionTypeInfo typeInfo = CollectionTypeUtils.extractCollectionTypeInfo(genericType);
+        Class<?> elementType = typeInfo != null ? typeInfo.getElementType() : Object.class;
+
         List<Object> result = new ArrayList<>();
         int index = 0;
         for (ConfigNode child : node.childrenList()) {
-            Object value = deserializeValue(child, Object.class, path.child(index), errors);
+            Object value = deserializeValue(child, elementType, path.child(index), errors);
             if (value != null) {
                 result.add(value);
             }
@@ -341,10 +352,18 @@ public class DefaultBinder implements Binder {
         return result;
     }
 
-    private @NotNull Map<String, Object> deserializeMap(@NotNull ConfigNode node, @NotNull PropertyPath path, @NotNull List<BindingError> errors) {
+    private @NotNull Map<String, Object> deserializeMap(
+            @NotNull ConfigNode node,
+            @NotNull Type genericType,
+            @NotNull PropertyPath path,
+            @NotNull List<BindingError> errors
+    ) {
+        CollectionTypeUtils.MapTypeInfo typeInfo = CollectionTypeUtils.extractMapTypeInfo(genericType);
+        Class<?> valueType = typeInfo != null ? typeInfo.getValueType() : Object.class;
+
         Map<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends ConfigNode> entry : node.childrenMap().entrySet()) {
-            Object value = deserializeValue(entry.getValue(), Object.class, path.child(entry.getKey()), errors);
+            Object value = deserializeValue(entry.getValue(), valueType, path.child(entry.getKey()), errors);
             if (value != null) {
                 result.put(entry.getKey(), value);
             }
