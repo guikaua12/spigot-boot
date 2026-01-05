@@ -78,7 +78,6 @@ public class SpigotConfigManager implements ConfigManager {
         this.binder = Binder.builder()
                 .serializers(serializers)
                 .validator(Validator.create())
-                .namingStrategy(NamingStrategy.SNAKE_CASE)
                 .implicitDefaults(true)
                 .useConstructorBinding(true)
                 .build();
@@ -165,7 +164,7 @@ public class SpigotConfigManager implements ConfigManager {
         Objects.requireNonNull(itemType, "itemType cannot be null");
         Objects.requireNonNull(annotation, "annotation cannot be null");
 
-        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder);
+        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.initialize();
 
         CollectionKey key = new CollectionKey(itemType, entry.getCollectionName());
@@ -343,17 +342,18 @@ public class SpigotConfigManager implements ConfigManager {
             copyDefaultFromResources(configClass, annotation, source);
         }
 
+        NamingStrategy namingStrategy = annotation.naming();
         ConfigNode node = loader.load(source);
-        BindingResult<T> result = binder.bind(node, configClass);
+        BindingResult<T> result = binder.bind(node, configClass, namingStrategy);
 
         T instance = result.get();
 
         DefaultConfigRef<T> ref = new DefaultConfigRef<>(configClass, instance, () -> {
             ConfigNode reloadedNode = loader.load(source);
-            return binder.bind(reloadedNode, configClass).get();
+            return binder.bind(reloadedNode, configClass, namingStrategy).get();
         });
 
-        ConfigEntry<T> entry = new ConfigEntry<>(configClass, source, instance, ref, node);
+        ConfigEntry<T> entry = new ConfigEntry<>(configClass, source, namingStrategy, instance, ref, node);
         configs.put(configClass, entry);
 
         String name = annotation.name();
@@ -386,14 +386,14 @@ public class SpigotConfigManager implements ConfigManager {
                     plugin.getLogger().info("Created default config from resources: " + target.name());
                 }
             } else {
-                generateDefaultsToSource(configClass, target);
+                generateDefaultsToSource(configClass, target, annotation.naming());
             }
         } catch (IOException e) {
             plugin.getLogger().warning("Failed to copy default config: " + e.getMessage());
         }
     }
 
-    private void generateDefaultsToSource(Class<?> configClass, ConfigSource target) {
+    private void generateDefaultsToSource(Class<?> configClass, ConfigSource target, NamingStrategy namingStrategy) {
         try {
             Path targetPath = target.path();
             if (targetPath != null) {
@@ -405,7 +405,7 @@ public class SpigotConfigManager implements ConfigManager {
 
             Object defaultInstance = configClass.getDeclaredConstructor().newInstance();
             MutableConfigNode node = loader.createNode();
-            binder.unbind(defaultInstance, node);
+            binder.unbind(defaultInstance, node, namingStrategy);
             loader.save(node, target);
             plugin.getLogger().info("Generated default config from class: " + configClass.getSimpleName());
         } catch (Exception e) {
@@ -424,7 +424,7 @@ public class SpigotConfigManager implements ConfigManager {
         }
 
         ConfigNode node = loader.load(entry.getSource());
-        BindingResult<?> result = binder.bind(node, configClass);
+        BindingResult<?> result = binder.bind(node, configClass, entry.getNamingStrategy());
         Object newInstance = result.get();
 
         ((ConfigEntry<Object>) entry).update(newInstance, node);
@@ -480,7 +480,7 @@ public class SpigotConfigManager implements ConfigManager {
         }
 
         MutableConfigNode node = loader.createNode();
-        binder.unbind(entry.getInstance(), node);
+        binder.unbind(entry.getInstance(), node, entry.getNamingStrategy());
         loader.save(node, entry.getSource());
         plugin.getLogger().info("Saved config: " + configClass.getSimpleName());
     }
@@ -497,7 +497,7 @@ public class SpigotConfigManager implements ConfigManager {
         try {
             Object defaultInstance = configClass.getDeclaredConstructor().newInstance();
             MutableConfigNode node = loader.createNode();
-            binder.unbind(defaultInstance, node);
+            binder.unbind(defaultInstance, node, entry.getNamingStrategy());
             loader.save(node, entry.getSource());
             plugin.getLogger().info("Generated defaults for: " + configClass.getSimpleName());
         } catch (Exception e) {
@@ -521,13 +521,15 @@ public class SpigotConfigManager implements ConfigManager {
     private static class ConfigEntry<T> {
         private final Class<T> configClass;
         private final ConfigSource source;
+        private final NamingStrategy namingStrategy;
         private volatile T instance;
         private final DefaultConfigRef<T> ref;
         private volatile ConfigNode node;
 
-        ConfigEntry(Class<T> configClass, ConfigSource source, T instance, DefaultConfigRef<T> ref, ConfigNode node) {
+        ConfigEntry(Class<T> configClass, ConfigSource source, NamingStrategy namingStrategy, T instance, DefaultConfigRef<T> ref, ConfigNode node) {
             this.configClass = configClass;
             this.source = source;
+            this.namingStrategy = namingStrategy;
             this.instance = instance;
             this.ref = ref;
             this.node = node;
@@ -543,6 +545,10 @@ public class SpigotConfigManager implements ConfigManager {
 
         ConfigSource getSource() {
             return source;
+        }
+
+        NamingStrategy getNamingStrategy() {
+            return namingStrategy;
         }
 
         ConfigNode getNode() {

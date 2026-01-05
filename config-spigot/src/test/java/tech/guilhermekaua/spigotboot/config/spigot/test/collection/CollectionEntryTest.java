@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
 import tech.guilhermekaua.spigotboot.config.annotation.NodeKey;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
+import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import tech.guilhermekaua.spigotboot.config.collection.CollectionChangeListener;
 import tech.guilhermekaua.spigotboot.config.collection.CollectionItemChange;
 import tech.guilhermekaua.spigotboot.config.collection.EditResult;
@@ -247,7 +248,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createDefaultAnnotation();
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertNotNull(entry);
         assertEquals(TestItem.class, entry.getItemType());
@@ -260,7 +261,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(null, annotation, plugin, loader, binder));
+                new CollectionEntry<>(null, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("itemType"));
     }
@@ -268,7 +269,7 @@ class CollectionEntryTest {
     @Test
     void constructor_WithNullAnnotation_ThrowsNPE() {
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, null, plugin, loader, binder));
+                new CollectionEntry<>(TestItem.class, null, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("annotation"));
     }
@@ -278,7 +279,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, null, loader, binder));
+                new CollectionEntry<>(TestItem.class, annotation, null, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("plugin"));
     }
@@ -288,7 +289,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, plugin, null, binder));
+                new CollectionEntry<>(TestItem.class, annotation, plugin, null, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("loader"));
     }
@@ -298,7 +299,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, plugin, loader, null));
+                new CollectionEntry<>(TestItem.class, annotation, plugin, loader, null, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("binder"));
     }
@@ -308,7 +309,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createAnnotation("", "boosters", "", "filename", "", "", "_");
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertEquals("boosters", entry.getCollectionName());
     }
@@ -318,7 +319,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createAnnotation("my-collection", "items", "", "filename", "", "", "_");
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertEquals("my-collection", entry.getCollectionName());
     }
@@ -328,7 +329,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createAnnotation("", "configs/items/boosters", "", "filename", "", "", "_");
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertEquals("boosters", entry.getCollectionName());
     }
@@ -338,7 +339,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createAnnotation("", "items/", "", "filename", "", "", "_");
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertEquals("items", entry.getCollectionName());
     }
@@ -348,7 +349,7 @@ class CollectionEntryTest {
         ConfigCollection annotation = createAnnotation("", "configs\\items", "", "filename", "", "", "_");
 
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertEquals("items", entry.getCollectionName());
     }
@@ -359,7 +360,7 @@ class CollectionEntryTest {
     void initialize_FolderDoesNotExist_CreatesFolderAndLoadsEmpty() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
 
@@ -374,7 +375,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
 
@@ -388,7 +389,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
 
@@ -406,7 +407,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(2, entry.getRef().get().size());
@@ -421,7 +422,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(1, entry.getRef().get().size());
@@ -437,7 +438,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(1, entry.getRef().get().size());
@@ -451,7 +452,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(1, entry.getRef().get().size());
@@ -467,7 +468,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "");
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(2, entry.getRef().get().size());
@@ -481,7 +482,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(1, entry.getRef().get().size());
@@ -491,7 +492,7 @@ class CollectionEntryTest {
     void loadAll_FolderDoesNotExist_SetsEmptySnapshot() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.loadAll();
 
@@ -507,7 +508,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<TestItem> values = new ArrayList<>(entry.getRef().get().values());
@@ -526,7 +527,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "", "priority", "", "", "_");
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<TestItem> values = new ArrayList<>(entry.getRef().get().values());
@@ -545,7 +546,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "_");
         CollectionEntry<TestItemWithNodeKey> entry = new CollectionEntry<>(
-                TestItemWithNodeKey.class, annotation, plugin, loader, binder);
+                TestItemWithNodeKey.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItemWithNodeKey loaded = entry.getRef().get().find("my-item");
@@ -560,7 +561,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "itemId", "filename", "", "", "_");
         CollectionEntry<TestItemWithIdField> entry = new CollectionEntry<>(
-                TestItemWithIdField.class, annotation, plugin, loader, binder);
+                TestItemWithIdField.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItemWithIdField loaded = entry.getRef().get().find("my-item");
@@ -578,7 +579,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "", "filename", "enabled", "", "_");
         CollectionEntry<TestItemWithEnabled> entry = new CollectionEntry<>(
-                TestItemWithEnabled.class, annotation, plugin, loader, binder);
+                TestItemWithEnabled.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(2, entry.getRef().get().size());
@@ -593,7 +594,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "_");
         CollectionEntry<TestItemWithEnabled> entry = new CollectionEntry<>(
-                TestItemWithEnabled.class, annotation, plugin, loader, binder);
+                TestItemWithEnabled.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertEquals(2, entry.getRef().get().size());
@@ -609,7 +610,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -631,7 +632,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -651,7 +652,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -672,7 +673,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -695,7 +696,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItem item = new TestItem();
@@ -715,7 +716,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -735,7 +736,7 @@ class CollectionEntryTest {
     void saveItem_NullId_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -749,7 +750,7 @@ class CollectionEntryTest {
     void saveItem_EmptyId_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -763,7 +764,7 @@ class CollectionEntryTest {
     void saveItem_IdWithSlash_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -777,7 +778,7 @@ class CollectionEntryTest {
     void saveItem_IdWithBackslash_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -791,7 +792,7 @@ class CollectionEntryTest {
     void saveItem_IdWithDoubleDot_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -805,7 +806,7 @@ class CollectionEntryTest {
     void saveItem_IdWithSpecialChars_ReturnsFailure() {
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
 
@@ -821,7 +822,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItem item = new TestItem();
@@ -839,7 +840,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItem item = new TestItem();
@@ -857,7 +858,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         TestItem item = new TestItem();
@@ -878,7 +879,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         EditResult<Void> result = entry.deleteItem("item1");
@@ -894,7 +895,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
@@ -913,7 +914,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         EditResult<Void> result = entry.deleteItem("nonexistent");
@@ -930,7 +931,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem original = new TestItem();
         original.setName("Original");
@@ -954,7 +955,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         assertTrue(entry.getRef().get().contains("item"));
@@ -968,7 +969,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> receivedChanges = new ArrayList<>();
@@ -990,7 +991,7 @@ class CollectionEntryTest {
 
         ConfigCollection annotation = createDefaultAnnotation();
         CollectionEntry<TestItem> entry = new CollectionEntry<>(
-                TestItem.class, annotation, plugin, loader, binder);
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
         List<CollectionItemChange<TestItem>> receivedChanges = new ArrayList<>();

@@ -38,31 +38,34 @@ public interface Binder {
     /**
      * Binds a config node to a new instance of the target type.
      *
-     * @param node the source node
-     * @param type the target type
-     * @param <T>  the type parameter
+     * @param node           the source node
+     * @param type           the target type
+     * @param namingStrategy the naming strategy for field to config key conversion
+     * @param <T>            the type parameter
      * @return the binding result
      */
-    <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull Class<T> type);
+    <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull Class<T> type, @NotNull NamingStrategy namingStrategy);
 
     /**
      * Binds config values onto an existing instance (field injection only).
      *
-     * @param node     the source node
-     * @param instance the target instance
-     * @param <T>      the type parameter
+     * @param node           the source node
+     * @param instance       the target instance
+     * @param namingStrategy the naming strategy for field to config key conversion
+     * @param <T>            the type parameter
      * @return the binding result
      */
-    <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull T instance);
+    <T> @NotNull BindingResult<T> bind(@NotNull ConfigNode node, @NotNull T instance, @NotNull NamingStrategy namingStrategy);
 
     /**
      * Serializes an object to a config node.
      *
-     * @param object the object to serialize
-     * @param node   the target node
-     * @param <T>    the type parameter
+     * @param object         the object to serialize
+     * @param node           the target node
+     * @param namingStrategy the naming strategy for field to config key conversion
+     * @param <T>            the type parameter
      */
-    <T> void unbind(@NotNull T object, @NotNull MutableConfigNode node);
+    <T> void unbind(@NotNull T object, @NotNull MutableConfigNode node, @NotNull NamingStrategy namingStrategy);
 
     /**
      * Creates a binder builder with custom options.
@@ -86,14 +89,6 @@ public interface Binder {
      * Builder for creating customized Binder instances.
      */
     interface Builder {
-        /**
-         * Sets the naming strategy.
-         *
-         * @param strategy the naming strategy
-         * @return this builder
-         */
-        @NotNull Builder namingStrategy(@NotNull NamingStrategy strategy);
-
         /**
          * Sets the serializer registry.
          *
