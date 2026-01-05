@@ -164,7 +164,7 @@ public class SpigotConfigManager implements ConfigManager {
         Objects.requireNonNull(itemType, "itemType cannot be null");
         Objects.requireNonNull(annotation, "annotation cannot be null");
 
-        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
+        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder, annotation.naming());
         entry.initialize();
 
         CollectionKey key = new CollectionKey(itemType, entry.getCollectionName());
