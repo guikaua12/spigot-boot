@@ -22,6 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.config.annotation;
 
+import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
+
 import java.lang.annotation.*;
 
 /**
@@ -95,4 +97,11 @@ public @interface ConfigCollection {
      * @return the exclude prefix
      */
     String excludePrefix() default "_";
+
+    /**
+     * Naming strategy for field to YAML key conversion.
+     *
+     * @return the naming strategy
+     */
+    NamingStrategy naming() default NamingStrategy.SNAKE_CASE;
 }
