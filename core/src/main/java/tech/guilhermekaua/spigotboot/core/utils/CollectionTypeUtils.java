@@ -30,6 +30,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 import java.util.Collection;
+import java.util.Map;
 
 public final class CollectionTypeUtils {
 
@@ -41,6 +42,17 @@ public final class CollectionTypeUtils {
         CollectionTypeInfo(Class<?> collectionClass, Class<?> elementType) {
             this.collectionClass = collectionClass;
             this.elementType = elementType;
+        }
+    }
+
+    @Getter
+    public static class MapTypeInfo {
+        private final Class<?> keyType;
+        private final Class<?> valueType;
+
+        MapTypeInfo(Class<?> keyType, Class<?> valueType) {
+            this.keyType = keyType;
+            this.valueType = valueType;
         }
     }
 
@@ -70,8 +82,7 @@ public final class CollectionTypeUtils {
      * or {@code null} if the type is not a parameterized collection type
      * @throws NullPointerException if {@code type} is null
      */
-    @Nullable
-    public static CollectionTypeInfo extractCollectionTypeInfo(@NotNull Type type) {
+    public static @Nullable CollectionTypeInfo extractCollectionTypeInfo(@NotNull Type type) {
         if (!(type instanceof ParameterizedType)) {
             return null;
         }
@@ -129,8 +140,7 @@ public final class CollectionTypeUtils {
      * @throws NullPointerException if {@code type} is null
      */
     @SuppressWarnings("unchecked")
-    @Nullable
-    public static <T> Class<T> getRawClass(@NotNull Type type) {
+    public static <T> @Nullable Class<T> getRawClass(@NotNull Type type) {
         if (type instanceof Class) {
             return (Class<T>) type;
         }
@@ -138,6 +148,76 @@ public final class CollectionTypeUtils {
             Type rawType = ((ParameterizedType) type).getRawType();
             if (rawType instanceof Class) {
                 return (Class<T>) rawType;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts map type information from a {@link Type}, identifying both the key and value types.
+     * <p>
+     * This method analyzes parameterized types to determine if they represent a {@link Map}
+     * and extracts the generic key and value types.
+     * <p>
+     * The method handles:
+     * <ul>
+     *   <li>Parameterized map types (e.g., {@code Map<String, Location>})</li>
+     *   <li>Wildcard types with upper bounds (e.g., {@code Map<String, ? extends Location>})</li>
+     *   <li>Raw types and non-map types return {@code null}</li>
+     * </ul>
+     *
+     * @param type the type to analyze, not null
+     * @return a {@link MapTypeInfo} containing the key and value types,
+     * or {@code null} if the type is not a parameterized map type
+     * @throws NullPointerException if {@code type} is null
+     */
+    public static @Nullable MapTypeInfo extractMapTypeInfo(@NotNull Type type) {
+        if (!(type instanceof ParameterizedType)) {
+            return null;
+        }
+
+        ParameterizedType parameterizedType = (ParameterizedType) type;
+        Type rawType = parameterizedType.getRawType();
+
+        if (!(rawType instanceof Class)) {
+            return null;
+        }
+
+        Class<?> rawClass = (Class<?>) rawType;
+        if (!Map.class.isAssignableFrom(rawClass)) {
+            return null;
+        }
+
+        Type[] typeArguments = parameterizedType.getActualTypeArguments();
+        if (typeArguments.length < 2) {
+            return null;
+        }
+
+        Class<?> keyType = resolveTypeToClass(typeArguments[0]);
+        Class<?> valueType = resolveTypeToClass(typeArguments[1]);
+
+        if (keyType == null || valueType == null) {
+            return null;
+        }
+
+        return new MapTypeInfo(keyType, valueType);
+    }
+
+    private static @Nullable Class<?> resolveTypeToClass(@NotNull Type type) {
+        if (type instanceof Class) {
+            return (Class<?>) type;
+        }
+        if (type instanceof WildcardType) {
+            WildcardType wildcardType = (WildcardType) type;
+            Type[] upperBounds = wildcardType.getUpperBounds();
+            if (upperBounds.length > 0 && upperBounds[0] instanceof Class) {
+                return (Class<?>) upperBounds[0];
+            }
+        }
+        if (type instanceof ParameterizedType) {
+            Type rawType = ((ParameterizedType) type).getRawType();
+            if (rawType instanceof Class) {
+                return (Class<?>) rawType;
             }
         }
         return null;
