@@ -48,6 +48,9 @@ public class ConfigRegistry {
 
     /**
      * Scans for and registers all @Config and @ConfigCollection annotated classes.
+     * <p>
+     * After all classes are registered, calls {@link SpigotConfigManager#initializeAll()}
+     * to bind configs in topological order (respecting {@code ${...}} references).
      *
      * @param context the context
      */
@@ -76,6 +79,8 @@ public class ConfigRegistry {
             for (Class<?> itemClass : scanner.getTypesAnnotatedWith(ConfigCollections.class)) {
                 processCollectionClass(itemClass, spigotConfigManager, logger);
             }
+
+            spigotConfigManager.initializeAll();
         }
     }
 

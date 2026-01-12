@@ -52,6 +52,16 @@ public interface ConfigNode {
     @NotNull ConfigNode node(@NotNull Object... path);
 
     /**
+     * Navigates to a child node by a property path.
+     * <p>
+     * If the path doesn't exist, returns a virtual (empty) node.
+     *
+     * @param path the {@link PropertyPath} to navigate to
+     * @return the child node, never null
+     */
+    @NotNull ConfigNode node(@NotNull PropertyPath path);
+
+    /**
      * Checks if this node has a child at the given path.
      *
      * @param path the path segments

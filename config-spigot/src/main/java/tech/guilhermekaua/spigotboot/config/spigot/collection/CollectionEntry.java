@@ -82,6 +82,7 @@ public final class CollectionEntry<T> {
     private final DefaultConfigCollectionEditor<T> editor;
 
     private final Map<String, ItemMeta> itemMetadata = new ConcurrentHashMap<>();
+    private final Map<String, ConfigNode> itemNodes = new ConcurrentHashMap<>();
 
     /**
      * Creates a new collection entry.
@@ -151,10 +152,312 @@ public final class CollectionEntry<T> {
         return ref;
     }
 
+    /**
+     * Gets the raw config node for a specific item.
+     *
+     * @param itemId the item ID
+     * @return the raw config node, or null if item not found
+     */
+    public @Nullable ConfigNode getItemNode(@NotNull String itemId) {
+        return itemNodes.get(itemId);
+    }
+
+    /**
+     * Gets all item IDs that have raw nodes.
+     *
+     * @return set of item IDs
+     */
+    public @NotNull Set<String> getItemIds() {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(itemNodes.keySet()));
+    }
+
     public void initialize() {
+        prepareFolder();
+        loadAll();
+    }
+
+    public void prepareFolder() {
         ensureFolderExists();
         copyDefaultsFromResources();
-        loadAll();
+    }
+
+    /**
+     * Loads all items from the folder with filename ordering.
+     */
+    public void loadAll() {
+        if (!Files.exists(folder)) {
+            ref.setSnapshot(DefaultConfigCollectionSnapshot.empty(itemType, collectionName));
+            return;
+        }
+
+        Map<String, ConfigNode> rawNodes = scanAndLoadRawNodes();
+        List<String> bindOrder = sortedKeys(rawNodes);
+
+        Map<String, T> itemsById = new LinkedHashMap<>();
+        Map<String, ItemMeta> newMetadata = new LinkedHashMap<>();
+
+        for (String id : bindOrder) {
+            ConfigNode node = rawNodes.get(id);
+            if (node == null) {
+                continue;
+            }
+            T item = bindItem(id, node);
+            if (item != null) {
+                itemsById.put(id, item);
+                newMetadata.put(id, createItemMeta(node));
+            }
+        }
+
+        finalizeSnapshot(itemsById, newMetadata);
+    }
+
+    /**
+     * Loads raw nodes from disk without binding them.
+     * <p>
+     * Used when reference scanning needs to happen across all collections
+     * before determining binding order. After calling this, use
+     * {@link #getItemIds()} and {@link #getItemNode(String)} to access the nodes,
+     * then call {@link #bindFromLoadedNodes(List)} to bind them.
+     *
+     * @return map of item ID to raw config node
+     */
+    public @NotNull Map<String, ConfigNode> loadRawNodesOnly() {
+        if (!Files.exists(folder)) {
+            return Collections.emptyMap();
+        }
+        return scanAndLoadRawNodes();
+    }
+
+    /**
+     * Binds items from already-loaded raw nodes in the specified order.
+     * <p>
+     * Raw nodes must have been loaded via {@link #loadRawNodesOnly()} first.
+     * If no raw nodes are loaded, this creates an empty snapshot.
+     *
+     * @param bindOrder the order in which to bind items
+     */
+    public void bindFromLoadedNodes(@NotNull List<String> bindOrder) {
+        Objects.requireNonNull(bindOrder, "bindOrder cannot be null");
+
+        Map<String, T> itemsById = new LinkedHashMap<>();
+        Map<String, ItemMeta> newMetadata = new LinkedHashMap<>();
+
+        for (String id : bindOrder) {
+            ConfigNode node = itemNodes.get(id);
+            if (node == null) {
+                continue;
+            }
+            T item = bindItem(id, node);
+            if (item != null) {
+                itemsById.put(id, item);
+                newMetadata.put(id, createItemMeta(node));
+            }
+        }
+
+        finalizeSnapshot(itemsById, newMetadata);
+    }
+
+    private @NotNull Map<String, ConfigNode> scanAndLoadRawNodes() {
+        Map<String, ConfigNode> rawNodes = new LinkedHashMap<>();
+
+        if (!Files.exists(folder)) {
+            return rawNodes;
+        }
+
+        String excludePrefix = annotation.excludePrefix();
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder)) {
+            List<Path> files = collectMatchingFiles(stream, excludePrefix);
+            files.sort(Comparator.comparing(p -> p.getFileName().toString()));
+
+            for (Path path : files) {
+                String id = getIdFromPath(path);
+                try {
+                    ConfigNode node = loader.load(ConfigSource.file(path));
+                    rawNodes.put(id, node);
+                    itemNodes.put(id, node);
+                } catch (Exception e) {
+                    logger.warning("Failed to load: " + path + ": " + e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            logger.warning("Failed to scan folder " + folder + ": " + e.getMessage());
+        }
+
+        return rawNodes;
+    }
+
+    private @NotNull List<Path> collectMatchingFiles(
+            @NotNull DirectoryStream<Path> stream,
+            @NotNull String excludePrefix) {
+        List<Path> files = new ArrayList<>();
+        for (Path path : stream) {
+            if (!Files.isRegularFile(path)) {
+                continue;
+            }
+            String fileName = path.getFileName().toString();
+            if (!excludePrefix.isEmpty() && fileName.startsWith(excludePrefix)) {
+                continue;
+            }
+            if (!matchesPattern(fileName)) {
+                continue;
+            }
+            files.add(path);
+        }
+        return files;
+    }
+
+    private @NotNull List<String> sortedKeys(@NotNull Map<String, ConfigNode> rawNodes) {
+        List<String> keys = new ArrayList<>(rawNodes.keySet());
+        keys.sort(String::compareTo);
+        return keys;
+    }
+
+    private void finalizeSnapshot(
+            @NotNull Map<String, T> itemsById,
+            @NotNull Map<String, ItemMeta> newMetadata) {
+
+        List<T> orderedValues = new ArrayList<>(itemsById.values());
+
+        String orderBy = annotation.orderBy();
+        if (!orderBy.isEmpty() && !"filename".equals(orderBy)) {
+            orderByField(orderedValues, orderBy);
+        }
+
+        List<T> enabledItems = computeEnabledItems(orderedValues);
+
+        itemMetadata.clear();
+        itemMetadata.putAll(newMetadata);
+
+        ref.setSnapshot(new DefaultConfigCollectionSnapshot<>(
+                itemType, collectionName, itemsById, orderedValues, enabledItems
+        ));
+
+        logger.fine("Loaded " + itemsById.size() + " items in '" + collectionName + "'");
+    }
+
+    public @Nullable T bindItem(@NotNull String id, @NotNull ConfigNode node) {
+        Objects.requireNonNull(id, "id cannot be null");
+        Objects.requireNonNull(node, "node cannot be null");
+
+        try {
+            BindingResult<T> result = binder.bind(node, itemType, namingStrategy);
+
+            if (result.hasErrors()) {
+                logger.warning("Binding errors for " + id + ": " + result.errors());
+                return null;
+            }
+            if (result.hasValidationErrors()) {
+                logger.warning("Validation errors for " + id + ": " + result.validationErrors());
+                return null;
+            }
+
+            T item = result.get();
+            injectId(item, id);
+            return item;
+        } catch (Exception e) {
+            logger.warning("Failed to bind item " + id + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Reloads the raw node for a single item from disk.
+     * <p>
+     * Used during reload propagation to update the raw node before rebinding.
+     *
+     * @param itemId the item ID
+     */
+    public void reloadItemRawNode(@NotNull String itemId) {
+        Path itemPath = resolveItemPath(itemId);
+        if (!Files.exists(itemPath)) {
+            itemNodes.remove(itemId);
+            return;
+        }
+
+        try {
+            ConfigNode node = loader.load(ConfigSource.file(itemPath));
+            itemNodes.put(itemId, node);
+        } catch (Exception e) {
+            logger.warning("Failed to reload raw node for " + itemId + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Rebinds a single item from its raw node and updates the snapshot.
+     * <p>
+     * The raw node must already be loaded. Used during reload propagation
+     * when only specific items need rebinding.
+     *
+     * @param itemId the item ID to rebind
+     */
+    public void rebindItem(@NotNull String itemId) {
+        ConfigNode node = itemNodes.get(itemId);
+        if (node == null) {
+            removeItemFromSnapshot(itemId);
+            return;
+        }
+
+        T item = bindItem(itemId, node);
+        if (item != null) {
+            updateItemInSnapshot(itemId, item);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateItemInSnapshot(@NotNull String itemId, @NotNull T item) {
+        DefaultConfigCollectionSnapshot<T> oldSnapshot =
+                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
+        T oldItem = items.put(itemId, item);
+        itemMetadata.put(itemId, createItemMetaFromRegisteredNode(itemId));
+        rebuildSnapshot(items);
+
+        if (oldItem == null) {
+            notifyItemAdded(itemId, item);
+        } else {
+            notifyItemModified(itemId, oldItem, item);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void removeItemFromSnapshot(@NotNull String itemId) {
+        DefaultConfigCollectionSnapshot<T> oldSnapshot =
+                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
+        T oldItem = items.remove(itemId);
+        if (oldItem != null) {
+            itemMetadata.remove(itemId);
+            itemNodes.remove(itemId);
+            rebuildSnapshot(items);
+            notifyItemRemoved(itemId, oldItem);
+        }
+    }
+
+    private void notifyItemAdded(@NotNull String id, @NotNull T item) {
+        ref.notifyListeners(CollectionItemChange.added(collectionName, itemType, id, item));
+    }
+
+    private void notifyItemModified(@NotNull String id, @NotNull T oldItem, @NotNull T newItem) {
+        ref.notifyListeners(CollectionItemChange.modified(collectionName, itemType, id, oldItem, newItem));
+    }
+
+    private void notifyItemRemoved(@NotNull String id, @NotNull T oldItem) {
+        ref.notifyListeners(CollectionItemChange.removed(collectionName, itemType, id, oldItem));
+    }
+
+    private ItemMeta createItemMetaFromRegisteredNode(String id) {
+        try {
+            ConfigNode node = itemNodes.get(id);
+            if (node == null) {
+                return new ItemMeta("");
+            }
+
+            return createItemMeta(node);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Failed to create metadata for: " + id, e);
+            return new ItemMeta("");
+        }
     }
 
     private void ensureFolderExists() {
@@ -249,70 +552,6 @@ public final class CollectionEntry<T> {
         }
     }
 
-    public void loadAll() {
-        Map<String, T> itemsById = new LinkedHashMap<>();
-        List<T> orderedValues = new ArrayList<>();
-        Map<String, ItemMeta> newMetadata = new LinkedHashMap<>();
-
-        if (!Files.exists(folder)) {
-            ref.setSnapshot(DefaultConfigCollectionSnapshot.empty(itemType, collectionName));
-            return;
-        }
-
-        String excludePrefix = annotation.excludePrefix();
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder)) {
-            List<Path> files = new ArrayList<>();
-            for (Path path : stream) {
-                if (!Files.isRegularFile(path)) {
-                    continue;
-                }
-
-                String fileName = path.getFileName().toString();
-
-                if (!excludePrefix.isEmpty() && fileName.startsWith(excludePrefix)) {
-                    continue;
-                }
-
-                if (!matchesPattern(fileName)) {
-                    continue;
-                }
-
-                files.add(path);
-            }
-
-            files.sort(Comparator.comparing(p -> p.getFileName().toString()));
-
-            for (Path path : files) {
-                String id = getIdFromPath(path);
-                T item = loadItem(path, id);
-                if (item != null) {
-                    itemsById.put(id, item);
-                    orderedValues.add(item);
-                    newMetadata.put(id, createItemMeta(path));
-                }
-            }
-        } catch (IOException e) {
-            logger.warning("Failed to scan collection folder " + folder + ": " + e.getMessage());
-        }
-
-        String orderBy = annotation.orderBy();
-        if (!orderBy.isEmpty() && !"filename".equals(orderBy)) {
-            orderByField(orderedValues, orderBy);
-        }
-
-        List<T> enabledItems = computeEnabledItems(orderedValues);
-
-        itemMetadata.clear();
-        itemMetadata.putAll(newMetadata);
-
-        ref.setSnapshot(new DefaultConfigCollectionSnapshot<>(
-                itemType, collectionName, itemsById, orderedValues, enabledItems
-        ));
-
-        logger.fine("Loaded " + itemsById.size() + " items in collection '" + collectionName + "'");
-    }
-
     /**
      * Reloads all items and computes changes.
      */
@@ -346,9 +585,7 @@ public final class CollectionEntry<T> {
                 oldItems.remove(id);
                 itemMetadata.remove(id);
                 rebuildSnapshot(oldItems);
-                ref.notifyListeners(CollectionItemChange.removed(
-                        collectionName, itemType, id, oldItem
-                ));
+                notifyItemRemoved(id, oldItem);
             }
             return;
         }
@@ -362,9 +599,7 @@ public final class CollectionEntry<T> {
             oldItems.put(id, newItem);
             itemMetadata.put(id, createItemMeta(itemPath));
             rebuildSnapshot(oldItems);
-            ref.notifyListeners(CollectionItemChange.added(
-                    collectionName, itemType, id, newItem
-            ));
+            notifyItemAdded(id, newItem);
         } else {
             ItemMeta oldMeta = itemMetadata.get(id);
             ItemMeta newMeta = createItemMeta(itemPath);
@@ -373,9 +608,7 @@ public final class CollectionEntry<T> {
                 oldItems.put(id, newItem);
                 itemMetadata.put(id, newMeta);
                 rebuildSnapshot(oldItems);
-                ref.notifyListeners(CollectionItemChange.modified(
-                        collectionName, itemType, id, oldItem, newItem
-                ));
+                notifyItemModified(id, oldItem, newItem);
             }
         }
     }
@@ -413,13 +646,9 @@ public final class CollectionEntry<T> {
             rebuildSnapshot(items);
 
             if (isNew) {
-                ref.notifyListeners(CollectionItemChange.added(
-                        collectionName, itemType, id, loadedItem
-                ));
+                notifyItemAdded(id, loadedItem);
             } else {
-                ref.notifyListeners(CollectionItemChange.modified(
-                        collectionName, itemType, id, oldItem, loadedItem
-                ));
+                notifyItemModified(id, oldItem, loadedItem);
             }
 
             return EditResult.success(loadedItem);
@@ -454,9 +683,7 @@ public final class CollectionEntry<T> {
             itemMetadata.remove(id);
             rebuildSnapshot(items);
 
-            ref.notifyListeners(CollectionItemChange.removed(
-                    collectionName, itemType, id, oldItem
-            ));
+            notifyItemRemoved(id, oldItem);
 
             return EditResult.success();
         } catch (IOException e) {
@@ -523,19 +750,11 @@ public final class CollectionEntry<T> {
     private @Nullable T loadItem(Path path, String id) {
         try {
             ConfigNode node = loader.load(ConfigSource.file(path));
-            BindingResult<T> result = binder.bind(node, itemType, namingStrategy);
 
-            if (result.hasErrors()) {
-                logger.warning("Binding errors loading " + path + ": " + result.errors());
-                return null;
-            }
-            if (result.hasValidationErrors()) {
-                logger.warning("Validation errors loading " + path + ": " + result.validationErrors());
-                return null;
-            }
+            T item = bindItem(id, node);
 
-            T item = result.get();
-            injectId(item, id);
+            itemNodes.put(id, node);
+
             return item;
         } catch (Exception e) {
             logger.warning("Failed to load item from " + path + ": " + e.getMessage());
@@ -634,10 +853,20 @@ public final class CollectionEntry<T> {
     private ItemMeta createItemMeta(Path path) {
         try {
             ConfigNode node = loader.load(ConfigSource.file(path));
+
+            return createItemMeta(node);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Failed to create metadata for: " + path, e);
+            return new ItemMeta("");
+        }
+    }
+
+    private ItemMeta createItemMeta(ConfigNode node) {
+        try {
             String hash = ConfigNodeHash.sha256(node);
             return new ItemMeta(hash);
         } catch (Exception e) {
-            logger.log(Level.FINE, "Failed to create metadata for: " + path, e);
+            logger.log(Level.FINE, "Failed to create metadata for: " + node.path().asString(), e);
             return new ItemMeta("");
         }
     }

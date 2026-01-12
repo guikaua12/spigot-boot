@@ -51,17 +51,20 @@ public class DefaultBinder implements Binder {
     private final Validator validator;
     private final boolean implicitDefaults;
     private final boolean useConstructorBinding;
+    private final ConfigNodePreprocessor preprocessor;
 
     private DefaultBinder(
             @NotNull TypeSerializerRegistry serializers,
             @Nullable Validator validator,
             boolean implicitDefaults,
-            boolean useConstructorBinding
+            boolean useConstructorBinding,
+            @Nullable ConfigNodePreprocessor preprocessor
     ) {
         this.serializers = serializers;
         this.validator = validator;
         this.implicitDefaults = implicitDefaults;
         this.useConstructorBinding = useConstructorBinding;
+        this.preprocessor = preprocessor;
     }
 
     @Override
@@ -223,8 +226,16 @@ public class DefaultBinder implements Binder {
             String configKey = namingStrategy.toConfig(paramName);
             ConfigNode childNode = node.node(configKey);
 
+            ConfigNode processedNode = childNode;
+            if (preprocessor != null) {
+                ConfigNode preprocessed = preprocessor.preprocess(childNode, null, param.getParameterizedType());
+                if (preprocessed != null) {
+                    processedNode = preprocessed;
+                }
+            }
+
             try {
-                args[i] = deserializeValue(childNode, param.getParameterizedType(), PropertyPath.of(configKey), namingStrategy, errors);
+                args[i] = deserializeValue(processedNode, param.getParameterizedType(), PropertyPath.of(configKey), namingStrategy, errors);
             } catch (Exception e) {
                 errors.add(new BindingError(PropertyPath.of(configKey), paramName,
                         "Failed to deserialize constructor parameter", e));
@@ -272,7 +283,15 @@ public class DefaultBinder implements Binder {
             @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) throws IllegalAccessException {
-        if (node.isVirtual() || node.isNull()) {
+        ConfigNode processedNode = node;
+        if (preprocessor != null) {
+            ConfigNode preprocessed = preprocessor.preprocess(node, field, field.getGenericType());
+            if (preprocessed != null) {
+                processedNode = preprocessed;
+            }
+        }
+
+        if (processedNode.isVirtual() || processedNode.isNull()) {
             Default defaultAnn = field.getAnnotation(Default.class);
 
             if (defaultAnn != null) {
@@ -284,7 +303,7 @@ public class DefaultBinder implements Binder {
             return null;
         }
 
-        return deserializeValue(node, field.getGenericType(), path, namingStrategy, errors);
+        return deserializeValue(processedNode, field.getGenericType(), path, namingStrategy, errors);
     }
 
     @SuppressWarnings("unchecked")
@@ -452,6 +471,7 @@ public class DefaultBinder implements Binder {
         private Validator validator = null;
         private boolean implicitDefaults = true;
         private boolean useConstructorBinding = true;
+        private ConfigNodePreprocessor preprocessor = null;
 
         @Override
         public @NotNull Builder serializers(@NotNull TypeSerializerRegistry registry) {
@@ -478,8 +498,14 @@ public class DefaultBinder implements Binder {
         }
 
         @Override
+        public @NotNull Builder nodePreprocessor(@NotNull ConfigNodePreprocessor preprocessor) {
+            this.preprocessor = Objects.requireNonNull(preprocessor);
+            return this;
+        }
+
+        @Override
         public @NotNull Binder build() {
-            return new DefaultBinder(serializers, validator, implicitDefaults, useConstructorBinding);
+            return new DefaultBinder(serializers, validator, implicitDefaults, useConstructorBinding, preprocessor);
         }
     }
 }

@@ -106,10 +106,7 @@ public final class BeanUtils {
 
         CircularDependencyResult result = hasCircularDependency(newDependencyClass, dependencyMap, visitedClasses, currentPath);
         if (result.hasCircularDependency) {
-            throw new CircularDependencyException("Circular dependency detected: " +
-                    String.join(" -> ", result.circularPath.stream()
-                            .map(Class::getSimpleName)
-                            .toArray(String[]::new)));
+            throw new CircularDependencyException(result.circularPath);
         }
     }
 

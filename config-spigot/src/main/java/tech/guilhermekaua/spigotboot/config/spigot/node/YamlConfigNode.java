@@ -140,6 +140,11 @@ public class YamlConfigNode implements MutableConfigNode {
         return current;
     }
 
+    @Override
+    public @NotNull ConfigNode node(@NotNull PropertyPath path) {
+        return node(path.elements());
+    }
+
     @SuppressWarnings("unchecked")
     private YamlConfigNode getOrCreateChild(@NotNull Object key) {
         if (key instanceof Integer) {

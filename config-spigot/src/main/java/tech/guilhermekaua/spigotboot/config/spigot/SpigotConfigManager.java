@@ -32,19 +32,24 @@ import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
-import tech.guilhermekaua.spigotboot.config.binding.BindingResult;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
+import tech.guilhermekaua.spigotboot.config.reference.key.CollectionItemKey;
+import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
+import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.reload.DefaultConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
+import tech.guilhermekaua.spigotboot.config.spigot.reference.ConfigReferenceManager;
+import tech.guilhermekaua.spigotboot.config.spigot.reference.SpigotConfigReferenceLookup;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
+import tech.guilhermekaua.spigotboot.core.exceptions.CycleDetectedException;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
 
 import java.io.IOException;
@@ -63,11 +68,18 @@ public class SpigotConfigManager implements ConfigManager {
     private final YamlConfigLoader loader;
     private final TypeSerializerRegistry serializers;
     private final Binder binder;
+    private final ConfigReferenceManager referenceManager;
+    private final ConfigBindingCoordinator bindingCoordinator;
 
     private final Map<Class<?>, ConfigEntry<?>> configs = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> configsByName = new ConcurrentHashMap<>();
 
     private final Map<CollectionKey, CollectionEntry<?>> collections = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks whether initializeAll() has been called
+     */
+    private volatile boolean initialized = false;
 
     public SpigotConfigManager(@NotNull Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
@@ -75,12 +87,53 @@ public class SpigotConfigManager implements ConfigManager {
         this.serializers = TypeSerializerRegistry.defaults();
         BukkitSerializers.registerAll(this.serializers);
 
+        this.referenceManager = new ConfigReferenceManager(this, plugin.getLogger());
+
         this.binder = Binder.builder()
                 .serializers(serializers)
                 .validator(Validator.create())
                 .implicitDefaults(true)
                 .useConstructorBinding(true)
+                .nodePreprocessor(referenceManager.getPreprocessor())
                 .build();
+
+        this.bindingCoordinator = new ConfigBindingCoordinator(
+                referenceManager,
+                binder,
+                plugin.getLogger(),
+                new ConfigEntryAccessor() {
+                    @Override
+                    public @Nullable Class<?> getConfigClassByName(@NotNull String configName) {
+                        return configsByName.get(configName);
+                    }
+
+                    @Override
+                    public @Nullable ConfigNode getConfigNode(@NotNull Class<?> configClass) {
+                        ConfigEntry<?> entry = configs.get(configClass);
+                        return entry != null ? entry.getNode() : null;
+                    }
+
+                    @Override
+                    public @Nullable NamingStrategy getNamingStrategy(@NotNull Class<?> configClass) {
+                        ConfigEntry<?> entry = configs.get(configClass);
+                        return entry != null ? entry.getNamingStrategy() : null;
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public void setConfigInstance(@NotNull Class<?> configClass, @NotNull Object instance) {
+                        ConfigEntry<Object> entry = (ConfigEntry<Object>) configs.get(configClass);
+                        if (entry != null) {
+                            entry.setInstance(instance);
+                        }
+                    }
+
+                    @Override
+                    public @Nullable CollectionEntry<?> getCollectionEntryByName(@NotNull String collectionName) {
+                        return SpigotConfigManager.this.getCollectionEntryByName(collectionName);
+                    }
+                }
+        );
     }
 
     /**
@@ -155,6 +208,9 @@ public class SpigotConfigManager implements ConfigManager {
 
     /**
      * Registers a config collection.
+     * <p>
+     * This only registers the collection definition.
+     * Actual loading and binding happens in {@link #initializeAll()}.
      *
      * @param itemType   the item type class
      * @param annotation the @ConfigCollection annotation
@@ -165,12 +221,15 @@ public class SpigotConfigManager implements ConfigManager {
         Objects.requireNonNull(annotation, "annotation cannot be null");
 
         CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder, annotation.naming());
-        entry.initialize();
+
+        validateConfigName(entry.getCollectionName(), itemType.getName());
+
+        entry.prepareFolder();
 
         CollectionKey key = new CollectionKey(itemType, entry.getCollectionName());
         collections.put(key, entry);
 
-        plugin.getLogger().info("Registered collection: " + entry.getCollectionName() +
+        plugin.getLogger().info("Registered collection definition: " + entry.getCollectionName() +
                 " (" + itemType.getSimpleName() + ") from " + entry.getFolder());
     }
 
@@ -219,6 +278,43 @@ public class SpigotConfigManager implements ConfigManager {
                     ": " + names + ". Use the overload with collectionName parameter, or add @ConfigRefName on the injection point.");
         }
         return names.get(0);
+    }
+
+    /**
+     * Initializes all registered configs and collections in topological order.
+     * <p>
+     * This method must be called after all {@link #register(Class)} and
+     * {@link #registerCollection(Class, ConfigCollection)} calls are complete.
+     * It delegates to {@link #reloadAll()} after setting the initialized flag.
+     *
+     * @throws ConfigException if a cycle is detected in references
+     */
+    public void initializeAll() {
+        if (initialized) {
+            throw new ConfigException("initializeAll() called more than once");
+        }
+
+        initialized = true;
+        reloadAll();
+        plugin.getLogger().info("Config initialization complete.");
+    }
+
+    /**
+     * Checks if initialization has been completed.
+     *
+     * @return true if {@link #initializeAll()} has been called
+     */
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    /**
+     * Gets the reference manager for advanced operations.
+     *
+     * @return the reference manager
+     */
+    public @NotNull ConfigReferenceManager getReferenceManager() {
+        return referenceManager;
     }
 
     // ==================== Standard config methods ====================
@@ -338,31 +434,47 @@ public class SpigotConfigManager implements ConfigManager {
             throw new ConfigException("Class is not annotated with @Config: " + configClass.getName());
         }
 
+        String configName = annotation.name();
+        if (configName.isEmpty()) {
+            configName = configClass.getSimpleName().toLowerCase();
+        }
+        final String finalConfigName = configName;
+
+        validateConfigName(finalConfigName, configClass.getName());
+
         if (annotation.generateDefaults() && !source.exists()) {
             copyDefaultFromResources(configClass, annotation, source);
         }
 
         NamingStrategy namingStrategy = annotation.naming();
+
         ConfigNode node = loader.load(source);
-        BindingResult<T> result = binder.bind(node, configClass, namingStrategy);
 
-        T instance = result.get();
-
-        DefaultConfigRef<T> ref = new DefaultConfigRef<>(configClass, instance, () -> {
+        DefaultConfigRef<T> ref = new DefaultConfigRef<>(configClass, null, () -> {
             ConfigNode reloadedNode = loader.load(source);
-            return binder.bind(reloadedNode, configClass, namingStrategy).get();
+            ReferenceKey sourceKey = ReferenceKey.singleConfig(finalConfigName);
+            referenceManager.setCurrentSourceKey(sourceKey);
+            try {
+                return binder.bind(reloadedNode, configClass, namingStrategy).get();
+            } finally {
+                referenceManager.clearCurrentSourceKey();
+            }
         });
 
-        ConfigEntry<T> entry = new ConfigEntry<>(configClass, source, namingStrategy, instance, ref, node);
+        ConfigEntry<T> entry = new ConfigEntry<>(configClass, source, namingStrategy, null, ref, node, finalConfigName);
         configs.put(configClass, entry);
+        configsByName.put(finalConfigName, configClass);
 
-        String name = annotation.name();
-        if (name.isEmpty()) {
-            name = configClass.getSimpleName().toLowerCase();
+        plugin.getLogger().info("Registered config definition: " + configClass.getSimpleName() + " (name=" + finalConfigName + ")");
+    }
+
+    private void validateConfigName(@NotNull String name, @NotNull String contextInfo) {
+        if (name.contains(".")) {
+            throw new ConfigException("Config name '" + name + "' cannot contain '.'. Context: " + contextInfo);
         }
-        configsByName.put(name, configClass);
-
-        plugin.getLogger().info("Registered config: " + configClass.getSimpleName() + " from " + source.name());
+        if (name.contains(":")) {
+            throw new ConfigException("Config name '" + name + "' cannot contain ':'. Context: " + contextInfo);
+        }
     }
 
     private void copyDefaultFromResources(Class<?> configClass, Config annotation, ConfigSource target) {
@@ -423,11 +535,8 @@ public class SpigotConfigManager implements ConfigManager {
             throw new ConfigException("Config not registered: " + configClass.getName());
         }
 
-        ConfigNode node = loader.load(entry.getSource());
-        BindingResult<?> result = binder.bind(node, configClass, entry.getNamingStrategy());
-        Object newInstance = result.get();
-
-        ((ConfigEntry<Object>) entry).update(newInstance, node);
+        ReferenceKey key = ReferenceKey.singleConfig(entry.getConfigName());
+        reloadKeyWithPropagation(key);
         plugin.getLogger().info("Reloaded config: " + configClass.getSimpleName());
     }
 
@@ -447,27 +556,145 @@ public class SpigotConfigManager implements ConfigManager {
             throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
         }
 
-        entry.reloadItem(itemId);
+        ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+        reloadKeyWithPropagation(key);
+        plugin.getLogger().info("Reloaded collection item: " + collectionName + "." + itemId);
+    }
+
+    /**
+     * Reloads a single key and all its transitive dependents.
+     * <p>
+     * This performs:
+     * <ol>
+     *   <li>Reload the raw node from disk</li>
+     *   <li>Rescan for references and update graph edges</li>
+     *   <li>Compute impacted set (this key + all transitive dependents)</li>
+     *   <li>Rebind impacted keys in topological order</li>
+     * </ol>
+     *
+     * @param key the key to reload
+     */
+    private void reloadKeyWithPropagation(@NotNull ReferenceKey key) {
+        ConfigNode newNode = reloadRawNode(key);
+        if (newNode == null) {
+            return;
+        }
+
+        referenceManager.updateDependenciesForKey(key, newNode);
+
+        Set<ReferenceKey> impacted = referenceManager.getImpactedKeys(key);
+
+        List<ReferenceKey> reloadOrder;
+        try {
+            reloadOrder = referenceManager.getLoadOrderForSubset(impacted);
+        } catch (CycleDetectedException e) {
+            throw new ConfigException("Circular reference detected during reload: " + e.formatCycle(), e);
+        }
+
+        for (ReferenceKey impactedKey : reloadOrder) {
+            bindingCoordinator.bindKey(impactedKey, true);
+        }
+    }
+
+    /**
+     * Reloads the raw node for a key from disk.
+     *
+     * @param key the reference key
+     * @return the new raw node, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    private @Nullable ConfigNode reloadRawNode(@NotNull ReferenceKey key) {
+        if (key.isSingleConfig()) {
+            SingleConfigKey singleKey = (SingleConfigKey) key;
+            String configName = singleKey.getConfigName();
+            Class<?> configClass = configsByName.get(configName);
+            if (configClass == null) {
+                return null;
+            }
+
+            ConfigEntry<Object> entry = (ConfigEntry<Object>) configs.get(configClass);
+            if (entry == null) {
+                return null;
+            }
+
+            ConfigNode newNode = loader.load(entry.getSource());
+            entry.setNode(newNode);
+            return newNode;
+        } else {
+            CollectionItemKey itemKey = (CollectionItemKey) key;
+            String collectionName = itemKey.getCollectionName();
+            String itemId = itemKey.getItemId();
+
+            CollectionEntry<?> collEntry = getCollectionEntryByName(collectionName);
+            if (collEntry == null) {
+                return null;
+            }
+
+            collEntry.reloadItemRawNode(itemId);
+            return collEntry.getItemNode(itemId);
+        }
     }
 
     @Override
     public void reloadAll() {
-        for (Class<?> configClass : configs.keySet()) {
-            try {
-                reload(configClass);
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to reload " + configClass.getSimpleName() + ": " + e.getMessage());
+        if (!initialized) {
+            plugin.getLogger().warning("reloadAll() called before initialization - calling initializeAll() instead");
+            initializeAll();
+            return;
+        }
+
+        plugin.getLogger().info("Loading all configs with reference resolution...");
+
+        referenceManager.resetDependencies();
+
+        for (ConfigEntry<?> entry : configs.values()) {
+            ConfigNode newNode = loader.load(entry.getSource());
+            entry.setNode(newNode);
+
+            ReferenceKey key = ReferenceKey.singleConfig(entry.getConfigName());
+            referenceManager.scanAndRegister(key, newNode);
+        }
+
+        for (CollectionEntry<?> collEntry : collections.values()) {
+            collEntry.loadRawNodesOnly();
+
+            String collectionName = collEntry.getCollectionName();
+            for (String itemId : collEntry.getItemIds()) {
+                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+                ConfigNode node = collEntry.getItemNode(itemId);
+                if (node != null) {
+                    referenceManager.scanAndRegister(key, node);
+                }
             }
         }
 
-        for (CollectionEntry<?> entry : collections.values()) {
-            try {
-                entry.reloadAll();
-                plugin.getLogger().info("Reloaded collection: " + entry.getCollectionName());
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to reload collection " + entry.getCollectionName() + ": " + e.getMessage());
-            }
+        List<ReferenceKey> loadOrder;
+        try {
+            loadOrder = referenceManager.getLoadOrder();
+        } catch (CycleDetectedException e) {
+            throw new ConfigException("Circular config reference detected: " + e.formatCycle(), e);
         }
+
+
+        for (ReferenceKey key : loadOrder) {
+            bindingCoordinator.bindKey(key, true);
+        }
+
+        for (CollectionEntry<?> collEntry : collections.values()) {
+            String collectionName = collEntry.getCollectionName();
+            List<String> itemOrder = new ArrayList<>();
+            for (ReferenceKey key : loadOrder) {
+                if (key instanceof CollectionItemKey) {
+                    CollectionItemKey itemKey = (CollectionItemKey) key;
+                    if (itemKey.getCollectionName().equals(collectionName)) {
+                        itemOrder.add(itemKey.getItemId());
+                    }
+                }
+            }
+            collEntry.bindFromLoadedNodes(itemOrder);
+        }
+
+        plugin.getLogger().info("Load complete.");
     }
 
     @Override
@@ -515,6 +742,71 @@ public class SpigotConfigManager implements ConfigManager {
         return Collections.unmodifiableSet(configs.keySet());
     }
 
+    // ==================== Reference Lookup Support ====================
+
+    /**
+     * Gets the raw config node for a config by name.
+     * <p>
+     * Used by {@link tech.guilhermekaua.spigotboot.config.spigot.reference.SpigotConfigReferenceLookup}.
+     *
+     * @param configName the config name
+     * @return the config node, or null if not found
+     */
+    public @Nullable ConfigNode getConfigNode(@NotNull String configName) {
+        Objects.requireNonNull(configName, "configName cannot be null");
+
+        Class<?> configClass = configsByName.get(configName);
+        if (configClass == null) {
+            return null;
+        }
+
+        ConfigEntry<?> entry = configs.get(configClass);
+        return entry != null ? entry.getNode() : null;
+    }
+
+    /**
+     * Gets all registered config names.
+     *
+     * @return set of config names
+     */
+    public @NotNull Set<String> getConfigNames() {
+        return Collections.unmodifiableSet(configsByName.keySet());
+    }
+
+    /**
+     * Gets a collection entry by name only (without item type).
+     * <p>
+     * Used by {@link SpigotConfigReferenceLookup}.
+     *
+     * @param collectionName the collection name
+     * @return the collection entry, or null if not found
+     */
+    public @Nullable CollectionEntry<?> getCollectionEntryByName(@NotNull String collectionName) {
+        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+
+        for (Map.Entry<CollectionKey, CollectionEntry<?>> entry : collections.entrySet()) {
+            if (entry.getKey().getCollectionName().equals(collectionName)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets all collection names across all item types.
+     *
+     * @return set of all collection names
+     */
+    public @NotNull Set<String> getAllCollectionNames() {
+        Set<String> names = new LinkedHashSet<>();
+        for (CollectionKey key : collections.keySet()) {
+            names.add(key.getCollectionName());
+        }
+        return Collections.unmodifiableSet(names);
+    }
+
+    // ==================== Internal Classes ====================
+
     /**
      * Internal entry holding config state.
      */
@@ -522,14 +814,17 @@ public class SpigotConfigManager implements ConfigManager {
         private final Class<T> configClass;
         private final ConfigSource source;
         private final NamingStrategy namingStrategy;
+        private final String configName;
         private volatile T instance;
         private final DefaultConfigRef<T> ref;
         private volatile ConfigNode node;
 
-        ConfigEntry(Class<T> configClass, ConfigSource source, NamingStrategy namingStrategy, T instance, DefaultConfigRef<T> ref, ConfigNode node) {
+        ConfigEntry(Class<T> configClass, ConfigSource source, NamingStrategy namingStrategy,
+                    T instance, DefaultConfigRef<T> ref, ConfigNode node, String configName) {
             this.configClass = configClass;
             this.source = source;
             this.namingStrategy = namingStrategy;
+            this.configName = configName;
             this.instance = instance;
             this.ref = ref;
             this.node = node;
@@ -551,6 +846,10 @@ public class SpigotConfigManager implements ConfigManager {
             return namingStrategy;
         }
 
+        String getConfigName() {
+            return configName;
+        }
+
         ConfigNode getNode() {
             return node;
         }
@@ -559,6 +858,15 @@ public class SpigotConfigManager implements ConfigManager {
             this.instance = newInstance;
             this.node = newNode;
             this.ref.update(newInstance);
+        }
+
+        void setInstance(T newInstance) {
+            this.instance = newInstance;
+            this.ref.update(newInstance);
+        }
+
+        void setNode(ConfigNode newNode) {
+            this.node = newNode;
         }
     }
 

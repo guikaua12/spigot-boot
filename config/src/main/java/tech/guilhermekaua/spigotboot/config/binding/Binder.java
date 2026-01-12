@@ -122,6 +122,17 @@ public interface Binder {
         @NotNull Builder useConstructorBinding(boolean enabled);
 
         /**
+         * Sets a node preprocessor for transforming nodes before binding.
+         * <p>
+         * The preprocessor is called for each node before deserialization.
+         * This is used for resolving config references ({@code ${...}}).
+         *
+         * @param preprocessor the preprocessor
+         * @return this builder
+         */
+        @NotNull Builder nodePreprocessor(@NotNull ConfigNodePreprocessor preprocessor);
+
+        /**
          * Builds the binder.
          *
          * @return the binder

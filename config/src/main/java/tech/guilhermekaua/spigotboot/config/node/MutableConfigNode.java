@@ -2,6 +2,7 @@ package tech.guilhermekaua.spigotboot.config.node;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 
 /**
  * Mutable configuration node that supports modification operations.
@@ -25,6 +26,14 @@ public interface MutableConfigNode extends ConfigNode {
      */
     @Override
     @NotNull MutableConfigNode node(@NotNull Object... path);
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * For mutable nodes, this creates the path if it doesn't exist.
+     */
+    @Override
+    @NotNull ConfigNode node(@NotNull PropertyPath path);
 
     /**
      * Sets a comment for this node (if supported by the format).

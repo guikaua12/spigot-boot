@@ -105,6 +105,11 @@ class TestConfigNode implements ConfigNode {
     }
 
     @Override
+    public @NotNull ConfigNode node(@NotNull PropertyPath path) {
+        return node(path.elements());
+    }
+
+    @Override
     public boolean hasChild(@NotNull Object... pathSegments) {
         return !node(pathSegments).isVirtual();
     }
