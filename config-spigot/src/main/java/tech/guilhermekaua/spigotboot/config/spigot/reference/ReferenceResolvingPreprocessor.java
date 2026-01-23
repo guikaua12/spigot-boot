@@ -48,7 +48,7 @@ import java.util.Objects;
 public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
 
     private final ConfigReferenceResolver resolver;
-    private volatile ReferenceKey currentSourceKey;
+    private final ThreadLocal<ReferenceKey> currentSourceKey = new ThreadLocal<>();
 
     /**
      * Creates a new preprocessor.
@@ -68,14 +68,14 @@ public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
      * @param sourceKey the key of the config being bound
      */
     public void setCurrentSourceKey(@NotNull ReferenceKey sourceKey) {
-        this.currentSourceKey = Objects.requireNonNull(sourceKey, "sourceKey cannot be null");
+        currentSourceKey.set(Objects.requireNonNull(sourceKey, "sourceKey cannot be null"));
     }
 
     /**
      * Clears the current source key.
      */
     public void clearCurrentSourceKey() {
-        this.currentSourceKey = null;
+        currentSourceKey.remove();
     }
 
     /**
@@ -84,7 +84,7 @@ public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
      * @return the current source key, or null if not set
      */
     public @Nullable ReferenceKey getCurrentSourceKey() {
-        return currentSourceKey;
+        return currentSourceKey.get();
     }
 
     @Override
@@ -106,7 +106,7 @@ public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
             return null;
         }
 
-        ReferenceKey sourceKey = currentSourceKey;
+        ReferenceKey sourceKey = currentSourceKey.get();
         if (sourceKey == null) {
             // shouldn't happen in normal usage
             sourceKey = ReferenceKey.singleConfig("unknown");
