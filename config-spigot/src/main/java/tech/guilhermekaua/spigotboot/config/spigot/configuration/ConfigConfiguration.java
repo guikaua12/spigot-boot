@@ -1,6 +1,8 @@
 package tech.guilhermekaua.spigotboot.config.spigot.configuration;
 
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceErrorHandler;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigCollectionInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
@@ -11,8 +13,8 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInje
 @Configuration
 public class ConfigConfiguration {
     @Bean
-    public SpigotConfigManager configManager(Plugin plugin) {
-        return new SpigotConfigManager(plugin);
+    public SpigotConfigManager configManager(Plugin plugin, @Nullable ConfigReferenceErrorHandler errorHandler) {
+        return new SpigotConfigManager(plugin, errorHandler);
     }
 
     @Bean

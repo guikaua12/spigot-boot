@@ -48,18 +48,29 @@ public class ConfigReferenceManager {
     private final DependencyGraph<ReferenceKey> dependencyGraph;
 
     /**
-     * Creates a new reference manager.
+     * Creates a new reference manager with default error handling.
      *
      * @param configManager the config manager for lookups
      * @param logger        the logger for error messages
      */
     public ConfigReferenceManager(@NotNull SpigotConfigManager configManager, @NotNull Logger logger) {
+        this(configManager, new DefaultConfigReferenceErrorHandler(logger));
+    }
+
+    /**
+     * Creates a new reference manager with custom error handling.
+     *
+     * @param configManager the config manager for lookups
+     * @param errorHandler  the error handler for reference resolution errors
+     */
+    public ConfigReferenceManager(@NotNull SpigotConfigManager configManager,
+                                  @NotNull ConfigReferenceErrorHandler errorHandler) {
         Objects.requireNonNull(configManager, "configManager cannot be null");
-        Objects.requireNonNull(logger, "logger cannot be null");
+        Objects.requireNonNull(errorHandler, "errorHandler cannot be null");
 
         this.lookup = new SpigotConfigReferenceLookup(configManager);
         this.parser = new ConfigReferenceParser();
-        this.errorHandler = new DefaultConfigReferenceErrorHandler(logger);
+        this.errorHandler = errorHandler;
         this.resolver = new ConfigReferenceResolver(lookup, parser, errorHandler);
         this.scanner = new ConfigReferenceDependencyScanner(parser);
         this.preprocessor = new ReferenceResolvingPreprocessor(resolver);

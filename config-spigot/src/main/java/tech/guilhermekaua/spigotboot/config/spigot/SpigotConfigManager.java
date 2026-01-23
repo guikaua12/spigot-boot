@@ -38,6 +38,7 @@ import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
+import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceErrorHandler;
 import tech.guilhermekaua.spigotboot.config.reference.key.CollectionItemKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
@@ -81,13 +82,32 @@ public class SpigotConfigManager implements ConfigManager {
      */
     private volatile boolean initialized = false;
 
+    /**
+     * Creates a new config manager with default error handling.
+     *
+     * @param plugin the Bukkit plugin
+     */
     public SpigotConfigManager(@NotNull Plugin plugin) {
+        this(plugin, null);
+    }
+
+    /**
+     * Creates a new config manager with optional custom error handling.
+     *
+     * @param plugin       the Bukkit plugin
+     * @param errorHandler the optional custom error handler (null for default)
+     */
+    public SpigotConfigManager(@NotNull Plugin plugin, @Nullable ConfigReferenceErrorHandler errorHandler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         this.loader = new YamlConfigLoader();
         this.serializers = TypeSerializerRegistry.defaults();
         BukkitSerializers.registerAll(this.serializers);
 
-        this.referenceManager = new ConfigReferenceManager(this, plugin.getLogger());
+        if (errorHandler != null) {
+            this.referenceManager = new ConfigReferenceManager(this, errorHandler);
+        } else {
+            this.referenceManager = new ConfigReferenceManager(this, plugin.getLogger());
+        }
 
         this.binder = Binder.builder()
                 .serializers(serializers)
