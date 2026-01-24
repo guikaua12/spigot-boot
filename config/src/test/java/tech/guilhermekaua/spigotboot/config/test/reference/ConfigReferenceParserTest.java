@@ -36,9 +36,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for {@link ConfigReferenceParser}.
- */
 class ConfigReferenceParserTest {
 
     private ConfigReferenceParser parser;
@@ -225,16 +222,10 @@ class ConfigReferenceParserTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"${name:with}", "${name.item:with}", "${@invalid}", "${name!special}"})
-        @DisplayName("rejects names with invalid special characters (except underscore/hyphen)")
+        @ValueSource(strings = {"${@invalid}", "${name!special}"})
+        @DisplayName("rejects names with invalid special characters")
         void rejectsInvalidSpecialChars(String input) {
-            // Only ${name:with} and ${name.item:with} are actually valid
-            // Testing that we don't accept truly invalid chars
-            Optional<ConfigReference> result = parser.tryParse("${@invalid}");
-            assertFalse(result.isPresent());
-
-            result = parser.tryParse("${name!special}");
-            assertFalse(result.isPresent());
+            assertFalse(parser.tryParse(input).isPresent());
         }
     }
 
@@ -274,12 +265,10 @@ class ConfigReferenceParserTest {
         @Test
         @DisplayName("distinguishes between single config and collection based on dot")
         void distinguishesSingleVsCollection() {
-            // No dot -> single config
             Optional<ConfigReference> single = parser.tryParse("${myconfig}");
             assertTrue(single.isPresent());
             assertTrue(single.get().isSingleConfig());
 
-            // Has dot -> collection item
             Optional<ConfigReference> collection = parser.tryParse("${myconfig.item}");
             assertTrue(collection.isPresent());
             assertTrue(collection.get().isCollectionItem());

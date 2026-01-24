@@ -29,22 +29,28 @@ import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 
 import java.util.*;
 
-/**
- * Simple ConfigNode implementation for testing purposes.
- */
-class TestConfigNode implements ConfigNode {
+public class TestConfigNode implements ConfigNode {
 
     private final Object value;
     private final PropertyPath path;
+    private final boolean virtual;
 
-    TestConfigNode(@Nullable Object value) {
-        this.value = value;
-        this.path = PropertyPath.root();
+    public TestConfigNode(@Nullable Object value) {
+        this(value, PropertyPath.root(), false);
     }
 
-    TestConfigNode(@Nullable Object value, @NotNull PropertyPath path) {
+    public TestConfigNode(@Nullable Object value, @NotNull PropertyPath path) {
+        this(value, path, false);
+    }
+
+    private TestConfigNode(@Nullable Object value, @NotNull PropertyPath path, boolean virtual) {
         this.value = value;
         this.path = path;
+        this.virtual = virtual;
+    }
+
+    private static @NotNull TestConfigNode virtualNode(@NotNull PropertyPath path) {
+        return new TestConfigNode(null, path, true);
     }
 
     @Override
@@ -55,7 +61,7 @@ class TestConfigNode implements ConfigNode {
     @Override
     @SuppressWarnings("unchecked")
     public <T> @Nullable T get(@NotNull Class<T> type) {
-        if (value == null) {
+        if (virtual || value == null) {
             return null;
         }
         if (type.isInstance(value)) {
@@ -72,6 +78,9 @@ class TestConfigNode implements ConfigNode {
 
     @Override
     public @NotNull ConfigNode node(@NotNull Object... pathSegments) {
+        if (virtual) {
+            return this;
+        }
         if (pathSegments.length == 0) {
             return this;
         }
@@ -81,27 +90,33 @@ class TestConfigNode implements ConfigNode {
 
         for (Object segment : pathSegments) {
             if (current == null) {
-                return new TestConfigNode(null, currentPath.child(String.valueOf(segment)));
+                return virtualNode(currentPath.child(String.valueOf(segment)));
             }
 
-            if (current instanceof Map && segment instanceof String) {
-                current = ((Map<?, ?>) current).get(segment);
-                currentPath = currentPath.child((String) segment);
-            } else if (current instanceof List && segment instanceof Integer) {
-                List<?> list = (List<?>) current;
-                int index = (Integer) segment;
-                if (index >= 0 && index < list.size()) {
-                    current = list.get(index);
-                } else {
-                    current = null;
+            if (current instanceof Map<?, ?> map && segment instanceof String key) {
+
+                if (!map.containsKey(key)) {
+                    return virtualNode(currentPath.child(key));
                 }
-                currentPath = currentPath.child(index);
+
+                current = map.get(key);
+                currentPath = currentPath.child(key);
+            } else if (current instanceof List<?> list && segment instanceof Integer) {
+                int index = (Integer) segment;
+
+                PropertyPath childPath = currentPath.child(index);
+                if (index < 0 || index >= list.size()) {
+                    return virtualNode(childPath);
+                }
+
+                current = list.get(index);
+                currentPath = childPath;
             } else {
-                return new TestConfigNode(null, currentPath.child(String.valueOf(segment)));
+                return virtualNode(currentPath.child(String.valueOf(segment)));
             }
         }
 
-        return new TestConfigNode(current, currentPath);
+        return new TestConfigNode(current, currentPath, false);
     }
 
     @Override
@@ -117,7 +132,7 @@ class TestConfigNode implements ConfigNode {
     @Override
     @SuppressWarnings("unchecked")
     public @NotNull Map<String, ? extends ConfigNode> childrenMap() {
-        if (!(value instanceof Map)) {
+        if (virtual || !(value instanceof Map)) {
             return Collections.emptyMap();
         }
 
@@ -131,12 +146,11 @@ class TestConfigNode implements ConfigNode {
 
     @Override
     public @NotNull List<? extends ConfigNode> childrenList() {
-        if (!(value instanceof List)) {
+        if (virtual || !(value instanceof List<?> list)) {
             return Collections.emptyList();
         }
 
         List<ConfigNode> result = new ArrayList<>();
-        List<?> list = (List<?>) value;
         for (int i = 0; i < list.size(); i++) {
             result.add(new TestConfigNode(list.get(i), path.child(i)));
         }
@@ -145,17 +159,17 @@ class TestConfigNode implements ConfigNode {
 
     @Override
     public boolean isMap() {
-        return value instanceof Map;
+        return !virtual && value instanceof Map;
     }
 
     @Override
     public boolean isList() {
-        return value instanceof List;
+        return !virtual && value instanceof List;
     }
 
     @Override
     public boolean isScalar() {
-        return value != null && !(value instanceof Map) && !(value instanceof List);
+        return !virtual && value != null && !(value instanceof Map) && !(value instanceof List);
     }
 
     @Override
@@ -165,7 +179,7 @@ class TestConfigNode implements ConfigNode {
 
     @Override
     public boolean isVirtual() {
-        return false;
+        return virtual;
     }
 
     @Override

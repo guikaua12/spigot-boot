@@ -22,7 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.config.reference;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,9 +29,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
+import tech.guilhermekaua.spigotboot.config.test.TestConfigNode;
 import tech.guilhermekaua.spigotboot.core.exceptions.CycleDetectedException;
 import tech.guilhermekaua.spigotboot.core.utils.DependencyGraph;
-import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 
 import java.util.*;
 
@@ -184,7 +183,7 @@ class ConfigReferenceDependencyScannerTest {
         @Test
         @DisplayName("adds edges to graph")
         void addsEdgesToGraph() throws CycleDetectedException {
-            DependencyGraph graph = new DependencyGraph();
+            DependencyGraph<ReferenceKey> graph = new DependencyGraph<>();
 
             Map<String, Object> configAData = new HashMap<>();
             configAData.put("ref", "${configB}");
@@ -194,7 +193,6 @@ class ConfigReferenceDependencyScannerTest {
                     testNode(configAData),
                     graph);
 
-            // configA depends on configB, so B should come before A in topo order
             List<ReferenceKey> order = graph.topologicalOrder();
             int indexB = order.indexOf(ReferenceKey.singleConfig("configB"));
             int indexA = order.indexOf(ReferenceKey.singleConfig("configA"));
@@ -205,9 +203,8 @@ class ConfigReferenceDependencyScannerTest {
         @Test
         @DisplayName("builds correct load order for chain")
         void buildsCorrectLoadOrderForChain() throws CycleDetectedException {
-            DependencyGraph graph = new DependencyGraph();
+            DependencyGraph<ReferenceKey> graph = new DependencyGraph<>();
 
-            // C -> B -> A (C depends on B, B depends on A)
             Map<String, Object> configCData = new HashMap<>();
             configCData.put("ref", "${configB}");
             scanner.scanAndAddToGraph(ReferenceKey.singleConfig("configC"), testNode(configCData), graph);
@@ -227,206 +224,7 @@ class ConfigReferenceDependencyScannerTest {
         }
     }
 
-    // ==================== Helper ====================
-
     private ConfigNode testNode(@Nullable Object value) {
-        return new SimpleTestNode(value);
-    }
-
-    private static class SimpleTestNode implements ConfigNode {
-        private final Object value;
-        private final PropertyPath path;
-
-        SimpleTestNode(@Nullable Object value) {
-            this.value = value;
-            this.path = PropertyPath.root();
-        }
-
-        SimpleTestNode(@Nullable Object value, PropertyPath path) {
-            this.value = value;
-            this.path = path;
-        }
-
-        @Override
-        public @Nullable Object raw() {
-            return value;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T> @Nullable T get(@NotNull Class<T> type) {
-            if (value == null) return null;
-            if (type.isInstance(value)) return (T) value;
-            return null;
-        }
-
-        @Override
-        public <T> @NotNull T get(@NotNull Class<T> type, @NotNull T defaultValue) {
-            T result = get(type);
-            return result != null ? result : defaultValue;
-        }
-
-        @Override
-        public @NotNull ConfigNode node(@NotNull Object... pathSegments) {
-            if (pathSegments.length == 0) return this;
-
-            Object current = value;
-            PropertyPath currentPath = path;
-
-            for (Object segment : pathSegments) {
-                if (current == null) {
-                    return new VirtualTestNode(currentPath.child(String.valueOf(segment)));
-                }
-                if (current instanceof Map && segment instanceof String) {
-                    current = ((Map<?, ?>) current).get(segment);
-                    currentPath = currentPath.child((String) segment);
-                } else {
-                    return new VirtualTestNode(currentPath.child(String.valueOf(segment)));
-                }
-            }
-
-            return new SimpleTestNode(current, currentPath);
-        }
-
-        @Override
-        public @NotNull ConfigNode node(@NotNull PropertyPath path) {
-            return node(path.elements());
-        }
-
-        @Override
-        public boolean hasChild(@NotNull Object... pathSegments) {
-            return !node(pathSegments).isVirtual();
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public @NotNull Map<String, ? extends ConfigNode> childrenMap() {
-            if (!(value instanceof Map)) return Collections.emptyMap();
-            Map<String, ConfigNode> result = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
-                result.put(entry.getKey(), new SimpleTestNode(entry.getValue(), path.child(entry.getKey())));
-            }
-            return result;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public @NotNull List<? extends ConfigNode> childrenList() {
-            if (!(value instanceof List)) return Collections.emptyList();
-            List<ConfigNode> result = new ArrayList<>();
-            List<Object> list = (List<Object>) value;
-            for (int i = 0; i < list.size(); i++) {
-                result.add(new SimpleTestNode(list.get(i), path.child(i)));
-            }
-            return result;
-        }
-
-        @Override
-        public boolean isMap() {
-            return value instanceof Map;
-        }
-
-        @Override
-        public boolean isList() {
-            return value instanceof List;
-        }
-
-        @Override
-        public boolean isScalar() {
-            return value != null && !(value instanceof Map) && !(value instanceof List);
-        }
-
-        @Override
-        public boolean isNull() {
-            return value == null;
-        }
-
-        @Override
-        public boolean isVirtual() {
-            return false;
-        }
-
-        @Override
-        public @NotNull PropertyPath path() {
-            return path;
-        }
-    }
-
-    private static class VirtualTestNode implements ConfigNode {
-        private final PropertyPath path;
-
-        VirtualTestNode(PropertyPath path) {
-            this.path = path;
-        }
-
-        @Override
-        public @Nullable Object raw() {
-            return null;
-        }
-
-        @Override
-        public <T> @Nullable T get(@NotNull Class<T> type) {
-            return null;
-        }
-
-        @Override
-        public <T> @NotNull T get(@NotNull Class<T> type, @NotNull T defaultValue) {
-            return defaultValue;
-        }
-
-        @Override
-        public @NotNull ConfigNode node(@NotNull Object... pathSegments) {
-            return this;
-        }
-
-        @Override
-        public @NotNull ConfigNode node(@NotNull PropertyPath path) {
-            return node(path.elements());
-        }
-
-        @Override
-        public boolean hasChild(@NotNull Object... pathSegments) {
-            return false;
-        }
-
-        @Override
-        public @NotNull Map<String, ? extends ConfigNode> childrenMap() {
-            return Collections.emptyMap();
-        }
-
-        @Override
-        public @NotNull List<? extends ConfigNode> childrenList() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public boolean isMap() {
-            return false;
-        }
-
-        @Override
-        public boolean isList() {
-            return false;
-        }
-
-        @Override
-        public boolean isScalar() {
-            return false;
-        }
-
-        @Override
-        public boolean isNull() {
-            return true;
-        }
-
-        @Override
-        public boolean isVirtual() {
-            return true;
-        }
-
-        @Override
-        public @NotNull PropertyPath path() {
-            return path;
-        }
+        return new TestConfigNode(value);
     }
 }

@@ -33,9 +33,6 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for {@link DependencyGraph}.
- */
 class DependencyGraphTest {
 
     private DependencyGraph<String> graph;
@@ -123,7 +120,6 @@ class DependencyGraphTest {
         @Test
         @DisplayName("linear chain orders dependencies first")
         void linearChain() throws CycleDetectedException {
-            // A -> B -> C (A depends on B, B depends on C)
             String a = "a";
             String b = "b";
             String c = "c";
@@ -132,8 +128,6 @@ class DependencyGraphTest {
             graph.addEdge(b, c);
 
             List<String> order = graph.topologicalOrder();
-
-            // C should come before B, B should come before A
             assertTrue(order.indexOf(c) < order.indexOf(b), "C should come before B");
             assertTrue(order.indexOf(b) < order.indexOf(a), "B should come before A");
         }
@@ -369,9 +363,7 @@ class DependencyGraphTest {
             List<String> order = graph.topologicalOrderSubset(subset);
 
             assertEquals(2, order.size());
-            // a depends on c (transitively through b), so c should come first
-            // but since b is not in subset, the direct edge a->c doesn't exist
-            // so they could be in any order unless we consider the original graph
+            // order is not deterministic here because b is excluded from the subset
             assertTrue(order.contains(a));
             assertTrue(order.contains(c));
         }

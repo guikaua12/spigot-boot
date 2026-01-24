@@ -55,7 +55,6 @@ class DefaultConfigReferenceErrorHandlerTest {
         logger.setUseParentHandlers(false);
 
         logHandler = new TestLogHandler();
-        // Clear any existing handlers
         for (Handler h : logger.getHandlers()) {
             logger.removeHandler(h);
         }
@@ -404,7 +403,6 @@ class DefaultConfigReferenceErrorHandlerTest {
         }
     }
 
-    // Helper class for capturing log records
     private static class TestLogHandler extends Handler {
         private final List<LogRecord> records = new ArrayList<>();
 
@@ -436,7 +434,6 @@ class DefaultConfigReferenceErrorHandlerTest {
         }
     }
 
-    // Sample config class for field tests
     @SuppressWarnings("unused")
     private static class SampleConfig {
         private String itemRef;
