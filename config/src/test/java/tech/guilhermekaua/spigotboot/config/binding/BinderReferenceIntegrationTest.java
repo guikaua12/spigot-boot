@@ -40,7 +40,9 @@ import tech.guilhermekaua.spigotboot.config.test.TrackingConfigReferenceErrorHan
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -170,6 +172,40 @@ class BinderReferenceIntegrationTest {
             assertEquals("plain value", result.get().getName());
             assertEquals(100, result.get().getCount());
         }
+
+        @Test
+        @DisplayName("resolves reference inside map value")
+        void resolvesReferenceInsideMapValue() {
+            lookup.addConfig("count", 42);
+
+            Map<String, Object> values = new HashMap<>();
+            values.put("a", "${count}");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("values", values);
+
+            ConfigNode node = testNode(data);
+            BindingResult<ConfigWithMapOfInt> result = binder.bind(node, ConfigWithMapOfInt.class, NamingStrategy.IDENTITY);
+
+            assertTrue(result.isSuccess());
+            assertNotNull(result.get().getValues());
+            assertEquals(42, result.get().getValues().get("a"));
+        }
+
+        @Test
+        @DisplayName("resolves reference inside list element")
+        void resolvesReferenceInsideListElement() {
+            lookup.addConfig("other", "resolved value");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("values", Arrays.asList("${other}", "plain"));
+
+            ConfigNode node = testNode(data);
+            BindingResult<ConfigWithStringList> result = binder.bind(node, ConfigWithStringList.class, NamingStrategy.IDENTITY);
+
+            assertTrue(result.isSuccess());
+            assertEquals(Arrays.asList("resolved value", "plain"), result.get().getValues());
+        }
     }
 
     @Nested
@@ -280,6 +316,20 @@ class BinderReferenceIntegrationTest {
     public static class WeaponConfig {
         private String name;
         private int damage;
+
+    }
+
+    @Setter
+    @Getter
+    public static class ConfigWithMapOfInt {
+        private Map<String, Integer> values;
+
+    }
+
+    @Setter
+    @Getter
+    public static class ConfigWithStringList {
+        private List<String> values;
 
     }
 }

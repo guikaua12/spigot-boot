@@ -226,13 +226,8 @@ public class DefaultBinder implements Binder {
             String configKey = namingStrategy.toConfig(paramName);
             ConfigNode childNode = node.node(configKey);
 
-            ConfigNode processedNode = childNode;
-            if (preprocessor != null) {
-                ConfigNode preprocessed = preprocessor.preprocess(childNode, null, param.getParameterizedType());
-                if (preprocessed != null) {
-                    processedNode = preprocessed;
-                }
-            }
+            ConfigNode processedNode = preprocessNode(childNode, null, param.getParameterizedType());
+            ;
 
             try {
                 args[i] = deserializeValue(processedNode, param.getParameterizedType(), PropertyPath.of(configKey), namingStrategy, errors);
@@ -283,13 +278,7 @@ public class DefaultBinder implements Binder {
             @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) throws IllegalAccessException {
-        ConfigNode processedNode = node;
-        if (preprocessor != null) {
-            ConfigNode preprocessed = preprocessor.preprocess(node, field, field.getGenericType());
-            if (preprocessed != null) {
-                processedNode = preprocessed;
-            }
-        }
+        ConfigNode processedNode = preprocessNode(node, field, field.getGenericType());
 
         if (processedNode.isVirtual() || processedNode.isNull()) {
             Default defaultAnn = field.getAnnotation(Default.class);
@@ -314,7 +303,9 @@ public class DefaultBinder implements Binder {
             @NotNull NamingStrategy namingStrategy,
             @NotNull List<BindingError> errors
     ) {
-        if (node.isVirtual() || node.isNull()) {
+        ConfigNode processedNode = preprocessNode(node, null, type);
+
+        if (processedNode.isVirtual() || processedNode.isNull()) {
             return null;
         }
 
@@ -326,7 +317,7 @@ public class DefaultBinder implements Binder {
         TypeSerializer<?> serializer = serializers.getWithInheritance(rawClass);
         if (serializer != null) {
             try {
-                return ((TypeSerializer<Object>) serializer).deserialize(node, (Class<Object>) rawClass);
+                return ((TypeSerializer<Object>) serializer).deserialize(processedNode, (Class<Object>) rawClass);
             } catch (SerializationException e) {
                 errors.add(new BindingError(path, rawClass.getSimpleName(), e.getMessage(), e));
                 return null;
@@ -334,24 +325,37 @@ public class DefaultBinder implements Binder {
         }
 
         if (List.class.isAssignableFrom(rawClass)) {
-            return deserializeList(node, type, path, namingStrategy, errors);
+            return deserializeList(processedNode, type, path, namingStrategy, errors);
         }
         if (Set.class.isAssignableFrom(rawClass)) {
-            return new HashSet<>(deserializeList(node, type, path, namingStrategy, errors));
+            return new HashSet<>(deserializeList(processedNode, type, path, namingStrategy, errors));
         }
         if (Map.class.isAssignableFrom(rawClass)) {
-            return deserializeMap(node, type, path, namingStrategy, errors);
+            return deserializeMap(processedNode, type, path, namingStrategy, errors);
         }
 
         if (!rawClass.isPrimitive() && !rawClass.getName().startsWith("java.")) {
-            BindingResult<?> result = bind(node, rawClass, namingStrategy);
+            BindingResult<?> result = bind(processedNode, rawClass, namingStrategy);
             if (result.hasErrors()) {
                 errors.addAll(result.errors());
             }
             return result.orElse(null);
         }
 
-        return node.get(rawClass);
+        return processedNode.get(rawClass);
+    }
+
+    private ConfigNode preprocessNode(@NotNull ConfigNode node, @Nullable Field field, @NotNull Type type) {
+        if (preprocessor == null) {
+            return node;
+        }
+
+        ConfigNode preprocessed = preprocessor.preprocess(node, field, type);
+        if (preprocessed == null) {
+            return node;
+        }
+
+        return preprocessed;
     }
 
     private @NotNull List<Object> deserializeList(
