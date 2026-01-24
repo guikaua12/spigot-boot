@@ -83,6 +83,7 @@ public class ConfigReferenceDependencyScanner {
             @NotNull ReferenceKey sourceKey,
             @NotNull ConfigNode node,
             @NotNull DependencyGraph<ReferenceKey> graph) {
+        graph.addNode(sourceKey);
         Set<ReferenceKey> dependencies = scanDependencies(node);
         for (ReferenceKey targetKey : dependencies) {
             graph.addEdge(sourceKey, targetKey);
