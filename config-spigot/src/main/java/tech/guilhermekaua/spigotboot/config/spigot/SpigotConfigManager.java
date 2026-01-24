@@ -675,16 +675,23 @@ public class SpigotConfigManager implements ConfigManager {
             referenceManager.scanAndRegister(key, newNode);
         }
 
-        for (CollectionEntry<?> collEntry : collections.values()) {
-            collEntry.loadRawNodesOnly();
+        Map<String, Set<String>> loadedItemIdsByCollection = new HashMap<>();
 
+        for (CollectionEntry<?> collEntry : collections.values()) {
             String collectionName = collEntry.getCollectionName();
-            for (String itemId : collEntry.getItemIds()) {
-                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
-                ConfigNode node = collEntry.getItemNode(itemId);
-                if (node != null) {
-                    referenceManager.scanAndRegister(key, node);
+
+            Map<String, ConfigNode> rawNodes = collEntry.loadRawNodesOnly();
+            loadedItemIdsByCollection.put(collectionName, new LinkedHashSet<>(rawNodes.keySet()));
+
+            for (Map.Entry<String, ConfigNode> itemEntry : rawNodes.entrySet()) {
+                String itemId = itemEntry.getKey();
+                ConfigNode node = itemEntry.getValue();
+                if (node == null) {
+                    continue;
                 }
+
+                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+                referenceManager.scanAndRegister(key, node);
             }
         }
 
@@ -695,23 +702,31 @@ public class SpigotConfigManager implements ConfigManager {
             throw new ConfigException("Circular config reference detected: " + e.formatCycle(), e);
         }
 
-
+        Set<ReferenceKey> boundKeys = new HashSet<>(loadOrder);
         for (ReferenceKey key : loadOrder) {
             bindingCoordinator.bindKey(key, true);
         }
 
         for (CollectionEntry<?> collEntry : collections.values()) {
             String collectionName = collEntry.getCollectionName();
-            List<String> itemOrder = new ArrayList<>();
-            for (ReferenceKey key : loadOrder) {
-                if (key instanceof CollectionItemKey) {
-                    CollectionItemKey itemKey = (CollectionItemKey) key;
-                    if (itemKey.getCollectionName().equals(collectionName)) {
-                        itemOrder.add(itemKey.getItemId());
-                    }
+            Set<String> loadedItemIds = loadedItemIdsByCollection.get(collectionName);
+            if (loadedItemIds == null) {
+                loadedItemIds = Collections.emptySet();
+            }
+
+            for (String itemId : loadedItemIds) {
+                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+                if (!boundKeys.contains(key)) {
+                    bindingCoordinator.bindKey(key, true);
                 }
             }
-            collEntry.bindFromLoadedNodes(itemOrder);
+
+            Set<String> snapshotIds = new LinkedHashSet<>(collEntry.getRef().get().ids());
+            for (String itemId : snapshotIds) {
+                if (!loadedItemIds.contains(itemId)) {
+                    collEntry.rebindItem(itemId);
+                }
+            }
         }
 
         plugin.getLogger().info("Load complete.");
