@@ -189,6 +189,35 @@ class ConfigReferenceResolverTest {
         }
 
         @Test
+        @DisplayName("resolves nested same-config path reference chain")
+        void resolvesNestedSameConfigPathReferenceChain() {
+            Map<String, Object> loc128 = new HashMap<>();
+            loc128.put("world", "world");
+            loc128.put("x", 256);
+            loc128.put("y", 256);
+            loc128.put("z", 256);
+
+            Map<String, Object> locations = new HashMap<>();
+            locations.put("loc_128", loc128);
+            locations.put("spawn", "${locations:locations.loc_128}");
+
+            Map<String, Object> root = new HashMap<>();
+            root.put("locations", locations);
+            lookup.addConfig("locations", root);
+
+            ConfigNode node = testNode("${locations:locations.spawn}");
+            ReferenceKey sourceKey = ReferenceKey.collectionItem("boosters", "booster_1");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null);
+
+            assertNotNull(result);
+            assertTrue(result.isMap());
+            assertFalse(errorHandler.circularCalled);
+            assertEquals("world", result.node("world").get(String.class));
+            assertEquals(256, result.node("x").get(Integer.class));
+        }
+
+        @Test
         @DisplayName("detects multi-node cycle")
         void detectsMultiNodeCycle() {
             // A -> B -> C -> A

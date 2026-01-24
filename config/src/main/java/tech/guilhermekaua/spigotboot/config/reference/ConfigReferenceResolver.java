@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigCircularReferenceContext;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigReferenceNotFoundContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
+import tech.guilhermekaua.spigotboot.config.reference.key.ResolutionTarget;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -93,11 +94,11 @@ public class ConfigReferenceResolver {
      * @param resolutionStack the stack of keys currently being resolved (for cycle detection)
      * @return the resolved node, or null if reference not found
      */
-    public @Nullable ConfigNode resolveIfReference(
+    private @Nullable ConfigNode resolveIfReference(
             @NotNull ConfigNode node,
             @NotNull ReferenceKey sourceKey,
             @Nullable Field sourceField,
-            @NotNull Set<ReferenceKey> resolutionStack) {
+            @NotNull Set<ResolutionTarget> resolutionStack) {
 
         if (!node.isScalar()) {
             return node;
@@ -115,9 +116,10 @@ public class ConfigReferenceResolver {
 
         ConfigReference ref = maybeRef.get();
         ReferenceKey targetKey = ReferenceKey.fromReference(ref);
+        ResolutionTarget target = ResolutionTarget.of(targetKey, ref.getPath());
 
-        if (resolutionStack.contains(targetKey)) {
-            List<ReferenceKey> chain = buildCycleChain(resolutionStack, targetKey);
+        if (resolutionStack.contains(target)) {
+            List<ReferenceKey> chain = buildCycleChain(resolutionStack, target);
             ConfigCircularReferenceContext ctx = new ConfigCircularReferenceContext(
                     sourceKey, sourceField, ref.getRawToken(), chain);
             errorHandler.onCircularReference(ctx);
@@ -133,8 +135,8 @@ public class ConfigReferenceResolver {
             return null;
         }
 
-        Set<ReferenceKey> newStack = new LinkedHashSet<>(resolutionStack);
-        newStack.add(targetKey);
+        Set<ResolutionTarget> newStack = new LinkedHashSet<>(resolutionStack);
+        newStack.add(target);
 
         return deepResolve(targetNode, targetKey, newStack);
     }
@@ -163,10 +165,10 @@ public class ConfigReferenceResolver {
      * @param resolutionStack the stack of keys currently being resolved
      * @return the resolved node tree
      */
-    public @NotNull ConfigNode deepResolve(
+    private @NotNull ConfigNode deepResolve(
             @NotNull ConfigNode node,
             @NotNull ReferenceKey sourceKey,
-            @NotNull Set<ReferenceKey> resolutionStack) {
+            @NotNull Set<ResolutionTarget> resolutionStack) {
 
         if (node.isVirtual() || node.isNull()) {
             return node;
@@ -193,9 +195,12 @@ public class ConfigReferenceResolver {
         return parser.tryParse(value).isPresent();
     }
 
-    private List<ReferenceKey> buildCycleChain(Set<ReferenceKey> stack, ReferenceKey cyclePoint) {
-        List<ReferenceKey> chain = new ArrayList<>(stack);
-        chain.add(cyclePoint);
+    private List<ReferenceKey> buildCycleChain(Set<ResolutionTarget> stack, ResolutionTarget cyclePoint) {
+        List<ReferenceKey> chain = new ArrayList<>(stack.size() + 1);
+        for (ResolutionTarget target : stack) {
+            chain.add(target.getKey());
+        }
+        chain.add(cyclePoint.getKey());
         return chain;
     }
 
