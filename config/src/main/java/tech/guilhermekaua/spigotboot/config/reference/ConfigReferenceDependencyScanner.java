@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Scans config nodes for references and builds a dependency graph.
@@ -68,7 +69,7 @@ public class ConfigReferenceDependencyScanner {
      */
     public @NotNull Set<ReferenceKey> scanDependencies(@NotNull ConfigNode node) {
         Set<ReferenceKey> dependencies = new LinkedHashSet<>();
-        scanNode(node, dependencies);
+        scanNode(node, ref -> dependencies.add(ReferenceKey.fromReference(ref)));
         return dependencies;
     }
 
@@ -84,13 +85,16 @@ public class ConfigReferenceDependencyScanner {
             @NotNull ConfigNode node,
             @NotNull DependencyGraph<ReferenceKey> graph) {
         graph.addNode(sourceKey);
-        Set<ReferenceKey> dependencies = scanDependencies(node);
-        for (ReferenceKey targetKey : dependencies) {
+        scanNode(node, ref -> {
+            ReferenceKey targetKey = ReferenceKey.fromReference(ref);
+            if (sourceKey.equals(targetKey) && !ref.isRootReference()) {
+                return;
+            }
             graph.addEdge(sourceKey, targetKey);
-        }
+        });
     }
 
-    private void scanNode(ConfigNode node, Set<ReferenceKey> dependencies) {
+    private void scanNode(@NotNull ConfigNode node, @NotNull Consumer<ConfigReference> onReference) {
         if (node.isVirtual() || node.isNull()) {
             return;
         }
@@ -99,15 +103,15 @@ public class ConfigReferenceDependencyScanner {
             String value = node.get(String.class);
             if (value != null) {
                 Optional<ConfigReference> ref = parser.tryParse(value);
-                ref.ifPresent(configReference -> dependencies.add(ReferenceKey.fromReference(configReference)));
+                ref.ifPresent(onReference);
             }
         } else if (node.isMap()) {
             for (ConfigNode child : node.childrenMap().values()) {
-                scanNode(child, dependencies);
+                scanNode(child, onReference);
             }
         } else if (node.isList()) {
             for (ConfigNode child : node.childrenList()) {
-                scanNode(child, dependencies);
+                scanNode(child, onReference);
             }
         }
     }

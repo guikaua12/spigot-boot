@@ -35,8 +35,7 @@ import tech.guilhermekaua.spigotboot.core.utils.DependencyGraph;
 
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("ConfigReferenceDependencyScanner")
 class ConfigReferenceDependencyScannerTest {
@@ -221,6 +220,40 @@ class ConfigReferenceDependencyScannerTest {
 
             assertTrue(indexA < indexB, "A should be before B");
             assertTrue(indexB < indexC, "B should be before C");
+        }
+
+        @Test
+        @DisplayName("does not create cycle for same-config path reference")
+        void doesNotCreateCycleForSameConfigPathReference() throws CycleDetectedException {
+            DependencyGraph<ReferenceKey> graph = new DependencyGraph<>();
+
+            Map<String, Object> configData = new HashMap<>();
+            configData.put("spawn", "${foo:bar.baz}");
+
+            scanner.scanAndAddToGraph(
+                    ReferenceKey.singleConfig("foo"),
+                    testNode(configData),
+                    graph);
+
+            graph.topologicalOrder();
+
+            assertTrue(graph.getDependencies(ReferenceKey.singleConfig("foo")).isEmpty());
+        }
+
+        @Test
+        @DisplayName("still detects cycle for same-config root reference")
+        void stillDetectsCycleForSameConfigRootReference() {
+            DependencyGraph<ReferenceKey> graph = new DependencyGraph<>();
+
+            Map<String, Object> configData = new HashMap<>();
+            configData.put("self", "${foo}");
+
+            scanner.scanAndAddToGraph(
+                    ReferenceKey.singleConfig("foo"),
+                    testNode(configData),
+                    graph);
+
+            assertThrows(CycleDetectedException.class, graph::topologicalOrder);
         }
     }
 
