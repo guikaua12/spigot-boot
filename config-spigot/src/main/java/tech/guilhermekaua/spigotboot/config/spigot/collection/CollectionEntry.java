@@ -242,7 +242,28 @@ public final class CollectionEntry<T> {
         Map<String, T> itemsById = new LinkedHashMap<>();
         Map<String, ItemMeta> newMetadata = new LinkedHashMap<>();
 
+        Set<String> bound = new HashSet<>();
+
         for (String id : bindOrder) {
+            if (!bound.add(id)) {
+                continue;
+            }
+            ConfigNode node = itemNodes.get(id);
+            if (node == null) {
+                continue;
+            }
+            T item = bindItem(id, node);
+            if (item != null) {
+                itemsById.put(id, item);
+                newMetadata.put(id, createItemMeta(node));
+            }
+        }
+
+        List<String> remainingIds = new ArrayList<>(itemNodes.keySet());
+        remainingIds.removeAll(bound);
+        remainingIds.sort(String::compareTo);
+
+        for (String id : remainingIds) {
             ConfigNode node = itemNodes.get(id);
             if (node == null) {
                 continue;
@@ -259,6 +280,8 @@ public final class CollectionEntry<T> {
 
     private @NotNull Map<String, ConfigNode> scanAndLoadRawNodes() {
         Map<String, ConfigNode> rawNodes = new LinkedHashMap<>();
+
+        itemNodes.clear();
 
         if (!Files.exists(folder)) {
             return rawNodes;
@@ -408,6 +431,9 @@ public final class CollectionEntry<T> {
     private void updateItemInSnapshot(@NotNull String itemId, @NotNull T item) {
         DefaultConfigCollectionSnapshot<T> oldSnapshot =
                 (DefaultConfigCollectionSnapshot<T>) ref.get();
+        if (oldSnapshot == null) {
+            oldSnapshot = DefaultConfigCollectionSnapshot.empty(itemType, collectionName);
+        }
         Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
         T oldItem = items.put(itemId, item);
         itemMetadata.put(itemId, createItemMetaFromRegisteredNode(itemId));
@@ -424,6 +450,9 @@ public final class CollectionEntry<T> {
     private void removeItemFromSnapshot(@NotNull String itemId) {
         DefaultConfigCollectionSnapshot<T> oldSnapshot =
                 (DefaultConfigCollectionSnapshot<T>) ref.get();
+        if (oldSnapshot == null) {
+            oldSnapshot = DefaultConfigCollectionSnapshot.empty(itemType, collectionName);
+        }
         Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
         T oldItem = items.remove(itemId);
         if (oldItem != null) {
