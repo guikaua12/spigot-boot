@@ -49,10 +49,15 @@ public class ComponentRegistry {
 
         Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
 
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader = ComponentRegistry.class.getClassLoader();
+        }
+
         ConditionContext conditionContext = new SimpleConditionContext(
                 dependencyManager.getBeanDefinitionRegistry(),
                 null,
-                Thread.currentThread().getContextClassLoader()
+                classLoader
         );
 
         for (Class<?> componentsClass : componentsClasses) {
