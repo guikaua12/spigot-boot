@@ -24,8 +24,10 @@ package tech.guilhermekaua.spigotboot.core.utils;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,7 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * without throwing exceptions. Results are cached per classloader for performance.
  */
 public final class ClassUtils {
-    private static final Map<ClassLoader, Map<String, Boolean>> cache = new ConcurrentHashMap<>();
+    private static final Map<ClassLoader, Map<String, Boolean>> cache =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     /**
      * Checks whether a class with the given name is present on the specified classloader.
@@ -53,16 +56,19 @@ public final class ClassUtils {
         Objects.requireNonNull(className, "className cannot be null");
         Objects.requireNonNull(classLoader, "classLoader cannot be null");
 
-        return cache
-                .computeIfAbsent(classLoader, k -> new ConcurrentHashMap<>())
-                .computeIfAbsent(className, name -> {
-                    try {
-                        classLoader.loadClass(name);
-                        return true;
-                    } catch (ClassNotFoundException e) {
-                        return false;
-                    }
-                });
+        Map<String, Boolean> perLoaderCache;
+        synchronized (cache) {
+            perLoaderCache = cache.computeIfAbsent(classLoader, k -> new ConcurrentHashMap<>());
+        }
+
+        return perLoaderCache.computeIfAbsent(className, name -> {
+            try {
+                classLoader.loadClass(name);
+                return true;
+            } catch (ClassNotFoundException e) {
+                return false;
+            }
+        });
     }
 
     public static void clearCache() {
