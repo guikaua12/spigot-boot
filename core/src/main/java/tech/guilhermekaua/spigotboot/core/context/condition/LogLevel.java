@@ -20,41 +20,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.utils;
+package tech.guilhermekaua.spigotboot.core.context.condition;
 
-import javassist.util.proxy.ProxyObject;
+import java.util.logging.Level;
 
-public final class ProxyUtils {
-    public static boolean isProxy(Object object) {
-        try {
-            Class<?> clazz = object.getClass();
+public enum LogLevel {
+    SILENT,
+    DEBUG,
+    INFO,
+    WARNING;
 
-            if (ProxyObject.class.isAssignableFrom(clazz)) {
-                return true;
-            }
-
-            ClassLoader classLoader = clazz.getClassLoader();
-            String classLoaderName = classLoader.getClass().getName().toLowerCase();
-
-            return classLoaderName.contains("mockbukkit");
-        } catch (Throwable t) {
-            return false;
+    public Level toJulLevel() {
+        switch (this) {
+            case SILENT:
+                return Level.OFF;
+            case DEBUG:
+                return Level.FINE;
+            case INFO:
+                return Level.INFO;
+            case WARNING:
+                return Level.WARNING;
+            default:
+                return Level.FINE;
         }
-    }
-
-    public static Class<?> unwrapProxyType(Class<?> type) {
-        if (ProxyObject.class.isAssignableFrom(type)) {
-            return type.getSuperclass();
-        }
-        return type;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Class<T> getRealClass(T object) {
-        if (!isProxy(object)) {
-            return (Class<T>) object.getClass();
-        }
-
-        return (Class<T>) object.getClass().getSuperclass();
     }
 }

@@ -22,6 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.annotations;
 
+import tech.guilhermekaua.spigotboot.core.context.condition.LogLevel;
+import tech.guilhermekaua.spigotboot.core.context.condition.OnClassCondition;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -29,8 +32,11 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Conditional(OnClassCondition.class)
 public @interface ConditionalOnClass {
-    Class<?>[] value();
+    String[] value();
 
     String message() default "";
+
+    LogLevel logLevel() default LogLevel.DEBUG;
 }

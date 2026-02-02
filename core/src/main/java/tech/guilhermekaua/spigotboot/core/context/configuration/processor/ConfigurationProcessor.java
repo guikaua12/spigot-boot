@@ -25,6 +25,9 @@ package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
+import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -47,6 +50,16 @@ public class ConfigurationProcessor {
     @SuppressWarnings("unchecked")
     public void processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
+            ConditionContext conditionContext = new SimpleConditionContext(
+                    dependencyManager.getBeanDefinitionRegistry(),
+                    null,
+                    Thread.currentThread().getContextClassLoader()
+            );
+
+            if (ConditionEvaluator.shouldSkip(clazz, conditionContext, "ConfigurationProcessor")) {
+                return;
+            }
+
             Set<Method> beanMethods = collectBeanMethods(clazz);
 
             Object configProxy = ConfigurationClassProxy.createProxy(
@@ -79,6 +92,16 @@ public class ConfigurationProcessor {
 
     @SuppressWarnings("unchecked")
     private void registerBeanMethod(Method method, Object configProxy, DependencyManager dependencyManager) {
+        ConditionContext conditionContext = new SimpleConditionContext(
+                dependencyManager.getBeanDefinitionRegistry(),
+                null,
+                Thread.currentThread().getContextClassLoader()
+        );
+
+        if (ConditionEvaluator.shouldSkip(method, conditionContext, "ConfigurationProcessor")) {
+            return;
+        }
+
         Class<?> returnType = method.getReturnType();
 
         if (!Object.class.isAssignableFrom(returnType)) {

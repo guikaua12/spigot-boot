@@ -20,41 +20,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.utils;
+package tech.guilhermekaua.spigotboot.core.context.annotations;
 
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.context.condition.Condition;
 
-public final class ProxyUtils {
-    public static boolean isProxy(Object object) {
-        try {
-            Class<?> clazz = object.getClass();
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-            if (ProxyObject.class.isAssignableFrom(clazz)) {
-                return true;
-            }
-
-            ClassLoader classLoader = clazz.getClassLoader();
-            String classLoaderName = classLoader.getClass().getName().toLowerCase();
-
-            return classLoaderName.contains("mockbukkit");
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    public static Class<?> unwrapProxyType(Class<?> type) {
-        if (ProxyObject.class.isAssignableFrom(type)) {
-            return type.getSuperclass();
-        }
-        return type;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Class<T> getRealClass(T object) {
-        if (!isProxy(object)) {
-            return (Class<T>) object.getClass();
-        }
-
-        return (Class<T>) object.getClass().getSuperclass();
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+public @interface Conditional {
+    Class<? extends Condition>[] value();
 }

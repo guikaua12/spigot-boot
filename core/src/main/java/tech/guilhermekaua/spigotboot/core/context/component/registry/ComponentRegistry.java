@@ -28,6 +28,9 @@ import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
+import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -46,7 +49,17 @@ public class ComponentRegistry {
 
         Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
 
+        ConditionContext conditionContext = new SimpleConditionContext(
+                dependencyManager.getBeanDefinitionRegistry(),
+                null,
+                Thread.currentThread().getContextClassLoader()
+        );
+
         for (Class<?> componentsClass : componentsClasses) {
+            if (ConditionEvaluator.shouldSkip(componentsClass, conditionContext, "ComponentRegistry")) {
+                continue;
+            }
+
             dependencyManager.registerDependency(
                     componentsClass,
                     BeanUtils.getQualifier(componentsClass),

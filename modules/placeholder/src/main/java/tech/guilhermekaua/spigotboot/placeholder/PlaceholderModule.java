@@ -23,7 +23,6 @@
 package tech.guilhermekaua.spigotboot.placeholder;
 
 import lombok.RequiredArgsConstructor;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
@@ -31,7 +30,7 @@ import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
 
 @RequiredArgsConstructor
-@ConditionalOnClass(value = PlaceholderExpansion.class, message = "PlaceholderAPI not found, skipping registration of placeholders.")
+@ConditionalOnClass(value = "me.clip.placeholderapi.expansion.PlaceholderExpansion", message = "PlaceholderAPI not found, skipping registration of placeholders.")
 public class PlaceholderModule implements Module {
     private static final String PAPI_NAME = "PlaceholderAPI";
 

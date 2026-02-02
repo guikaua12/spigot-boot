@@ -20,41 +20,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.utils;
+package tech.guilhermekaua.spigotboot.core.context.condition;
 
-import javassist.util.proxy.ProxyObject;
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
+import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 
-public final class ProxyUtils {
-    public static boolean isProxy(Object object) {
-        try {
-            Class<?> clazz = object.getClass();
+import java.util.Objects;
 
-            if (ProxyObject.class.isAssignableFrom(clazz)) {
-                return true;
-            }
+@Getter
+public class SimpleConditionContext implements ConditionContext {
+    private final BeanDefinitionRegistry beanDefinitionRegistry;
+    private final BeanInstanceRegistry beanInstanceRegistry;
+    private final ClassLoader classLoader;
 
-            ClassLoader classLoader = clazz.getClassLoader();
-            String classLoaderName = classLoader.getClass().getName().toLowerCase();
-
-            return classLoaderName.contains("mockbukkit");
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    public static Class<?> unwrapProxyType(Class<?> type) {
-        if (ProxyObject.class.isAssignableFrom(type)) {
-            return type.getSuperclass();
-        }
-        return type;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Class<T> getRealClass(T object) {
-        if (!isProxy(object)) {
-            return (Class<T>) object.getClass();
-        }
-
-        return (Class<T>) object.getClass().getSuperclass();
+    public SimpleConditionContext(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
+                                  @Nullable BeanInstanceRegistry beanInstanceRegistry,
+                                  @NotNull ClassLoader classLoader) {
+        this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null");
+        this.beanInstanceRegistry = beanInstanceRegistry;
+        this.classLoader = Objects.requireNonNull(classLoader, "classLoader cannot be null");
     }
 }
