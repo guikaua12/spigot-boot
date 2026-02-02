@@ -42,10 +42,15 @@ public class ConditionLoggingTest {
     private Logger logger;
     private TestLogHandler logHandler;
     private ConditionContext context;
+    private Level previousLevel;
+    private boolean previousUseParentHandlers;
 
     @BeforeEach
     void setUp() {
         logger = Logger.getLogger(ConditionEvaluator.class.getName());
+        previousLevel = logger.getLevel();
+        previousUseParentHandlers = logger.getUseParentHandlers();
+
         logHandler = new TestLogHandler();
         logger.addHandler(logHandler);
         logger.setLevel(Level.ALL);
@@ -58,7 +63,8 @@ public class ConditionLoggingTest {
     @AfterEach
     void tearDown() {
         logger.removeHandler(logHandler);
-        logger.setUseParentHandlers(true);
+        logger.setLevel(previousLevel);
+        logger.setUseParentHandlers(previousUseParentHandlers);
         ConditionEvaluator.setDebugReport(null);
     }
 
