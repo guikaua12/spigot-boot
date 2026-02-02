@@ -20,41 +20,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.utils;
+package tech.guilhermekaua.spigotboot.core.context.condition;
 
-import javassist.util.proxy.ProxyObject;
+import java.lang.reflect.AnnotatedElement;
 
-public final class ProxyUtils {
-    public static boolean isProxy(Object object) {
-        try {
-            Class<?> clazz = object.getClass();
+@FunctionalInterface
+public interface Condition {
+    boolean matches(ConditionContext context, AnnotatedElement metadata);
 
-            if (ProxyObject.class.isAssignableFrom(clazz)) {
-                return true;
-            }
-
-            ClassLoader classLoader = clazz.getClassLoader();
-            String classLoaderName = classLoader.getClass().getName().toLowerCase();
-
-            return classLoaderName.contains("mockbukkit");
-        } catch (Throwable t) {
-            return false;
-        }
+    default LogLevel getLogLevel(AnnotatedElement metadata) {
+        return LogLevel.DEBUG;
     }
 
-    public static Class<?> unwrapProxyType(Class<?> type) {
-        if (ProxyObject.class.isAssignableFrom(type)) {
-            return type.getSuperclass();
-        }
-        return type;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Class<T> getRealClass(T object) {
-        if (!isProxy(object)) {
-            return (Class<T>) object.getClass();
-        }
-
-        return (Class<T>) object.getClass().getSuperclass();
+    default String describeFailure(AnnotatedElement metadata) {
+        return getClass().getSimpleName() + " condition not met";
     }
 }

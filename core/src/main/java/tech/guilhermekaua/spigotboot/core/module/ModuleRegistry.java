@@ -26,17 +26,18 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
 import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
+import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 @Component
 @RequiredArgsConstructor
 public class ModuleRegistry {
-    private final Logger logger;
     private final ComponentRegistry componentRegistry;
 
     public void initializeModules(@NotNull Context context, @NotNull List<Class<? extends Module>> modulesToLoad) {
@@ -50,7 +51,14 @@ public class ModuleRegistry {
     }
 
     private void initializeModule(Class<? extends Module> moduleClass, Context context) throws Exception {
-        if (!verifyModuleDependencies(moduleClass)) {
+        DependencyManager dm = context.getBean(DependencyManager.class);
+        ConditionContext conditionContext = new SimpleConditionContext(
+                dm.getBeanDefinitionRegistry(),
+                dm.getBeanInstanceRegistry(),
+                moduleClass.getClassLoader()
+        );
+
+        if (ConditionEvaluator.shouldSkip(moduleClass, conditionContext, "ModuleRegistry")) {
             return;
         }
 
@@ -72,37 +80,5 @@ public class ModuleRegistry {
         }
 
         module.onInitialize(context);
-    }
-
-    private boolean verifyModuleDependencies(@NotNull Class<? extends Module> moduleClass) {
-        if (!moduleClass.isAnnotationPresent(ConditionalOnClass.class)) {
-            return true;
-        }
-
-        ConditionalOnClass conditionalOnClass = moduleClass.getAnnotation(ConditionalOnClass.class);
-
-        String className = null;
-
-        try {
-            for (Class<?> clazz : conditionalOnClass.value()) {
-                className = clazz.getName();
-                Class.forName(clazz.getName());
-            }
-            return true;
-        } catch (TypeNotPresentException e) {
-            logger.info(
-                    conditionalOnClass.message() != null ?
-                            conditionalOnClass.message() :
-                            "Skipping module '" + moduleClass.getName() + "' due to missing class: " + e.typeName()
-            );
-            return false;
-        } catch (ClassNotFoundException e) {
-            logger.info(
-                    conditionalOnClass.message() != null ?
-                            conditionalOnClass.message() :
-                            "Skipping module '" + moduleClass.getName() + "' due to missing class: " + className
-            );
-            return false;
-        }
     }
 }
