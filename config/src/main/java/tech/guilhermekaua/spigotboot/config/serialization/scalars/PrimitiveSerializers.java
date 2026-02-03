@@ -30,6 +30,7 @@ import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Built-in serializers for primitive types and common Java types.
@@ -72,6 +73,8 @@ public final class PrimitiveSerializers {
 
         registry.register(Character.class, new CharacterSerializer());
         registry.register(char.class, new CharacterSerializer());
+
+        registry.register(UUID.class, new UUIDSerializer());
     }
 
     /**
