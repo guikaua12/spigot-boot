@@ -43,6 +43,13 @@ public interface TypeSerializerRegistry {
     <T> void register(@NotNull Class<T> type, @NotNull TypeSerializer<T> serializer);
 
     /**
+     * Unregisters the serializer for the given type, if present.
+     *
+     * @param type the type to unregister
+     */
+    void unregister(@NotNull Class<?> type);
+
+    /**
      * Gets the serializer for an exact type match.
      *
      * @param type the type to look up

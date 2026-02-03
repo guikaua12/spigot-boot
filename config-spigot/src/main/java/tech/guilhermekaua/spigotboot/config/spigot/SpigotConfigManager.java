@@ -45,11 +45,12 @@ import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.reload.DefaultConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
+import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
 import tech.guilhermekaua.spigotboot.config.spigot.reference.ConfigReferenceManager;
 import tech.guilhermekaua.spigotboot.config.spigot.reference.SpigotConfigReferenceLookup;
-import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
+import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 import tech.guilhermekaua.spigotboot.core.exceptions.CycleDetectedException;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
 
@@ -59,6 +60,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Spigot implementation of ConfigManager.
@@ -88,7 +90,7 @@ public class SpigotConfigManager implements ConfigManager {
      * @param plugin the Bukkit plugin
      */
     public SpigotConfigManager(@NotNull Plugin plugin) {
-        this(plugin, null);
+        this(plugin, null, Collections.emptyList());
     }
 
     /**
@@ -98,10 +100,25 @@ public class SpigotConfigManager implements ConfigManager {
      * @param errorHandler the optional custom error handler (null for default)
      */
     public SpigotConfigManager(@NotNull Plugin plugin, @Nullable ConfigReferenceErrorHandler errorHandler) {
+        this(plugin, errorHandler, Collections.emptyList());
+    }
+
+    /**
+     * Creates a new config manager with optional custom error handling and serializer customizers.
+     *
+     * @param plugin                the Bukkit plugin
+     * @param errorHandler          the optional custom error handler (null for default)
+     * @param serializerCustomizers the list of serializer registry customizers to apply (may be empty)
+     */
+    public SpigotConfigManager(
+            @NotNull Plugin plugin,
+            @Nullable ConfigReferenceErrorHandler errorHandler,
+            @NotNull List<TypeSerializerRegistryCustomizer> serializerCustomizers
+    ) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         this.loader = new YamlConfigLoader();
         this.serializers = TypeSerializerRegistry.defaults();
-        BukkitSerializers.registerAll(this.serializers);
+        applySerializerCustomizers(serializerCustomizers);
 
         if (errorHandler != null) {
             this.referenceManager = new ConfigReferenceManager(this, errorHandler);
@@ -154,6 +171,23 @@ public class SpigotConfigManager implements ConfigManager {
                     }
                 }
         );
+    }
+
+    private void applySerializerCustomizers(@Nullable List<TypeSerializerRegistryCustomizer> customizers) {
+        if (customizers == null || customizers.isEmpty()) {
+            return;
+        }
+
+        List<TypeSerializerRegistryCustomizer> ordered = new ArrayList<>(customizers);
+        ordered.sort(Comparator.comparingInt(Ordered::getOrder));
+
+        for (TypeSerializerRegistryCustomizer customizer : ordered) {
+            try {
+                customizer.customize(this.serializers);
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Error applying TypeSerializerRegistryCustomizer: " + customizer.getClass().getName(), e);
+            }
+        }
     }
 
     /**

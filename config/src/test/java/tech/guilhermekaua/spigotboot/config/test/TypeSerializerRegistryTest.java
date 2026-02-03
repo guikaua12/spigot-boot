@@ -101,4 +101,13 @@ class TypeSerializerRegistryTest {
         // no defaults
         assertNull(empty.get(String.class));
     }
+
+    @Test
+    void testUnregisterRemovesSerializer() {
+        assertNotNull(registry.get(String.class));
+
+        registry.unregister(String.class);
+
+        assertNull(registry.get(String.class));
+    }
 }

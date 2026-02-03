@@ -45,6 +45,12 @@ public class DefaultTypeSerializerRegistry implements TypeSerializerRegistry {
     }
 
     @Override
+    public void unregister(@NotNull Class<?> type) {
+        Objects.requireNonNull(type, "type cannot be null");
+        serializers.remove(type);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <T> @Nullable TypeSerializer<T> get(@NotNull Class<T> type) {
         Objects.requireNonNull(type, "type cannot be null");
