@@ -104,10 +104,8 @@ public class YamlConfigLoader implements ConfigLoader {
                     writeNodeWithComments(writer, yamlNode, 0);
                 } else {
                     Object rawData = node.raw();
-                    if (rawData instanceof Map || rawData instanceof List) {
+                    if (rawData != null) {
                         yaml.dump(rawData, writer);
-                    } else if (rawData != null) {
-                        writer.write(String.valueOf(rawData));
                     }
                 }
             }
