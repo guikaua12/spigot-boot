@@ -30,23 +30,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigRef;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceErrorHandler;
-import tech.guilhermekaua.spigotboot.config.reference.key.CollectionItemKey;
+import tech.guilhermekaua.spigotboot.config.reference.key.FolderConfigItemKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.reload.DefaultConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
-import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
+import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
 import tech.guilhermekaua.spigotboot.config.spigot.reference.ConfigReferenceManager;
 import tech.guilhermekaua.spigotboot.config.spigot.reference.SpigotConfigReferenceLookup;
@@ -77,7 +77,7 @@ public class SpigotConfigManager implements ConfigManager {
     private final Map<Class<?>, ConfigEntry<?>> configs = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> configsByName = new ConcurrentHashMap<>();
 
-    private final Map<CollectionKey, CollectionEntry<?>> collections = new ConcurrentHashMap<>();
+    private final Map<FolderConfigKey, FolderConfigEntry<?>> folderConfigs = new ConcurrentHashMap<>();
 
     /**
      * Tracks whether initializeAll() has been called
@@ -166,8 +166,8 @@ public class SpigotConfigManager implements ConfigManager {
                     }
 
                     @Override
-                    public @Nullable CollectionEntry<?> getCollectionEntryByName(@NotNull String collectionName) {
-                        return SpigotConfigManager.this.getCollectionEntryByName(collectionName);
+                    public @Nullable FolderConfigEntry<?> getFolderConfigEntryByName(@NotNull String folderConfigName) {
+                        return SpigotConfigManager.this.getFolderConfigEntryByName(folderConfigName);
                     }
                 }
         );
@@ -222,123 +222,123 @@ public class SpigotConfigManager implements ConfigManager {
         return entry.getRef();
     }
 
-    // ==================== Collection API ====================
+    // ==================== Folder Config API ====================
 
     @Override
-    public <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass) {
-        return getCollection(configClass, findSingleCollectionName(configClass));
+    public <T> @NotNull Collection<T> getFolderConfig(@NotNull Class<T> configClass) {
+        return getFolderConfig(configClass, findSingleFolderConfigName(configClass));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass, @NotNull String collectionName) {
+    public <T> @NotNull Collection<T> getFolderConfig(@NotNull Class<T> configClass, @NotNull String folderConfigName) {
         Objects.requireNonNull(configClass, "configClass cannot be null");
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
 
-        CollectionEntry<T> entry = (CollectionEntry<T>) collections.get(new CollectionKey(configClass, collectionName));
+        FolderConfigEntry<T> entry = (FolderConfigEntry<T>) folderConfigs.get(new FolderConfigKey(configClass, folderConfigName));
         if (entry == null) {
-            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+            throw new ConfigException("Folder config not registered: " + configClass.getName() + " with name '" + folderConfigName + "'");
         }
         return entry.getRef().get().values();
     }
 
     @Override
-    public <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass) {
-        return getCollectionRef(configClass, findSingleCollectionName(configClass));
+    public <T> @NotNull FolderConfigRef<T> getFolderConfigRef(@NotNull Class<T> configClass) {
+        return getFolderConfigRef(configClass, findSingleFolderConfigName(configClass));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass, @NotNull String collectionName) {
+    public <T> @NotNull FolderConfigRef<T> getFolderConfigRef(@NotNull Class<T> configClass, @NotNull String folderConfigName) {
         Objects.requireNonNull(configClass, "configClass cannot be null");
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
 
-        CollectionEntry<T> entry = (CollectionEntry<T>) collections.get(new CollectionKey(configClass, collectionName));
+        FolderConfigEntry<T> entry = (FolderConfigEntry<T>) folderConfigs.get(new FolderConfigKey(configClass, folderConfigName));
         if (entry == null) {
-            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+            throw new ConfigException("Folder config not registered: " + configClass.getName() + " with name '" + folderConfigName + "'");
         }
         return entry.getRef();
     }
 
     /**
-     * Registers a config collection.
+     * Registers a folder-based config (folder-config).
      * <p>
-     * This only registers the collection definition.
+     * This only registers the folder config definition.
      * Actual loading and binding happens in {@link #initializeAll()}.
      *
      * @param itemType   the item type class
-     * @param annotation the @ConfigCollection annotation
+     * @param annotation the @FolderConfig annotation
      * @param <T>        the item type
      */
-    public <T> void registerCollection(@NotNull Class<T> itemType, @NotNull ConfigCollection annotation) {
+    public <T> void registerFolderConfig(@NotNull Class<T> itemType, @NotNull FolderConfig annotation) {
         Objects.requireNonNull(itemType, "itemType cannot be null");
         Objects.requireNonNull(annotation, "annotation cannot be null");
 
-        CollectionEntry<T> entry = new CollectionEntry<>(itemType, annotation, plugin, loader, binder, annotation.naming());
+        FolderConfigEntry<T> entry = new FolderConfigEntry<>(itemType, annotation, plugin, loader, binder, annotation.naming());
 
-        validateConfigName(entry.getCollectionName(), itemType.getName());
+        validateConfigName(entry.getFolderConfigName(), itemType.getName());
 
         entry.prepareFolder();
 
-        CollectionKey key = new CollectionKey(itemType, entry.getCollectionName());
-        collections.put(key, entry);
+        FolderConfigKey key = new FolderConfigKey(itemType, entry.getFolderConfigName());
+        folderConfigs.put(key, entry);
 
-        plugin.getLogger().info("Registered collection definition: " + entry.getCollectionName() +
+        plugin.getLogger().info("Registered folder config definition: " + entry.getFolderConfigName() +
                 " (" + itemType.getSimpleName() + ") from " + entry.getFolder());
     }
 
     /**
-     * Gets a collection entry by item type and name.
+     * Gets a folder config entry by item type and name.
      *
-     * @param itemType       the item type
-     * @param collectionName the collection name
-     * @param <T>            the item type
+     * @param itemType         the item type
+     * @param folderConfigName the folder config name
+     * @param <T>              the item type
      * @return the entry, or null if not found
      */
     @SuppressWarnings("unchecked")
-    public <T> @Nullable CollectionEntry<T> getCollectionEntry(@NotNull Class<T> itemType, @NotNull String collectionName) {
-        return (CollectionEntry<T>) collections.get(new CollectionKey(itemType, collectionName));
+    public <T> @Nullable FolderConfigEntry<T> getFolderConfigEntry(@NotNull Class<T> itemType, @NotNull String folderConfigName) {
+        return (FolderConfigEntry<T>) folderConfigs.get(new FolderConfigKey(itemType, folderConfigName));
     }
 
     /**
-     * Gets all collection names for an item type.
+     * Gets all folder config names for an item type.
      *
      * @param itemType the item type
-     * @return the set of collection names
+     * @return the set of folder config names
      */
-    public @NotNull Set<String> getCollectionNames(@NotNull Class<?> itemType) {
+    public @NotNull Set<String> getFolderConfigNames(@NotNull Class<?> itemType) {
         Set<String> names = new LinkedHashSet<>();
-        for (CollectionKey key : collections.keySet()) {
+        for (FolderConfigKey key : folderConfigs.keySet()) {
             if (key.itemType.equals(itemType)) {
-                names.add(key.collectionName);
+                names.add(key.folderConfigName);
             }
         }
         return names;
     }
 
-    private <T> String findSingleCollectionName(Class<T> itemType) {
+    private <T> String findSingleFolderConfigName(Class<T> itemType) {
         List<String> names = new ArrayList<>();
-        for (CollectionKey key : collections.keySet()) {
+        for (FolderConfigKey key : folderConfigs.keySet()) {
             if (key.itemType.equals(itemType)) {
-                names.add(key.collectionName);
+                names.add(key.folderConfigName);
             }
         }
 
         if (names.isEmpty()) {
-            throw new ConfigException("No collection registered for type: " + itemType.getName());
+            throw new ConfigException("No folder config registered for type: " + itemType.getName());
         }
         if (names.size() > 1) {
-            throw new ConfigException("Multiple collections exist for type " + itemType.getName() +
-                    ": " + names + ". Use the overload with collectionName parameter, or add @ConfigRefName on the injection point.");
+            throw new ConfigException("Multiple folder configs exist for type " + itemType.getName() +
+                    ": " + names + ". Use the overload with folderConfigName parameter, or add @FolderConfigName on the injection point.");
         }
         return names.get(0);
     }
 
     /**
-     * Initializes all registered configs and collections in topological order.
+     * Initializes all registered configs and folder configs in topological order.
      * <p>
      * This method must be called after all {@link #register(Class)} and
-     * {@link #registerCollection(Class, ConfigCollection)} calls are complete.
+     * {@link #registerFolderConfig(Class, FolderConfig)} calls are complete.
      * It delegates to {@link #reloadAll()} after setting the initialized flag.
      *
      * @throws ConfigException if a cycle is detected in references
@@ -595,24 +595,24 @@ public class SpigotConfigManager implements ConfigManager {
     }
 
     @Override
-    public void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String itemId) {
-        reloadCollectionItem(configClass, findSingleCollectionName(configClass), itemId);
+    public void reloadFolderConfigItem(@NotNull Class<?> configClass, @NotNull String itemId) {
+        reloadFolderConfigItem(configClass, findSingleFolderConfigName(configClass), itemId);
     }
 
     @Override
-    public void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String collectionName, @NotNull String itemId) {
+    public void reloadFolderConfigItem(@NotNull Class<?> configClass, @NotNull String folderConfigName, @NotNull String itemId) {
         Objects.requireNonNull(configClass, "configClass cannot be null");
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         Objects.requireNonNull(itemId, "itemId cannot be null");
 
-        CollectionEntry<?> entry = collections.get(new CollectionKey(configClass, collectionName));
+        FolderConfigEntry<?> entry = folderConfigs.get(new FolderConfigKey(configClass, folderConfigName));
         if (entry == null) {
-            throw new ConfigException("Collection not registered: " + configClass.getName() + " with name '" + collectionName + "'");
+            throw new ConfigException("Folder config not registered: " + configClass.getName() + " with name '" + folderConfigName + "'");
         }
 
-        ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+        ReferenceKey key = ReferenceKey.folderConfigItem(folderConfigName, itemId);
         reloadKeyWithPropagation(key);
-        plugin.getLogger().info("Reloaded collection item: " + collectionName + "." + itemId);
+        plugin.getLogger().info("Reloaded folder config item: " + folderConfigName + "." + itemId);
     }
 
     /**
@@ -675,17 +675,17 @@ public class SpigotConfigManager implements ConfigManager {
             entry.setNode(newNode);
             return newNode;
         } else {
-            CollectionItemKey itemKey = (CollectionItemKey) key;
-            String collectionName = itemKey.getCollectionName();
+            FolderConfigItemKey itemKey = (FolderConfigItemKey) key;
+            String folderConfigName = itemKey.getFolderConfigName();
             String itemId = itemKey.getItemId();
 
-            CollectionEntry<?> collEntry = getCollectionEntryByName(collectionName);
-            if (collEntry == null) {
+            FolderConfigEntry<?> folderEntry = getFolderConfigEntryByName(folderConfigName);
+            if (folderEntry == null) {
                 return null;
             }
 
-            collEntry.reloadItemRawNode(itemId);
-            return collEntry.getItemNode(itemId);
+            folderEntry.reloadItemRawNode(itemId);
+            return folderEntry.getItemNode(itemId);
         }
     }
 
@@ -709,13 +709,13 @@ public class SpigotConfigManager implements ConfigManager {
             referenceManager.scanAndRegister(key, newNode);
         }
 
-        Map<String, Set<String>> loadedItemIdsByCollection = new HashMap<>();
+        Map<String, Set<String>> loadedItemIdsByFolderConfig = new HashMap<>();
 
-        for (CollectionEntry<?> collEntry : collections.values()) {
-            String collectionName = collEntry.getCollectionName();
+        for (FolderConfigEntry<?> folderEntry : folderConfigs.values()) {
+            String folderConfigName = folderEntry.getFolderConfigName();
 
-            Map<String, ConfigNode> rawNodes = collEntry.loadRawNodesOnly();
-            loadedItemIdsByCollection.put(collectionName, new LinkedHashSet<>(rawNodes.keySet()));
+            Map<String, ConfigNode> rawNodes = folderEntry.loadRawNodesOnly();
+            loadedItemIdsByFolderConfig.put(folderConfigName, new LinkedHashSet<>(rawNodes.keySet()));
 
             for (Map.Entry<String, ConfigNode> itemEntry : rawNodes.entrySet()) {
                 String itemId = itemEntry.getKey();
@@ -724,7 +724,7 @@ public class SpigotConfigManager implements ConfigManager {
                     continue;
                 }
 
-                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+                ReferenceKey key = ReferenceKey.folderConfigItem(folderConfigName, itemId);
                 referenceManager.scanAndRegister(key, node);
             }
         }
@@ -741,24 +741,24 @@ public class SpigotConfigManager implements ConfigManager {
             bindingCoordinator.bindKey(key, true);
         }
 
-        for (CollectionEntry<?> collEntry : collections.values()) {
-            String collectionName = collEntry.getCollectionName();
-            Set<String> loadedItemIds = loadedItemIdsByCollection.get(collectionName);
+        for (FolderConfigEntry<?> folderEntry : folderConfigs.values()) {
+            String folderConfigName = folderEntry.getFolderConfigName();
+            Set<String> loadedItemIds = loadedItemIdsByFolderConfig.get(folderConfigName);
             if (loadedItemIds == null) {
                 loadedItemIds = Collections.emptySet();
             }
 
             for (String itemId : loadedItemIds) {
-                ReferenceKey key = ReferenceKey.collectionItem(collectionName, itemId);
+                ReferenceKey key = ReferenceKey.folderConfigItem(folderConfigName, itemId);
                 if (!boundKeys.contains(key)) {
                     bindingCoordinator.bindKey(key, true);
                 }
             }
 
-            Set<String> snapshotIds = new LinkedHashSet<>(collEntry.getRef().get().ids());
+            Set<String> snapshotIds = new LinkedHashSet<>(folderEntry.getRef().get().ids());
             for (String itemId : snapshotIds) {
                 if (!loadedItemIds.contains(itemId)) {
-                    collEntry.rebindItem(itemId);
+                    folderEntry.rebindItem(itemId);
                 }
             }
         }
@@ -843,18 +843,18 @@ public class SpigotConfigManager implements ConfigManager {
     }
 
     /**
-     * Gets a collection entry by name only (without item type).
+     * Gets a folder config entry by name only (without item type).
      * <p>
      * Used by {@link SpigotConfigReferenceLookup}.
      *
-     * @param collectionName the collection name
-     * @return the collection entry, or null if not found
+     * @param folderConfigName the folder config name
+     * @return the folder config entry, or null if not found
      */
-    public @Nullable CollectionEntry<?> getCollectionEntryByName(@NotNull String collectionName) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+    public @Nullable FolderConfigEntry<?> getFolderConfigEntryByName(@NotNull String folderConfigName) {
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
 
-        for (Map.Entry<CollectionKey, CollectionEntry<?>> entry : collections.entrySet()) {
-            if (entry.getKey().getCollectionName().equals(collectionName)) {
+        for (Map.Entry<FolderConfigKey, FolderConfigEntry<?>> entry : folderConfigs.entrySet()) {
+            if (entry.getKey().getFolderConfigName().equals(folderConfigName)) {
                 return entry.getValue();
             }
         }
@@ -862,14 +862,14 @@ public class SpigotConfigManager implements ConfigManager {
     }
 
     /**
-     * Gets all collection names across all item types.
+     * Gets all folder config names across all item types.
      *
-     * @return set of all collection names
+     * @return set of all folder config names
      */
-    public @NotNull Set<String> getAllCollectionNames() {
+    public @NotNull Set<String> getAllFolderConfigNames() {
         Set<String> names = new LinkedHashSet<>();
-        for (CollectionKey key : collections.keySet()) {
-            names.add(key.getCollectionName());
+        for (FolderConfigKey key : folderConfigs.keySet()) {
+            names.add(key.getFolderConfigName());
         }
         return Collections.unmodifiableSet(names);
     }
@@ -941,8 +941,8 @@ public class SpigotConfigManager implements ConfigManager {
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     @Data
-    private static class CollectionKey {
+    private static class FolderConfigKey {
         private final Class<?> itemType;
-        private final String collectionName;
+        private final String folderConfigName;
     }
 }

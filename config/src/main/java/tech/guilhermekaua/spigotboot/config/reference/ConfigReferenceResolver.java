@@ -39,7 +39,7 @@ import java.util.*;
  * This resolver supports:
  * <ul>
  *   <li>Single config references: {@code ${configName}} or {@code ${configName:path}}</li>
- *   <li>Collection item references: {@code ${collection.itemId}} or {@code ${collection.itemId:path}}</li>
+ *   <li>Folder config item references: {@code ${folderConfigName.itemId}} or {@code ${folderConfigName.itemId:path}}</li>
  *   <li>Deep/recursive resolution: references inside resolved values are also resolved</li>
  *   <li>Cycle detection: prevents infinite loops in circular references</li>
  * </ul>
@@ -210,11 +210,11 @@ public class ConfigReferenceResolver {
         if (ref.isSingleConfig()) {
             alternatives.addAll(lookup.getAvailableConfigNames());
         } else {
-            String collectionName = ref.getCollectionName();
-            if (lookup.hasCollection(collectionName)) {
-                alternatives.addAll(lookup.getAvailableItemIds(collectionName));
+            String folderConfigName = ref.getFolderConfigName();
+            if (lookup.hasFolderConfig(folderConfigName)) {
+                alternatives.addAll(lookup.getAvailableItemIds(folderConfigName));
             } else {
-                alternatives.addAll(lookup.getAvailableCollectionNames());
+                alternatives.addAll(lookup.getAvailableFolderConfigNames());
             }
         }
 

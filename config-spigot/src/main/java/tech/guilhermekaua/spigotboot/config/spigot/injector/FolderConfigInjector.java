@@ -23,9 +23,9 @@
 package tech.guilhermekaua.spigotboot.config.spigot.injector;
 
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigRefName;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionSnapshot;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfigName;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigRef;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigSnapshot;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjector;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
@@ -38,29 +38,29 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Custom injector for ConfigCollectionRef injection.
+ * Custom injector for {@link FolderConfigRef} injection.
  * <p>
- * This injector enables dependency injection for config collections without
- * requiring @Inject annotation. It resolves ConfigCollectionRef&lt;T&gt; types
- * and uses @ConfigRefName for disambiguation when multiple collections of
+ * This injector enables dependency injection for folder configs without
+ * requiring @Inject annotation. It resolves {@code FolderConfigRef<T>} types
+ * and uses {@link FolderConfigName} for disambiguation when multiple folder configs of
  * the same item type exist.
  * <p>
  * Supported injection types:
  * <ul>
- *   <li>{@code ConfigCollectionRef<T>}</li>
- *   <li>{@code ConfigCollectionSnapshot<T>} (returns current snapshot)</li>
+ *   <li>{@code FolderConfigRef<T>}</li>
+ *   <li>{@code FolderConfigSnapshot<T>} (returns current snapshot)</li>
  * </ul>
  */
-public class ConfigCollectionInjector implements CustomInjector {
+public class FolderConfigInjector implements CustomInjector {
 
     private final SpigotConfigManager configManager;
 
     /**
-     * Creates a new config collection injector.
+     * Creates a new folder config injector.
      *
      * @param configManager the config manager
      */
-    public ConfigCollectionInjector(@NotNull SpigotConfigManager configManager) {
+    public FolderConfigInjector(@NotNull SpigotConfigManager configManager) {
         this.configManager = Objects.requireNonNull(configManager, "configManager cannot be null");
     }
 
@@ -71,7 +71,7 @@ public class ConfigCollectionInjector implements CustomInjector {
             return false;
         }
 
-        return rawType == ConfigCollectionRef.class || rawType == ConfigCollectionSnapshot.class;
+        return rawType == FolderConfigRef.class || rawType == FolderConfigSnapshot.class;
     }
 
     @Override
@@ -88,17 +88,17 @@ public class ConfigCollectionInjector implements CustomInjector {
             return InjectionResult.notHandled();
         }
 
-        String collectionName = resolveCollectionName(injectionPoint.getAnnotatedElement(), itemType);
-        if (collectionName == null) {
+        String folderConfigName = resolveFolderConfigName(injectionPoint.getAnnotatedElement(), itemType);
+        if (folderConfigName == null) {
             return InjectionResult.notHandled();
         }
 
         try {
-            if (rawType == ConfigCollectionRef.class) {
-                ConfigCollectionRef<?> ref = configManager.getCollectionRef(itemType, collectionName);
+            if (rawType == FolderConfigRef.class) {
+                FolderConfigRef<?> ref = configManager.getFolderConfigRef(itemType, folderConfigName);
                 return InjectionResult.handled(ref);
-            } else if (rawType == ConfigCollectionSnapshot.class) {
-                ConfigCollectionRef<?> ref = configManager.getCollectionRef(itemType, collectionName);
+            } else if (rawType == FolderConfigSnapshot.class) {
+                FolderConfigRef<?> ref = configManager.getFolderConfigRef(itemType, folderConfigName);
                 return InjectionResult.handled(ref.get());
             }
         } catch (Exception e) {
@@ -114,7 +114,7 @@ public class ConfigCollectionInjector implements CustomInjector {
     }
 
     /**
-     * Extracts the item type from a parameterized type like ConfigCollectionRef&lt;T&gt;.
+     * Extracts the item type from a parameterized type like {@code FolderConfigRef<T>}.
      *
      * @param type the type
      * @return the item type class, or null if not extractable
@@ -134,7 +134,7 @@ public class ConfigCollectionInjector implements CustomInjector {
         if (itemType instanceof Class) {
             return (Class<?>) itemType;
         } else if (itemType instanceof ParameterizedType) {
-            // nested generic like ConfigCollectionRef<List<String>>
+            // nested generic like FolderConfigRef<List<String>>
             Type rawType = ((ParameterizedType) itemType).getRawType();
             if (rawType instanceof Class) {
                 return (Class<?>) rawType;
@@ -145,19 +145,19 @@ public class ConfigCollectionInjector implements CustomInjector {
     }
 
     /**
-     * Resolves the collection name from the annotated element.
+     * Resolves the folder config name from the annotated element.
      *
      * @param element  the annotated element (field, parameter, or method)
      * @param itemType the item type
-     * @return the collection name, or null if cannot be resolved
+     * @return the folder config name, or null if cannot be resolved
      */
-    private String resolveCollectionName(AnnotatedElement element, Class<?> itemType) {
-        ConfigRefName refName = element.getAnnotation(ConfigRefName.class);
+    private String resolveFolderConfigName(AnnotatedElement element, Class<?> itemType) {
+        FolderConfigName refName = element.getAnnotation(FolderConfigName.class);
         if (refName != null && !refName.value().isEmpty()) {
             return refName.value();
         }
 
-        Set<String> names = configManager.getCollectionNames(itemType);
+        Set<String> names = configManager.getFolderConfigNames(itemType);
         if (names.isEmpty()) {
             return null;
         }

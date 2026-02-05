@@ -35,15 +35,15 @@ import java.util.Set;
 public class TestConfigReferenceLookup implements ConfigReferenceLookup {
 
     private final Map<String, ConfigNode> configs = new LinkedHashMap<>();
-    private final Map<String, Map<String, ConfigNode>> collections = new LinkedHashMap<>();
+    private final Map<String, Map<String, ConfigNode>> folderConfigs = new LinkedHashMap<>();
 
     public void addConfig(@NotNull String name, @Nullable Object data) {
         configs.put(name, new TestConfigNode(data));
     }
 
-    public void addCollectionItem(@NotNull String collectionName, @NotNull String itemId, @Nullable Object data) {
-        collections
-                .computeIfAbsent(collectionName, k -> new LinkedHashMap<>())
+    public void addFolderConfigItem(@NotNull String folderConfigName, @NotNull String itemId, @Nullable Object data) {
+        folderConfigs
+                .computeIfAbsent(folderConfigName, k -> new LinkedHashMap<>())
                 .put(itemId, new TestConfigNode(data));
     }
 
@@ -68,14 +68,14 @@ public class TestConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public @Nullable ConfigNode findCollectionItemRoot(@NotNull String collectionName, @NotNull String itemId) {
-        Map<String, ConfigNode> items = collections.get(collectionName);
+    public @Nullable ConfigNode findFolderConfigItemRoot(@NotNull String folderConfigName, @NotNull String itemId) {
+        Map<String, ConfigNode> items = folderConfigs.get(folderConfigName);
         return items != null ? items.get(itemId) : null;
     }
 
     @Override
-    public @Nullable ConfigNode findCollectionItemPath(@NotNull String collectionName, @NotNull String itemId, @NotNull String path) {
-        ConfigNode root = findCollectionItemRoot(collectionName, itemId);
+    public @Nullable ConfigNode findFolderConfigItemPath(@NotNull String folderConfigName, @NotNull String itemId, @NotNull String path) {
+        ConfigNode root = findFolderConfigItemRoot(folderConfigName, itemId);
         if (root == null) {
             return null;
         }
@@ -94,13 +94,13 @@ public class TestConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public @NotNull Set<String> getAvailableCollectionNames() {
-        return collections.keySet();
+    public @NotNull Set<String> getAvailableFolderConfigNames() {
+        return folderConfigs.keySet();
     }
 
     @Override
-    public @NotNull Set<String> getAvailableItemIds(@NotNull String collectionName) {
-        Map<String, ConfigNode> items = collections.get(collectionName);
+    public @NotNull Set<String> getAvailableItemIds(@NotNull String folderConfigName) {
+        Map<String, ConfigNode> items = folderConfigs.get(folderConfigName);
         return items != null ? items.keySet() : Collections.emptySet();
     }
 
@@ -115,13 +115,13 @@ public class TestConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public boolean hasCollection(@NotNull String collectionName) {
-        return collections.containsKey(collectionName);
+    public boolean hasFolderConfig(@NotNull String folderConfigName) {
+        return folderConfigs.containsKey(folderConfigName);
     }
 
     @Override
-    public boolean hasCollectionItem(@NotNull String collectionName, @NotNull String itemId) {
-        Map<String, ConfigNode> items = collections.get(collectionName);
+    public boolean hasFolderConfigItem(@NotNull String folderConfigName, @NotNull String itemId) {
+        Map<String, ConfigNode> items = folderConfigs.get(folderConfigName);
         return items != null && items.containsKey(itemId);
     }
 }

@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;

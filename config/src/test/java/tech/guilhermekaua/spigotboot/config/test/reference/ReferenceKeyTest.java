@@ -43,12 +43,12 @@ class ReferenceKeyTest {
     }
 
     @Test
-    @DisplayName("CollectionItemKey equality")
-    void collectionItemKeyEquality() {
-        ReferenceKey key1 = ReferenceKey.collectionItem("coll", "item");
-        ReferenceKey key2 = ReferenceKey.collectionItem("coll", "item");
-        ReferenceKey key3 = ReferenceKey.collectionItem("coll", "other");
-        ReferenceKey key4 = ReferenceKey.collectionItem("other", "item");
+    @DisplayName("FolderConfigItemKey equality")
+    void folderConfigItemKeyEquality() {
+        ReferenceKey key1 = ReferenceKey.folderConfigItem("folder", "item");
+        ReferenceKey key2 = ReferenceKey.folderConfigItem("folder", "item");
+        ReferenceKey key3 = ReferenceKey.folderConfigItem("folder", "other");
+        ReferenceKey key4 = ReferenceKey.folderConfigItem("other", "item");
 
         assertEquals(key1, key2);
         assertEquals(key1.hashCode(), key2.hashCode());
@@ -57,34 +57,34 @@ class ReferenceKeyTest {
     }
 
     @Test
-    @DisplayName("SingleConfigKey and CollectionItemKey are not equal")
+    @DisplayName("SingleConfigKey and FolderConfigItemKey are not equal")
     void differentKeyTypesNotEqual() {
         ReferenceKey single = ReferenceKey.singleConfig("name");
-        ReferenceKey collection = ReferenceKey.collectionItem("name", "item");
+        ReferenceKey folderConfig = ReferenceKey.folderConfigItem("name", "item");
 
-        assertNotEquals(single, collection);
+        assertNotEquals(single, folderConfig);
     }
 
     @Test
     @DisplayName("getDisplayName returns readable string")
     void displayName() {
         ReferenceKey single = ReferenceKey.singleConfig("myconfig");
-        ReferenceKey collection = ReferenceKey.collectionItem("boosters", "2x");
+        ReferenceKey folderConfigItem = ReferenceKey.folderConfigItem("boosters", "2x");
 
         assertEquals("config:myconfig", single.getDisplayName());
-        assertEquals("collection:boosters.2x", collection.getDisplayName());
+        assertEquals("folder-config:boosters.2x", folderConfigItem.getDisplayName());
     }
 
     @Test
-    @DisplayName("isSingleConfig and isCollectionItem work correctly")
+    @DisplayName("isSingleConfig and isFolderConfigItem work correctly")
     void typeChecks() {
         ReferenceKey single = ReferenceKey.singleConfig("config");
-        ReferenceKey collection = ReferenceKey.collectionItem("coll", "item");
+        ReferenceKey folderConfigItem = ReferenceKey.folderConfigItem("folder", "item");
 
         assertTrue(single.isSingleConfig());
-        assertFalse(single.isCollectionItem());
+        assertFalse(single.isFolderConfigItem());
 
-        assertFalse(collection.isSingleConfig());
-        assertTrue(collection.isCollectionItem());
+        assertFalse(folderConfigItem.isSingleConfig());
+        assertTrue(folderConfigItem.isFolderConfigItem());
     }
 }

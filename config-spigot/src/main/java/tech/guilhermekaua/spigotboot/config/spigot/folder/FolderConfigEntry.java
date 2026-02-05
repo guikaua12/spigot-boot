@@ -20,19 +20,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.collection;
+package tech.guilhermekaua.spigotboot.config.spigot.folder;
 
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.annotation.NodeKey;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.BindingResult;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
-import tech.guilhermekaua.spigotboot.config.collection.CollectionItemChange;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigNodeHash;
-import tech.guilhermekaua.spigotboot.config.collection.EditResult;
+import tech.guilhermekaua.spigotboot.config.folder.ConfigNodeHash;
+import tech.guilhermekaua.spigotboot.config.folder.EditResult;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigItemChange;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
@@ -58,45 +58,45 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Internal entry holding collection state for SpigotConfigManager.
+ * Internal entry holding folder config state for SpigotConfigManager.
  * <p>
- * Each CollectionEntry manages one folder-based collection.
+ * Each {@link FolderConfigEntry} manages one folder-based folder config.
  *
  * @param <T> the item type
  */
-public final class CollectionEntry<T> {
+public final class FolderConfigEntry<T> {
     private static final String[] EXTENSIONS = {"yml", "yaml"};
     private static final Pattern SAFE_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
 
     private final Class<T> itemType;
-    private final String collectionName;
+    private final String folderConfigName;
     private final Path folder;
-    private final ConfigCollection annotation;
+    private final FolderConfig annotation;
     private final YamlConfigLoader loader;
     private final Binder binder;
     private final NamingStrategy namingStrategy;
     private final Plugin plugin;
     private final Logger logger;
 
-    private final DefaultConfigCollectionRef<T> ref;
-    private final DefaultConfigCollectionEditor<T> editor;
+    private final DefaultFolderConfigRef<T> ref;
+    private final DefaultFolderConfigEditor<T> editor;
 
     private final Map<String, ItemMeta> itemMetadata = new ConcurrentHashMap<>();
     private final Map<String, ConfigNode> itemNodes = new ConcurrentHashMap<>();
 
     /**
-     * Creates a new collection entry.
+     * Creates a new folder config entry.
      *
      * @param itemType       the item type class
-     * @param annotation     the @{@link ConfigCollection} annotation
+     * @param annotation     the @{@link FolderConfig} annotation
      * @param plugin         the owning plugin
      * @param loader         the YAML loader
      * @param binder         the config binder
      * @param namingStrategy the naming strategy for field to config key conversion
      */
-    public CollectionEntry(
+    public FolderConfigEntry(
             @NotNull Class<T> itemType,
-            @NotNull ConfigCollection annotation,
+            @NotNull FolderConfig annotation,
             @NotNull Plugin plugin,
             @NotNull YamlConfigLoader loader,
             @NotNull Binder binder,
@@ -113,14 +113,14 @@ public final class CollectionEntry<T> {
         if (name.isEmpty()) {
             name = deriveNameFromFolder(annotation.folder());
         }
-        this.collectionName = name;
+        this.folderConfigName = name;
 
         this.folder = plugin.getDataFolder().toPath().resolve(annotation.folder());
 
-        this.editor = new DefaultConfigCollectionEditor<>(this);
-        this.ref = new DefaultConfigCollectionRef<>(
+        this.editor = new DefaultFolderConfigEditor<>(this);
+        this.ref = new DefaultFolderConfigRef<>(
                 itemType,
-                collectionName,
+                folderConfigName,
                 editor,
                 this::reloadAll,
                 this::reloadItem
@@ -140,15 +140,15 @@ public final class CollectionEntry<T> {
         return itemType;
     }
 
-    public @NotNull String getCollectionName() {
-        return collectionName;
+    public @NotNull String getFolderConfigName() {
+        return folderConfigName;
     }
 
     public @NotNull Path getFolder() {
         return folder;
     }
 
-    public @NotNull DefaultConfigCollectionRef<T> getRef() {
+    public @NotNull DefaultFolderConfigRef<T> getRef() {
         return ref;
     }
 
@@ -186,7 +186,7 @@ public final class CollectionEntry<T> {
      */
     public void loadAll() {
         if (!Files.exists(folder)) {
-            ref.setSnapshot(DefaultConfigCollectionSnapshot.empty(itemType, collectionName));
+            ref.setSnapshot(DefaultFolderConfigSnapshot.empty(itemType, folderConfigName));
             return;
         }
 
@@ -214,7 +214,7 @@ public final class CollectionEntry<T> {
     /**
      * Loads raw nodes from disk without binding them.
      * <p>
-     * Used when reference scanning needs to happen across all collections
+     * Used when reference scanning needs to happen across all folder configs
      * before determining binding order. After calling this, use
      * {@link #getItemIds()} and {@link #getItemNode(String)} to access the nodes,
      * then call {@link #bindFromLoadedNodes(List)} to bind them.
@@ -352,11 +352,11 @@ public final class CollectionEntry<T> {
         itemMetadata.clear();
         itemMetadata.putAll(newMetadata);
 
-        ref.setSnapshot(new DefaultConfigCollectionSnapshot<>(
-                itemType, collectionName, itemsById, orderedValues, enabledItems
+        ref.setSnapshot(new DefaultFolderConfigSnapshot<>(
+                itemType, folderConfigName, itemsById, orderedValues, enabledItems
         ));
 
-        logger.fine("Loaded " + itemsById.size() + " items in '" + collectionName + "'");
+        logger.fine("Loaded " + itemsById.size() + " items in '" + folderConfigName + "'");
     }
 
     public @Nullable T bindItem(@NotNull String id, @NotNull ConfigNode node) {
@@ -429,10 +429,10 @@ public final class CollectionEntry<T> {
 
     @SuppressWarnings("unchecked")
     private void updateItemInSnapshot(@NotNull String itemId, @NotNull T item) {
-        DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> oldSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         if (oldSnapshot == null) {
-            oldSnapshot = DefaultConfigCollectionSnapshot.empty(itemType, collectionName);
+            oldSnapshot = DefaultFolderConfigSnapshot.empty(itemType, folderConfigName);
         }
         Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
         T oldItem = items.put(itemId, item);
@@ -448,10 +448,10 @@ public final class CollectionEntry<T> {
 
     @SuppressWarnings("unchecked")
     private void removeItemFromSnapshot(@NotNull String itemId) {
-        DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> oldSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         if (oldSnapshot == null) {
-            oldSnapshot = DefaultConfigCollectionSnapshot.empty(itemType, collectionName);
+            oldSnapshot = DefaultFolderConfigSnapshot.empty(itemType, folderConfigName);
         }
         Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
         T oldItem = items.remove(itemId);
@@ -464,15 +464,15 @@ public final class CollectionEntry<T> {
     }
 
     private void notifyItemAdded(@NotNull String id, @NotNull T item) {
-        ref.notifyListeners(CollectionItemChange.added(collectionName, itemType, id, item));
+        ref.notifyListeners(FolderConfigItemChange.added(folderConfigName, itemType, id, item));
     }
 
     private void notifyItemModified(@NotNull String id, @NotNull T oldItem, @NotNull T newItem) {
-        ref.notifyListeners(CollectionItemChange.modified(collectionName, itemType, id, oldItem, newItem));
+        ref.notifyListeners(FolderConfigItemChange.modified(folderConfigName, itemType, id, oldItem, newItem));
     }
 
     private void notifyItemRemoved(@NotNull String id, @NotNull T oldItem) {
-        ref.notifyListeners(CollectionItemChange.removed(collectionName, itemType, id, oldItem));
+        ref.notifyListeners(FolderConfigItemChange.removed(folderConfigName, itemType, id, oldItem));
     }
 
     private ItemMeta createItemMetaFromRegisteredNode(String id) {
@@ -493,10 +493,10 @@ public final class CollectionEntry<T> {
         try {
             if (!Files.exists(folder)) {
                 Files.createDirectories(folder);
-                logger.info("Created collection folder: " + folder);
+                logger.info("Created folder config folder: " + folder);
             }
         } catch (IOException e) {
-            logger.warning("Failed to create collection folder: " + folder + " - " + e.getMessage());
+            logger.warning("Failed to create folder config folder: " + folder + " - " + e.getMessage());
         }
     }
 
@@ -585,27 +585,27 @@ public final class CollectionEntry<T> {
      * Reloads all items and computes changes.
      */
     public void reloadAll() {
-        DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> oldSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         Map<String, T> oldItems = oldSnapshot.getItemsMap();
         Map<String, ItemMeta> oldMetadata = new HashMap<>(itemMetadata);
 
         loadAll();
 
-        DefaultConfigCollectionSnapshot<T> newSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> newSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         Map<String, T> newItems = newSnapshot.getItemsMap();
 
-        List<CollectionItemChange<T>> changes = computeChanges(oldItems, newItems, oldMetadata);
-        for (CollectionItemChange<T> change : changes) {
+        List<FolderConfigItemChange<T>> changes = computeChanges(oldItems, newItems, oldMetadata);
+        for (FolderConfigItemChange<T> change : changes) {
             ref.notifyListeners(change);
         }
     }
 
     public void reloadItem(@NotNull String id) {
         Path itemPath = resolveItemPath(id);
-        DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> oldSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         Map<String, T> oldItems = new LinkedHashMap<>(oldSnapshot.getItemsMap());
         T oldItem = oldItems.get(id);
 
@@ -666,8 +666,8 @@ public final class CollectionEntry<T> {
                 return EditResult.failure("Failed to reload saved item");
             }
 
-            DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                    (DefaultConfigCollectionSnapshot<T>) ref.get();
+            DefaultFolderConfigSnapshot<T> oldSnapshot =
+                    (DefaultFolderConfigSnapshot<T>) ref.get();
             Map<String, T> items = new LinkedHashMap<>(oldSnapshot.getItemsMap());
             boolean isNew = !items.containsKey(id);
             T oldItem = items.put(id, loadedItem);
@@ -696,8 +696,8 @@ public final class CollectionEntry<T> {
     public @NotNull EditResult<Void> deleteItem(@NotNull String id) {
         Path itemPath = resolveItemPath(id);
 
-        DefaultConfigCollectionSnapshot<T> oldSnapshot =
-                (DefaultConfigCollectionSnapshot<T>) ref.get();
+        DefaultFolderConfigSnapshot<T> oldSnapshot =
+                (DefaultFolderConfigSnapshot<T>) ref.get();
         T oldItem = oldSnapshot.find(id);
 
         if (oldItem == null) {
@@ -900,16 +900,16 @@ public final class CollectionEntry<T> {
         }
     }
 
-    private List<CollectionItemChange<T>> computeChanges(
+    private List<FolderConfigItemChange<T>> computeChanges(
             Map<String, T> oldItems,
             Map<String, T> newItems,
             Map<String, ItemMeta> oldMetadata) {
-        List<CollectionItemChange<T>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<T>> changes = new ArrayList<>();
 
         for (Map.Entry<String, T> entry : oldItems.entrySet()) {
             if (!newItems.containsKey(entry.getKey())) {
-                changes.add(CollectionItemChange.removed(
-                        collectionName, itemType, entry.getKey(), entry.getValue()
+                changes.add(FolderConfigItemChange.removed(
+                        folderConfigName, itemType, entry.getKey(), entry.getValue()
                 ));
             }
         }
@@ -920,15 +920,15 @@ public final class CollectionEntry<T> {
             T oldItem = oldItems.get(id);
 
             if (oldItem == null) {
-                changes.add(CollectionItemChange.added(
-                        collectionName, itemType, id, newItem
+                changes.add(FolderConfigItemChange.added(
+                        folderConfigName, itemType, id, newItem
                 ));
             } else {
                 ItemMeta oldMeta = oldMetadata.get(id);
                 ItemMeta newMeta = itemMetadata.get(id);
                 if (oldMeta == null || newMeta == null || !oldMeta.hash.equals(newMeta.hash)) {
-                    changes.add(CollectionItemChange.modified(
-                            collectionName, itemType, id, oldItem, newItem
+                    changes.add(FolderConfigItemChange.modified(
+                            folderConfigName, itemType, id, oldItem, newItem
                     ));
                 }
             }
@@ -947,8 +947,8 @@ public final class CollectionEntry<T> {
 
         List<T> enabledItems = computeEnabledItems(orderedValues);
 
-        ref.setSnapshot(new DefaultConfigCollectionSnapshot<>(
-                itemType, collectionName, items, orderedValues, enabledItems
+        ref.setSnapshot(new DefaultFolderConfigSnapshot<>(
+                itemType, folderConfigName, items, orderedValues, enabledItems
         ));
     }
 

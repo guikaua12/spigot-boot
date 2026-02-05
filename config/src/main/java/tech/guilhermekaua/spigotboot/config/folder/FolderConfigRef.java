@@ -20,16 +20,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
 
 /**
- * A live reference to a configuration collection that updates on reload.
+ * A live reference to a folder-based configuration that updates on reload.
  * <p>
- * This is the primary injection type for config collections. It provides
+ * This is the primary injection type for folder configs. It provides
  * access to the current snapshot, edit operations, and reload capabilities.
  * <p>
  * The underlying snapshot is swapped atomically on reload, so all reads
@@ -37,28 +37,28 @@ import java.util.function.Supplier;
  *
  * @param <T> the item type
  */
-public interface ConfigCollectionRef<T> extends Supplier<ConfigCollectionSnapshot<T>> {
+public interface FolderConfigRef<T> extends Supplier<FolderConfigSnapshot<T>> {
 
     /**
-     * Gets the current snapshot of the collection.
+     * Gets the current snapshot of the folder config.
      *
      * @return the current snapshot, never null
      */
     @Override
-    @NotNull ConfigCollectionSnapshot<T> get();
+    @NotNull FolderConfigSnapshot<T> get();
 
     /**
-     * Gets an editor for modifying the collection.
+     * Gets an editor for modifying the folder config.
      * <p>
      * The editor provides create/update/delete operations that persist
      * to disk and update the in-memory snapshot atomically.
      *
-     * @return the collection editor
+     * @return the folder config editor
      */
-    @NotNull ConfigCollectionEditor<T> edit();
+    @NotNull FolderConfigEditor<T> edit();
 
     /**
-     * Reloads the entire collection from disk.
+     * Reloads the entire folder config from disk.
      * <p>
      * This scans the folder, loads all matching files, and swaps
      * the snapshot atomically. Listeners are notified of any changes.
@@ -68,7 +68,7 @@ public interface ConfigCollectionRef<T> extends Supplier<ConfigCollectionSnapsho
     /**
      * Reloads a single item from disk.
      * <p>
-     * If the file no longer exists, the item is removed from the collection.
+     * If the file no longer exists, the item is removed from the folder config.
      * If this is a new file, the item is added. Listeners are notified.
      *
      * @param id the item ID to reload
@@ -76,18 +76,18 @@ public interface ConfigCollectionRef<T> extends Supplier<ConfigCollectionSnapsho
     void reloadItem(@NotNull String id);
 
     /**
-     * Adds a listener for collection changes.
+     * Adds a listener for folder config changes.
      *
      * @param listener the listener to add
      */
-    void addListener(@NotNull CollectionChangeListener<T> listener);
+    void addListener(@NotNull FolderConfigChangeListener<T> listener);
 
     /**
      * Removes a previously added listener.
      *
      * @param listener the listener to remove
      */
-    void removeListener(@NotNull CollectionChangeListener<T> listener);
+    void removeListener(@NotNull FolderConfigChangeListener<T> listener);
 
     /**
      * Gets the item type class.
@@ -97,9 +97,9 @@ public interface ConfigCollectionRef<T> extends Supplier<ConfigCollectionSnapsho
     @NotNull Class<T> getItemType();
 
     /**
-     * Gets the collection name.
+     * Gets the folder config name.
      *
-     * @return the collection name
+     * @return the folder config name
      */
-    @NotNull String getCollectionName();
+    @NotNull String getFolderConfigName();
 }

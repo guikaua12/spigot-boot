@@ -180,7 +180,7 @@ class DependencyGraphTest {
         @DisplayName("works with arbitrary node values")
         void arbitraryNodes() throws CycleDetectedException {
             String config = "config:items";
-            String item = "collection:boosters.2x";
+            String item = "folder-config:boosters.2x";
 
             graph.addEdge(item, config);
 

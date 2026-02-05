@@ -76,15 +76,15 @@ class ConfigReferenceDependencyScannerTest {
         }
 
         @Test
-        @DisplayName("finds collection item reference")
-        void findsCollectionItemReference() {
+        @DisplayName("finds folder config item reference")
+        void findsFolderConfigItemReference() {
             Map<String, Object> data = new HashMap<>();
             data.put("weapon", "${items.sword}");
 
             Set<ReferenceKey> deps = scanner.scanDependencies(testNode(data));
 
             assertEquals(1, deps.size());
-            assertTrue(deps.contains(ReferenceKey.collectionItem("items", "sword")));
+            assertTrue(deps.contains(ReferenceKey.folderConfigItem("items", "sword")));
         }
 
         @Test
@@ -100,7 +100,7 @@ class ConfigReferenceDependencyScannerTest {
             assertEquals(3, deps.size());
             assertTrue(deps.contains(ReferenceKey.singleConfig("configA")));
             assertTrue(deps.contains(ReferenceKey.singleConfig("configB")));
-            assertTrue(deps.contains(ReferenceKey.collectionItem("items", "weapon")));
+            assertTrue(deps.contains(ReferenceKey.folderConfigItem("items", "weapon")));
         }
 
         @Test

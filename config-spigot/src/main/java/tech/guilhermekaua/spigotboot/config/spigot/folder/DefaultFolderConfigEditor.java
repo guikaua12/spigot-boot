@@ -20,32 +20,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.collection;
+package tech.guilhermekaua.spigotboot.config.spigot.folder;
 
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionEditor;
-import tech.guilhermekaua.spigotboot.config.collection.EditResult;
+import tech.guilhermekaua.spigotboot.config.folder.EditResult;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigEditor;
 
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * Default implementation of ConfigCollectionEditor.
+ * Default implementation of {@link FolderConfigEditor}.
  * <p>
- * Delegates to CollectionEntry for actual persistence.
+ * Delegates to {@link FolderConfigEntry} for actual persistence.
  *
  * @param <T> the item type
  */
-public final class DefaultConfigCollectionEditor<T> implements ConfigCollectionEditor<T> {
+public final class DefaultFolderConfigEditor<T> implements FolderConfigEditor<T> {
 
-    private final CollectionEntry<T> entry;
+    private final FolderConfigEntry<T> entry;
 
     /**
      * Creates a new editor.
      *
-     * @param entry the collection entry
+     * @param entry the folder config entry
      */
-    public DefaultConfigCollectionEditor(@NotNull CollectionEntry<T> entry) {
+    public DefaultFolderConfigEditor(@NotNull FolderConfigEntry<T> entry) {
         this.entry = Objects.requireNonNull(entry, "entry cannot be null");
     }
 

@@ -36,8 +36,8 @@ import java.util.Objects;
  * <ul>
  *   <li>{@code ${configName}} - single config root</li>
  *   <li>{@code ${configName:path.to.value}} - single config with path</li>
- *   <li>{@code ${collectionName.itemId}} - collection item root</li>
- *   <li>{@code ${collectionName.itemId:path.to.value}} - collection item with path</li>
+ *   <li>{@code ${folderConfigName.itemId}} - folder config item root</li>
+ *   <li>{@code ${folderConfigName.itemId:path.to.value}} - folder config item with path</li>
  * </ul>
  */
 @EqualsAndHashCode
@@ -66,20 +66,20 @@ public final class ConfigReference {
     }
 
     /**
-     * Creates a reference to a collection item.
+     * Creates a reference to a folder config item.
      *
      * @param rawToken       the original token string
-     * @param collectionName the collection name
-     * @param itemId         the item ID within the collection
+     * @param folderConfigName the folder config name
+     * @param itemId         the item ID within the folder config
      * @param path           the path within the item, or null for root
      * @return the config reference
      */
-    public static @NotNull ConfigReference collectionItem(
+    public static @NotNull ConfigReference folderConfigItem(
             @NotNull String rawToken,
-            @NotNull String collectionName,
+            @NotNull String folderConfigName,
             @NotNull String itemId,
             @Nullable String path) {
-        return new ConfigReference(rawToken, ReferenceTargetKind.COLLECTION_ITEM, collectionName, itemId, path);
+        return new ConfigReference(rawToken, ReferenceTargetKind.FOLDER_CONFIG_ITEM, folderConfigName, itemId, path);
     }
 
     private ConfigReference(
@@ -117,7 +117,7 @@ public final class ConfigReference {
      * Gets the target name.
      * <p>
      * For {@link ReferenceTargetKind#SINGLE_CONFIG}, this is the config name.
-     * For {@link ReferenceTargetKind#COLLECTION_ITEM}, this is the collection name.
+     * For {@link ReferenceTargetKind#FOLDER_CONFIG_ITEM}, this is the folder config name.
      *
      * @return the target name
      */
@@ -139,20 +139,20 @@ public final class ConfigReference {
     }
 
     /**
-     * Gets the collection name for collection item references.
+     * Gets the folder config name for folder config item references.
      *
-     * @return the collection name
-     * @throws IllegalStateException if this is not a collection item reference
+     * @return the folder config name
+     * @throws IllegalStateException if this is not a folder config item reference
      */
-    public @NotNull String getCollectionName() {
-        if (kind != ReferenceTargetKind.COLLECTION_ITEM) {
-            throw new IllegalStateException("Not a collection item reference: " + rawToken);
+    public @NotNull String getFolderConfigName() {
+        if (kind != ReferenceTargetKind.FOLDER_CONFIG_ITEM) {
+            throw new IllegalStateException("Not a folder config item reference: " + rawToken);
         }
         return targetName;
     }
 
     /**
-     * Gets the item ID for collection item references.
+     * Gets the item ID for folder config item references.
      *
      * @return the item ID, or null if this is a single config reference
      */
@@ -188,11 +188,11 @@ public final class ConfigReference {
     }
 
     /**
-     * Checks if this reference targets a collection item.
+     * Checks if this reference targets a folder config item.
      *
-     * @return true if collection item reference
+     * @return true if folder config item reference
      */
-    public boolean isCollectionItem() {
-        return kind == ReferenceTargetKind.COLLECTION_ITEM;
+    public boolean isFolderConfigItem() {
+        return kind == ReferenceTargetKind.FOLDER_CONFIG_ITEM;
     }
 }

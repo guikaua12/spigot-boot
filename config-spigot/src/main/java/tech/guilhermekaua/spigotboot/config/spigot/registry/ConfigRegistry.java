@@ -24,8 +24,8 @@ package tech.guilhermekaua.spigotboot.config.spigot.registry;
 
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollections;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfigs;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
@@ -47,7 +47,7 @@ import java.util.logging.Logger;
 public class ConfigRegistry {
 
     /**
-     * Scans for and registers all @Config and @ConfigCollection annotated classes.
+     * Scans for and registers all @Config and @FolderConfig annotated classes.
      * <p>
      * After all classes are registered, calls {@link SpigotConfigManager#initializeAll()}
      * to bind configs in topological order (respecting {@code ${...}} references).
@@ -72,12 +72,12 @@ public class ConfigRegistry {
         if (configManager instanceof SpigotConfigManager) {
             SpigotConfigManager spigotConfigManager = (SpigotConfigManager) configManager;
 
-            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(ConfigCollection.class)) {
-                processCollectionClass(itemClass, spigotConfigManager, logger);
+            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(FolderConfig.class)) {
+                processFolderConfigClass(itemClass, spigotConfigManager, logger);
             }
 
-            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(ConfigCollections.class)) {
-                processCollectionClass(itemClass, spigotConfigManager, logger);
+            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(FolderConfigs.class)) {
+                processFolderConfigClass(itemClass, spigotConfigManager, logger);
             }
 
             spigotConfigManager.initializeAll();
@@ -107,43 +107,43 @@ public class ConfigRegistry {
     }
 
     /**
-     * Processes a class annotated with @ConfigCollection.
+     * Processes a class annotated with @FolderConfig.
      *
-     * @param itemClass           the collection item class
+     * @param itemClass           the folder config item class
      * @param spigotConfigManager the config manager
      * @param logger              the logger
      */
     @SuppressWarnings("unchecked")
-    public <T> void processCollectionClass(
+    public <T> void processFolderConfigClass(
             Class<T> itemClass,
             SpigotConfigManager spigotConfigManager,
             Logger logger) {
         try {
-            List<ConfigCollection> annotations = getConfigCollectionAnnotations(itemClass);
+            List<FolderConfig> annotations = getFolderConfigAnnotations(itemClass);
 
             if (annotations.isEmpty()) {
                 return;
             }
 
-            for (ConfigCollection annotation : annotations) {
-                spigotConfigManager.registerCollection(itemClass, annotation);
+            for (FolderConfig annotation : annotations) {
+                spigotConfigManager.registerFolderConfig(itemClass, annotation);
             }
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
-            logger.warning("Failed to register collection for " + itemClass.getName() + ": " + e.getMessage());
+            logger.warning("Failed to register folder config for " + itemClass.getName() + ": " + e.getMessage());
         }
     }
 
-    private List<ConfigCollection> getConfigCollectionAnnotations(Class<?> itemClass) {
-        List<ConfigCollection> result = new ArrayList<>();
+    private List<FolderConfig> getFolderConfigAnnotations(Class<?> itemClass) {
+        List<FolderConfig> result = new ArrayList<>();
 
-        ConfigCollection single = itemClass.getAnnotation(ConfigCollection.class);
+        FolderConfig single = itemClass.getAnnotation(FolderConfig.class);
         if (single != null) {
             result.add(single);
         }
 
-        ConfigCollections container = itemClass.getAnnotation(ConfigCollections.class);
+        FolderConfigs container = itemClass.getAnnotation(FolderConfigs.class);
         if (container != null) {
             result.addAll(Arrays.asList(container.value()));
         }

@@ -20,24 +20,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Type of change that occurred to a collection item.
+ * Functional interface for listening to folder config item changes.
+ *
+ * @param <T> the item type
  */
-public enum ItemChangeType {
-    /**
-     * A new item was added to the collection.
-     */
-    ADDED,
+@FunctionalInterface
+public interface FolderConfigChangeListener<T> {
 
     /**
-     * An existing item was modified.
+     * Called when a folder config item changes.
+     *
+     * @param change the change details
      */
-    MODIFIED,
-
-    /**
-     * An item was removed from the collection.
-     */
-    REMOVED
+    void onItemChange(@NotNull FolderConfigItemChange<T> change);
 }

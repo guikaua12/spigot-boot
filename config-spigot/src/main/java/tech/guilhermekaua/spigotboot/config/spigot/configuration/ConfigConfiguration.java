@@ -7,8 +7,8 @@ import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceErrorHandle
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigCollectionInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.FolderConfigInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
@@ -28,9 +28,9 @@ public class ConfigConfiguration {
     }
 
     @Bean
-    public CustomInjectorRegistryCustomizer configCollectionInjector(SpigotConfigManager configManager) {
+    public CustomInjectorRegistryCustomizer folderConfigInjector(SpigotConfigManager configManager) {
         return (registry) -> {
-            registry.register(new ConfigCollectionInjector(configManager));
+            registry.register(new FolderConfigInjector(configManager));
             registry.register(new ConfigRefInjector(configManager));
         };
     }

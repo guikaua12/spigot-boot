@@ -28,29 +28,29 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Specifies the collection name for injecting a {@code ConfigCollectionRef}.
+ * Specifies the folder config name for injecting a {@code FolderConfigRef}.
  * <p>
- * Use this annotation to disambiguate when multiple collections of the same
- * item type exist. If only one collection exists for the item type, this
+ * Use this annotation to disambiguate when multiple folder configs of the same
+ * item type exist. If only one folder config exists for the item type, this
  * annotation is optional.
  * <p>
  * Example usage:
  * <pre>
- * &#064;ConfigRefName("admin_boosters")
- * private ConfigCollectionRef&lt;Booster&gt; adminBoosters;
+ * &#064;FolderConfigName("admin_boosters")
+ * private FolderConfigRef&lt;Booster&gt; adminBoosters;
  *
- * &#064;ConfigRefName("user_boosters")
- * private ConfigCollectionRef&lt;Booster&gt; userBoosters;
+ * &#064;FolderConfigName("user_boosters")
+ * private FolderConfigRef&lt;Booster&gt; userBoosters;
  * </pre>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
-public @interface ConfigRefName {
+public @interface FolderConfigName {
 
     /**
-     * The collection name to select.
+     * The folder config name to select.
      *
-     * @return the collection name
+     * @return the folder config name
      */
     String value();
 }

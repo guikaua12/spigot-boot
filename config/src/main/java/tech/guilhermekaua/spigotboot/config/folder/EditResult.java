@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Result of an edit operation on a config collection.
+ * Result of an edit operation on a folder config.
  * <p>
  * Contains the success status, the resulting value (if any),
  * and any validation errors that occurred.

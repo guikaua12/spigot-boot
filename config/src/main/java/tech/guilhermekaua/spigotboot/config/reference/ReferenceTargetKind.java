@@ -23,7 +23,7 @@
 package tech.guilhermekaua.spigotboot.config.reference;
 
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 
 /**
  * Identifies the kind of target a config reference points to.
@@ -42,13 +42,13 @@ public enum ReferenceTargetKind {
     SINGLE_CONFIG,
 
     /**
-     * References an item within a {@link ConfigCollection} folder-based configuration.
+     * References an item within a {@link FolderConfig} folder-based configuration.
      * <p>
      * Examples:
      * <ul>
-     *   <li>{@code ${collectionName.itemId}} - entire item root</li>
-     *   <li>{@code ${collectionName.itemId:path.to.value}} - specific path within item</li>
+     *   <li>{@code ${folderConfigName.itemId}} - entire item root</li>
+     *   <li>{@code ${folderConfigName.itemId:path.to.value}} - specific path within item</li>
      * </ul>
      */
-    COLLECTION_ITEM
+    FOLDER_CONFIG_ITEM
 }

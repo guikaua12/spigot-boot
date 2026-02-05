@@ -28,16 +28,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Container annotation for repeatable {@link ConfigCollection} annotations.
+ * Container annotation for repeatable {@link FolderConfig} annotations.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface ConfigCollections {
+public @interface FolderConfigs {
 
     /**
-     * The contained {@link ConfigCollection} annotations.
+     * The contained {@link FolderConfig} annotations.
      *
-     * @return the array of config collection annotations
+     * @return the array of folder-config annotations
      */
-    ConfigCollection[] value();
+    FolderConfig[] value();
 }

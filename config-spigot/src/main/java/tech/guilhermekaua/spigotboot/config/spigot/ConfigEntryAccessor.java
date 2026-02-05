@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
-import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
+import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 
 /**
  * Callback interface for accessing SpigotConfigManager's internal config entries.
@@ -69,10 +69,10 @@ interface ConfigEntryAccessor {
     void setConfigInstance(@NotNull Class<?> configClass, @NotNull Object instance);
 
     /**
-     * Gets a collection entry by name.
+     * Gets a folder config entry by name.
      *
-     * @param collectionName the collection name
-     * @return the collection entry, or null if not found
+     * @param folderConfigName the folder config name
+     * @return the folder config entry, or null if not found
      */
-    @Nullable CollectionEntry<?> getCollectionEntryByName(@NotNull String collectionName);
+    @Nullable FolderConfigEntry<?> getFolderConfigEntryByName(@NotNull String folderConfigName);
 }

@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceLookup;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
+import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 import tech.guilhermekaua.spigotboot.core.validation.ConfigPath;
 
 import java.util.Collections;
@@ -38,8 +38,8 @@ import java.util.Set;
  * Spigot implementation of {@link ConfigReferenceLookup}.
  * <p>
  * Provides lookup capabilities for resolving config references by delegating
- * to {@link SpigotConfigManager} for single configs and {@link CollectionEntry}
- * for collection items.
+ * to {@link SpigotConfigManager} for single configs and {@link FolderConfigEntry}
+ * for folder config items.
  */
 public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
 
@@ -48,7 +48,7 @@ public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
     /**
      * Creates a new lookup instance.
      *
-     * @param configManager the config manager providing access to configs and collections
+     * @param configManager the config manager providing access to configs and folder configs
      */
     public SpigotConfigReferenceLookup(@NotNull SpigotConfigManager configManager) {
         this.configManager = Objects.requireNonNull(configManager, "configManager cannot be null");
@@ -74,11 +74,11 @@ public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public @Nullable ConfigNode findCollectionItemRoot(@NotNull String collectionName, @NotNull String itemId) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+    public @Nullable ConfigNode findFolderConfigItemRoot(@NotNull String folderConfigName, @NotNull String itemId) {
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         Objects.requireNonNull(itemId, "itemId cannot be null");
 
-        CollectionEntry<?> entry = configManager.getCollectionEntryByName(collectionName);
+        FolderConfigEntry<?> entry = configManager.getFolderConfigEntryByName(folderConfigName);
         if (entry == null) {
             return null;
         }
@@ -87,15 +87,15 @@ public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public @Nullable ConfigNode findCollectionItemPath(
-            @NotNull String collectionName,
+    public @Nullable ConfigNode findFolderConfigItemPath(
+            @NotNull String folderConfigName,
             @NotNull String itemId,
             @NotNull String path) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         Objects.requireNonNull(itemId, "itemId cannot be null");
         Objects.requireNonNull(path, "path cannot be null");
 
-        ConfigNode root = findCollectionItemRoot(collectionName, itemId);
+        ConfigNode root = findFolderConfigItemRoot(folderConfigName, itemId);
         if (root == null) {
             return null;
         }
@@ -109,15 +109,15 @@ public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public @NotNull Set<String> getAvailableCollectionNames() {
-        return configManager.getAllCollectionNames();
+    public @NotNull Set<String> getAvailableFolderConfigNames() {
+        return configManager.getAllFolderConfigNames();
     }
 
     @Override
-    public @NotNull Set<String> getAvailableItemIds(@NotNull String collectionName) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+    public @NotNull Set<String> getAvailableItemIds(@NotNull String folderConfigName) {
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
 
-        CollectionEntry<?> entry = configManager.getCollectionEntryByName(collectionName);
+        FolderConfigEntry<?> entry = configManager.getFolderConfigEntryByName(folderConfigName);
         if (entry == null) {
             return Collections.emptySet();
         }
@@ -149,17 +149,17 @@ public class SpigotConfigReferenceLookup implements ConfigReferenceLookup {
     }
 
     @Override
-    public boolean hasCollection(@NotNull String collectionName) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
-        return configManager.getCollectionEntryByName(collectionName) != null;
+    public boolean hasFolderConfig(@NotNull String folderConfigName) {
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
+        return configManager.getFolderConfigEntryByName(folderConfigName) != null;
     }
 
     @Override
-    public boolean hasCollectionItem(@NotNull String collectionName, @NotNull String itemId) {
-        Objects.requireNonNull(collectionName, "collectionName cannot be null");
+    public boolean hasFolderConfigItem(@NotNull String folderConfigName, @NotNull String itemId) {
+        Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         Objects.requireNonNull(itemId, "itemId cannot be null");
 
-        CollectionEntry<?> entry = configManager.getCollectionEntryByName(collectionName);
+        FolderConfigEntry<?> entry = configManager.getFolderConfigEntryByName(folderConfigName);
         if (entry == null) {
             return false;
         }

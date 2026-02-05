@@ -27,17 +27,17 @@ import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.BindingResult;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
-import tech.guilhermekaua.spigotboot.config.reference.key.CollectionItemKey;
+import tech.guilhermekaua.spigotboot.config.reference.key.FolderConfigItemKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
-import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
+import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.reference.ConfigReferenceManager;
 
 import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
- * Coordinates binding and rebinding of configs and collection items.
+ * Coordinates binding and rebinding of configs and folder config items.
  * <p>
  * This is a package-private helper for {@link SpigotConfigManager} that
  * consolidates the logic for binding configs from their raw nodes.
@@ -71,12 +71,12 @@ final class ConfigBindingCoordinator {
     }
 
     /**
-     * Binds or rebinds a config/collection item from its current raw node.
+     * Binds or rebinds a config/folder config item from its current raw node.
      * <p>
      * This method sets the reference context, performs binding, and updates
      * the config entry with the new instance.
      *
-     * @param key      the reference key identifying the config or collection item
+     * @param key      the reference key identifying the config or folder config item
      * @param isRebind true if this is a rebind operation (affects log messages only)
      */
     void bindKey(@NotNull ReferenceKey key, boolean isRebind) {
@@ -87,7 +87,7 @@ final class ConfigBindingCoordinator {
             if (key.isSingleConfig()) {
                 bindSingleConfig((SingleConfigKey) key, isRebind);
             } else {
-                bindCollectionItem((CollectionItemKey) key, isRebind);
+                bindFolderConfigItem((FolderConfigItemKey) key, isRebind);
             }
         } finally {
             referenceManager.clearCurrentSourceKey();
@@ -117,18 +117,18 @@ final class ConfigBindingCoordinator {
         logger.fine(action + " config: " + configName);
     }
 
-    private void bindCollectionItem(CollectionItemKey key, boolean isRebind) {
-        String collectionName = key.getCollectionName();
+    private void bindFolderConfigItem(FolderConfigItemKey key, boolean isRebind) {
+        String folderConfigName = key.getFolderConfigName();
         String itemId = key.getItemId();
 
-        CollectionEntry<?> collEntry = entryAccessor.getCollectionEntryByName(collectionName);
-        if (collEntry == null) {
+        FolderConfigEntry<?> folderEntry = entryAccessor.getFolderConfigEntryByName(folderConfigName);
+        if (folderEntry == null) {
             return;
         }
 
-        collEntry.rebindItem(itemId);
+        folderEntry.rebindItem(itemId);
 
         String action = isRebind ? "Rebound" : "Bound";
-        logger.fine(action + " collection item: " + collectionName + "." + itemId);
+        logger.fine(action + " folder config item: " + folderConfigName + "." + itemId);
     }
 }

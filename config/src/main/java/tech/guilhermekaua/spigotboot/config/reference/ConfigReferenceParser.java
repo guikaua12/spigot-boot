@@ -35,11 +35,11 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li>{@code ${configName}} - single config root</li>
  *   <li>{@code ${configName:path.to.value}} - single config with path</li>
- *   <li>{@code ${collectionName.itemId}} - collection item root</li>
- *   <li>{@code ${collectionName.itemId:path.to.value}} - collection item with path</li>
+ *   <li>{@code ${folderConfigName.itemId}} - folder config item root</li>
+ *   <li>{@code ${folderConfigName.itemId:path.to.value}} - folder config item with path</li>
  * </ul>
  * <p>
- * Names (configName, collectionName, itemId) must match {@code [a-zA-Z0-9_-]+}.
+ * Names (configName, folderConfigName, itemId) must match {@code [a-zA-Z0-9_-]+}.
  * Names cannot contain '.' or ':' as these are used as delimiters.
  */
 public class ConfigReferenceParser {
@@ -47,7 +47,7 @@ public class ConfigReferenceParser {
     private static final String PREFIX = "${";
     private static final String SUFFIX = "}";
     private static final char PATH_SEPARATOR = ':';
-    private static final char COLLECTION_SEPARATOR = '.';
+    private static final char FOLDER_CONFIG_SEPARATOR = '.';
 
     private static final Pattern NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
@@ -150,18 +150,18 @@ public class ConfigReferenceParser {
             return Optional.empty();
         }
 
-        int dotIndex = namePart.indexOf(COLLECTION_SEPARATOR);
+        int dotIndex = namePart.indexOf(FOLDER_CONFIG_SEPARATOR);
 
         if (dotIndex >= 0) {
-            // collection item reference: collectionName.itemId
-            String collectionName = namePart.substring(0, dotIndex);
+            // folder config item reference: folderConfigName.itemId
+            String folderConfigName = namePart.substring(0, dotIndex);
             String itemId = namePart.substring(dotIndex + 1);
 
-            if (!isValidName(collectionName) || !isValidName(itemId)) {
+            if (!isValidName(folderConfigName) || !isValidName(itemId)) {
                 return Optional.empty();
             }
 
-            return Optional.of(ConfigReference.collectionItem(rawToken, collectionName, itemId, pathPart));
+            return Optional.of(ConfigReference.folderConfigItem(rawToken, folderConfigName, itemId, pathPart));
         } else {
             if (!isValidName(namePart)) {
                 return Optional.empty();

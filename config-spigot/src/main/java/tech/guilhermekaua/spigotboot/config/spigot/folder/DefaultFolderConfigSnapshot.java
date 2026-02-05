@@ -20,25 +20,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.collection;
+package tech.guilhermekaua.spigotboot.config.spigot.folder;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionSnapshot;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigSnapshot;
 
 import java.util.*;
 
 /**
- * Default implementation of ConfigCollectionSnapshot.
+ * Default implementation of {@link FolderConfigSnapshot}.
  * <p>
  * This is an immutable snapshot that is swapped atomically on reload.
  *
  * @param <T> the item type
  */
-public final class DefaultConfigCollectionSnapshot<T> implements ConfigCollectionSnapshot<T> {
+public final class DefaultFolderConfigSnapshot<T> implements FolderConfigSnapshot<T> {
 
     private final Class<T> itemType;
-    private final String collectionName;
+    private final String folderConfigName;
     private final Map<String, T> itemsById;
     private final List<T> orderedValues;
     private final List<T> enabledValues;
@@ -47,19 +47,19 @@ public final class DefaultConfigCollectionSnapshot<T> implements ConfigCollectio
      * Creates a new snapshot.
      *
      * @param itemType       the item type class
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param itemsById      map of items by ID
      * @param orderedValues  ordered list of all values
      * @param enabledValues  list of enabled values
      */
-    public DefaultConfigCollectionSnapshot(
+    public DefaultFolderConfigSnapshot(
             @NotNull Class<T> itemType,
-            @NotNull String collectionName,
+            @NotNull String folderConfigName,
             @NotNull Map<String, T> itemsById,
             @NotNull List<T> orderedValues,
             @Nullable List<T> enabledValues) {
         this.itemType = Objects.requireNonNull(itemType, "itemType cannot be null");
-        this.collectionName = Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        this.folderConfigName = Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         this.itemsById = Collections.unmodifiableMap(new LinkedHashMap<>(itemsById));
         this.orderedValues = Collections.unmodifiableList(new ArrayList<>(orderedValues));
         this.enabledValues = enabledValues != null
@@ -71,16 +71,16 @@ public final class DefaultConfigCollectionSnapshot<T> implements ConfigCollectio
      * Creates an empty snapshot.
      *
      * @param itemType       the item type class
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param <T>            the item type
      * @return an empty snapshot
      */
-    public static <T> DefaultConfigCollectionSnapshot<T> empty(
+    public static <T> DefaultFolderConfigSnapshot<T> empty(
             @NotNull Class<T> itemType,
-            @NotNull String collectionName) {
-        return new DefaultConfigCollectionSnapshot<>(
+            @NotNull String folderConfigName) {
+        return new DefaultFolderConfigSnapshot<>(
                 itemType,
-                collectionName,
+                folderConfigName,
                 Collections.emptyMap(),
                 Collections.emptyList(),
                 null
@@ -91,7 +91,7 @@ public final class DefaultConfigCollectionSnapshot<T> implements ConfigCollectio
     public @NotNull T get(@NotNull String id) {
         T item = itemsById.get(id);
         if (item == null) {
-            throw new IllegalArgumentException("No item with ID '" + id + "' in collection '" + collectionName + "'");
+            throw new IllegalArgumentException("No item with ID '" + id + "' in folder config '" + folderConfigName + "'");
         }
         return item;
     }
@@ -137,8 +137,8 @@ public final class DefaultConfigCollectionSnapshot<T> implements ConfigCollectio
     }
 
     @Override
-    public @NotNull String getCollectionName() {
-        return collectionName;
+    public @NotNull String getFolderConfigName() {
+        return folderConfigName;
     }
 
     /**

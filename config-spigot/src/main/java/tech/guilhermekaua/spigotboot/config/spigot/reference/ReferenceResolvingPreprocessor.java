@@ -42,7 +42,7 @@ import java.util.Objects;
  * reference values before they are deserialized.
  * <p>
  * The preprocessor maintains a "current source key" which identifies the config
- * or collection item currently being bound. This is used for cycle detection
+ * or folder config item currently being bound. This is used for cycle detection
  * and error reporting.
  */
 public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
@@ -62,7 +62,7 @@ public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
     /**
      * Sets the current source key for binding context.
      * <p>
-     * This should be called before binding each config or collection item
+     * This should be called before binding each config or folder config item
      * to provide context for error reporting and cycle detection.
      *
      * @param sourceKey the key of the config being bound

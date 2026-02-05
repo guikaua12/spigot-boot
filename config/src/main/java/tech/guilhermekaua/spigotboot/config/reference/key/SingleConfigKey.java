@@ -56,7 +56,7 @@ public final class SingleConfigKey extends ReferenceKey {
     }
 
     @Override
-    public boolean isCollectionItem() {
+    public boolean isFolderConfigItem() {
         return false;
     }
 

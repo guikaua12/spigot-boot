@@ -27,23 +27,23 @@ import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
 import java.lang.annotation.*;
 
 /**
- * Marks a class as a folder-based config collection.
+ * Marks a class as a folder-based config (folder-config).
  * Each file in the folder becomes an instance of this class.
  * <p>
  * This annotation is repeatable, allowing one item class to be used
- * for multiple collections from different folders.
+ * for multiple folder configs from different folders.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Repeatable(ConfigCollections.class)
-public @interface ConfigCollection {
+@Repeatable(FolderConfigs.class)
+public @interface FolderConfig {
 
     /**
-     * Collection name used for lookup and injection.
+     * Folder config name used for lookup and injection.
      * If empty, the name is derived from the folder path
      * (last segment after normalizing slashes).
      *
-     * @return the collection name
+     * @return the folder config name
      */
     String name() default "";
 

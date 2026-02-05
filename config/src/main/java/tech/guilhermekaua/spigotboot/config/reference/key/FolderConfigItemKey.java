@@ -29,26 +29,26 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 /**
- * Key for an item within a {@code @ConfigCollection}.
+ * Key for an item within a {@code @FolderConfig}.
  */
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public final class CollectionItemKey extends ReferenceKey {
-    private final String collectionName;
+public final class FolderConfigItemKey extends ReferenceKey {
+    private final String folderConfigName;
     private final String itemId;
 
-    public CollectionItemKey(@NotNull String collectionName, @NotNull String itemId) {
-        this.collectionName = Objects.requireNonNull(collectionName, "collectionName cannot be null");
+    public FolderConfigItemKey(@NotNull String folderConfigName, @NotNull String itemId) {
+        this.folderConfigName = Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         this.itemId = Objects.requireNonNull(itemId, "itemId cannot be null");
     }
 
     /**
-     * Gets the collection name.
+     * Gets the folder config name.
      *
-     * @return the collection name
+     * @return the folder config name
      */
-    public @NotNull String getCollectionName() {
-        return collectionName;
+    public @NotNull String getFolderConfigName() {
+        return folderConfigName;
     }
 
     /**
@@ -66,12 +66,12 @@ public final class CollectionItemKey extends ReferenceKey {
     }
 
     @Override
-    public boolean isCollectionItem() {
+    public boolean isFolderConfigItem() {
         return true;
     }
 
     @Override
     public @NotNull String getDisplayName() {
-        return "collection:" + collectionName + "." + itemId;
+        return "folder-config:" + folderConfigName + "." + itemId;
     }
 }

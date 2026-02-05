@@ -61,7 +61,7 @@ class ConfigReferenceParserTest {
             assertNull(ref.getPath());
             assertTrue(ref.isRootReference());
             assertTrue(ref.isSingleConfig());
-            assertFalse(ref.isCollectionItem());
+            assertFalse(ref.isFolderConfigItem());
         }
 
         @Test
@@ -100,47 +100,47 @@ class ConfigReferenceParserTest {
     }
 
     @Nested
-    @DisplayName("Collection Item References")
-    class CollectionItemReferences {
+    @DisplayName("Folder Config Item References")
+    class FolderConfigItemReferences {
 
         @Test
-        @DisplayName("parses collection item root reference: ${collection.itemId}")
-        void parsesCollectionItemRoot() {
+        @DisplayName("parses folder config item root reference: ${folderConfig.itemId}")
+        void parsesFolderConfigItemRoot() {
             Optional<ConfigReference> result = parser.tryParse("${boosters.booster_2x}");
 
             assertTrue(result.isPresent());
             ConfigReference ref = result.get();
-            assertEquals(ReferenceTargetKind.COLLECTION_ITEM, ref.getKind());
-            assertEquals("boosters", ref.getCollectionName());
+            assertEquals(ReferenceTargetKind.FOLDER_CONFIG_ITEM, ref.getKind());
+            assertEquals("boosters", ref.getFolderConfigName());
             assertEquals("booster_2x", ref.getItemId());
             assertNull(ref.getPath());
             assertTrue(ref.isRootReference());
-            assertTrue(ref.isCollectionItem());
+            assertTrue(ref.isFolderConfigItem());
             assertFalse(ref.isSingleConfig());
         }
 
         @Test
-        @DisplayName("parses collection item with path: ${collection.itemId:path}")
-        void parsesCollectionItemWithPath() {
+        @DisplayName("parses folder config item with path: ${folderConfig.itemId:path}")
+        void parsesFolderConfigItemWithPath() {
             Optional<ConfigReference> result = parser.tryParse("${boosters.normal_booster:multiplier}");
 
             assertTrue(result.isPresent());
             ConfigReference ref = result.get();
-            assertEquals(ReferenceTargetKind.COLLECTION_ITEM, ref.getKind());
-            assertEquals("boosters", ref.getCollectionName());
+            assertEquals(ReferenceTargetKind.FOLDER_CONFIG_ITEM, ref.getKind());
+            assertEquals("boosters", ref.getFolderConfigName());
             assertEquals("normal_booster", ref.getItemId());
             assertEquals("multiplier", ref.getPath());
             assertFalse(ref.isRootReference());
         }
 
         @Test
-        @DisplayName("parses collection item with nested path")
-        void parsesCollectionItemWithNestedPath() {
+        @DisplayName("parses folder config item with nested path")
+        void parsesFolderConfigItemWithNestedPath() {
             Optional<ConfigReference> result = parser.tryParse("${items.custom_sword:lore.0}");
 
             assertTrue(result.isPresent());
             ConfigReference ref = result.get();
-            assertEquals("items", ref.getCollectionName());
+            assertEquals("items", ref.getFolderConfigName());
             assertEquals("custom_sword", ref.getItemId());
             assertEquals("lore.0", ref.getPath());
         }
@@ -204,7 +204,7 @@ class ConfigReferenceParserTest {
         @DisplayName("rejects empty collection name or item id")
         void rejectsEmptyCollectionParts() {
             assertFalse(parser.tryParse("${.itemId}").isPresent());
-            assertFalse(parser.tryParse("${collection.}").isPresent());
+            assertFalse(parser.tryParse("${folderConfig.}").isPresent());
         }
 
         @Test
@@ -258,7 +258,7 @@ class ConfigReferenceParserTest {
 
             assertTrue(result.isPresent());
             ConfigReference ref = result.get();
-            assertEquals("levels", ref.getCollectionName());
+            assertEquals("levels", ref.getFolderConfigName());
             assertEquals("123", ref.getItemId());
         }
 
@@ -271,7 +271,7 @@ class ConfigReferenceParserTest {
 
             Optional<ConfigReference> collection = parser.tryParse("${myconfig.item}");
             assertTrue(collection.isPresent());
-            assertTrue(collection.get().isCollectionItem());
+            assertTrue(collection.get().isFolderConfigItem());
         }
     }
 
@@ -345,29 +345,29 @@ class ConfigReferenceParserTest {
         @Test
         @DisplayName("toString contains useful information")
         void toStringContainsInfo() {
-            ConfigReference ref = ConfigReference.collectionItem("${coll.item:path}", "coll", "item", "path");
+            ConfigReference ref = ConfigReference.folderConfigItem("${coll.item:path}", "coll", "item", "path");
             String str = ref.toString();
 
-            assertTrue(str.contains("COLLECTION_ITEM"));
+            assertTrue(str.contains("FOLDER_CONFIG_ITEM"));
             assertTrue(str.contains("coll"));
             assertTrue(str.contains("item"));
             assertTrue(str.contains("path"));
         }
 
         @Test
-        @DisplayName("getConfigName throws for collection item")
-        void getConfigNameThrowsForCollectionItem() {
-            ConfigReference ref = ConfigReference.collectionItem("${coll.item}", "coll", "item", null);
+        @DisplayName("getConfigName throws for folder config item")
+        void getConfigNameThrowsForFolderConfigItem() {
+            ConfigReference ref = ConfigReference.folderConfigItem("${coll.item}", "coll", "item", null);
 
             assertThrows(IllegalStateException.class, ref::getConfigName);
         }
 
         @Test
-        @DisplayName("getCollectionName throws for single config")
-        void getCollectionNameThrowsForSingleConfig() {
+        @DisplayName("getFolderConfigName throws for single config")
+        void getFolderConfigNameThrowsForSingleConfig() {
             ConfigReference ref = ConfigReference.singleConfig("${config}", "config", null);
 
-            assertThrows(IllegalStateException.class, ref::getCollectionName);
+            assertThrows(IllegalStateException.class, ref::getFolderConfigName);
         }
     }
 }

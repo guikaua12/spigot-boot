@@ -31,7 +31,7 @@ import java.util.Set;
 /**
  * Provides lookup capabilities for resolving config references.
  * <p>
- * This interface abstracts the underlying config storage (single configs and collections)
+ * This interface abstracts the underlying config storage (single configs and folder configs)
  * so that the reference resolver can fetch raw config nodes without knowing the
  * implementation details.
  */
@@ -55,24 +55,24 @@ public interface ConfigReferenceLookup {
     @Nullable ConfigNode findSingleConfigPath(@NotNull String configName, @NotNull String path);
 
     /**
-     * Finds the root node of a collection item.
+     * Finds the root node of a folder config item.
      *
-     * @param collectionName the collection name (from {@code @ConfigCollection(name="...")})
+     * @param folderConfigName the folder config name (from {@code @FolderConfig(name="...")})
      * @param itemId         the item ID (typically the filename without extension)
      * @return the root node of the item, or null if not found
      */
-    @Nullable ConfigNode findCollectionItemRoot(@NotNull String collectionName, @NotNull String itemId);
+    @Nullable ConfigNode findFolderConfigItemRoot(@NotNull String folderConfigName, @NotNull String itemId);
 
     /**
-     * Finds a node at a specific path within a collection item.
+     * Finds a node at a specific path within a folder config item.
      *
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param itemId         the item ID
      * @param path           the dot-separated path
-     * @return the node at the path, or null if collection, item, or path not found
+     * @return the node at the path, or null if folder config, item, or path not found
      */
-    @Nullable ConfigNode findCollectionItemPath(
-            @NotNull String collectionName,
+    @Nullable ConfigNode findFolderConfigItemPath(
+            @NotNull String folderConfigName,
             @NotNull String itemId,
             @NotNull String path);
 
@@ -94,10 +94,10 @@ public interface ConfigReferenceLookup {
             }
         } else {
             if (reference.isRootReference()) {
-                return findCollectionItemRoot(reference.getCollectionName(), reference.getItemId());
+                return findFolderConfigItemRoot(reference.getFolderConfigName(), reference.getItemId());
             } else {
-                return findCollectionItemPath(
-                        reference.getCollectionName(),
+                return findFolderConfigItemPath(
+                        reference.getFolderConfigName(),
                         reference.getItemId(),
                         reference.getPath());
             }
@@ -114,23 +114,23 @@ public interface ConfigReferenceLookup {
     @NotNull Set<String> getAvailableConfigNames();
 
     /**
-     * Gets all available collection names.
+     * Gets all available folder config names.
      * <p>
      * Used for providing suggestions in error messages.
      *
-     * @return set of collection names
+     * @return set of folder config names
      */
-    @NotNull Set<String> getAvailableCollectionNames();
+    @NotNull Set<String> getAvailableFolderConfigNames();
 
     /**
-     * Gets all available item IDs within a collection.
+     * Gets all available item IDs within a folder config.
      * <p>
      * Used for providing suggestions in error messages.
      *
-     * @param collectionName the collection name
-     * @return set of item IDs, or empty set if collection not found
+     * @param folderConfigName the folder config name
+     * @return set of item IDs, or empty set if folder config not found
      */
-    @NotNull Set<String> getAvailableItemIds(@NotNull String collectionName);
+    @NotNull Set<String> getAvailableItemIds(@NotNull String folderConfigName);
 
     /**
      * Gets available keys at a path within a single config.
@@ -153,19 +153,19 @@ public interface ConfigReferenceLookup {
     boolean hasConfig(@NotNull String configName);
 
     /**
-     * Checks if a collection exists.
+     * Checks if a folder config exists.
      *
-     * @param collectionName the collection name
-     * @return true if the collection is registered
+     * @param folderConfigName the folder config name
+     * @return true if the folder config is registered
      */
-    boolean hasCollection(@NotNull String collectionName);
+    boolean hasFolderConfig(@NotNull String folderConfigName);
 
     /**
-     * Checks if a collection item exists.
+     * Checks if a folder config item exists.
      *
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param itemId         the item ID
-     * @return true if the item exists in the collection
+     * @return true if the item exists in the folder config
      */
-    boolean hasCollectionItem(@NotNull String collectionName, @NotNull String itemId);
+    boolean hasFolderConfigItem(@NotNull String folderConfigName, @NotNull String itemId);
 }

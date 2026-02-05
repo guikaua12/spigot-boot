@@ -138,10 +138,10 @@ class DefaultConfigReferenceErrorHandlerTest {
         }
 
         @Test
-        @DisplayName("handles collection item source key")
-        void handlesCollectionItemSourceKey() {
+        @DisplayName("handles folder config item source key")
+        void handlesFolderConfigItemSourceKey() {
             ConfigReferenceNotFoundContext context = new ConfigReferenceNotFoundContext(
-                    ReferenceKey.collectionItem("items", "custom_item"),
+                    ReferenceKey.folderConfigItem("items", "custom_item"),
                     null,
                     "${boosters.2x:multiplier}",
                     Collections.emptySet()
@@ -153,7 +153,7 @@ class DefaultConfigReferenceErrorHandlerTest {
             assertTrue(logHandler.hasWarning());
             String message = logHandler.getLastWarning();
             assertTrue(message.contains("items") && message.contains("custom_item"),
-                    "Should contain collection item info");
+                    "Should contain folder config item info");
         }
     }
 
@@ -234,16 +234,16 @@ class DefaultConfigReferenceErrorHandlerTest {
         }
 
         @Test
-        @DisplayName("handles collection item in chain")
-        void handlesCollectionItemInChain() {
+        @DisplayName("handles folder config item in chain")
+        void handlesFolderConfigItemInChain() {
             List<ReferenceKey> chain = Arrays.asList(
                     ReferenceKey.singleConfig("config"),
-                    ReferenceKey.collectionItem("items", "sword"),
+                    ReferenceKey.folderConfigItem("items", "sword"),
                     ReferenceKey.singleConfig("config")
             );
 
             ConfigCircularReferenceContext context = new ConfigCircularReferenceContext(
-                    ReferenceKey.collectionItem("items", "sword"),
+                    ReferenceKey.folderConfigItem("items", "sword"),
                     null,
                     "${config}",
                     chain
@@ -255,7 +255,7 @@ class DefaultConfigReferenceErrorHandlerTest {
 
             String message = exception.getMessage();
             assertTrue(message.contains("items") && message.contains("sword"),
-                    "Should contain collection item info");
+                    "Should contain folder config item info");
         }
     }
 

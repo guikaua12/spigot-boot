@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,17 +28,17 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 
 /**
- * Represents a change to a collection item.
+ * Represents a change to a folder config item.
  * <p>
  * This class captures all information about a single item change:
- * what collection it belongs to, what type of change occurred, and
+ * what folder config it belongs to, what type of change occurred, and
  * the before/after values.
  *
  * @param <T> the item type
  */
-public final class CollectionItemChange<T> {
+public final class FolderConfigItemChange<T> {
 
-    private final String collectionName;
+    private final String folderConfigName;
     private final Class<T> itemType;
     private final String id;
     private final ItemChangeType type;
@@ -46,23 +46,23 @@ public final class CollectionItemChange<T> {
     private final @Nullable T newItem;
 
     /**
-     * Creates a new collection item change.
+     * Creates a new folder config item change.
      *
-     * @param collectionName the collection name
-     * @param itemType       the item type class
-     * @param id             the item ID
-     * @param type           the type of change
-     * @param oldItem        the old item (null for ADDED)
-     * @param newItem        the new item (null for REMOVED)
+     * @param folderConfigName the folder config name
+     * @param itemType         the item type class
+     * @param id               the item ID
+     * @param type             the type of change
+     * @param oldItem          the old item (null for ADDED)
+     * @param newItem          the new item (null for REMOVED)
      */
-    public CollectionItemChange(
-            @NotNull String collectionName,
+    public FolderConfigItemChange(
+            @NotNull String folderConfigName,
             @NotNull Class<T> itemType,
             @NotNull String id,
             @NotNull ItemChangeType type,
             @Nullable T oldItem,
             @Nullable T newItem) {
-        this.collectionName = Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        this.folderConfigName = Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         this.itemType = Objects.requireNonNull(itemType, "itemType cannot be null");
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.type = Objects.requireNonNull(type, "type cannot be null");
@@ -73,66 +73,66 @@ public final class CollectionItemChange<T> {
     /**
      * Creates an ADDED change.
      *
-     * @param collectionName the collection name
-     * @param itemType       the item type class
-     * @param id             the item ID
-     * @param newItem        the new item
-     * @param <T>            the item type
+     * @param folderConfigName the folder config name
+     * @param itemType         the item type class
+     * @param id               the item ID
+     * @param newItem          the new item
+     * @param <T>              the item type
      * @return the change
      */
-    public static <T> CollectionItemChange<T> added(
-            @NotNull String collectionName,
+    public static <T> FolderConfigItemChange<T> added(
+            @NotNull String folderConfigName,
             @NotNull Class<T> itemType,
             @NotNull String id,
             @NotNull T newItem) {
-        return new CollectionItemChange<>(collectionName, itemType, id, ItemChangeType.ADDED, null, newItem);
+        return new FolderConfigItemChange<>(folderConfigName, itemType, id, ItemChangeType.ADDED, null, newItem);
     }
 
     /**
      * Creates a MODIFIED change.
      *
-     * @param collectionName the collection name
-     * @param itemType       the item type class
-     * @param id             the item ID
-     * @param oldItem        the old item
-     * @param newItem        the new item
-     * @param <T>            the item type
+     * @param folderConfigName the folder config name
+     * @param itemType         the item type class
+     * @param id               the item ID
+     * @param oldItem          the old item
+     * @param newItem          the new item
+     * @param <T>              the item type
      * @return the change
      */
-    public static <T> CollectionItemChange<T> modified(
-            @NotNull String collectionName,
+    public static <T> FolderConfigItemChange<T> modified(
+            @NotNull String folderConfigName,
             @NotNull Class<T> itemType,
             @NotNull String id,
             @NotNull T oldItem,
             @NotNull T newItem) {
-        return new CollectionItemChange<>(collectionName, itemType, id, ItemChangeType.MODIFIED, oldItem, newItem);
+        return new FolderConfigItemChange<>(folderConfigName, itemType, id, ItemChangeType.MODIFIED, oldItem, newItem);
     }
 
     /**
      * Creates a REMOVED change.
      *
-     * @param collectionName the collection name
-     * @param itemType       the item type class
-     * @param id             the item ID
-     * @param oldItem        the removed item
-     * @param <T>            the item type
+     * @param folderConfigName the folder config name
+     * @param itemType         the item type class
+     * @param id               the item ID
+     * @param oldItem          the removed item
+     * @param <T>              the item type
      * @return the change
      */
-    public static <T> CollectionItemChange<T> removed(
-            @NotNull String collectionName,
+    public static <T> FolderConfigItemChange<T> removed(
+            @NotNull String folderConfigName,
             @NotNull Class<T> itemType,
             @NotNull String id,
             @NotNull T oldItem) {
-        return new CollectionItemChange<>(collectionName, itemType, id, ItemChangeType.REMOVED, oldItem, null);
+        return new FolderConfigItemChange<>(folderConfigName, itemType, id, ItemChangeType.REMOVED, oldItem, null);
     }
 
     /**
-     * Gets the collection name.
+     * Gets the folder config name.
      *
-     * @return the collection name
+     * @return the folder config name
      */
-    public @NotNull String getCollectionName() {
-        return collectionName;
+    public @NotNull String getFolderConfigName() {
+        return folderConfigName;
     }
 
     /**
@@ -182,8 +182,8 @@ public final class CollectionItemChange<T> {
 
     @Override
     public String toString() {
-        return "CollectionItemChange{" +
-                "collection='" + collectionName + '\'' +
+        return "FolderConfigItemChange{" +
+                "folderConfig='" + folderConfigName + '\'' +
                 ", id='" + id + '\'' +
                 ", type=" + type +
                 '}';

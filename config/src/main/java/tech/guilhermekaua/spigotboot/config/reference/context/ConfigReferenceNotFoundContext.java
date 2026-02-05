@@ -51,8 +51,8 @@ public final class ConfigReferenceNotFoundContext {
      *
      * @param sourceKey             the key of the config/item containing the reference
      * @param sourceField           the field being bound (may be null for raw resolution)
-     * @param fullReference         the full reference string (e.g., "${items:custom_item}")
-     * @param availableAlternatives suggested alternatives (config/collection/item names)
+     * @param fullReference         the full reference string (e.g., {@code "${items.diamond_sword}"})
+     * @param availableAlternatives suggested alternatives (config/folder config/item names)
      */
     public ConfigReferenceNotFoundContext(
             @NotNull ReferenceKey sourceKey,
@@ -67,7 +67,7 @@ public final class ConfigReferenceNotFoundContext {
     }
 
     /**
-     * Gets the key of the config or collection item containing the reference.
+     * Gets the key of the config or folder config item containing the reference.
      *
      * @return the source key
      */
@@ -87,7 +87,7 @@ public final class ConfigReferenceNotFoundContext {
     /**
      * Gets the full reference string.
      *
-     * @return the full reference (e.g., "${items:custom_item}")
+     * @return the full reference (e.g., {@code "${items.diamond_sword}"})
      */
     public @NotNull String getFullReference() {
         return fullReference;
@@ -96,7 +96,7 @@ public final class ConfigReferenceNotFoundContext {
     /**
      * Gets suggested alternatives.
      * <p>
-     * May contain available config names, collection names, or item IDs
+     * May contain available config names, folder config names, or item IDs
      * depending on what part of the reference was not found.
      *
      * @return set of suggested alternatives

@@ -209,16 +209,16 @@ class BinderReferenceIntegrationTest {
     }
 
     @Nested
-    @DisplayName("Collection item references")
-    class CollectionItemReferences {
+    @DisplayName("Folder config item references")
+    class FolderConfigItemReferences {
 
         @Test
-        @DisplayName("resolves collection item root reference")
-        void resolvesCollectionItemRootReference() {
+        @DisplayName("resolves folder config item root reference")
+        void resolvesFolderConfigItemRootReference() {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("name", "Diamond Sword");
             itemData.put("damage", 15);
-            lookup.addCollectionItem("items", "diamond_sword", itemData);
+            lookup.addFolderConfigItem("items", "diamond_sword", itemData);
 
             Map<String, Object> data = new HashMap<>();
             data.put("weapon", "${items.diamond_sword}");
@@ -232,12 +232,12 @@ class BinderReferenceIntegrationTest {
         }
 
         @Test
-        @DisplayName("resolves collection item path reference")
-        void resolvesCollectionItemPathReference() {
+        @DisplayName("resolves folder config item path reference")
+        void resolvesFolderConfigItemPathReference() {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("name", "Iron Axe");
             itemData.put("damage", 10);
-            lookup.addCollectionItem("items", "iron_axe", itemData);
+            lookup.addFolderConfigItem("items", "iron_axe", itemData);
 
             Map<String, Object> data = new HashMap<>();
             data.put("name", "${items.iron_axe:name}");

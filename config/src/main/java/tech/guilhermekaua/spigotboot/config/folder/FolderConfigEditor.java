@@ -20,24 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.UnaryOperator;
 
 /**
- * Editor interface for modifying a configuration collection.
+ * Editor interface for modifying a folder-based configuration.
  * <p>
  * All operations persist changes to disk and update the in-memory
  * snapshot atomically. Listeners are notified of all changes.
  *
  * @param <T> the item type
  */
-public interface ConfigCollectionEditor<T> {
+public interface FolderConfigEditor<T> {
 
     /**
-     * Creates a new item in the collection.
+     * Creates a new item in the folder config.
      *
      * @param id    the item ID (will be used as filename without extension)
      * @param value the item value
@@ -46,7 +46,7 @@ public interface ConfigCollectionEditor<T> {
     @NotNull EditResult<T> create(@NotNull String id, @NotNull T value);
 
     /**
-     * Saves (overwrites) an item in the collection.
+     * Saves (overwrites) an item in the folder config.
      * <p>
      * If the item doesn't exist, it will be created.
      *
@@ -57,7 +57,7 @@ public interface ConfigCollectionEditor<T> {
     @NotNull EditResult<T> save(@NotNull String id, @NotNull T value);
 
     /**
-     * Updates an existing item in the collection.
+     * Updates an existing item in the folder config.
      * <p>
      * The mutator receives a copy of the current item and should
      * return the modified version. The original item is not modified.
@@ -69,7 +69,7 @@ public interface ConfigCollectionEditor<T> {
     @NotNull EditResult<T> update(@NotNull String id, @NotNull UnaryOperator<T> mutator);
 
     /**
-     * Deletes an item from the collection.
+     * Deletes an item from the folder config.
      *
      * @param id the item ID
      * @return the edit result (value is null for delete operations)

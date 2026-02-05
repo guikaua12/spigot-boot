@@ -20,10 +20,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.collection;
+package tech.guilhermekaua.spigotboot.config.spigot.folder;
 
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.collection.*;
+import tech.guilhermekaua.spigotboot.config.folder.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,55 +32,55 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
- * Default implementation of ConfigCollectionRef.
+ * Default implementation of {@link FolderConfigRef}.
  * <p>
- * This class provides thread-safe access to the collection snapshot using
+ * This class provides thread-safe access to the folder config snapshot using
  * atomic reference swapping. All reads are lock-free.
  *
  * @param <T> the item type
  */
-public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<T> {
+public final class DefaultFolderConfigRef<T> implements FolderConfigRef<T> {
 
     private final Class<T> itemType;
-    private final String collectionName;
-    private final AtomicReference<ConfigCollectionSnapshot<T>> snapshotRef;
-    private final List<CollectionChangeListener<T>> listeners = new CopyOnWriteArrayList<>();
-    private final ConfigCollectionEditor<T> editor;
+    private final String folderConfigName;
+    private final AtomicReference<FolderConfigSnapshot<T>> snapshotRef;
+    private final List<FolderConfigChangeListener<T>> listeners = new CopyOnWriteArrayList<>();
+    private final FolderConfigEditor<T> editor;
     private final Runnable reloadAllHandler;
     private final Consumer<String> reloadItemHandler;
 
     /**
-     * Creates a new collection reference.
+     * Creates a new folder config reference.
      *
      * @param itemType          the item type class
-     * @param collectionName    the collection name
-     * @param editor            the collection editor
+     * @param folderConfigName  the folder config name
+     * @param editor            the folder config editor
      * @param reloadAllHandler  handler for reloading all items
      * @param reloadItemHandler handler for reloading a single item
      */
-    public DefaultConfigCollectionRef(
+    public DefaultFolderConfigRef(
             @NotNull Class<T> itemType,
-            @NotNull String collectionName,
-            @NotNull ConfigCollectionEditor<T> editor,
+            @NotNull String folderConfigName,
+            @NotNull FolderConfigEditor<T> editor,
             @NotNull Runnable reloadAllHandler,
             @NotNull Consumer<String> reloadItemHandler) {
         this.itemType = Objects.requireNonNull(itemType, "itemType cannot be null");
-        this.collectionName = Objects.requireNonNull(collectionName, "collectionName cannot be null");
+        this.folderConfigName = Objects.requireNonNull(folderConfigName, "folderConfigName cannot be null");
         this.editor = Objects.requireNonNull(editor, "editor cannot be null");
         this.reloadAllHandler = Objects.requireNonNull(reloadAllHandler, "reloadAllHandler cannot be null");
         this.reloadItemHandler = Objects.requireNonNull(reloadItemHandler, "reloadItemHandler cannot be null");
         this.snapshotRef = new AtomicReference<>(
-                DefaultConfigCollectionSnapshot.empty(itemType, collectionName)
+                DefaultFolderConfigSnapshot.empty(itemType, folderConfigName)
         );
     }
 
     @Override
-    public @NotNull ConfigCollectionSnapshot<T> get() {
+    public @NotNull FolderConfigSnapshot<T> get() {
         return snapshotRef.get();
     }
 
     @Override
-    public @NotNull ConfigCollectionEditor<T> edit() {
+    public @NotNull FolderConfigEditor<T> edit() {
         return editor;
     }
 
@@ -96,13 +96,13 @@ public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<
     }
 
     @Override
-    public void addListener(@NotNull CollectionChangeListener<T> listener) {
+    public void addListener(@NotNull FolderConfigChangeListener<T> listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
         listeners.add(listener);
     }
 
     @Override
-    public void removeListener(@NotNull CollectionChangeListener<T> listener) {
+    public void removeListener(@NotNull FolderConfigChangeListener<T> listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
         listeners.remove(listener);
     }
@@ -113,8 +113,8 @@ public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<
     }
 
     @Override
-    public @NotNull String getCollectionName() {
-        return collectionName;
+    public @NotNull String getFolderConfigName() {
+        return folderConfigName;
     }
 
     /**
@@ -124,11 +124,11 @@ public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<
      * @param changes     the list of changes
      */
     public void updateSnapshot(
-            @NotNull ConfigCollectionSnapshot<T> newSnapshot,
-            @NotNull List<CollectionItemChange<T>> changes) {
+            @NotNull FolderConfigSnapshot<T> newSnapshot,
+            @NotNull List<FolderConfigItemChange<T>> changes) {
         snapshotRef.set(newSnapshot);
 
-        for (CollectionItemChange<T> change : changes) {
+        for (FolderConfigItemChange<T> change : changes) {
             notifyListeners(change);
         }
     }
@@ -138,7 +138,7 @@ public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<
      *
      * @param newSnapshot the new snapshot
      */
-    public void setSnapshot(@NotNull ConfigCollectionSnapshot<T> newSnapshot) {
+    public void setSnapshot(@NotNull FolderConfigSnapshot<T> newSnapshot) {
         snapshotRef.set(newSnapshot);
     }
 
@@ -147,8 +147,8 @@ public final class DefaultConfigCollectionRef<T> implements ConfigCollectionRef<
      *
      * @param change the change
      */
-    public void notifyListeners(@NotNull CollectionItemChange<T> change) {
-        for (CollectionChangeListener<T> listener : listeners) {
+    public void notifyListeners(@NotNull FolderConfigItemChange<T> change) {
+        for (FolderConfigChangeListener<T> listener : listeners) {
             try {
                 listener.onItemChange(change);
             } catch (Exception e) {

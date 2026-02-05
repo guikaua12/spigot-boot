@@ -67,7 +67,7 @@ public final class ConfigCircularReferenceContext {
     }
 
     /**
-     * Gets the key of the config or collection item containing the reference.
+     * Gets the key of the config or folder config item containing the reference.
      *
      * @return the source key
      */

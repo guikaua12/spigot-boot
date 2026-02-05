@@ -43,7 +43,7 @@ public interface ConfigReferenceErrorHandler {
 
     /**
      * Called when a reference cannot be resolved because the target
-     * config, collection, item, or path was not found.
+     * config, folder config, item, or path was not found.
      *
      * @param context context information about the error
      * @return a fallback value to use (typically null), or throw an exception

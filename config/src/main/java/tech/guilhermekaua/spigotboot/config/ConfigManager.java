@@ -24,7 +24,7 @@ package tech.guilhermekaua.spigotboot.config;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigCollectionRef;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigRef;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
@@ -57,48 +57,48 @@ public interface ConfigManager {
     <T> @NotNull ConfigRef<T> getRef(@NotNull Class<T> configClass);
 
     /**
-     * Gets a config collection (folder-based).
+     * Gets a folder-based config (folder-config).
      * <p>
-     * If multiple collections exist for this item type, throws an exception
-     * instructing to use {@link #getCollection(Class, String)} instead.
+     * If multiple folder configs exist for this item type, throws an exception
+     * instructing to use {@link #getFolderConfig(Class, String)} instead.
      *
      * @param configClass the config class
      * @param <T>         the config type
      * @return the collection of config instances
      */
-    <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass);
+    <T> @NotNull Collection<T> getFolderConfig(@NotNull Class<T> configClass);
 
     /**
-     * Gets a config collection by item type and collection name.
+     * Gets a folder config by item type and folder config name.
      *
      * @param configClass    the config class
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param <T>            the config type
      * @return the collection of config instances
      */
-    <T> @NotNull Collection<T> getCollection(@NotNull Class<T> configClass, @NotNull String collectionName);
+    <T> @NotNull Collection<T> getFolderConfig(@NotNull Class<T> configClass, @NotNull String folderConfigName);
 
     /**
-     * Gets a live config collection reference with edit capabilities.
+     * Gets a live folder config reference with edit capabilities.
      * <p>
-     * If multiple collections exist for this item type, throws an exception
-     * instructing to use {@link #getCollectionRef(Class, String)} instead.
+     * If multiple folder configs exist for this item type, throws an exception
+     * instructing to use {@link #getFolderConfigRef(Class, String)} instead.
      *
      * @param configClass the config class
      * @param <T>         the config type
-     * @return the collection reference
+     * @return the folder config reference
      */
-    <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass);
+    <T> @NotNull FolderConfigRef<T> getFolderConfigRef(@NotNull Class<T> configClass);
 
     /**
-     * Gets a live config collection reference by item type and collection name.
+     * Gets a live folder config reference by item type and folder config name.
      *
      * @param configClass    the config class
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param <T>            the config type
-     * @return the collection reference
+     * @return the folder config reference
      */
-    <T> @NotNull ConfigCollectionRef<T> getCollectionRef(@NotNull Class<T> configClass, @NotNull String collectionName);
+    <T> @NotNull FolderConfigRef<T> getFolderConfigRef(@NotNull Class<T> configClass, @NotNull String folderConfigName);
 
     /**
      * Gets a value by path.
@@ -198,24 +198,24 @@ public interface ConfigManager {
     void reload(@NotNull Class<?> configClass);
 
     /**
-     * Reloads a specific file in a collection.
+     * Reloads a specific file in a folder config.
      * <p>
-     * If multiple collections exist for this item type, throws an exception
-     * instructing to use {@link #reloadCollectionItem(Class, String, String)} instead.
+     * If multiple folder configs exist for this item type, throws an exception
+     * instructing to use {@link #reloadFolderConfigItem(Class, String, String)} instead.
      *
      * @param configClass the config class
      * @param itemId      the item ID (filename without extension)
      */
-    void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String itemId);
+    void reloadFolderConfigItem(@NotNull Class<?> configClass, @NotNull String itemId);
 
     /**
-     * Reloads a specific file in a collection by name.
+     * Reloads a specific file in a folder config by name.
      *
      * @param configClass    the config class
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param itemId         the item ID (filename without extension)
      */
-    void reloadCollectionItem(@NotNull Class<?> configClass, @NotNull String collectionName, @NotNull String itemId);
+    void reloadFolderConfigItem(@NotNull Class<?> configClass, @NotNull String folderConfigName, @NotNull String itemId);
 
     /**
      * Reloads all managed configs.

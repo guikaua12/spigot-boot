@@ -129,12 +129,12 @@ class ConfigReferenceResolverTest {
         }
 
         @Test
-        @DisplayName("resolves collection item root reference")
-        void resolvesCollectionItemRootReference() {
+        @DisplayName("resolves folder config item root reference")
+        void resolvesFolderConfigItemRootReference() {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("name", "Diamond Sword");
             itemData.put("damage", 15);
-            lookup.addCollectionItem("items", "diamond_sword", itemData);
+            lookup.addFolderConfigItem("items", "diamond_sword", itemData);
 
             ConfigNode node = testNode("${items.diamond_sword}");
             ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
@@ -146,12 +146,12 @@ class ConfigReferenceResolverTest {
         }
 
         @Test
-        @DisplayName("resolves collection item path reference")
-        void resolvesCollectionItemPathReference() {
+        @DisplayName("resolves folder config item path reference")
+        void resolvesFolderConfigItemPathReference() {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("name", "Diamond Sword");
             itemData.put("damage", 15);
-            lookup.addCollectionItem("items", "diamond_sword", itemData);
+            lookup.addFolderConfigItem("items", "diamond_sword", itemData);
 
             ConfigNode node = testNode("${items.diamond_sword:damage}");
             ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
@@ -206,7 +206,7 @@ class ConfigReferenceResolverTest {
             lookup.addConfig("locations", root);
 
             ConfigNode node = testNode("${locations:locations.spawn}");
-            ReferenceKey sourceKey = ReferenceKey.collectionItem("boosters", "booster_1");
+            ReferenceKey sourceKey = ReferenceKey.folderConfigItem("boosters", "booster_1");
 
             ConfigNode result = resolver.resolveIfReference(node, sourceKey, null);
 
@@ -316,10 +316,10 @@ class ConfigReferenceResolverTest {
         }
 
         @Test
-        @DisplayName("suggests available item IDs for missing collection item")
-        void suggestsItemIdsForMissingCollectionItem() {
-            lookup.addCollectionItem("items", "sword", "data");
-            lookup.addCollectionItem("items", "axe", "data");
+        @DisplayName("suggests available item IDs for missing folder config item")
+        void suggestsItemIdsForMissingFolderConfigItem() {
+            lookup.addFolderConfigItem("items", "sword", "data");
+            lookup.addFolderConfigItem("items", "axe", "data");
 
             ConfigNode node = testNode("${items.nonexistent}");
             resolver.resolveIfReference(node, ReferenceKey.singleConfig("myconfig"), null);

@@ -33,7 +33,7 @@ import java.util.logging.Logger;
 /**
  * Spigot Boot module providing configuration management.
  * <p>
- * Scans for @Config and @ConfigCollection annotated classes,
+ * Scans for @Config and @FolderConfig annotated classes,
  * loads configs, and registers them as beans.
  */
 public class SpigotConfigModule implements Module {

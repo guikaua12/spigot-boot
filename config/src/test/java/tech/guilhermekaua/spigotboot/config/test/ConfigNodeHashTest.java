@@ -23,7 +23,7 @@
 package tech.guilhermekaua.spigotboot.config.test;
 
 import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.config.collection.ConfigNodeHash;
+import tech.guilhermekaua.spigotboot.config.folder.ConfigNodeHash;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 
 import java.util.Arrays;

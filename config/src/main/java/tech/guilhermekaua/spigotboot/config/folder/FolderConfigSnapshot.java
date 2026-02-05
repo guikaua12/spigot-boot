@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.collection;
+package tech.guilhermekaua.spigotboot.config.folder;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,14 +29,14 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
- * Immutable read-only snapshot of a configuration collection.
+ * Immutable read-only snapshot of a folder-based configuration.
  * <p>
- * A snapshot represents the state of a collection at a specific point in time.
+ * A snapshot represents the state of a folder config at a specific point in time.
  * All operations are lock-free as the underlying data is immutable.
  *
  * @param <T> the item type
  */
-public interface ConfigCollectionSnapshot<T> {
+public interface FolderConfigSnapshot<T> {
 
     /**
      * Gets an item by its ID.
@@ -56,14 +56,14 @@ public interface ConfigCollectionSnapshot<T> {
     @Nullable T find(@NotNull String id);
 
     /**
-     * Returns all items in the collection in their configured order.
+     * Returns all items in the folder config in their configured order.
      *
      * @return an unmodifiable collection of all items
      */
     @NotNull Collection<T> values();
 
     /**
-     * Returns all item IDs in the collection.
+     * Returns all item IDs in the folder config.
      *
      * @return an unmodifiable set of all IDs
      */
@@ -109,9 +109,9 @@ public interface ConfigCollectionSnapshot<T> {
     @NotNull Class<T> getItemType();
 
     /**
-     * Gets the collection name.
+     * Gets the folder config name.
      *
-     * @return the collection name
+     * @return the folder config name
      */
-    @NotNull String getCollectionName();
+    @NotNull String getFolderConfigName();
 }

@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.reference.ConfigReference;
 
 /**
- * Identifies a config or collection item in the reference dependency graph.
+ * Identifies a config or folder config item in the reference dependency graph.
  * <p>
  * This is used as a key for tracking dependencies between configs during
  * load ordering and reload propagation.
@@ -44,14 +44,14 @@ public abstract class ReferenceKey {
     }
 
     /**
-     * Creates a key for a collection item.
+     * Creates a key for a folder config item.
      *
-     * @param collectionName the collection name
+     * @param folderConfigName the folder config name
      * @param itemId         the item ID
      * @return the reference key
      */
-    public static @NotNull ReferenceKey collectionItem(@NotNull String collectionName, @NotNull String itemId) {
-        return new CollectionItemKey(collectionName, itemId);
+    public static @NotNull ReferenceKey folderConfigItem(@NotNull String folderConfigName, @NotNull String itemId) {
+        return new FolderConfigItemKey(folderConfigName, itemId);
     }
 
     /**
@@ -64,7 +64,7 @@ public abstract class ReferenceKey {
         if (reference.isSingleConfig()) {
             return singleConfig(reference.getConfigName());
         } else {
-            return collectionItem(reference.getCollectionName(), reference.getItemId());
+            return folderConfigItem(reference.getFolderConfigName(), reference.getItemId());
         }
     }
 
@@ -76,11 +76,11 @@ public abstract class ReferenceKey {
     public abstract boolean isSingleConfig();
 
     /**
-     * Checks if this key represents a collection item.
+     * Checks if this key represents a folder config item.
      *
-     * @return true if collection item key
+     * @return true if folder config item key
      */
-    public abstract boolean isCollectionItem();
+    public abstract boolean isFolderConfigItem();
 
     /**
      * Gets a human-readable display name for this key.

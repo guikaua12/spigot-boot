@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.collection;
+package tech.guilhermekaua.spigotboot.config.spigot.test.folder;
 
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,15 +29,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tech.guilhermekaua.spigotboot.config.annotation.ConfigCollection;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.annotation.NodeKey;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
-import tech.guilhermekaua.spigotboot.config.collection.CollectionChangeListener;
-import tech.guilhermekaua.spigotboot.config.collection.CollectionItemChange;
-import tech.guilhermekaua.spigotboot.config.collection.EditResult;
-import tech.guilhermekaua.spigotboot.config.collection.ItemChangeType;
-import tech.guilhermekaua.spigotboot.config.spigot.collection.CollectionEntry;
+import tech.guilhermekaua.spigotboot.config.folder.EditResult;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigChangeListener;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigItemChange;
+import tech.guilhermekaua.spigotboot.config.folder.ItemChangeType;
+import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
 
 import java.io.IOException;
@@ -54,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
-class CollectionEntryTest {
+class FolderConfigEntryTest {
 
     @TempDir
     Path tempDir;
@@ -178,7 +178,7 @@ class CollectionEntryTest {
     // ========== Helper Methods ==========
 
     @SuppressWarnings("unchecked")
-    private ConfigCollection createAnnotation(
+    private FolderConfig createAnnotation(
             String name,
             String folder,
             String idField,
@@ -199,10 +199,10 @@ class CollectionEntryTest {
         InvocationHandler handler = (proxy, method, args) -> {
             String methodName = method.getName();
             if ("annotationType".equals(methodName)) {
-                return ConfigCollection.class;
+                return FolderConfig.class;
             }
             if ("toString".equals(methodName)) {
-                return "@ConfigCollection(folder=" + folder + ")";
+                return "@FolderConfig(folder=" + folder + ")";
             }
             if ("hashCode".equals(methodName)) {
                 return values.hashCode();
@@ -213,14 +213,14 @@ class CollectionEntryTest {
             return values.get(methodName);
         };
 
-        return (ConfigCollection) Proxy.newProxyInstance(
-                ConfigCollection.class.getClassLoader(),
-                new Class<?>[]{ConfigCollection.class},
+        return (FolderConfig) Proxy.newProxyInstance(
+                FolderConfig.class.getClassLoader(),
+                new Class<?>[]{FolderConfig.class},
                 handler
         );
     }
 
-    private ConfigCollection createDefaultAnnotation() {
+    private FolderConfig createDefaultAnnotation() {
         return createAnnotation("", "items", "", "filename", "", "", "_");
     }
 
@@ -233,7 +233,7 @@ class CollectionEntryTest {
 
     @BeforeEach
     void setUp() {
-        logger = Logger.getLogger(CollectionEntryTest.class.getName());
+        logger = Logger.getLogger(FolderConfigEntryTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
         itemsFolder = tempDir.resolve("items");
@@ -245,23 +245,23 @@ class CollectionEntryTest {
 
     @Test
     void constructor_WithValidParameters_CreatesEntry() {
-        ConfigCollection annotation = createDefaultAnnotation();
+        FolderConfig annotation = createDefaultAnnotation();
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         assertNotNull(entry);
         assertEquals(TestItem.class, entry.getItemType());
-        assertEquals("items", entry.getCollectionName());
+        assertEquals("items", entry.getFolderConfigName());
         assertEquals(itemsFolder, entry.getFolder());
     }
 
     @Test
     void constructor_WithNullItemType_ThrowsNPE() {
-        ConfigCollection annotation = createDefaultAnnotation();
+        FolderConfig annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(null, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
+                new FolderConfigEntry<>(null, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("itemType"));
     }
@@ -269,97 +269,97 @@ class CollectionEntryTest {
     @Test
     void constructor_WithNullAnnotation_ThrowsNPE() {
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, null, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
+                new FolderConfigEntry<>(TestItem.class, null, plugin, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("annotation"));
     }
 
     @Test
     void constructor_WithNullPlugin_ThrowsNPE() {
-        ConfigCollection annotation = createDefaultAnnotation();
+        FolderConfig annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, null, loader, binder, NamingStrategy.SNAKE_CASE));
+                new FolderConfigEntry<>(TestItem.class, annotation, null, loader, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("plugin"));
     }
 
     @Test
     void constructor_WithNullLoader_ThrowsNPE() {
-        ConfigCollection annotation = createDefaultAnnotation();
+        FolderConfig annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, plugin, null, binder, NamingStrategy.SNAKE_CASE));
+                new FolderConfigEntry<>(TestItem.class, annotation, plugin, null, binder, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("loader"));
     }
 
     @Test
     void constructor_WithNullBinder_ThrowsNPE() {
-        ConfigCollection annotation = createDefaultAnnotation();
+        FolderConfig annotation = createDefaultAnnotation();
 
         NullPointerException exception = assertThrows(NullPointerException.class, () ->
-                new CollectionEntry<>(TestItem.class, annotation, plugin, loader, null, NamingStrategy.SNAKE_CASE));
+                new FolderConfigEntry<>(TestItem.class, annotation, plugin, loader, null, NamingStrategy.SNAKE_CASE));
 
         assertTrue(exception.getMessage().contains("binder"));
     }
 
     @Test
     void constructor_WithEmptyName_DerivesNameFromFolder() {
-        ConfigCollection annotation = createAnnotation("", "boosters", "", "filename", "", "", "_");
+        FolderConfig annotation = createAnnotation("", "boosters", "", "filename", "", "", "_");
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
-        assertEquals("boosters", entry.getCollectionName());
+        assertEquals("boosters", entry.getFolderConfigName());
     }
 
     @Test
     void constructor_WithExplicitName_UsesProvidedName() {
-        ConfigCollection annotation = createAnnotation("my-collection", "items", "", "filename", "", "", "_");
+        FolderConfig annotation = createAnnotation("my-collection", "items", "", "filename", "", "", "_");
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
-        assertEquals("my-collection", entry.getCollectionName());
+        assertEquals("my-collection", entry.getFolderConfigName());
     }
 
     @Test
     void constructor_WithNestedFolder_DerivesNameFromLastSegment() {
-        ConfigCollection annotation = createAnnotation("", "configs/items/boosters", "", "filename", "", "", "_");
+        FolderConfig annotation = createAnnotation("", "configs/items/boosters", "", "filename", "", "", "_");
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
-        assertEquals("boosters", entry.getCollectionName());
+        assertEquals("boosters", entry.getFolderConfigName());
     }
 
     @Test
     void constructor_WithTrailingSlash_IgnoresSlash() {
-        ConfigCollection annotation = createAnnotation("", "items/", "", "filename", "", "", "_");
+        FolderConfig annotation = createAnnotation("", "items/", "", "filename", "", "", "_");
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
-        assertEquals("items", entry.getCollectionName());
+        assertEquals("items", entry.getFolderConfigName());
     }
 
     @Test
     void constructor_WithBackslashPath_NormalizesToForwardSlash() {
-        ConfigCollection annotation = createAnnotation("", "configs\\items", "", "filename", "", "", "_");
+        FolderConfig annotation = createAnnotation("", "configs\\items", "", "filename", "", "", "_");
 
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
-        assertEquals("items", entry.getCollectionName());
+        assertEquals("items", entry.getFolderConfigName());
     }
 
     // ========== Initialize Tests ==========
 
     @Test
     void initialize_FolderDoesNotExist_CreatesFolderAndLoadsEmpty() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
@@ -373,8 +373,8 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("item1.yml", "name: Test\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
@@ -387,8 +387,8 @@ class CollectionEntryTest {
     void initialize_EmptyFolder_ReturnsEmptySnapshot() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.initialize();
@@ -405,8 +405,8 @@ class CollectionEntryTest {
         createTestFile("item1.yml", "name: Item1\npriority: 1");
         createTestFile("item2.yml", "name: Item2\npriority: 2");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -420,8 +420,8 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("item1.yaml", "name: Item1\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -436,8 +436,8 @@ class CollectionEntryTest {
         createTestFile("readme.txt", "This is not a config");
         createTestFile("data.json", "{}");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -450,8 +450,8 @@ class CollectionEntryTest {
         createTestFile("item1.yml", "name: Item1\npriority: 1");
         createTestFile("_template.yml", "name: Template\npriority: 0");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -466,8 +466,8 @@ class CollectionEntryTest {
         createTestFile("item1.yml", "name: Item1\npriority: 1");
         createTestFile("_template.yml", "name: Template\npriority: 0");
 
-        ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "");
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "", "filename", "", "", "");
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -480,8 +480,8 @@ class CollectionEntryTest {
         createTestFile("item1.yml", "name: Item1\npriority: 1");
         Files.createDirectory(itemsFolder.resolve("subdir"));
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -490,8 +490,8 @@ class CollectionEntryTest {
 
     @Test
     void loadAll_FolderDoesNotExist_SetsEmptySnapshot() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         entry.loadAll();
@@ -506,8 +506,8 @@ class CollectionEntryTest {
         createTestFile("a-item.yml", "name: A\npriority: 1");
         createTestFile("b-item.yml", "name: B\npriority: 2");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -525,8 +525,8 @@ class CollectionEntryTest {
         createTestFile("item2.yml", "name: Item2\npriority: 1");
         createTestFile("item3.yml", "name: Item3\npriority: 2");
 
-        ConfigCollection annotation = createAnnotation("", "items", "", "priority", "", "", "_");
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "", "priority", "", "", "_");
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -544,8 +544,8 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("my-item.yml", "name: Test");
 
-        ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "_");
-        CollectionEntry<TestItemWithNodeKey> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "", "filename", "", "", "_");
+        FolderConfigEntry<TestItemWithNodeKey> entry = new FolderConfigEntry<>(
                 TestItemWithNodeKey.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -559,8 +559,8 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("my-item.yml", "name: Test");
 
-        ConfigCollection annotation = createAnnotation("", "items", "itemId", "filename", "", "", "_");
-        CollectionEntry<TestItemWithIdField> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "itemId", "filename", "", "", "_");
+        FolderConfigEntry<TestItemWithIdField> entry = new FolderConfigEntry<>(
                 TestItemWithIdField.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -577,8 +577,8 @@ class CollectionEntryTest {
         createTestFile("enabled-item.yml", "name: Enabled\nenabled: true\npriority: 1");
         createTestFile("disabled-item.yml", "name: Disabled\nenabled: false\npriority: 2");
 
-        ConfigCollection annotation = createAnnotation("", "items", "", "filename", "enabled", "", "_");
-        CollectionEntry<TestItemWithEnabled> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "", "filename", "enabled", "", "_");
+        FolderConfigEntry<TestItemWithEnabled> entry = new FolderConfigEntry<>(
                 TestItemWithEnabled.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -592,8 +592,8 @@ class CollectionEntryTest {
         createTestFile("item1.yml", "name: Item1\nenabled: true\npriority: 1");
         createTestFile("item2.yml", "name: Item2\nenabled: false\npriority: 2");
 
-        ConfigCollection annotation = createAnnotation("", "items", "", "filename", "", "", "_");
-        CollectionEntry<TestItemWithEnabled> entry = new CollectionEntry<>(
+        FolderConfig annotation = createAnnotation("", "items", "", "filename", "", "", "_");
+        FolderConfigEntry<TestItemWithEnabled> entry = new FolderConfigEntry<>(
                 TestItemWithEnabled.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -608,12 +608,12 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("item1.yml", "name: Item1\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         createTestFile("item2.yml", "name: Item2\npriority: 2");
@@ -630,12 +630,12 @@ class CollectionEntryTest {
         Path item1Path = createTestFile("item1.yml", "name: Item1\npriority: 1");
         createTestFile("item2.yml", "name: Item2\npriority: 2");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         Files.delete(item1Path);
@@ -650,12 +650,12 @@ class CollectionEntryTest {
     void reloadItem_ItemDoesNotExist_AddsItem() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         createTestFile("new-item.yml", "name: NewItem\npriority: 1");
@@ -671,12 +671,12 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         Path itemPath = createTestFile("item1.yml", "name: Item1\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         Files.delete(itemPath);
@@ -694,8 +694,8 @@ class CollectionEntryTest {
     void saveItem_ValidId_SavesAndReturnsSuccess() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -714,12 +714,12 @@ class CollectionEntryTest {
     void saveItem_NewItem_NotifiesAdded() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         TestItem item = new TestItem();
@@ -734,8 +734,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_NullId_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -748,8 +748,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_EmptyId_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -762,8 +762,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_IdWithSlash_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -776,8 +776,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_IdWithBackslash_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -790,8 +790,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_IdWithDoubleDot_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -804,8 +804,8 @@ class CollectionEntryTest {
 
     @Test
     void saveItem_IdWithSpecialChars_ReturnsFailure() {
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem item = new TestItem();
@@ -820,8 +820,8 @@ class CollectionEntryTest {
     void saveItem_ValidIdWithDot_Succeeds() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -838,8 +838,8 @@ class CollectionEntryTest {
     void saveItem_ValidIdWithUnderscore_Succeeds() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -856,8 +856,8 @@ class CollectionEntryTest {
     void saveItem_ValidIdWithHyphen_Succeeds() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -877,8 +877,8 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("item1.yml", "name: Item1\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -893,12 +893,12 @@ class CollectionEntryTest {
         Files.createDirectories(itemsFolder);
         createTestFile("item1.yml", "name: Item1\npriority: 1");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> changes = new ArrayList<>();
+        List<FolderConfigItemChange<TestItem>> changes = new ArrayList<>();
         entry.getRef().addListener(changes::add);
 
         entry.deleteItem("item1");
@@ -912,8 +912,8 @@ class CollectionEntryTest {
     void deleteItem_NonExistentItem_ReturnsFailure() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -929,8 +929,8 @@ class CollectionEntryTest {
     void copyItem_ValidItem_ReturnsDeepCopy() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
 
         TestItem original = new TestItem();
@@ -953,8 +953,8 @@ class CollectionEntryTest {
         createTestFile("item.yml", "name: Yml\npriority: 1");
         createTestFile("item.yaml", "name: Yaml\npriority: 2");
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
@@ -967,13 +967,13 @@ class CollectionEntryTest {
     void addListener_ReceivesNotifications() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> receivedChanges = new ArrayList<>();
-        CollectionChangeListener<TestItem> listener = receivedChanges::add;
+        List<FolderConfigItemChange<TestItem>> receivedChanges = new ArrayList<>();
+        FolderConfigChangeListener<TestItem> listener = receivedChanges::add;
         entry.getRef().addListener(listener);
 
         TestItem item = new TestItem();
@@ -989,13 +989,13 @@ class CollectionEntryTest {
     void removeListener_StopsReceivingNotifications() throws IOException {
         Files.createDirectories(itemsFolder);
 
-        ConfigCollection annotation = createDefaultAnnotation();
-        CollectionEntry<TestItem> entry = new CollectionEntry<>(
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
                 TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
         entry.loadAll();
 
-        List<CollectionItemChange<TestItem>> receivedChanges = new ArrayList<>();
-        CollectionChangeListener<TestItem> listener = receivedChanges::add;
+        List<FolderConfigItemChange<TestItem>> receivedChanges = new ArrayList<>();
+        FolderConfigChangeListener<TestItem> listener = receivedChanges::add;
         entry.getRef().addListener(listener);
         entry.getRef().removeListener(listener);
 
