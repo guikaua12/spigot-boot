@@ -34,6 +34,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -56,8 +57,8 @@ public class ClassPathScanner {
      */
     public ClassPathScanner(@NotNull ClassLoader classLoader, @NotNull String... packages) {
         this.classLoader = Objects.requireNonNull(classLoader, "classLoader cannot be null");
-        this.scannedClasses = new HashSet<>();
-        this.scannedPackages = new HashSet<>();
+        this.scannedClasses = ConcurrentHashMap.newKeySet();
+        this.scannedPackages = ConcurrentHashMap.newKeySet();
 
         if (packages.length > 0) {
             addPackages(packages);
@@ -91,12 +92,9 @@ public class ClassPathScanner {
             }
 
             String normalizedPackage = pkg.trim();
-            if (scannedPackages.contains(normalizedPackage)) {
-                continue;
+            if (scannedPackages.add(normalizedPackage)) {
+                scanPackage(normalizedPackage);
             }
-
-            scannedPackages.add(normalizedPackage);
-            scanPackage(normalizedPackage);
         }
     }
 
