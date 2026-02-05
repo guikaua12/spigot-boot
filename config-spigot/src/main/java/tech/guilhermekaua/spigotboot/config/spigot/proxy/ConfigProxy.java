@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.config.spigot.proxy;
 
 import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
+import javassist.util.proxy.ProxyObject;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
@@ -94,8 +95,17 @@ public final class ConfigProxy<T> implements MethodHandler {
                 case "hashCode":
                     return System.identityHashCode(self);
                 case "equals":
-                    if (args[0] instanceof ConfigProxy) {
-                        return self == args[0];
+                    if (args == null || args.length != 1 || args[0] == null) {
+                        return false;
+                    }
+
+                    Object other = args[0];
+                    if (other == self) {
+                        return true;
+                    }
+
+                    if (other instanceof ProxyObject) {
+                        return ((ProxyObject) other).getHandler() == this;
                     }
                     return false;
                 default:
