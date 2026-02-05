@@ -310,7 +310,7 @@ public class DefaultValidator implements Validator {
 
         List<ValidationError> errors = new ArrayList<>();
 
-        for (Field field : object.getClass().getDeclaredFields()) {
+        for (Field field : getAllFields(object.getClass())) {
             PropertyPath fieldPath = basePath.child(field.getName());
             field.setAccessible(true);
 
@@ -345,6 +345,16 @@ public class DefaultValidator implements Validator {
         }
 
         return ValidationResult.of(errors);
+    }
+
+    private @NotNull List<Field> getAllFields(@NotNull Class<?> clazz) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            fields.addAll(Arrays.asList(current.getDeclaredFields()));
+            current = current.getSuperclass();
+        }
+        return fields;
     }
 
     @SuppressWarnings("unchecked")

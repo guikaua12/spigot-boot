@@ -30,6 +30,7 @@ import tech.guilhermekaua.spigotboot.core.validation.Validator;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Min;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotNull;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Range;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.Valid;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,6 +50,42 @@ class ValidatorTest {
     static class RangeConfig {
         @Range(min = 1, max = 100)
         int value;
+    }
+
+    static class InheritedNotNullBaseConfig {
+        @NotNull
+        String baseName;
+    }
+
+    static class InheritedNotNullConfig extends InheritedNotNullBaseConfig {
+        String childName;
+    }
+
+    static class NestedConfig {
+        @NotNull
+        String nestedValue;
+    }
+
+    static class InheritedValidBaseConfig {
+        @Valid
+        NestedConfig nested;
+    }
+
+    static class InheritedValidConfig extends InheritedValidBaseConfig {
+        String childName;
+    }
+
+    static class GrandParentConfig {
+        @NotNull
+        String grandParentName;
+    }
+
+    static class ParentConfig extends GrandParentConfig {
+        String parentValue;
+    }
+
+    static class ChildConfig extends ParentConfig {
+        String childValue;
     }
 
     private Validator validator;
@@ -131,5 +168,51 @@ class ValidatorTest {
 
         assertNotNull(formatted);
         assertFalse(formatted.isEmpty());
+    }
+
+    @Test
+    void testInheritedNotNullViolation() {
+        InheritedNotNullConfig config = new InheritedNotNullConfig();
+        config.baseName = null; // violates @NotNull in superclass
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testInheritedValidTriggersNestedValidation() {
+        InheritedValidConfig config = new InheritedValidConfig();
+        NestedConfig nested = new NestedConfig();
+        nested.nestedValue = null; // violates nested @NotNull
+
+        config.nested = nested;
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "nestedValue".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "nested.nestedValue".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testGrandParentFieldIsValidated() {
+        ChildConfig config = new ChildConfig();
+        config.grandParentName = null; // violates @NotNull declared two levels up
+        config.parentValue = "parent";
+        config.childValue = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "grandParentName".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "grandParentName".equals(error.getPath().asString())));
     }
 }
