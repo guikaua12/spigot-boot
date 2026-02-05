@@ -208,7 +208,11 @@ public class SpigotConfigManager implements ConfigManager {
         if (entry == null) {
             throw new ConfigException("Config not registered: " + configClass.getName());
         }
-        return entry.getInstance();
+        T instance = entry.getInstance();
+        if (instance == null) {
+            throw new ConfigException("Config not loaded: " + configClass.getName());
+        }
+        return instance;
     }
 
     @Override
