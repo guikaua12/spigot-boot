@@ -319,10 +319,18 @@ public class YamlConfigNode implements MutableConfigNode {
     @Override
     @SuppressWarnings("unchecked")
     public @NotNull MutableConfigNode remove() {
-        if (parent != null && parent.value instanceof Map) {
+        if (parent != null) {
             Object lastKey = path.last();
             if (lastKey != null) {
-                ((Map<String, Object>) parent.value).remove(String.valueOf(lastKey));
+                if (parent.value instanceof Map) {
+                    ((Map<String, Object>) parent.value).remove(String.valueOf(lastKey));
+                } else if (parent.value instanceof List && lastKey instanceof Integer) {
+                    int index = (Integer) lastKey;
+                    List<Object> list = (List<Object>) parent.value;
+                    if (index >= 0 && index < list.size()) {
+                        list.remove(index);
+                    }
+                }
             }
         }
         this.value = null;
