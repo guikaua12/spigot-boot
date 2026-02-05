@@ -3,7 +3,7 @@
 > [!IMPORTANT]  
 > Work In Progress
 
-Spigot Boot is a powerful library inspired by Spring Boot, designed specifically for Spigot plugins.
+Spigot Boot is a powerful library inspired by Spring Boot, designed specifically for Spigot plugins for Minecraft.
 
 ## Credits:
 
