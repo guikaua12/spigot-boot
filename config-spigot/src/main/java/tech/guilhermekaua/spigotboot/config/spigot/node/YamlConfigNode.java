@@ -342,7 +342,7 @@ public class YamlConfigNode implements MutableConfigNode {
     @SuppressWarnings("unchecked")
     public @NotNull MutableConfigNode appendListItem() {
         if (!(value instanceof List)) {
-            value = new ArrayList<>();
+            set(new ArrayList<>());
         }
         List<Object> list = (List<Object>) value;
         int index = list.size();
