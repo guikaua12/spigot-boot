@@ -101,12 +101,12 @@ public final class BindingResult<T> {
     }
 
     /**
-     * Checks if binding was successful (no binding errors).
+     * Checks if binding was fully successful (no binding or validation errors).
      *
      * @return true if successful
      */
     public boolean isSuccess() {
-        return errors.isEmpty() && value != null;
+        return errors.isEmpty() && validationErrors.isEmpty() && value != null;
     }
 
     /**
