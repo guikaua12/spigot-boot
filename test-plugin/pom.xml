@@ -19,6 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.deploy.skip>true</maven.deploy.skip>
         <central.publishing.skip>true</central.publishing.skip>
+        <spigot.plugins.dir>${project.build.directory}</spigot.plugins.dir>
     </properties>
 
     <build>
@@ -86,8 +87,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <outputDirectory>C:\Users\datki\Desktop\spigot\plugins
-                    </outputDirectory>
+                    <outputDirectory>${spigot.plugins.dir}</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
