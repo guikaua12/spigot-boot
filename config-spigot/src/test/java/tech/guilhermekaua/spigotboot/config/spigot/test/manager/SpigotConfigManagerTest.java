@@ -135,6 +135,47 @@ class SpigotConfigManagerTest {
         assertTrue(message.contains("messages"));
     }
 
+    @Test
+    void register_WhenSameClassRegisteredTwice_ThrowsConfigException() {
+        configManager.register(TestConfig.class);
+
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> configManager.register(TestConfig.class)
+        );
+
+        String message = exception.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains(TestConfig.class.getName()));
+
+        assertTrue(configManager.isRegistered(TestConfig.class));
+        assertEquals(1, configManager.getRegisteredConfigs().size());
+    }
+
+    @Test
+    void register_WhenDifferentClassesShareSameConfigName_ThrowsConfigExceptionAndKeepsOriginalMapping() throws IOException {
+        writeYaml("collision-one.yml", "value: one\n");
+        writeYaml("collision-two.yml", "value: two\n");
+
+        configManager.register(CollisionConfigOne.class);
+
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> configManager.register(CollisionConfigTwo.class)
+        );
+
+        String message = exception.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("collision"));
+
+        assertTrue(configManager.isRegistered(CollisionConfigOne.class));
+        assertFalse(configManager.isRegistered(CollisionConfigTwo.class));
+        assertEquals(1, configManager.getRegisteredConfigs().size());
+
+        String value = configManager.get("collision:value", String.class);
+        assertEquals("one", value);
+    }
+
     private void writeYaml(String fileName, String content) throws IOException {
         Files.writeString(tempDir.resolve(fileName), content);
     }
@@ -168,6 +209,22 @@ class SpigotConfigManagerTest {
         private String value;
 
         public MessagesNamedConfig() {
+        }
+    }
+
+    @Config(value = "collision-one.yml", name = "collision", generateDefaults = false)
+    public static class CollisionConfigOne {
+        private String value;
+
+        public CollisionConfigOne() {
+        }
+    }
+
+    @Config(value = "collision-two.yml", name = "collision", generateDefaults = false)
+    public static class CollisionConfigTwo {
+        private String value;
+
+        public CollisionConfigTwo() {
         }
     }
 }

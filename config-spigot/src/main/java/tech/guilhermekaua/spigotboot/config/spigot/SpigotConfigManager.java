@@ -506,6 +506,18 @@ public class SpigotConfigManager implements ConfigManager {
 
         validateConfigName(finalConfigName, configClass.getName());
 
+        ConfigEntry<?> existingEntryByClass = configs.get(configClass);
+        if (existingEntryByClass != null) {
+            throw new ConfigException("Config already registered: " + configClass.getName() +
+                    " (name=" + existingEntryByClass.getConfigName() + ")");
+        }
+
+        Class<?> existingClassByName = configsByName.get(finalConfigName);
+        if (existingClassByName != null && !existingClassByName.equals(configClass)) {
+            throw new ConfigException("Config name collision: '" + finalConfigName + "' is already registered for " +
+                    existingClassByName.getName() + ", cannot register " + configClass.getName());
+        }
+
         if (annotation.generateDefaults() && !source.exists()) {
             copyDefaultFromResources(configClass, annotation, source);
         }
@@ -526,8 +538,22 @@ public class SpigotConfigManager implements ConfigManager {
         });
 
         ConfigEntry<T> entry = new ConfigEntry<>(configClass, source, namingStrategy, null, ref, node, finalConfigName);
-        configs.put(configClass, entry);
-        configsByName.put(finalConfigName, configClass);
+        ConfigEntry<?> previousEntryByClass = configs.putIfAbsent(configClass, entry);
+        if (previousEntryByClass != null) {
+            throw new ConfigException("Config already registered: " + configClass.getName() +
+                    " (name=" + previousEntryByClass.getConfigName() + ")");
+        }
+
+        Class<?> previousClassByName = configsByName.putIfAbsent(finalConfigName, configClass);
+        if (previousClassByName != null) {
+            configs.remove(configClass, entry);
+            if (!previousClassByName.equals(configClass)) {
+                throw new ConfigException("Config name collision: '" + finalConfigName + "' is already registered for " +
+                        previousClassByName.getName() + ", cannot register " + configClass.getName());
+            }
+            throw new ConfigException("Config already registered: " + configClass.getName() +
+                    " (name=" + finalConfigName + ")");
+        }
 
         plugin.getLogger().info("Registered config definition: " + configClass.getSimpleName() + " (name=" + finalConfigName + ")");
     }
