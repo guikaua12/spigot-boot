@@ -399,6 +399,12 @@ public class SpigotConfigManager implements ConfigManager {
             if (configsByName.isEmpty()) {
                 return null;
             }
+            if (configsByName.size() > 1) {
+                List<String> availableConfigs = new ArrayList<>(configsByName.keySet());
+                Collections.sort(availableConfigs);
+                throw new ConfigException("Ambiguous config path '" + path + "': multiple configs are registered " +
+                        availableConfigs + ". Use 'configName:path' format.");
+            }
             configName = configsByName.keySet().iterator().next();
             nodePath = path;
         }
