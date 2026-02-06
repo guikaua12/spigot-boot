@@ -279,16 +279,57 @@ public class SpigotConfigManager implements ConfigManager {
         Objects.requireNonNull(annotation, "annotation cannot be null");
 
         FolderConfigEntry<T> entry = new FolderConfigEntry<>(itemType, annotation, plugin, loader, binder, annotation.naming());
+        String folderConfigName = entry.getFolderConfigName();
 
-        validateConfigName(entry.getFolderConfigName(), itemType.getName());
+        validateConfigName(folderConfigName, itemType.getName());
+
+        FolderConfigKey key = new FolderConfigKey(itemType, folderConfigName);
+        FolderConfigEntry<?> existingByKey = folderConfigs.get(key);
+        if (existingByKey != null) {
+            throw new ConfigException("Folder config already registered for itemType " + itemType.getName() +
+                    " with name '" + folderConfigName + "'. Existing entry: " + describeFolderConfigEntry(existingByKey));
+        }
+
+        FolderConfigEntry<?> existingByName = findFolderConfigNameCollision(folderConfigName, itemType);
+        if (existingByName != null) {
+            throw new ConfigException("Folder config name collision: '" + folderConfigName + "' is already registered for " +
+                    describeFolderConfigEntry(existingByName) + ", cannot register itemType " +
+                    itemType.getName() + " (folder=" + entry.getFolder() + ")");
+        }
 
         entry.prepareFolder();
 
-        FolderConfigKey key = new FolderConfigKey(itemType, entry.getFolderConfigName());
-        folderConfigs.put(key, entry);
+        FolderConfigEntry<?> previousByKey = folderConfigs.putIfAbsent(key, entry);
+        if (previousByKey != null) {
+            throw new ConfigException("Folder config already registered for itemType " + itemType.getName() +
+                    " with name '" + folderConfigName + "'. Existing entry: " + describeFolderConfigEntry(previousByKey));
+        }
+
+        FolderConfigEntry<?> collisionAfterPut = findFolderConfigNameCollision(folderConfigName, itemType);
+        if (collisionAfterPut != null) {
+            folderConfigs.remove(key, entry);
+            throw new ConfigException("Folder config name collision: '" + folderConfigName + "' is already registered for " +
+                    describeFolderConfigEntry(collisionAfterPut) + ", cannot register itemType " +
+                    itemType.getName() + " (folder=" + entry.getFolder() + ")");
+        }
 
         plugin.getLogger().info("Registered folder config definition: " + entry.getFolderConfigName() +
                 " (" + itemType.getSimpleName() + ") from " + entry.getFolder());
+    }
+
+    private @Nullable FolderConfigEntry<?> findFolderConfigNameCollision(@NotNull String folderConfigName, @NotNull Class<?> itemType) {
+        for (FolderConfigEntry<?> existing : folderConfigs.values()) {
+            if (existing.getFolderConfigName().equals(folderConfigName) && !existing.getItemType().equals(itemType)) {
+                return existing;
+            }
+        }
+        return null;
+    }
+
+    private @NotNull String describeFolderConfigEntry(@NotNull FolderConfigEntry<?> entry) {
+        return "itemType=" + entry.getItemType().getName() +
+                ", name='" + entry.getFolderConfigName() + "'" +
+                ", folder=" + entry.getFolder();
     }
 
     /**

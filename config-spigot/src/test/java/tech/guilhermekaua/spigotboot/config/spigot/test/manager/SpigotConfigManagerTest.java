@@ -30,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 
@@ -176,6 +177,61 @@ class SpigotConfigManagerTest {
         assertEquals("one", value);
     }
 
+    @Test
+    void registerFolderConfig_WhenSameTypeAndNameRegisteredTwice_ThrowsConfigExceptionAndKeepsOriginalEntry() {
+        FolderConfig annotation = DuplicateKeyFolderItem.class.getAnnotation(FolderConfig.class);
+        assertNotNull(annotation);
+
+        configManager.registerFolderConfig(DuplicateKeyFolderItem.class, annotation);
+
+        Object originalEntry = configManager.getFolderConfigEntry(DuplicateKeyFolderItem.class, "shared_key");
+        assertNotNull(originalEntry);
+
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> configManager.registerFolderConfig(DuplicateKeyFolderItem.class, annotation)
+        );
+
+        String message = exception.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("shared_key"));
+        assertTrue(message.contains(DuplicateKeyFolderItem.class.getName()));
+
+        Object currentEntry = configManager.getFolderConfigEntry(DuplicateKeyFolderItem.class, "shared_key");
+        assertSame(originalEntry, currentEntry);
+        assertEquals(1, configManager.getFolderConfigNames(DuplicateKeyFolderItem.class).size());
+    }
+
+    @Test
+    void registerFolderConfig_WhenDifferentTypesShareSameName_ThrowsConfigExceptionAndKeepsOriginalEntry() {
+        FolderConfig firstAnnotation = SharedNameFolderItemOne.class.getAnnotation(FolderConfig.class);
+        FolderConfig secondAnnotation = SharedNameFolderItemTwo.class.getAnnotation(FolderConfig.class);
+        assertNotNull(firstAnnotation);
+        assertNotNull(secondAnnotation);
+
+        configManager.registerFolderConfig(SharedNameFolderItemOne.class, firstAnnotation);
+
+        var originalByName = configManager.getFolderConfigEntryByName("shared_name");
+        assertNotNull(originalByName);
+        assertEquals(SharedNameFolderItemOne.class, originalByName.getItemType());
+
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> configManager.registerFolderConfig(SharedNameFolderItemTwo.class, secondAnnotation)
+        );
+
+        String message = exception.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("shared_name"));
+        assertTrue(message.contains(SharedNameFolderItemOne.class.getName()));
+        assertTrue(message.contains(SharedNameFolderItemTwo.class.getName()));
+
+        var currentByName = configManager.getFolderConfigEntryByName("shared_name");
+        assertNotNull(currentByName);
+        assertEquals(SharedNameFolderItemOne.class, currentByName.getItemType());
+        assertNull(configManager.getFolderConfigEntry(SharedNameFolderItemTwo.class, "shared_name"));
+    }
+
     private void writeYaml(String fileName, String content) throws IOException {
         Files.writeString(tempDir.resolve(fileName), content);
     }
@@ -225,6 +281,30 @@ class SpigotConfigManagerTest {
         private String value;
 
         public CollisionConfigTwo() {
+        }
+    }
+
+    @FolderConfig(name = "shared_key", folder = "shared-key-folder")
+    public static class DuplicateKeyFolderItem {
+        private String value;
+
+        public DuplicateKeyFolderItem() {
+        }
+    }
+
+    @FolderConfig(name = "shared_name", folder = "shared-name-folder-one")
+    public static class SharedNameFolderItemOne {
+        private String value;
+
+        public SharedNameFolderItemOne() {
+        }
+    }
+
+    @FolderConfig(name = "shared_name", folder = "shared-name-folder-two")
+    public static class SharedNameFolderItemTwo {
+        private String value;
+
+        public SharedNameFolderItemTwo() {
         }
     }
 }
