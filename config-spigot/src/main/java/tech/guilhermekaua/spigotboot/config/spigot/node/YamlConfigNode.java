@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.config.spigot.node;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.config.node.AbstractValueConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.core.validation.ConfigPath;
@@ -34,7 +35,7 @@ import java.util.*;
 /**
  * YAML-backed implementation of ConfigNode using SnakeYAML.
  */
-public class YamlConfigNode implements MutableConfigNode {
+public class YamlConfigNode extends AbstractValueConfigNode implements MutableConfigNode {
 
     private final ConfigPath path;
     private final YamlConfigNode parent;
@@ -68,62 +69,26 @@ public class YamlConfigNode implements MutableConfigNode {
     }
 
     @Override
-    public @Nullable Object raw() {
+    protected @Nullable Object currentValue() {
         return value;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T> @Nullable T get(@NotNull Class<T> type) {
-        Objects.requireNonNull(type, "type cannot be null");
-        if (value == null) {
-            return null;
-        }
-        if (type.isInstance(value)) {
-            return (T) value;
-        }
-
-        if (type == String.class) {
-            return (T) String.valueOf(value);
-        }
-        if (type == Integer.class || type == int.class) {
-            if (value instanceof Number) {
-                return (T) Integer.valueOf(((Number) value).intValue());
-            }
-            return (T) Integer.valueOf(String.valueOf(value));
-        }
-        if (type == Long.class || type == long.class) {
-            if (value instanceof Number) {
-                return (T) Long.valueOf(((Number) value).longValue());
-            }
-            return (T) Long.valueOf(String.valueOf(value));
-        }
-        if (type == Double.class || type == double.class) {
-            if (value instanceof Number) {
-                return (T) Double.valueOf(((Number) value).doubleValue());
-            }
-            return (T) Double.valueOf(String.valueOf(value));
-        }
-        if (type == Float.class || type == float.class) {
-            if (value instanceof Number) {
-                return (T) Float.valueOf(((Number) value).floatValue());
-            }
-            return (T) Float.valueOf(String.valueOf(value));
-        }
-        if (type == Boolean.class || type == boolean.class) {
-            if (value instanceof Boolean) {
-                return (T) value;
-            }
-            String str = String.valueOf(value).toLowerCase();
-            return (T) Boolean.valueOf("true".equals(str) || "yes".equals(str) || "1".equals(str));
-        }
-        return null;
+    protected @NotNull PropertyPath currentPath() {
+        return path;
     }
 
     @Override
-    public <T> @NotNull T get(@NotNull Class<T> type, @NotNull T defaultValue) {
-        T result = get(type);
-        return result != null ? result : defaultValue;
+    protected boolean currentVirtual() {
+        return virtual;
+    }
+
+    @Override
+    protected @NotNull ConfigNode createChildNode(
+            @Nullable Object value,
+            @NotNull PropertyPath path,
+            boolean virtual) {
+        return new YamlConfigNode(toConfigPath(path), this, value, virtual);
     }
 
     @Override
@@ -143,6 +108,13 @@ public class YamlConfigNode implements MutableConfigNode {
     @Override
     public @NotNull ConfigNode node(@NotNull PropertyPath path) {
         return node(path.elements());
+    }
+
+    private static @NotNull ConfigPath toConfigPath(@NotNull PropertyPath path) {
+        if (path instanceof ConfigPath) {
+            return (ConfigPath) path;
+        }
+        return ConfigPath.of(path.elements());
     }
 
     @SuppressWarnings("unchecked")
@@ -175,64 +147,6 @@ public class YamlConfigNode implements MutableConfigNode {
     public boolean hasChild(@NotNull Object... pathSegments) {
         ConfigNode child = node(pathSegments);
         return !child.isVirtual() && !child.isNull();
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public @NotNull Map<String, ? extends ConfigNode> childrenMap() {
-        if (!(value instanceof Map)) {
-            return Collections.emptyMap();
-        }
-        Map<String, Object> map = (Map<String, Object>) value;
-        Map<String, YamlConfigNode> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            result.put(entry.getKey(), new YamlConfigNode(path.child(entry.getKey()), this, entry.getValue(), false));
-        }
-        return result;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public @NotNull List<? extends ConfigNode> childrenList() {
-        if (!(value instanceof List)) {
-            return Collections.emptyList();
-        }
-        List<Object> list = (List<Object>) value;
-        List<YamlConfigNode> result = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) {
-            result.add(new YamlConfigNode(path.child(i), this, list.get(i), false));
-        }
-        return result;
-    }
-
-    @Override
-    public boolean isMap() {
-        return value instanceof Map;
-    }
-
-    @Override
-    public boolean isList() {
-        return value instanceof List;
-    }
-
-    @Override
-    public boolean isScalar() {
-        return value != null && !(value instanceof Map) && !(value instanceof List);
-    }
-
-    @Override
-    public boolean isNull() {
-        return value == null;
-    }
-
-    @Override
-    public boolean isVirtual() {
-        return virtual;
-    }
-
-    @Override
-    public @NotNull PropertyPath path() {
-        return path;
     }
 
     @Override

@@ -29,6 +29,7 @@ import tech.guilhermekaua.spigotboot.config.reference.context.ConfigCircularRefe
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigReferenceNotFoundContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ResolutionTarget;
+import tech.guilhermekaua.spigotboot.config.spigot.node.SnapshotConfigNode;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -179,6 +180,45 @@ public class ConfigReferenceResolver {
             return resolved != null ? resolved : node;
         }
 
+        if (node.isMap()) {
+            Map<String, Object> resolvedChildren = new LinkedHashMap<>();
+            boolean changed = false;
+
+            for (Map.Entry<String, ? extends ConfigNode> entry : node.childrenMap().entrySet()) {
+                ConfigNode child = entry.getValue();
+                ConfigNode resolvedChild = deepResolve(child, sourceKey, resolutionStack);
+                if (resolvedChild != child) {
+                    changed = true;
+                }
+                resolvedChildren.put(entry.getKey(), toDetachedRaw(resolvedChild));
+            }
+
+            if (!changed) {
+                return node;
+            }
+
+            return SnapshotConfigNode.of(resolvedChildren, node.path());
+        }
+
+        if (node.isList()) {
+            List<Object> resolvedChildren = new ArrayList<>();
+            boolean changed = false;
+
+            for (ConfigNode child : node.childrenList()) {
+                ConfigNode resolvedChild = deepResolve(child, sourceKey, resolutionStack);
+                if (resolvedChild != child) {
+                    changed = true;
+                }
+                resolvedChildren.add(toDetachedRaw(resolvedChild));
+            }
+
+            if (!changed) {
+                return node;
+            }
+
+            return SnapshotConfigNode.of(resolvedChildren, node.path());
+        }
+
         return node;
     }
 
@@ -219,5 +259,29 @@ public class ConfigReferenceResolver {
         }
 
         return alternatives;
+    }
+
+    private @Nullable Object toDetachedRaw(@NotNull ConfigNode node) {
+        if (node.isVirtual() || node.isNull()) {
+            return null;
+        }
+
+        if (node.isMap()) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            for (Map.Entry<String, ? extends ConfigNode> entry : node.childrenMap().entrySet()) {
+                copy.put(entry.getKey(), toDetachedRaw(entry.getValue()));
+            }
+            return copy;
+        }
+
+        if (node.isList()) {
+            List<Object> copy = new ArrayList<>();
+            for (ConfigNode child : node.childrenList()) {
+                copy.add(toDetachedRaw(child));
+            }
+            return copy;
+        }
+
+        return node.raw();
     }
 }

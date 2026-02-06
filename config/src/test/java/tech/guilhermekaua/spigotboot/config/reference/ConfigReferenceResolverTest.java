@@ -33,7 +33,9 @@ import tech.guilhermekaua.spigotboot.config.test.TestConfigNode;
 import tech.guilhermekaua.spigotboot.config.test.TestConfigReferenceLookup;
 import tech.guilhermekaua.spigotboot.config.test.TrackingConfigReferenceErrorHandler;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -233,6 +235,27 @@ class ConfigReferenceResolverTest {
 
             assertTrue(errorHandler.circularCalled);
         }
+
+        @Test
+        @DisplayName("resolves nested references when root reference points to map")
+        void resolvesNestedReferencesWhenRootReferencePointsToMap() {
+            lookup.addConfig("value", "resolved value");
+
+            Map<String, Object> targetMap = new HashMap<>();
+            targetMap.put("inner", "${value}");
+            targetMap.put("plain", "text");
+            lookup.addConfig("container", targetMap);
+
+            ConfigNode node = testNode("${container}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null);
+
+            assertNotNull(result);
+            assertTrue(result.isMap());
+            assertEquals("resolved value", result.node("inner").get(String.class));
+            assertEquals("text", result.node("plain").get(String.class));
+        }
     }
 
     @Nested
@@ -272,6 +295,75 @@ class ConfigReferenceResolverTest {
             ConfigNode result = resolver.deepResolve(node, sourceKey);
 
             assertTrue(result.isNull());
+        }
+
+        @Test
+        @DisplayName("resolves references inside map children")
+        void resolvesReferencesInsideMapChildren() {
+            lookup.addConfig("value", "resolved value");
+
+            Map<String, Object> root = new HashMap<>();
+            root.put("a", "${value}");
+            root.put("b", "plain");
+
+            ConfigNode node = testNode(root);
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.deepResolve(node, sourceKey);
+
+            assertEquals("resolved value", result.node("a").get(String.class));
+            assertEquals("plain", result.node("b").get(String.class));
+        }
+
+        @Test
+        @DisplayName("resolves references inside list elements")
+        void resolvesReferencesInsideListElements() {
+            lookup.addConfig("value", "resolved value");
+
+            List<Object> root = Arrays.asList("${value}", "plain");
+            ConfigNode node = testNode(root);
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.deepResolve(node, sourceKey);
+
+            assertEquals("resolved value", result.node(0).get(String.class));
+            assertEquals("plain", result.node(1).get(String.class));
+        }
+
+        @Test
+        @DisplayName("resolves references in nested containers")
+        void resolvesReferencesInNestedContainers() {
+            lookup.addConfig("value", "resolved value");
+
+            Map<String, Object> nested = new HashMap<>();
+            nested.put("x", "${value}");
+
+            Map<String, Object> root = new HashMap<>();
+            root.put("outer", Arrays.<Object>asList(nested));
+
+            ConfigNode node = testNode(root);
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.deepResolve(node, sourceKey);
+
+            assertEquals("resolved value", result.node("outer", 0, "x").get(String.class));
+        }
+
+        @Test
+        @DisplayName("does not mutate original node when resolving map children")
+        void doesNotMutateOriginalNodeWhenResolvingMapChildren() {
+            lookup.addConfig("value", "resolved value");
+
+            Map<String, Object> root = new HashMap<>();
+            root.put("a", "${value}");
+
+            ConfigNode original = testNode(root);
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode resolved = resolver.deepResolve(original, sourceKey);
+
+            assertEquals("${value}", original.node("a").get(String.class));
+            assertEquals("resolved value", resolved.node("a").get(String.class));
         }
     }
 
