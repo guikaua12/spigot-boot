@@ -24,10 +24,12 @@ package tech.guilhermekaua.spigotboot.testPlugin;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
+import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigModule;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
 import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
+import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
 
 @Plugin(
         name = "TestPlugin",
@@ -41,8 +43,12 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         Context ctx = SpigotBoot.initialize(this,
                 DataOrmLiteModule.class,
-                PlaceholderModule.class
+                PlaceholderModule.class,
+                SpigotConfigModule.class
         );
+
+        MainConfig mainConfig = ctx.getBean(MainConfig.class);
+        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
     }
 
     @Override

@@ -41,6 +41,8 @@
         <module>data</module>
         <module>modules</module>
         <module>utils</module>
+        <module>config</module>
+        <module>config-spigot</module>
         <module>test-plugin</module>
         <module>annotation-processor</module>
     </modules>
@@ -65,7 +67,31 @@
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.36</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>1.18.36</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -187,7 +213,7 @@
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter</artifactId>
-                        <version>5.13.1</version>
+                        <version>5.10.2</version>
                     </dependency>
                     <!--                    <dependency>-->
                     <!--                        <groupId>org.junit.jupiter</groupId>-->
@@ -229,7 +255,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.26</version>
+            <version>1.18.36</version>
             <scope>provided</scope>
         </dependency>
 
