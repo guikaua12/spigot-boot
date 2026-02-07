@@ -75,13 +75,14 @@ public class ContextLifecycle {
     }
 
     private void scanPackages() {
-        Set<String> packagesToScan = new LinkedHashSet<>();
-        packagesToScan.add(SpigotBoot.class.getPackage().getName());
-        packagesToScan.add(ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName());
+        Set<String> rawPackagesToScan = new LinkedHashSet<>();
+        rawPackagesToScan.add(SpigotBoot.class.getPackage().getName());
+        rawPackagesToScan.add(ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName());
 
         for (Class<? extends Module> moduleClass : modulesToLoad) {
-            packagesToScan.add(moduleClass.getPackage().getName());
+            rawPackagesToScan.add(moduleClass.getPackage().getName());
         }
+        List<String> packagesToScan = minimizePackageRoots(rawPackagesToScan);
 
         ComponentRegistry componentRegistry = dependencyManager.resolveDependency(ComponentRegistry.class, null, ComponentRegistry::new);
         ConfigurationProcessor configurationProcessor = dependencyManager.resolveDependency(ConfigurationProcessor.class, null, ConfigurationProcessor::new);
@@ -193,6 +194,64 @@ public class ContextLifecycle {
 
     public BeanRegistrar getBeanRegistrar() {
         return beanRegistrar;
+    }
+
+    static @NotNull List<String> minimizePackageRoots(@NotNull Collection<String> packages) {
+        Objects.requireNonNull(packages, "packages cannot be null");
+
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String pkg : packages) {
+            if (pkg == null) {
+                continue;
+            }
+
+            String trimmed = pkg.trim();
+            if (!trimmed.isEmpty()) {
+                normalized.add(trimmed);
+            }
+        }
+
+        List<String> sortedBySpecificity = new ArrayList<>(normalized);
+        sortedBySpecificity.sort(
+                Comparator.comparingInt(ContextLifecycle::packageDepth)
+                        .thenComparingInt(String::length)
+                        .thenComparing(String::compareTo)
+        );
+
+        Set<String> roots = new LinkedHashSet<>();
+        for (String candidate : sortedBySpecificity) {
+            if (!isNestedUnderAny(candidate, roots)) {
+                roots.add(candidate);
+            }
+        }
+
+        List<String> orderedRoots = new ArrayList<>();
+        for (String pkg : normalized) {
+            if (roots.contains(pkg)) {
+                orderedRoots.add(pkg);
+            }
+        }
+
+        return orderedRoots;
+    }
+
+    private static boolean isNestedUnderAny(@NotNull String candidate, @NotNull Set<String> roots) {
+        for (String root : roots) {
+            if (candidate.equals(root) || candidate.startsWith(root + ".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int packageDepth(@NotNull String packageName) {
+        int depth = 1;
+        for (int i = 0; i < packageName.length(); i++) {
+            if (packageName.charAt(i) == '.') {
+                depth++;
+            }
+        }
+        return depth;
     }
 }
 
