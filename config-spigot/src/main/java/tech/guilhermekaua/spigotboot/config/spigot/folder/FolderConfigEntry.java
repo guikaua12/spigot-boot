@@ -798,51 +798,53 @@ public final class FolderConfigEntry<T> {
             return;
         }
 
-        for (Field field : itemType.getDeclaredFields()) {
-            if (field.isAnnotationPresent(NodeKey.class)) {
-                field.setAccessible(true);
-                try {
-                    field.set(item, id);
-                } catch (Exception e) {
-                    logger.log(Level.FINE, "Failed to inject ID into @NodeKey field: " + field.getName(), e);
-                }
-                return;
+        Field field = findAnnotatedField(itemType, NodeKey.class);
+        if (field != null) {
+            field.setAccessible(true);
+            try {
+                field.set(item, id);
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Failed to inject ID into @NodeKey field: " + field.getName(), e);
             }
         }
     }
 
     private void setFieldValue(Object obj, String fieldName, Object value) {
-        try {
-            Field field = obj.getClass().getDeclaredField(fieldName);
+        Field field = findField(obj.getClass(), fieldName);
+        if (field != null) {
             field.setAccessible(true);
-            field.set(obj, value);
-        } catch (Exception e) {
-            logger.log(Level.FINE, "Failed to set field value: " + fieldName, e);
+            try {
+                field.set(obj, value);
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Failed to set field value: " + fieldName, e);
+            }
+        } else {
+            logger.log(Level.FINE, "Field not found: " + fieldName);
         }
     }
 
     private void orderByField(List<T> items, String fieldName) {
-        try {
-            Field field = itemType.getDeclaredField(fieldName);
-            field.setAccessible(true);
-
-            items.sort((a, b) -> {
-                try {
-                    Object va = field.get(a);
-                    Object vb = field.get(b);
-                    if (va instanceof Comparable && vb instanceof Comparable) {
-                        @SuppressWarnings("unchecked")
-                        Comparable<Object> ca = (Comparable<Object>) va;
-                        return ca.compareTo(vb);
-                    }
-                } catch (Exception e) {
-                    logger.log(Level.FINE, "Failed to compare field values for ordering", e);
-                }
-                return 0;
-            });
-        } catch (NoSuchFieldException e) {
-            logger.log(Level.FINE, "Order-by field not found: " + fieldName, e);
+        Field field = findField(itemType, fieldName);
+        if (field == null) {
+            logger.log(Level.FINE, "Order-by field not found: " + fieldName);
+            return;
         }
+        field.setAccessible(true);
+
+        items.sort((a, b) -> {
+            try {
+                Object va = field.get(a);
+                Object vb = field.get(b);
+                if (va instanceof Comparable && vb instanceof Comparable) {
+                    @SuppressWarnings("unchecked")
+                    Comparable<Object> ca = (Comparable<Object>) va;
+                    return ca.compareTo(vb);
+                }
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Failed to compare field values for ordering", e);
+            }
+            return 0;
+        });
     }
 
     private @Nullable List<T> computeEnabledItems(List<T> items) {
@@ -851,14 +853,12 @@ public final class FolderConfigEntry<T> {
             return null;
         }
 
-        Field field;
-        try {
-            field = itemType.getDeclaredField(enabledField);
-            field.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            logger.log(Level.FINE, "Enabled field not found: " + enabledField, e);
+        Field field = findField(itemType, enabledField);
+        if (field == null) {
+            logger.log(Level.FINE, "Enabled field not found: " + enabledField);
             return null;
         }
+        field.setAccessible(true);
 
         if (field.getType() != boolean.class && field.getType() != Boolean.class) {
             return null;
@@ -950,6 +950,45 @@ public final class FolderConfigEntry<T> {
         ref.setSnapshot(new DefaultFolderConfigSnapshot<>(
                 itemType, folderConfigName, items, orderedValues, enabledItems
         ));
+    }
+
+    /**
+     * Finds a field by name, traversing the class hierarchy.
+     *
+     * @param clazz     the class to search
+     * @param fieldName the name of the field to find
+     * @return the Field if found, or null if not found in this class or any superclass
+     */
+    private @Nullable Field findField(Class<?> clazz, String fieldName) {
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            try {
+                return current.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds a field by annotation type, traversing the class hierarchy.
+     *
+     * @param clazz          the class to search
+     * @param annotationType the annotation type to look for
+     * @return the first Field annotated with the given annotation type, or null if none found
+     */
+    private @Nullable Field findAnnotatedField(Class<?> clazz, Class<? extends java.lang.annotation.Annotation> annotationType) {
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.isAnnotationPresent(annotationType)) {
+                    return field;
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return null;
     }
 
     private static final class ItemMeta {
