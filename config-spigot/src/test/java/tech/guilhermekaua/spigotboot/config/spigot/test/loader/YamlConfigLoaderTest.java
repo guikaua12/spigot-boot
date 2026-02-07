@@ -5,17 +5,21 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
+import tech.guilhermekaua.spigotboot.config.spigot.node.YamlConfigNode;
 import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class YamlConfigLoaderTest {
 
@@ -82,6 +86,54 @@ class YamlConfigLoaderTest {
         ConfigNode loaded = loader.load(source);
 
         assertEquals(value, loaded.raw());
+    }
+
+    @ParameterizedTest(name = "map value round-trip keeps scalar string: {0}")
+    @MethodSource("yamlSpecialScalarCases")
+    void save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String fileName, String value) throws Exception {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("value", value);
+
+        ConfigSource source = ConfigSource.file(tempDir.resolve(fileName + "-map.yml"));
+
+        loader.save(new YamlConfigNode(data), source);
+        ConfigNode loaded = loader.load(source);
+
+        Object loadedValue = loaded.node("value").raw();
+        assertEquals(value, loadedValue);
+        assertInstanceOf(String.class, loadedValue, "expected loaded map scalar to remain a string");
+    }
+
+    @ParameterizedTest(name = "list item round-trip keeps scalar string: {0}")
+    @MethodSource("yamlSpecialScalarCases")
+    void save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String fileName, String value) throws Exception {
+        List<Object> items = new ArrayList<>();
+        items.add(value);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("items", items);
+
+        ConfigSource source = ConfigSource.file(tempDir.resolve(fileName + "-list.yml"));
+
+        loader.save(new YamlConfigNode(data), source);
+        ConfigNode loaded = loader.load(source);
+
+        Object loadedValue = loaded.node("items").node(0).raw();
+        assertEquals(value, loadedValue);
+        assertInstanceOf(String.class, loadedValue, "expected loaded list item to remain a string");
+    }
+
+    private static Stream<Arguments> yamlSpecialScalarCases() {
+        return Stream.of(
+                Arguments.of("contains-inline-comment", "foo #bar"),
+                Arguments.of("ends-with-colon", "foo:"),
+                Arguments.of("ends-with-colon-space", "foo:\u0020"),
+                Arguments.of("leading-space", "\u0020\u0020leading"),
+                Arguments.of("trailing-space", "trailing\u0020\u0020"),
+                Arguments.of("flow-empty-list", "[]"),
+                Arguments.of("flow-empty-map", "{}"),
+                Arguments.of("comma-only", ",")
+        );
     }
 
     private static class ScalarConfigNode implements ConfigNode {

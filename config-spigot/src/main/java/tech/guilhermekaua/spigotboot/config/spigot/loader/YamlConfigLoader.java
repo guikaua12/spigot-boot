@@ -39,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -237,19 +238,38 @@ public class YamlConfigLoader implements ConfigLoader {
             return true;
         }
         char first = str.charAt(0);
+        char last = str.charAt(str.length() - 1);
+
+        if (Character.isWhitespace(first) || Character.isWhitespace(last)) {
+            return true;
+        }
 
         if (first == '#' || first == '&' || first == '*' || first == '!' ||
                 first == '|' || first == '>' || first == '\'' || first == '"' ||
-                first == '%' || first == '@' || first == '`') {
+                first == '%' || first == '@' || first == '`' ||
+                first == '[' || first == ']' || first == '{' || first == '}' ||
+                first == ',') {
+            return true;
+        }
+        if (str.endsWith(":")) {
             return true;
         }
         if (str.contains(": ") || str.contains("\n") || str.contains("\r")) {
             return true;
         }
-        String lower = str.toLowerCase();
+        if (str.contains(" #")) {
+            return true;
+        }
+        if (str.indexOf('[') >= 0 || str.indexOf(']') >= 0 ||
+                str.indexOf('{') >= 0 || str.indexOf('}') >= 0 ||
+                str.indexOf(',') >= 0) {
+            return true;
+        }
+        String lower = str.toLowerCase(Locale.ROOT);
 
         if (lower.equals("true") || lower.equals("false") ||
                 lower.equals("yes") || lower.equals("no") ||
+                lower.equals("on") || lower.equals("off") ||
                 lower.equals("null") || lower.equals("~")) {
             return true;
         }
