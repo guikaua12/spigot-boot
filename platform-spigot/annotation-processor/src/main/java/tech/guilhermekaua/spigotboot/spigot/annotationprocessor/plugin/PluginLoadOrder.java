@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.annotationprocessor.plugin;
+package tech.guilhermekaua.spigotboot.spigot.annotationprocessor.plugin;
 
 public enum PluginLoadOrder {
     STARTUP,

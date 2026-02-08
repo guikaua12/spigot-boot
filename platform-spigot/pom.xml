@@ -20,6 +20,7 @@
         <module>config-spigot</module>
         <module>pmc</module>
         <module>placeholder</module>
+        <module>annotation-processor</module>
     </modules>
 
     <properties>

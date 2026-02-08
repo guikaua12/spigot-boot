@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.annotationprocessor.annotations;
+package tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations;
 
-import tech.guilhermekaua.spigotboot.annotationprocessor.plugin.PluginLoadOrder;
+import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.plugin.PluginLoadOrder;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
