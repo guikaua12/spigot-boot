@@ -1,7 +1,6 @@
 
 package tech.guilhermekaua.spigotboot.core.test.context.dependency.injector;
 
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +9,7 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public class CustomInjectorRegistryFactoryTest {
         mockContext = mock(Context.class);
         mockRegistrar = mock(BeanRegistrar.class);
 
-        Plugin plugin = mock(Plugin.class);
+        BootPlugin plugin = mock(BootPlugin.class);
         when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
 
         when(mockContext.getDependencyManager()).thenReturn(dependencyManager);

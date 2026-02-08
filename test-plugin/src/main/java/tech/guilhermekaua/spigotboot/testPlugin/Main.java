@@ -22,15 +22,19 @@
  */
 package tech.guilhermekaua.spigotboot.testPlugin;
 
+import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
-import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigModule;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
+import tech.guilhermekaua.spigotboot.core.spigot.SpigotCoreModule;
 import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
 import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
+import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
 
+@Getter
 @Plugin(
         name = "TestPlugin",
         version = "1.0.0",
@@ -38,10 +42,13 @@ import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
         authors = {"Approximations"}
 )
 public class Main extends JavaPlugin {
+    private SpigotBootPlugin bootPlugin;
 
     @Override
     public void onEnable() {
-        Context ctx = SpigotBoot.initialize(this,
+        bootPlugin = new SpigotBootPlugin(this);
+        Context ctx = SpigotBoot.initialize(bootPlugin,
+                SpigotCoreModule.class,
                 DataOrmLiteModule.class,
                 PlaceholderModule.class,
                 SpigotConfigModule.class
@@ -53,6 +60,6 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        SpigotBoot.onDisable(this);
+        SpigotBoot.onDisable(bootPlugin);
     }
 }

@@ -52,9 +52,9 @@ public class RepositoryTest {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
 
-        userRepository = SpigotBoot.getContext(plugin).getBean(UserRepository.class);
+        userRepository = SpigotBoot.getContext(plugin.getBootPlugin()).getBean(UserRepository.class);
 
-        ConnectionSource connectionSource = SpigotBoot.getContext(plugin).getBean(ConnectionSource.class, null);
+        ConnectionSource connectionSource = SpigotBoot.getContext(plugin.getBootPlugin()).getBean(ConnectionSource.class, null);
         TableUtils.createTableIfNotExists(connectionSource, People.class);
         TableUtils.clearTable(connectionSource, People.class);
     }

@@ -1,13 +1,13 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
 import lombok.Getter;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextLifecycle;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
 import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 @Getter
 public class PluginContext implements Context {
     private final DependencyManager dependencyManager = new DependencyManager();
-    private final Plugin plugin;
+    private final BootPlugin plugin;
     private final Logger logger;
     private boolean initialized = false;
     private final List<Runnable> shutdownHooks = new CopyOnWriteArrayList<>();
@@ -29,7 +29,7 @@ public class PluginContext implements Context {
     private ContextLifecycle lifecycle;
 
     @SafeVarargs
-    public PluginContext(Plugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
+    public PluginContext(BootPlugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
         this.modulesToLoad.addAll(Arrays.asList(modulesToLoad));

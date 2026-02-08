@@ -11,7 +11,6 @@
 
     <name>${project.artifactId}</name>
     <artifactId>test-plugin</artifactId>
-    <version>2.0.2</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -44,7 +43,7 @@
                         </path>
                         <path>
                             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-                            <artifactId>spigot-boot-annotation-processor</artifactId>
+                            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
                             <version>2.0.2</version>
                         </path>
                     </annotationProcessorPaths>
@@ -103,8 +102,21 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-core</artifactId>
+            <artifactId>spigot-boot-core-spigot</artifactId>
             <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.20.1-R0.1-20230917.004407-174</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
@@ -123,7 +135,7 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-plugin-messaging</artifactId>
+            <artifactId>spigot-boot-plugin-messaging-spigot</artifactId>
             <version>2.0.2</version>
         </dependency>
         <dependency>
@@ -134,7 +146,7 @@
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-placeholder</artifactId>
+            <artifactId>spigot-boot-placeholder-spigot</artifactId>
             <version>2.0.2</version>
             <scope>compile</scope>
         </dependency>
@@ -143,6 +155,13 @@
             <artifactId>spigot-boot-config-spigot</artifactId>
             <version>2.0.2</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
+            <version>3.20.2</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

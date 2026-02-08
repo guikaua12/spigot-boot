@@ -1,10 +1,10 @@
 package tech.guilhermekaua.spigotboot.core;
 
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.ContextManager;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -13,7 +13,7 @@ public final class SpigotBoot {
     private static final ContextManager CONTEXT_MANAGER = new ContextManager();
 
     @SafeVarargs
-    public static Context initialize(@NotNull JavaPlugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
+    public static Context initialize(@NotNull BootPlugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
         Objects.requireNonNull(modulesToLoad, "modulesToLoad cannot be null");
 
@@ -31,13 +31,13 @@ public final class SpigotBoot {
         return ctx;
     }
 
-    public static Context getContext(@NotNull JavaPlugin plugin) {
+    public static Context getContext(@NotNull BootPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
 
         return CONTEXT_MANAGER.getContext(plugin);
     }
 
-    public static void onDisable(@NotNull JavaPlugin plugin) {
+    public static void onDisable(@NotNull BootPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
 
         Context context = CONTEXT_MANAGER.getContext(plugin);
@@ -48,7 +48,7 @@ public final class SpigotBoot {
         context.destroy();
     }
 
-    public static void registerShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+    public static void registerShutdownHook(@NotNull BootPlugin plugin, @NotNull Runnable runnable) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
         Objects.requireNonNull(runnable, "runnable cannot be null");
 
@@ -60,7 +60,7 @@ public final class SpigotBoot {
         context.registerShutdownHook(runnable);
     }
 
-    public static void unregisterShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+    public static void unregisterShutdownHook(@NotNull BootPlugin plugin, @NotNull Runnable runnable) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
         Objects.requireNonNull(runnable, "runnable cannot be null");
 

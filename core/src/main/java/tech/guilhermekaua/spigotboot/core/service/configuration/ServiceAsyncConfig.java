@@ -1,26 +1,31 @@
 package tech.guilhermekaua.spigotboot.core.service.configuration;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
 @RequiredArgsConstructor
 public class ServiceAsyncConfig {
-    private final Plugin plugin;
+    private final BootPlugin plugin;
     /* debug only */
     private final Set<ExecutorService> executors = new HashSet<>();
 
     @Bean
     public ExecutorService serviceAsyncExecutor() {
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(plugin.getName() + "-Service-Thread-%d").build());
+        AtomicInteger counter = new AtomicInteger();
+        ExecutorService executor = Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, plugin.getName() + "-Service-Thread-" + counter.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        });
         executors.add(executor);
         return executor;
     }

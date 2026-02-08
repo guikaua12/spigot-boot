@@ -47,8 +47,8 @@ public class UserServiceTest {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Main.class);
 
-        userService = SpigotBoot.getContext(plugin).getBean(UserService.class);
-        ConnectionSource connectionSource = SpigotBoot.getContext(plugin).getBean(ConnectionSource.class);
+        userService = SpigotBoot.getContext(plugin.getBootPlugin()).getBean(UserService.class);
+        ConnectionSource connectionSource = SpigotBoot.getContext(plugin.getBootPlugin()).getBean(ConnectionSource.class);
         TableUtils.createTableIfNotExists(connectionSource, People.class);
         TableUtils.clearTable(connectionSource, People.class);
     }
