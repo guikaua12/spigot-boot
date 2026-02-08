@@ -24,13 +24,9 @@ package tech.guilhermekaua.spigotboot.testPlugin;
 
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigModule;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
-import tech.guilhermekaua.spigotboot.core.spigot.SpigotCoreModule;
-import tech.guilhermekaua.spigotboot.data.ormLite.DataOrmLiteModule;
-import tech.guilhermekaua.spigotboot.placeholder.PlaceholderModule;
 import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
 
@@ -47,12 +43,7 @@ public class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         bootPlugin = new SpigotBootPlugin(this);
-        Context ctx = SpigotBoot.initialize(bootPlugin,
-                SpigotCoreModule.class,
-                DataOrmLiteModule.class,
-                PlaceholderModule.class,
-                SpigotConfigModule.class
-        );
+        Context ctx = SpigotBoot.initialize(bootPlugin);
 
         MainConfig mainConfig = ctx.getBean(MainConfig.class);
         getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
