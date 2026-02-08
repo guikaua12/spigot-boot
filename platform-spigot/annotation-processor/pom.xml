@@ -15,7 +15,7 @@
         This project provides an annotation processor that integrates with Spigot Boot to enhance plugin development.
     </description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-annotation-processor</artifactId>
+    <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

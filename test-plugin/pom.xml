@@ -43,7 +43,7 @@
                         </path>
                         <path>
                             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-                            <artifactId>spigot-boot-annotation-processor</artifactId>
+                            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
                             <version>2.0.2</version>
                         </path>
                     </annotationProcessorPaths>
@@ -108,7 +108,7 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-annotation-processor</artifactId>
+            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
             <version>2.0.2</version>
         </dependency>
 
@@ -135,7 +135,7 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-plugin-messaging</artifactId>
+            <artifactId>spigot-boot-plugin-messaging-spigot</artifactId>
             <version>2.0.2</version>
         </dependency>
         <dependency>
@@ -146,7 +146,7 @@
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-placeholder</artifactId>
+            <artifactId>spigot-boot-placeholder-spigot</artifactId>
             <version>2.0.2</version>
             <scope>compile</scope>
         </dependency>
