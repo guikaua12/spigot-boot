@@ -11,7 +11,6 @@
 
     <name>${project.artifactId}</name>
     <artifactId>test-plugin</artifactId>
-    <version>2.0.2</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -103,8 +102,15 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-core</artifactId>
+            <artifactId>spigot-boot-core-spigot</artifactId>
             <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.20.1-R0.1-20230917.004407-174</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
@@ -143,6 +149,13 @@
             <artifactId>spigot-boot-config-spigot</artifactId>
             <version>2.0.2</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
+            <version>3.20.2</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

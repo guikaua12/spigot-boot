@@ -1,6 +1,5 @@
 package tech.guilhermekaua.spigotboot.core.context.lifecycle;
 
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
@@ -18,6 +17,7 @@ import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
 import tech.guilhermekaua.spigotboot.core.context.registration.DefaultBeanRegistrar;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.core.module.ModuleRegistry;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.*;
@@ -61,13 +61,12 @@ public class ContextLifecycle {
     }
 
     private void registerCoreBeans() {
-        Plugin plugin = context.getPlugin();
-        Logger logger = plugin.getLogger();
+        BootPlugin bootPlugin = context.getPlugin();
+        Logger logger = bootPlugin.getLogger();
 
         beanRegistrar.registerInstance(logger, null, false);
         beanRegistrar.registerInstance(Logger.class, logger, null, false);
-        beanRegistrar.registerInstance(Plugin.class, plugin, null, false);
-        beanRegistrar.registerInstance(ProxyUtils.getRealClass(plugin), plugin, null, false);
+        beanRegistrar.registerInstance(BootPlugin.class, bootPlugin, null, false);
         beanRegistrar.registerInstance(dependencyManager, null, false);
 
         CustomInjectorRegistry customInjectorRegistry = dependencyManager.getCustomInjectorRegistry();
@@ -75,9 +74,11 @@ public class ContextLifecycle {
     }
 
     private void scanPackages() {
+        MethodHandlerRegistry.clear();
+
         Set<String> rawPackagesToScan = new LinkedHashSet<>();
         rawPackagesToScan.add(SpigotBoot.class.getPackage().getName());
-        rawPackagesToScan.add(ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName());
+        rawPackagesToScan.add(context.getPlugin().getMainClass().getPackage().getName());
 
         for (Class<? extends Module> moduleClass : modulesToLoad) {
             rawPackagesToScan.add(moduleClass.getPackage().getName());
@@ -146,9 +147,10 @@ public class ContextLifecycle {
         );
         componentRegistry.resolveAllComponents(dependencyManager);
 
+        Object nativePlugin = context.getPlugin().getNativePlugin();
         dependencyManager.injectDependencies(
-                ProxyUtils.getRealClass(context.getPlugin()),
-                context.getPlugin()
+                ProxyUtils.getRealClass(nativePlugin),
+                nativePlugin
         );
     }
 

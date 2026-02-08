@@ -28,7 +28,6 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery.PersistenceConfigDiscoveryService;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -40,7 +39,7 @@ public class PersistenceConfigRegistry {
 
     public PersistenceConfig initialize(Context context) {
         Class<? extends PersistenceConfig> persistenceConfigClass = persistenceConfigDiscoveryService.discoverFromPackage(
-                ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName()
+                context.getPlugin().getMainClass().getPackage().getName()
         ).orElseThrow(
                 () -> new IllegalStateException("data-orm-lite is on classpath but no persistence configuration is found. Ensure that a valid PersistenceConfig is provided.")
         );

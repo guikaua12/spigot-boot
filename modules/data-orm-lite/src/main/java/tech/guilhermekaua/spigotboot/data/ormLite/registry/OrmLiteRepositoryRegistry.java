@@ -36,7 +36,6 @@ import tech.guilhermekaua.spigotboot.data.ormLite.annotations.OrmLiteDao;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery.OrmLiteRepositoryDiscoveryService;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.impl.OrmLiteRepositoryImpl;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -55,7 +54,7 @@ public class OrmLiteRepositoryRegistry {
 
     public void initialize(Context context) {
         Set<Class<? extends OrmLiteRepository>> repositoryClasses = repositoryDiscoveryService.discoverFromPackage(
-                ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName()
+                context.getPlugin().getMainClass().getPackage().getName()
         );
 
         ConnectionSource connectionSource = context.getBean(ConnectionSource.class);

@@ -1,10 +1,10 @@
 package tech.guilhermekaua.spigotboot.core.context;
 
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
 import java.util.List;
 
@@ -39,7 +39,7 @@ public interface Context {
 
     void setModulesToLoad(@NotNull List<Class<? extends Module>> modulesToLoad);
 
-    Plugin getPlugin();
+    BootPlugin getPlugin();
 
     void registerShutdownHook(@NotNull Runnable runnable);
 

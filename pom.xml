@@ -37,12 +37,11 @@
 
     <modules>
         <module>core</module>
-        <module>pmc</module>
+        <module>platform-spigot</module>
         <module>data</module>
         <module>modules</module>
         <module>utils</module>
         <module>config</module>
-        <module>config-spigot</module>
         <module>test-plugin</module>
         <module>annotation-processor</module>
     </modules>
@@ -126,8 +125,8 @@
                         <include>**/*.java</include>
                     </includes>
                     <excludes>
-                        <exclude>**/core/utils/TypeUtil.java</exclude>
-                        <exclude>**/core/utils/ColorUtil.java</exclude>
+                        <exclude>**/core/spigot/utils/TypeUtil.java</exclude>
+                        <exclude>**/core/spigot/utils/ColorUtil.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -203,23 +202,18 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
+                <version>3.5.3</version>
                 <dependencies>
                     <dependency>
                         <groupId>me.fabriciorby</groupId>
                         <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
-                        <version>1.1.0</version>
+                        <version>1.5.1</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter</artifactId>
-                        <version>5.10.2</version>
+                        <artifactId>junit-jupiter-engine</artifactId>
+                        <version>5.12.1</version>
                     </dependency>
-                    <!--                    <dependency>-->
-                    <!--                        <groupId>org.junit.jupiter</groupId>-->
-                    <!--                        <artifactId>junit-jupiter-engine</artifactId>-->
-                    <!--                        <version>5.13.1</version>-->
-                    <!--                    </dependency>-->
                 </dependencies>
                 <configuration>
                     <reportFormat>plain</reportFormat>
@@ -227,36 +221,25 @@
                         <disable>true</disable>
                     </consoleOutputReporter>
                     <statelessTestsetInfoReporter
-                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporterUnicode"/>
+                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter"/>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-        </repository>
-        <repository>
-            <id>papermc</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-20230917.004407-174</version>
-            <scope>provided</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.36</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.12.1</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -270,13 +253,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>5.12.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.seeseemelk</groupId>
-            <artifactId>MockBukkit-v1.20</artifactId>
-            <version>3.20.2</version>
             <scope>test</scope>
         </dependency>
 
