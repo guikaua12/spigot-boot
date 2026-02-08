@@ -1,5 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.spigot;
 
+import lombok.EqualsAndHashCode;
 import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
@@ -8,6 +9,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
+@EqualsAndHashCode(of = "javaPlugin")
 public class SpigotBootPlugin implements BootPlugin {
     private final JavaPlugin javaPlugin;
 
