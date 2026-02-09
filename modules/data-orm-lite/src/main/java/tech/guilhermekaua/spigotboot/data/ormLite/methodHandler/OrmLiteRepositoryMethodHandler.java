@@ -43,20 +43,20 @@ public class OrmLiteRepositoryMethodHandler {
             return null;
         }
 
-        try {
+        if (context.proceed() != null) {
             return context.proceed().invoke(context.self(), context.args());
-        } catch (IllegalAccessException | IllegalArgumentException | NullPointerException e) {
-            Class<?> entityType = OrmLiteTypeUtils.resolveEntityType(context.self().getClass());
-
-            OrmLiteRepository<?, ?> repositoryImpl = repositoryRegistry.getDao(entityType);
-
-            if (repositoryImpl == null) {
-                throw new IllegalStateException("No repository found for entity type: " + entityType.getName());
-            }
-
-            Method method = repositoryImpl.getClass().getMethod(context.thisMethod().getName(), context.thisMethod().getParameterTypes());
-            method.setAccessible(true);
-            return method.invoke(repositoryImpl, context.args());
         }
+
+        Class<?> entityType = OrmLiteTypeUtils.resolveEntityType(context.self().getClass());
+
+        OrmLiteRepository<?, ?> repositoryImpl = repositoryRegistry.getDao(entityType);
+
+        if (repositoryImpl == null) {
+            throw new IllegalStateException("No repository found for entity type: " + entityType.getName());
+        }
+
+        Method method = repositoryImpl.getClass().getMethod(context.thisMethod().getName(), context.thisMethod().getParameterTypes());
+        method.setAccessible(true);
+        return method.invoke(repositoryImpl, context.args());
     }
 }
