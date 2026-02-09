@@ -28,10 +28,9 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
+import tech.guilhermekaua.spigotboot.data.ormLite.utils.OrmLiteTypeUtils;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 
 @RequiredArgsConstructor
 @RegisterMethodHandler
@@ -47,9 +46,7 @@ public class OrmLiteRepositoryMethodHandler {
         try {
             return context.proceed().invoke(context.self(), context.args());
         } catch (IllegalAccessException | IllegalArgumentException | NullPointerException e) {
-            Class<?> self = context.self().getClass().getInterfaces()[0];
-            Type[] types = ((ParameterizedType) self.getGenericInterfaces()[0]).getActualTypeArguments();
-            Class<?> entityType = (Class<?>) types[0];
+            Class<?> entityType = OrmLiteTypeUtils.resolveEntityType(context.self().getClass());
 
             OrmLiteRepository<?, ?> repositoryImpl = repositoryRegistry.getDao(entityType);
 
