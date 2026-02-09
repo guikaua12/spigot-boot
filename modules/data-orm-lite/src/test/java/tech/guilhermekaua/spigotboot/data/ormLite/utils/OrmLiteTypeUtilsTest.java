@@ -1,9 +1,5 @@
 package tech.guilhermekaua.spigotboot.data.ormLite.utils;
 
-import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.stmt.DeleteBuilder;
-import com.j256.ormlite.stmt.QueryBuilder;
-import com.j256.ormlite.stmt.UpdateBuilder;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
 
@@ -43,66 +39,11 @@ class OrmLiteTypeUtilsTest {
     }
 
     // unresolvable (raw type variables like OrmLiteRepositoryImpl<T, ID>)
-    static class UnresolvableRepo<T, ID> implements OrmLiteRepository<T, ID> {
-        public T save(T entity) {
-            return null;
-        }
-
-        public java.util.List<T> saveAll(Iterable<T> iterable) {
-            return null;
-        }
-
-        public T findById(ID id) {
-            return null;
-        }
-
-        public java.util.List<T> findAll() {
-            return null;
-        }
-
-        public void delete(T entity) {
-        }
-
-        public void delete(Iterable<T> iterable) {
-        }
-
-        public void deleteById(ID id) {
-        }
-
-        public void deleteAll() {
-        }
-
-        public long count() {
-            return 0;
-        }
-
-        public boolean existsById(ID id) {
-            return false;
-        }
-
-        public QueryBuilder<T, ID> queryBuilder() {
-            return null;
-        }
-
-        public UpdateBuilder<T, ID> updateBuilder() {
-            return null;
-        }
-
-        public DeleteBuilder<T, ID> deleteBuilder() {
-            return null;
-        }
-
-        public Dao.CreateOrUpdateStatus createOrUpdate(T var1) {
-            return null;
-        }
-
-        public int update(T var1) {
-            return 0;
-        }
+    static abstract class UnresolvableRepo<T, ID> implements OrmLiteRepository<T, ID> {
     }
 
     // concrete class extending a generic impl with concrete types
-    static class ConcreteUserRepo extends UnresolvableRepo<People, UUID> {
+    static abstract class ConcreteUserRepo extends UnresolvableRepo<People, UUID> {
     }
 
     @Test
