@@ -39,7 +39,6 @@ import tech.guilhermekaua.spigotboot.data.ormLite.repository.impl.OrmLiteReposit
 import tech.guilhermekaua.spigotboot.data.ormLite.utils.OrmLiteTypeUtils;
 
 import java.lang.reflect.Field;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +77,7 @@ public class OrmLiteRepositoryRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    private void initializeRepository(Class<? extends OrmLiteRepository> repositoryClass, DependencyManager dependencyManager, ConnectionSource connectionSource) throws ClassNotFoundException, SQLException {
+    private void initializeRepository(Class<? extends OrmLiteRepository> repositoryClass, DependencyManager dependencyManager, ConnectionSource connectionSource) {
         try {
             Class<?> entityClass = OrmLiteTypeUtils.resolveEntityType(repositoryClass);
             if (entityClass == null) {
