@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
+import tech.guilhermekaua.spigotboot.data.ormLite.repository.impl.OrmLiteRepositoryImpl;
 
 import java.util.Set;
 
@@ -32,7 +33,11 @@ import java.util.Set;
 public class OrmLiteRepositoryDiscoveryService {
     @SuppressWarnings("rawtypes")
     public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage) {
-        return ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class);
+        Set<Class<? extends OrmLiteRepository>> repositories = ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class);
+
+        repositories.remove(OrmLiteRepositoryImpl.class);
+
+        return repositories;
     }
 }
 
