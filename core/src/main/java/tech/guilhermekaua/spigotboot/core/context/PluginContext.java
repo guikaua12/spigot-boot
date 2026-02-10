@@ -11,7 +11,6 @@ import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,11 +27,9 @@ public class PluginContext implements Context {
     private BeanRegistrar beanRegistrar;
     private ContextLifecycle lifecycle;
 
-    @SafeVarargs
-    public PluginContext(BootPlugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
+    public PluginContext(BootPlugin plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
-        this.modulesToLoad.addAll(Arrays.asList(modulesToLoad));
     }
 
     @Override
