@@ -177,6 +177,33 @@ class SpigotBootBuilderTest {
         assertEquals(TestModule.class, result.get(2));          // default 0
     }
 
+    @Test
+    void resolveModules_excludeWithoutAutoDiscover() {
+        SpigotBootBuilder builder = new SpigotBootBuilder(mockPlugin);
+        builder.modules(TestModule.class, OrderedTestModule.class);
+        builder.exclude(TestModule.class);
+
+        List<Class<? extends Module>> result = builder.resolveModules();
+
+        assertEquals(1, result.size());
+        assertFalse(result.contains(TestModule.class), "TestModule should be excluded");
+        assertTrue(result.contains(OrderedTestModule.class), "OrderedTestModule should remain");
+    }
+
+    @Test
+    void resolveModules_deduplicatesWithoutAutoDiscover() {
+        SpigotBootBuilder builder = new SpigotBootBuilder(mockPlugin);
+        builder.module(TestModule.class, 10);
+        builder.module(OrderedTestModule.class);
+        builder.module(TestModule.class, -5);
+
+        List<Class<? extends Module>> result = builder.resolveModules();
+
+        assertEquals(2, result.size(), "TestModule should appear only once");
+        assertEquals(OrderedTestModule.class, result.get(0), "OrderedTestModule (@Order(-500)) should come first");
+        assertEquals(TestModule.class, result.get(1), "TestModule (explicit -5) should come second");
+    }
+
     @Order(50)
     static class ExtraTestModule implements Module {
         @Override

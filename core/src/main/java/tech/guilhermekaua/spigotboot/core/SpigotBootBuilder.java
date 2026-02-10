@@ -74,7 +74,13 @@ public class SpigotBootBuilder {
 
             entries.removeIf(e -> excludeModules.contains(e.moduleClass));
         } else if (!moduleEntries.isEmpty()) {
-            entries = new ArrayList<>(moduleEntries);
+            LinkedHashMap<Class<? extends Module>, ModuleEntry> map = new LinkedHashMap<>();
+            for (ModuleEntry entry : moduleEntries) {
+                if (!excludeModules.contains(entry.moduleClass)) {
+                    map.put(entry.moduleClass, entry);
+                }
+            }
+            entries = new ArrayList<>(map.values());
         } else {
             entries = Collections.emptyList();
         }
