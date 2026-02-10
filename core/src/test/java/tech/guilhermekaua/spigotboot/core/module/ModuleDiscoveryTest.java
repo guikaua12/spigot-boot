@@ -2,9 +2,12 @@ package tech.guilhermekaua.spigotboot.core.module;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,16 +25,31 @@ class ModuleDiscoveryTest {
 
     @Test
     void discover_skipsClassNotFound() {
-        ClassLoader parentWithResources = getClass().getClassLoader();
+        Set<String> blockedClasses = Set.of(
+                "tech.guilhermekaua.spigotboot.core.module.TestModule",
+                "tech.guilhermekaua.spigotboot.core.module.OrderedTestModule"
+        );
 
-        // use an empty classloader that can see the marker files but not load the classes
-        // this should not throw, classes that can't be found are skipped with a warning
-        List<Class<? extends Module>> modules = new ModuleDiscovery(
-                new URLClassLoader(new URL[0], parentWithResources)
-        ).discover();
+        // classloader that finds marker resources but cannot load the module classes
+        ClassLoader blockingLoader = new ClassLoader(getClass().getClassLoader()) {
+            @Override
+            protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+                if (blockedClasses.contains(name)) {
+                    throw new ClassNotFoundException(name);
+                }
+                return super.loadClass(name, resolve);
+            }
 
-        // should still find the modules since the parent can load them
-        assertFalse(modules.isEmpty());
+            @Override
+            public Enumeration<URL> getResources(String name) throws IOException {
+                return getParent().getResources(name);
+            }
+        };
+
+        List<Class<? extends Module>> modules = new ModuleDiscovery(blockingLoader).discover();
+
+        // both module classes are blocked, so the result should be empty
+        assertTrue(modules.isEmpty(), "should return empty list when classes cannot be loaded");
     }
 
     @Test
