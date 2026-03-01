@@ -31,7 +31,6 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -158,14 +157,6 @@ public class ComponentProxy implements MethodHandler {
     private static Object allocateWithoutConstructor(Class<?> proxyClass) throws ReflectiveOperationException {
         Objects.requireNonNull(proxyClass, "proxyClass cannot be null");
 
-        ReflectiveOperationException lookupFailure = null;
-        try {
-            Constructor<?> constructor = proxyClass.getDeclaredConstructor();
-            return MethodHandles.lookup().unreflectConstructor(constructor).invokeWithArguments();
-        } catch (Throwable t) {
-            lookupFailure = new ReflectiveOperationException("lookup-based allocation failed for proxyClass " + proxyClass.getName(), t);
-        }
-
         Class<?> unsafeClass = null;
         Field theUnsafe = null;
         Method allocateInstance = null;
@@ -204,18 +195,30 @@ public class ComponentProxy implements MethodHandler {
             }
         }
 
+        ReflectiveOperationException constructorFailure = null;
+        try {
+            Constructor<?> constructor = proxyClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            constructorFailure = new ReflectiveOperationException(
+                    "constructor fallback allocation failed for proxyClass " + proxyClass.getName(),
+                    e
+            );
+        }
+
         ReflectiveOperationException allocationFailure = new ReflectiveOperationException(
                 "unable to allocate proxy instance for proxyClass " + proxyClass.getName()
-                        + "; supported lookup allocation failed and Unsafe fallback is unavailable or inaccessible"
+                        + "; Unsafe allocation failed and constructor fallback could not be used"
                         + " (unsafeClass=" + (unsafeClass == null ? "unavailable" : unsafeClass.getName())
                         + ", theUnsafe=" + (theUnsafe == null ? "unavailable" : "resolved")
                         + ", allocateInstance=" + (allocateInstance == null ? "unavailable" : "resolved") + ")"
         );
-        if (lookupFailure != null) {
-            allocationFailure.addSuppressed(lookupFailure);
-        }
         if (unsafeFailure != null) {
             allocationFailure.addSuppressed(unsafeFailure);
+        }
+        if (constructorFailure != null) {
+            allocationFailure.addSuppressed(constructorFailure);
         }
         throw allocationFailure;
     }
