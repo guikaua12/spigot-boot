@@ -127,10 +127,15 @@ public class ConfigurationClassProxy implements MethodHandler {
         // invoke the actual method via proceed (bypasses proxy interception for this call).
         // 'self' is still the proxy, so internal calls to other @Bean methods will be intercepted
         Object result = proceed.invoke(self, parameterDependencies);
+        if (result == null) {
+            return null;
+        }
 
-        instanceRegistry.put(definition, result);
+        Object initializedResult = dependencyManager.initializeBean(definition, result);
 
-        return result;
+        instanceRegistry.put(definition, initializedResult);
+
+        return initializedResult;
     }
 
     private BeanDefinition findBeanDefinition(Class<?> returnType, String qualifier) {

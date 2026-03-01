@@ -32,12 +32,15 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.MethodHandlerProxyBeanPostProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.CollectionTypeUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -59,6 +62,7 @@ public class DependencyManager {
     private final CustomInjectorRegistry customInjectorRegistry;
 
     private final BeanNamingDefiner beanNamingDefiner = new DefaultBeanNamingDefiner();
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
     public DependencyManager() {
         this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new DefaultCustomInjectorRegistry());
@@ -78,6 +82,8 @@ public class DependencyManager {
         this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
         this.beanProxyDeciderResolver = Objects.requireNonNull(beanProxyDeciderResolver, "beanProxyDeciderResolver cannot be null.");
         this.customInjectorRegistry = Objects.requireNonNull(customInjectorRegistry, "customInjectorRegistry cannot be null.");
+
+        registerBeanPostProcessor(new MethodHandlerProxyBeanPostProcessor());
     }
 
     /**
@@ -91,6 +97,35 @@ public class DependencyManager {
     public void registerInjector(@NotNull CustomInjector injector) {
         Objects.requireNonNull(injector, "injector cannot be null");
         customInjectorRegistry.register(injector);
+    }
+
+    public void registerBeanPostProcessor(@NotNull BeanPostProcessor beanPostProcessor) {
+        Objects.requireNonNull(beanPostProcessor, "beanPostProcessor cannot be null.");
+        beanPostProcessors.add(beanPostProcessor);
+        beanPostProcessors.sort(Comparator.comparingInt(BeanPostProcessor::getOrder));
+    }
+
+    public @NotNull List<BeanPostProcessor> getBeanPostProcessors() {
+        return Collections.unmodifiableList(beanPostProcessors);
+    }
+
+    public @NotNull Object initializeBean(@NotNull BeanDefinition definition, @NotNull Object rawInstance) {
+        Objects.requireNonNull(definition, "definition cannot be null.");
+        Objects.requireNonNull(rawInstance, "rawInstance cannot be null.");
+
+        @SuppressWarnings("unchecked")
+        Class<Object> injectionClass = (Class<Object>) ProxyUtils.getRealClass(rawInstance);
+        injectDependencies(injectionClass, rawInstance);
+
+        Object instance = rawInstance;
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+            instance = Objects.requireNonNull(
+                    beanPostProcessor.postProcess(definition, instance, this),
+                    "BeanPostProcessor returned null for: " + definition.identifier()
+            );
+        }
+
+        return instance;
     }
 
     public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
@@ -357,6 +392,14 @@ public class DependencyManager {
             @SuppressWarnings("unchecked")
             DependencyResolveResolver<T> resolver = (DependencyResolveResolver<T>) definition.getResolver();
             instance = resolver.resolve(requestedType);
+
+            if (beanInstanceRegistry.contains(definition)) {
+                return requestedType.cast(beanInstanceRegistry.get(definition));
+            }
+
+            if (instance != null) {
+                instance = initializeBean(definition, instance);
+            }
         } else {
             instance = createInstance(definition);
         }
@@ -405,26 +448,24 @@ public class DependencyManager {
 
         Object[] ctorArgs = resolveArguments(ctor);
 
+        Object instance;
         if (beanProxyDeciderResolver.shouldProxy(definition, this)) {
             if (Modifier.isFinal(type.getModifiers())) {
                 throw new IllegalStateException("Cannot proxy final class: " + type.getName());
             }
 
-            Object proxy = ComponentProxy.createProxy(
+            instance = ComponentProxy.createProxy(
                     rawType,
                     null,
                     ctor.getParameterTypes(),
                     ctorArgs
             );
-
-            injectDependencies(rawType, proxy);
-            return proxy;
+        } else {
+            ctor.setAccessible(true);
+            instance = ctor.newInstance(ctorArgs);
         }
 
-        ctor.setAccessible(true);
-        Object instance = ctor.newInstance(ctorArgs);
-        injectDependencies(rawType, instance);
-        return instance;
+        return initializeBean(definition, instance);
     }
 
     public <T> void injectDependencies(Class<T> clazz, @NotNull T instance) {
