@@ -6,10 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.BeanProxyDecider;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -83,6 +86,23 @@ public class DependencyManagerTest {
 
         public Service getService() {
             return service;
+        }
+    }
+
+    static class PlainBean {
+    }
+
+    static class CountingBeanProxyDecider implements BeanProxyDecider {
+        private final AtomicInteger invocationCount = new AtomicInteger(0);
+
+        @Override
+        public boolean shouldProxy(BeanDefinition definition, DependencyManager dependencyManager) {
+            invocationCount.incrementAndGet();
+            return false;
+        }
+
+        public int getInvocationCount() {
+            return invocationCount.get();
         }
     }
 
@@ -254,6 +274,18 @@ public class DependencyManagerTest {
 
         assertNotNull(obj.getService());
         assertEquals("service", obj.getService().getValue());
+    }
+
+    @Test
+    void testProxyDeciderConsultedOnlyOncePerBeanCreation() {
+        CountingBeanProxyDecider decider = new CountingBeanProxyDecider();
+
+        dependencyManager.registerDependency(BeanProxyDecider.class, decider, "countingDecider", true);
+        dependencyManager.registerDependency(PlainBean.class, null, false, null, null);
+
+        PlainBean bean = dependencyManager.resolveDependency(PlainBean.class, null);
+        assertNotNull(bean);
+        assertEquals(1, decider.getInvocationCount());
     }
 
     @Test

@@ -1,17 +1,21 @@
 package tech.guilhermekaua.spigotboot.core.test.context.configuration;
 
+import javassist.util.proxy.ProxyObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
+import tech.guilhermekaua.spigotboot.core.context.annotations.*;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.impl.MethodHandlerDrivenProxyDecider;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.configuration.processor.ConfigurationProcessor;
 import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
+import java.lang.annotation.*;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,13 +29,21 @@ public class ConfigurationProcessorTest {
 
     private static final AtomicInteger testServiceCreationCount = new AtomicInteger(0);
     private static final AtomicInteger anotherServiceCreationCount = new AtomicInteger(0);
+    private static final AtomicInteger interceptedMethodInvocationCount = new AtomicInteger(0);
 
     @BeforeEach
     void setUp() {
+        MethodHandlerRegistry.clear();
         dependencyManager = new DependencyManager();
         processor = new ConfigurationProcessor();
         testServiceCreationCount.set(0);
         anotherServiceCreationCount.set(0);
+        interceptedMethodInvocationCount.set(0);
+    }
+
+    @AfterEach
+    void tearDown() {
+        MethodHandlerRegistry.clear();
     }
 
     public interface TestService {
@@ -156,6 +168,102 @@ public class ConfigurationProcessorTest {
         public CtorBean ctorBean() {
             return new CtorBean(dep.getValue());
         }
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @interface Intercept {
+    }
+
+    public static class BeanWithInjection {
+        @Inject
+        private TestService testService;
+
+        public TestService getTestService() {
+            return testService;
+        }
+    }
+
+    @Configuration
+    public static class BeanWithInjectionConfiguration {
+        @Bean
+        @Primary
+        public TestService testService() {
+            return new TestServiceImpl("injected-test-service");
+        }
+
+        @Bean
+        public BeanWithInjection beanWithInjection() {
+            return new BeanWithInjection();
+        }
+    }
+
+    public static class InterceptedBean {
+        @Intercept
+        public String run() {
+            return "intercepted-bean";
+        }
+    }
+
+    @Configuration
+    public static class InterceptedBeanConfiguration {
+        @Bean
+        public InterceptedBean interceptedBean() {
+            return new InterceptedBean();
+        }
+    }
+
+    public static class InterceptedDependency {
+        @Intercept
+        public String run() {
+            return "intercepted-dependency";
+        }
+    }
+
+    public static class InterceptedDependencyHolder {
+        private final InterceptedDependency dependency;
+
+        public InterceptedDependencyHolder(InterceptedDependency dependency) {
+            this.dependency = dependency;
+        }
+
+        public InterceptedDependency getDependency() {
+            return dependency;
+        }
+    }
+
+    @Configuration
+    public static class InternalBeanCallConfiguration {
+        @Bean
+        public InterceptedDependencyHolder holder() {
+            return new InterceptedDependencyHolder(interceptedDependency());
+        }
+
+        @Bean
+        public InterceptedDependency interceptedDependency() {
+            return new InterceptedDependency();
+        }
+    }
+
+    @Configuration
+    public static class NullReturningBeanConfiguration {
+        @Bean
+        public TestService nullTestService() {
+            return null;
+        }
+    }
+
+    private void enableMethodHandlerProxying() {
+        dependencyManager.registerDependency(new MethodHandlerDrivenProxyDecider(), null, true);
+        MethodHandlerRegistry.registerAll(Collections.singletonList(new RegisteredMethodHandler(
+                context -> {
+                    interceptedMethodInvocationCount.incrementAndGet();
+                    return context.proceed().invoke(context.self(), context.args());
+                },
+                void.class,
+                Annotation.class,
+                Intercept.class
+        )));
     }
 
     @Test
@@ -300,6 +408,24 @@ public class ConfigurationProcessorTest {
     }
 
     @Test
+    void testBeanFactoryMethodReturningNullFailsFast() {
+        processor.processClass(NullReturningBeanConfiguration.class, dependencyManager);
+
+        NullReturningBeanConfiguration configProxy = dependencyManager.resolveDependency(
+                NullReturningBeanConfiguration.class,
+                null
+        );
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, configProxy::nullTestService);
+        assertTrue(exception.getMessage().contains("nullTestService"),
+                "Exception should include the factory method name");
+        assertTrue(exception.getMessage().contains(NullReturningBeanConfiguration.class.getName()),
+                "Exception should include the declaring configuration class");
+        assertTrue(exception.getMessage().contains("bean='nullTestService'"),
+                "Exception should include the resolved bean qualifier");
+    }
+
+    @Test
     void testInterBeanMethodCallUsesSameInstanceCallingInternalBean() {
         processor.processClass(TestConfigurationInternalCall.class, dependencyManager);
 
@@ -327,5 +453,45 @@ public class ConfigurationProcessorTest {
 
         assertEquals(1, testServiceCreationCount.get(),
                 "TestService should only be instantiated once even when called from another @Bean method");
+    }
+
+    @Test
+    void testBeanMethodResultReceivesFieldInjection() {
+        processor.processClass(BeanWithInjectionConfiguration.class, dependencyManager);
+
+        BeanWithInjection bean = dependencyManager.resolveDependency(BeanWithInjection.class, null);
+
+        assertNotNull(bean, "BeanWithInjection should not be null");
+        assertNotNull(bean.getTestService(), "@Inject field on @Bean result should be resolved");
+        assertEquals("injected-test-service", bean.getTestService().getValue());
+    }
+
+    @Test
+    void testBeanMethodResultRunsMethodHandlerInterception() {
+        enableMethodHandlerProxying();
+        processor.processClass(InterceptedBeanConfiguration.class, dependencyManager);
+
+        InterceptedBean bean = dependencyManager.resolveDependency(InterceptedBean.class, null);
+        assertNotNull(bean, "InterceptedBean should not be null");
+        assertInstanceOf(ProxyObject.class, bean, "@Bean result should be proxied when a handler can apply");
+        assertEquals("intercepted-bean", bean.run());
+        assertEquals(1, interceptedMethodInvocationCount.get(), "Method handler should intercept @Bean method calls");
+    }
+
+    @Test
+    void testInternalBeanMethodCallCachesAndReturnsProcessedInstance() {
+        enableMethodHandlerProxying();
+        processor.processClass(InternalBeanCallConfiguration.class, dependencyManager);
+
+        InterceptedDependencyHolder holder = dependencyManager.resolveDependency(InterceptedDependencyHolder.class, null);
+        assertNotNull(holder, "InterceptedDependencyHolder should not be null");
+        assertTrue(holder.getDependency() instanceof ProxyObject,
+                "Internal @Bean call should not leak raw instance before processing");
+        assertEquals("intercepted-dependency", holder.getDependency().run());
+        assertEquals(1, interceptedMethodInvocationCount.get(), "Method handler should intercept the internally wired bean");
+
+        InterceptedDependency direct = dependencyManager.resolveDependency(InterceptedDependency.class, null);
+        assertSame(holder.getDependency(), direct,
+                "Internal @Bean wiring and direct resolution should return the same processed singleton");
     }
 }
