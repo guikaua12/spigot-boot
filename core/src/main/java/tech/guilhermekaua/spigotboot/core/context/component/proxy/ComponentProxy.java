@@ -102,7 +102,12 @@ public class ComponentProxy implements MethodHandler {
         }
 
         invokeMethod.setAccessible(true);
-        return invokeMethod.invoke(invocationTarget, args);
+        Object result = invokeMethod.invoke(invocationTarget, args);
+        if (result != null && (result == invocationTarget || result == realObject)) {
+            return self;
+        }
+
+        return result;
     }
 
     private Method resolveInvokeMethod(Object invocationTarget, Method thisMethod, Method proceed) {
