@@ -67,8 +67,11 @@ public class ComponentProxy implements MethodHandler {
 
     @Override
     public Object invoke(Object self, Method thisMethod, Method proceed, Object[] args) throws Throwable {
-        Object invocationTarget = realObject != null ? realObject : self;
-        Method invokeMethod = resolveInvokeMethod(invocationTarget, thisMethod, proceed);
+        boolean delegating = realObject != null;
+        Object invocationTarget = delegating ? realObject : self;
+        Method invokeMethod = delegating
+                ? resolveInvokeMethod(invocationTarget, thisMethod, proceed)
+                : proceed;
 
         if (thisMethod.getName().equals("toString")) {
             return invocationTarget.getClass().getSimpleName() + "@" + Integer.toHexString(invocationTarget.hashCode());
@@ -85,8 +88,17 @@ public class ComponentProxy implements MethodHandler {
             }
         }
 
+        if (!delegating) {
+            if (proceed == null) {
+                throw new IllegalStateException("No proceed method available for: " + thisMethod);
+            }
+
+            proceed.setAccessible(true);
+            return proceed.invoke(self, args);
+        }
+
         if (invokeMethod == null) {
-            throw new IllegalStateException("No proceed method available for: " + thisMethod);
+            throw new IllegalStateException("No target method available for: " + thisMethod);
         }
 
         invokeMethod.setAccessible(true);
