@@ -128,7 +128,8 @@ public class ConfigurationClassProxy implements MethodHandler {
         // 'self' is still the proxy, so internal calls to other @Bean methods will be intercepted
         Object result = proceed.invoke(self, parameterDependencies);
         if (result == null) {
-            return null;
+            throw new IllegalStateException("@Bean factory method returned null: " + beanMethod.toGenericString() +
+                    " [bean='" + qualifier + "', declaringClass='" + beanMethod.getDeclaringClass().getName() + "']");
         }
 
         Object initializedResult = dependencyManager.initializeBean(definition, result);

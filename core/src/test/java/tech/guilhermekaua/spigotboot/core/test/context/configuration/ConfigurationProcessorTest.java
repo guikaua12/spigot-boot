@@ -245,6 +245,14 @@ public class ConfigurationProcessorTest {
         }
     }
 
+    @Configuration
+    public static class NullReturningBeanConfiguration {
+        @Bean
+        public TestService nullTestService() {
+            return null;
+        }
+    }
+
     private void enableMethodHandlerProxying() {
         dependencyManager.registerDependency(new MethodHandlerDrivenProxyDecider(), null, true);
         MethodHandlerRegistry.registerAll(Collections.singletonList(new RegisteredMethodHandler(
@@ -397,6 +405,24 @@ public class ConfigurationProcessorTest {
         CtorBean bean = dependencyManager.resolveDependency(CtorBean.class, null);
         assertNotNull(bean, "CtorBean should not be null");
         assertEquals("ctor-value", bean.getValue(), "CtorBean should be created using constructor-injected dependency");
+    }
+
+    @Test
+    void testBeanFactoryMethodReturningNullFailsFast() {
+        processor.processClass(NullReturningBeanConfiguration.class, dependencyManager);
+
+        NullReturningBeanConfiguration configProxy = dependencyManager.resolveDependency(
+                NullReturningBeanConfiguration.class,
+                null
+        );
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, configProxy::nullTestService);
+        assertTrue(exception.getMessage().contains("nullTestService"),
+                "Exception should include the factory method name");
+        assertTrue(exception.getMessage().contains(NullReturningBeanConfiguration.class.getName()),
+                "Exception should include the declaring configuration class");
+        assertTrue(exception.getMessage().contains("bean='nullTestService'"),
+                "Exception should include the resolved bean qualifier");
     }
 
     @Test
