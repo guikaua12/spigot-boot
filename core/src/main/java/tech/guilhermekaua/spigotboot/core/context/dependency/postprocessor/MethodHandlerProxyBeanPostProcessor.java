@@ -22,13 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor;
 
-import javassist.util.proxy.ProxyObject;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.Objects;
@@ -45,7 +45,7 @@ public class MethodHandlerProxyBeanPostProcessor implements BeanPostProcessor {
         Objects.requireNonNull(instance, "instance cannot be null");
         Objects.requireNonNull(dependencyManager, "dependencyManager cannot be null");
 
-        if (instance instanceof ProxyObject) {
+        if (ProxyUtils.isProxy(instance)) {
             return instance;
         }
 
