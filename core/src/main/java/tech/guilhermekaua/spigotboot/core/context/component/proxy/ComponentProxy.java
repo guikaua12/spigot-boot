@@ -31,6 +31,8 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -156,12 +158,65 @@ public class ComponentProxy implements MethodHandler {
     private static Object allocateWithoutConstructor(Class<?> proxyClass) throws ReflectiveOperationException {
         Objects.requireNonNull(proxyClass, "proxyClass cannot be null");
 
-        Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
-        Field field = unsafeClass.getDeclaredField("theUnsafe");
-        field.setAccessible(true);
-        Object unsafe = field.get(null);
+        ReflectiveOperationException lookupFailure = null;
+        try {
+            Constructor<?> constructor = proxyClass.getDeclaredConstructor();
+            return MethodHandles.lookup().unreflectConstructor(constructor).invokeWithArguments();
+        } catch (Throwable t) {
+            lookupFailure = new ReflectiveOperationException("lookup-based allocation failed for proxyClass " + proxyClass.getName(), t);
+        }
 
-        Method allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
-        return allocateInstance.invoke(unsafe, proxyClass);
+        Class<?> unsafeClass = null;
+        Field theUnsafe = null;
+        Method allocateInstance = null;
+        Object unsafe = null;
+        ReflectiveOperationException unsafeFailure = null;
+
+        try {
+            unsafeClass = Class.forName("sun.misc.Unsafe");
+        } catch (ClassNotFoundException e) {
+            unsafeFailure = e;
+        }
+
+        if (unsafeClass != null) {
+            try {
+                theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+                theUnsafe.setAccessible(true);
+                unsafe = theUnsafe.get(null);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unable to access theUnsafe from unsafeClass", e);
+            }
+        }
+
+        if (unsafeClass != null && unsafe != null) {
+            try {
+                allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
+            } catch (NoSuchMethodException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unable to resolve allocateInstance from unsafeClass", e);
+            }
+        }
+
+        if (unsafeClass != null && unsafe != null && allocateInstance != null) {
+            try {
+                return allocateInstance.invoke(unsafe, proxyClass);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unsafe allocateInstance invocation failed for proxyClass " + proxyClass.getName(), e);
+            }
+        }
+
+        ReflectiveOperationException allocationFailure = new ReflectiveOperationException(
+                "unable to allocate proxy instance for proxyClass " + proxyClass.getName()
+                        + "; supported lookup allocation failed and Unsafe fallback is unavailable or inaccessible"
+                        + " (unsafeClass=" + (unsafeClass == null ? "unavailable" : unsafeClass.getName())
+                        + ", theUnsafe=" + (theUnsafe == null ? "unavailable" : "resolved")
+                        + ", allocateInstance=" + (allocateInstance == null ? "unavailable" : "resolved") + ")"
+        );
+        if (lookupFailure != null) {
+            allocationFailure.addSuppressed(lookupFailure);
+        }
+        if (unsafeFailure != null) {
+            allocationFailure.addSuppressed(unsafeFailure);
+        }
+        throw allocationFailure;
     }
 }
