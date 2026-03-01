@@ -20,14 +20,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import javax.sql.DataSource;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.util.List;
+
+@Getter
+@RequiredArgsConstructor
+public class EntityMetadata {
+    private final String tableName;
+    private final Class<?> entityClass;
+    private final List<ColumnMetadata> columns;
+    private final IdMetadata idMetadata;
+    private final List<RelationshipMetadata> relationships;
+
+    public List<ColumnMetadata> getNonIdColumns() {
+        return columns.stream()
+                .filter(c -> !c.isId())
+                .toList();
+    }
+
+    public RelationshipMetadata getRelationship(String fieldName) {
+        return relationships.stream()
+                .filter(r -> r.getField().getName().equals(fieldName))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No relationship found with name '" + fieldName + "' on entity " + entityClass.getName()
+                ));
+    }
 }

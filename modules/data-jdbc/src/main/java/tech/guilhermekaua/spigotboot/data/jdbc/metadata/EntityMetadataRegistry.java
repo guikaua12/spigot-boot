@@ -20,14 +20,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import javax.sql.DataSource;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+public class EntityMetadataRegistry {
+    private final ConcurrentHashMap<Class<?>, EntityMetadata> cache = new ConcurrentHashMap<>();
+    private final EntityMetadataParser parser;
+
+    public EntityMetadataRegistry(EntityMetadataParser parser) {
+        this.parser = parser;
+    }
+
+    public EntityMetadata getOrParse(Class<?> entityClass) {
+        return cache.computeIfAbsent(entityClass, parser::parse);
+    }
 }

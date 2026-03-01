@@ -20,14 +20,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.annotation;
 
-import javax.sql.DataSource;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Param {
+    String value();
 }

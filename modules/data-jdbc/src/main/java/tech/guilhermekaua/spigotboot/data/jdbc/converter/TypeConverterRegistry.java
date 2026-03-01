@@ -20,14 +20,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.converter;
 
-import javax.sql.DataSource;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.data.converter.AttributeConverter;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.util.concurrent.ConcurrentHashMap;
+
+public class TypeConverterRegistry {
+    private final ConcurrentHashMap<Class<?>, AttributeConverter<?, ?>> converters = new ConcurrentHashMap<>();
+
+    public <X, Y> void register(Class<X> javaType, AttributeConverter<X, Y> converter) {
+        converters.put(javaType, converter);
+    }
+
+    public @Nullable AttributeConverter<?, ?> getConverter(Class<?> javaType) {
+        return converters.get(javaType);
+    }
+
+    public boolean hasConverter(Class<?> javaType) {
+        return converters.containsKey(javaType);
+    }
 }

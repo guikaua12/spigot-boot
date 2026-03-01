@@ -20,14 +20,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.dialect;
 
-import javax.sql.DataSource;
+public final class DialectResolver {
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+    private DialectResolver() {
+    }
+
+    public static Dialect resolve(String jdbcUrl) {
+        if (jdbcUrl == null) {
+            throw new IllegalArgumentException("JDBC URL must not be null.");
+        }
+
+        String lower = jdbcUrl.toLowerCase();
+        if (lower.startsWith("jdbc:mysql") || lower.startsWith("jdbc:mariadb")) {
+            return new MySQLDialect();
+        }
+        if (lower.startsWith("jdbc:sqlite")) {
+            return new SQLiteDialect();
+        }
+
+        throw new IllegalArgumentException(
+                "No dialect found for JDBC URL: " + jdbcUrl +
+                        ". Supported prefixes: jdbc:mysql, jdbc:mariadb, jdbc:sqlite. " +
+                        "For other databases, register a custom Dialect bean."
+        );
+    }
 }

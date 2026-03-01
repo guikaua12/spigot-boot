@@ -20,14 +20,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.repository;
 
-import javax.sql.DataSource;
+import tech.guilhermekaua.spigotboot.data.jdbc.query.SelectQuery;
+import tech.guilhermekaua.spigotboot.data.repository.Repository;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+public interface JdbcRepository<T, ID> extends Repository<T, ID> {
+    T insert(T entity);
+
+    T update(T entity);
+
+    SelectQuery<T> select();
 }

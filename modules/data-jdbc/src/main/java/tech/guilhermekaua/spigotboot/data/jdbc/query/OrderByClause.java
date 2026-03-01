@@ -20,14 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.query;
 
-import javax.sql.DataSource;
+public class OrderByClause<T> {
+    private final SelectQuery<T> query;
+    private final String column;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+    OrderByClause(SelectQuery<T> query, String column) {
+        this.query = query;
+        this.column = column;
+    }
+
+    public SelectQuery<T> asc() {
+        query.addOrderBy(new OrderByEntry(column, true));
+        return query;
+    }
+
+    public SelectQuery<T> desc() {
+        query.addOrderBy(new OrderByEntry(column, false));
+        return query;
+    }
 }

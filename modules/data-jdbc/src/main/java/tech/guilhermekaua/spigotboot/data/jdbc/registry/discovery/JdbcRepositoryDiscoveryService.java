@@ -20,14 +20,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.registry.discovery;
 
-import javax.sql.DataSource;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
+import tech.guilhermekaua.spigotboot.data.jdbc.repository.JdbcRepository;
+import tech.guilhermekaua.spigotboot.data.jdbc.repository.impl.JdbcRepositoryImpl;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Component
+@SuppressWarnings("rawtypes")
+public class JdbcRepositoryDiscoveryService {
+
+    public Set<Class<? extends JdbcRepository>> discoverFromPackage(String basePackage) {
+        Set<Class<? extends JdbcRepository>> repositories = ReflectionUtils.getSubClassesOf(basePackage, JdbcRepository.class);
+
+        // exclude the implementation class
+        return repositories.stream()
+                .filter(c -> c != JdbcRepositoryImpl.class)
+                .filter(Class::isInterface)
+                .collect(Collectors.toSet());
+    }
 }

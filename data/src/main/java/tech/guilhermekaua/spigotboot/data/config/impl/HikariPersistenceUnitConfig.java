@@ -32,6 +32,10 @@ import java.util.concurrent.TimeUnit;
 
 @Setter
 @Getter
+/**
+ * @deprecated use data-jdbc's {@code DataJdbcConfiguration} and {@code Dialect} infrastructure.
+ */
+@Deprecated
 public class HikariPersistenceUnitConfig implements PersistenceUnitConfig {
     private static final int MAXIMUM_POOL_SIZE = (Runtime.getRuntime().availableProcessors() * 2) + 1;
     private static final int MINIMUM_IDLE = Math.min(MAXIMUM_POOL_SIZE, 10);

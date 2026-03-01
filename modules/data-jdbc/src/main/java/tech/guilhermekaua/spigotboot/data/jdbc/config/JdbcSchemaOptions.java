@@ -20,14 +20,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.config;
 
-import javax.sql.DataSource;
+public class JdbcSchemaOptions {
+    private final boolean autoDdlEnabled;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+    public JdbcSchemaOptions() {
+        this(true);
+    }
+
+    public JdbcSchemaOptions(boolean autoDdlEnabled) {
+        this.autoDdlEnabled = autoDdlEnabled;
+    }
+
+    public boolean isAutoDdlEnabled() {
+        return autoDdlEnabled;
+    }
 }

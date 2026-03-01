@@ -20,14 +20,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.config;
+
+import com.zaxxer.hikari.HikariDataSource;
+import tech.guilhermekaua.spigotboot.data.config.PersistenceConfig;
+import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
 
 import javax.sql.DataSource;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+public class DataJdbcConfiguration {
+
+    public DataSource createDataSource(PersistenceConfig config, Dialect dialect) {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl(config.getAddress());
+        ds.setUsername(config.getUsername());
+        ds.setPassword(config.getPassword());
+        dialect.configureDataSource(ds);
+        return ds;
+    }
 }

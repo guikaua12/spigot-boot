@@ -20,14 +20,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import javax.sql.DataSource;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.data.jdbc.annotation.IdStrategy;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.util.List;
+
+@Getter
+@RequiredArgsConstructor
+public class IdMetadata {
+    private final @Nullable IdStrategy strategy;
+    private final List<ColumnMetadata> columns;
+    private final boolean composite;
+    private final @Nullable Class<?> embeddedKeyClass;
 }

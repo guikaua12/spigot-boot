@@ -5,20 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
-        <artifactId>spigot-boot</artifactId>
+        <artifactId>spigot-boot-modules</artifactId>
         <version>2.0.2</version>
     </parent>
 
     <name>${project.artifactId}</name>
-    <description>${project.artifactId} aggregator module for Spigot Boot modules.</description>
+    <description>${project.artifactId} JDBC data module for Spigot Boot.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-modules</artifactId>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>data-jdbc</module>
-        <module>data-orm-lite</module>
-    </modules>
+    <artifactId>spigot-boot-data-jdbc</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -29,9 +23,22 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-core</artifactId>
+            <artifactId>spigot-boot-data</artifactId>
             <version>2.0.2</version>
-            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.1.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

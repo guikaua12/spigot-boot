@@ -35,6 +35,10 @@ import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegi
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
+/**
+ * @deprecated use the data-jdbc module.
+ */
+@Deprecated
 public class DataOrmLiteModule implements Module {
     @Inject
     private OrmLiteRepositoryRegistry ormLiteRepositoryRegistry;

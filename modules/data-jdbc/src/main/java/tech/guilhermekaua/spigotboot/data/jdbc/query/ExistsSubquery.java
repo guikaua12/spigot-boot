@@ -20,14 +20,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.query;
 
-import javax.sql.DataSource;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.util.List;
+
+@Getter
+@RequiredArgsConstructor
+public class ExistsSubquery {
+    private final String relationshipName;
+    private final boolean negated;
+    private final List<WhereCondition> conditions;
 }

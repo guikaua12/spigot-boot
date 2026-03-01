@@ -20,14 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import javax.sql.DataSource;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+import java.lang.reflect.Field;
+
+@Getter
+@RequiredArgsConstructor
+public class RelationshipMetadata {
+    private final Field field;
+    private final RelationshipType type;
+    private final String foreignKeyColumn;
+    private final Class<?> targetEntityClass;
+    private final boolean collection;
+
+    public enum RelationshipType {
+        HAS_MANY,
+        MANY_TO_ONE
+    }
 }

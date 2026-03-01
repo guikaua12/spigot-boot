@@ -20,14 +20,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
-
-import javax.sql.DataSource;
+package tech.guilhermekaua.spigotboot.data;
 
 /**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
+ * @deprecated use {@link tech.guilhermekaua.spigotboot.data.persistable.Persistable}.
  */
 @Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+public interface Persistable<ID> extends tech.guilhermekaua.spigotboot.data.persistable.Persistable<ID> {
 }

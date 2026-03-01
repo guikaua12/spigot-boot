@@ -20,14 +20,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.config;
+package tech.guilhermekaua.spigotboot.data.jdbc.dialect;
 
-import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
+import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
 
-/**
- * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
- */
-@Deprecated
-public interface PersistenceUnitConfig {
-    DataSource configure(String address, String username, String password);
+public interface Dialect {
+    String quoteIdentifier(String name);
+
+    String mapJavaTypeToSqlType(Class<?> javaType);
+
+    String autoIncrementClause();
+
+    String upsertSql(EntityMetadata metadata);
+
+    String paginationSql(String baseSql, int limit, int offset);
+
+    int maxBindParameters();
+
+    int defaultPoolSize();
+
+    void configureDataSource(HikariDataSource ds);
 }
