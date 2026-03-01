@@ -26,7 +26,6 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
@@ -56,9 +55,6 @@ public class DependencyManager {
     private final BeanInstanceRegistry beanInstanceRegistry;
 
     @Getter
-    private final BeanProxyDeciderResolver beanProxyDeciderResolver;
-
-    @Getter
     private final CustomInjectorRegistry customInjectorRegistry;
 
     private final BeanNamingDefiner beanNamingDefiner = new DefaultBeanNamingDefiner();
@@ -80,10 +76,9 @@ public class DependencyManager {
                              @NotNull CustomInjectorRegistry customInjectorRegistry) {
         this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null.");
         this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
-        this.beanProxyDeciderResolver = Objects.requireNonNull(beanProxyDeciderResolver, "beanProxyDeciderResolver cannot be null.");
         this.customInjectorRegistry = Objects.requireNonNull(customInjectorRegistry, "customInjectorRegistry cannot be null.");
 
-        registerBeanPostProcessor(new MethodHandlerProxyBeanPostProcessor());
+        registerBeanPostProcessor(new MethodHandlerProxyBeanPostProcessor(beanProxyDeciderResolver));
     }
 
     /**
@@ -438,9 +433,6 @@ public class DependencyManager {
             return null;
         }
 
-        @SuppressWarnings("unchecked")
-        Class<Object> rawType = (Class<Object>) type;
-
         Constructor<?> ctor = findInjectConstructor(type);
         if (ctor == null) {
             return null;
@@ -448,22 +440,8 @@ public class DependencyManager {
 
         Object[] ctorArgs = resolveArguments(ctor);
 
-        Object instance;
-        if (beanProxyDeciderResolver.shouldProxy(definition, this)) {
-            if (Modifier.isFinal(type.getModifiers())) {
-                throw new IllegalStateException("Cannot proxy final class: " + type.getName());
-            }
-
-            instance = ComponentProxy.createProxy(
-                    rawType,
-                    null,
-                    ctor.getParameterTypes(),
-                    ctorArgs
-            );
-        } else {
-            ctor.setAccessible(true);
-            instance = ctor.newInstance(ctorArgs);
-        }
+        ctor.setAccessible(true);
+        Object instance = ctor.newInstance(ctorArgs);
 
         return initializeBean(definition, instance);
     }

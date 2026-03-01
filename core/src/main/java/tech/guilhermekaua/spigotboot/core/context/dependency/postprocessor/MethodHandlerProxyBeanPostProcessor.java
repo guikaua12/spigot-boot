@@ -23,15 +23,20 @@
 package tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor;
 
 import javassist.util.proxy.ProxyObject;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 
+@RequiredArgsConstructor
 public class MethodHandlerProxyBeanPostProcessor implements BeanPostProcessor {
+    private final BeanProxyDeciderResolver beanProxyDeciderResolver;
+
     @Override
     public @NotNull Object postProcess(@NotNull BeanDefinition definition,
                                        @NotNull Object instance,
@@ -46,7 +51,7 @@ public class MethodHandlerProxyBeanPostProcessor implements BeanPostProcessor {
 
         final boolean shouldProxy;
         try {
-            shouldProxy = dependencyManager.getBeanProxyDeciderResolver().shouldProxy(definition, dependencyManager);
+            shouldProxy = beanProxyDeciderResolver.shouldProxy(definition, dependencyManager);
         } catch (Exception e) {
             throw new RuntimeException("Failed to resolve proxying for bean: " + definition.identifier(), e);
         }
