@@ -26,23 +26,14 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
-import tech.guilhermekaua.spigotboot.data.config.PersistenceConfig;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.Table;
-import tech.guilhermekaua.spigotboot.data.jdbc.config.DataJdbcConfiguration;
 import tech.guilhermekaua.spigotboot.data.jdbc.config.JdbcSchemaOptions;
 import tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProvider;
-import tech.guilhermekaua.spigotboot.data.jdbc.converter.BuiltInConverters;
-import tech.guilhermekaua.spigotboot.data.jdbc.converter.ConverterScanner;
-import tech.guilhermekaua.spigotboot.data.jdbc.converter.TypeConverterRegistry;
 import tech.guilhermekaua.spigotboot.data.jdbc.ddl.DdlGenerator;
 import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
-import tech.guilhermekaua.spigotboot.data.jdbc.dialect.DialectResolver;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadataParser;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadataRegistry;
 import tech.guilhermekaua.spigotboot.data.jdbc.registry.JdbcRepositoryRegistry;
-import tech.guilhermekaua.spigotboot.data.jdbc.transaction.JdbcTransactionManager;
-import tech.guilhermekaua.spigotboot.data.transaction.TransactionManager;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -62,15 +53,12 @@ public class DataJdbcModule implements Module {
     public void onInitialize(Context context) throws Exception {
         String basePackage = context.getPlugin().getMainClass().getPackage().getName();
 
-        PersistenceConfig persistenceConfig = discoverPersistenceConfig(context, basePackage);
-        Dialect dialect = resolveOrRegisterDialect(context, persistenceConfig);
-        DataSource dataSource = resolveOrRegisterDataSource(context, persistenceConfig, dialect);
+        Dialect dialect = resolveRequiredBean(context, Dialect.class);
+        DataSource dataSource = resolveRequiredBean(context, DataSource.class);
         registerDataSourceShutdownHook(context, dataSource);
-        TypeConverterRegistry converterRegistry = resolveOrRegisterConverterRegistry(context, basePackage);
-        EntityMetadataRegistry metadataRegistry = resolveOrRegisterMetadataRegistry(context, converterRegistry);
-        ConnectionProvider connectionProvider = resolveOrRegisterConnectionProvider(context, dataSource);
-        resolveOrRegisterTransactionManager(context, dataSource);
-        JdbcSchemaOptions schemaOptions = resolveOrRegisterSchemaOptions(context);
+        EntityMetadataRegistry metadataRegistry = resolveRequiredBean(context, EntityMetadataRegistry.class);
+        ConnectionProvider connectionProvider = resolveRequiredBean(context, ConnectionProvider.class);
+        JdbcSchemaOptions schemaOptions = resolveRequiredBean(context, JdbcSchemaOptions.class);
 
         if (schemaOptions.isAutoDdlEnabled()) {
             runAutoDdl(basePackage, metadataRegistry, dialect, connectionProvider);
@@ -79,83 +67,15 @@ public class DataJdbcModule implements Module {
         repositoryRegistry.initialize(context, connectionProvider, dialect, metadataRegistry);
     }
 
-    private Dialect resolveOrRegisterDialect(Context context, PersistenceConfig persistenceConfig) {
-        Dialect dialect = context.getBean(Dialect.class);
-        if (dialect != null) {
-            return dialect;
+    private <T> T resolveRequiredBean(Context context, Class<T> beanType) {
+        T bean = context.getBean(beanType);
+        if (bean != null) {
+            return bean;
         }
 
-        Dialect resolvedDialect = DialectResolver.resolve(persistenceConfig.getAddress());
-        context.registerBean(resolvedDialect);
-        return resolvedDialect;
-    }
-
-    private DataSource resolveOrRegisterDataSource(Context context, PersistenceConfig persistenceConfig, Dialect dialect) {
-        DataSource dataSource = context.getBean(DataSource.class);
-        if (dataSource != null) {
-            return dataSource;
-        }
-
-        DataSource createdDataSource = new DataJdbcConfiguration().createDataSource(persistenceConfig, dialect);
-        context.registerBean(createdDataSource);
-        return createdDataSource;
-    }
-
-    private TypeConverterRegistry resolveOrRegisterConverterRegistry(Context context, String basePackage) {
-        TypeConverterRegistry converterRegistry = context.getBean(TypeConverterRegistry.class);
-        if (converterRegistry != null) {
-            return converterRegistry;
-        }
-
-        TypeConverterRegistry createdRegistry = new TypeConverterRegistry();
-        BuiltInConverters.registerAll(createdRegistry);
-        ConverterScanner.scanAndRegister(basePackage, createdRegistry);
-        context.registerBean(createdRegistry);
-        return createdRegistry;
-    }
-
-    private EntityMetadataRegistry resolveOrRegisterMetadataRegistry(Context context, TypeConverterRegistry converterRegistry) {
-        EntityMetadataRegistry metadataRegistry = context.getBean(EntityMetadataRegistry.class);
-        if (metadataRegistry != null) {
-            return metadataRegistry;
-        }
-
-        EntityMetadataRegistry createdRegistry = new EntityMetadataRegistry(new EntityMetadataParser(converterRegistry));
-        context.registerBean(createdRegistry);
-        return createdRegistry;
-    }
-
-    private ConnectionProvider resolveOrRegisterConnectionProvider(Context context, DataSource dataSource) {
-        ConnectionProvider connectionProvider = context.getBean(ConnectionProvider.class);
-        if (connectionProvider != null) {
-            return connectionProvider;
-        }
-
-        ConnectionProvider createdProvider = new ConnectionProvider(dataSource);
-        context.registerBean(createdProvider);
-        return createdProvider;
-    }
-
-    private TransactionManager resolveOrRegisterTransactionManager(Context context, DataSource dataSource) {
-        TransactionManager transactionManager = context.getBean(TransactionManager.class);
-        if (transactionManager != null) {
-            return transactionManager;
-        }
-
-        TransactionManager createdManager = new JdbcTransactionManager(dataSource);
-        context.registerBean(createdManager);
-        return createdManager;
-    }
-
-    private JdbcSchemaOptions resolveOrRegisterSchemaOptions(Context context) {
-        JdbcSchemaOptions schemaOptions = context.getBean(JdbcSchemaOptions.class);
-        if (schemaOptions != null) {
-            return schemaOptions;
-        }
-
-        JdbcSchemaOptions defaultOptions = new JdbcSchemaOptions();
-        context.registerBean(defaultOptions);
-        return defaultOptions;
+        throw new IllegalStateException(
+                "Failed to resolve required bean for data-jdbc module initialization: " + beanType.getName()
+        );
     }
 
     private void registerDataSourceShutdownHook(Context context, DataSource dataSource) {
@@ -170,28 +90,6 @@ public class DataJdbcModule implements Module {
                 LOGGER.log(Level.WARNING, "Failed to close DataSource during shutdown", exception);
             }
         });
-    }
-
-    private PersistenceConfig discoverPersistenceConfig(Context context, String basePackage) {
-        Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class);
-
-        if (configs.isEmpty()) {
-            throw new IllegalStateException(
-                    "data-jdbc is on classpath but no PersistenceConfig implementation found in package " + basePackage + ". " +
-                            "Ensure that a class implementing PersistenceConfig exists in your plugin."
-            );
-        }
-
-        if (configs.size() > 1) {
-            throw new IllegalStateException(
-                    "Multiple PersistenceConfig implementations found: " +
-                            configs.stream().map(Class::getName).reduce((a, b) -> a + ", " + b).orElse("")
-            );
-        }
-
-        Class<? extends PersistenceConfig> configClass = configs.iterator().next();
-        context.registerBean(configClass);
-        return context.getBean(configClass);
     }
 
     private void runAutoDdl(String basePackage, EntityMetadataRegistry metadataRegistry, Dialect dialect, ConnectionProvider connectionProvider) {
