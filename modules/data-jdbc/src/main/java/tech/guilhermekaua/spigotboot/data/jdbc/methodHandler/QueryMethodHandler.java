@@ -331,7 +331,6 @@ public class QueryMethodHandler {
         return positionalParams;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private void processIncludes(
             List<?> results,
             Include[] includes,
@@ -340,96 +339,213 @@ public class QueryMethodHandler {
             Map<Object, Map<String, Object>> rootColumnValues
     ) {
         for (Include include : includes) {
-            RelationshipMetadata rel = entityMetadata.getRelationship(include.value());
-            EntityMetadata targetMeta = metadataRegistry.getOrParse(rel.getTargetEntityClass());
+            List<String> relationshipPath = parseRelationshipPath(include.value());
+            processIncludePath(
+                    results,
+                    entityMetadata,
+                    rootColumnValues,
+                    relationshipPath,
+                    0,
+                    new IncludeQueryOptions(include.where(), include.orderBy()),
+                    dialect
+            );
+        }
+    }
 
-            if (rel.getType() == RelationshipMetadata.RelationshipType.HAS_MANY) {
-                processHasManyInclude(results, entityMetadata, rel, targetMeta, include, dialect);
-            } else {
-                processManyToOneInclude(results, entityMetadata, rel, targetMeta, include, dialect, rootColumnValues);
-            }
+    private void processIncludePath(
+            List<?> parentResults,
+            EntityMetadata parentMeta,
+            Map<Object, Map<String, Object>> parentColumnValues,
+            List<String> relationshipPath,
+            int depth,
+            IncludeQueryOptions leafOptions,
+            Dialect dialect
+    ) {
+        if (parentResults.isEmpty()) {
+            return;
+        }
+
+        String relationshipName = relationshipPath.get(depth);
+        RelationshipMetadata relationship = parentMeta.getRelationship(relationshipName);
+        EntityMetadata targetMeta = metadataRegistry.getOrParse(relationship.getTargetEntityClass());
+
+        boolean leafPath = depth == relationshipPath.size() - 1;
+        IncludeQueryOptions includeOptions = leafPath ? leafOptions : IncludeQueryOptions.empty();
+
+        String nestedRelationshipName = leafPath ? null : relationshipPath.get(depth + 1);
+        Set<String> nestedManyToOneColumns = collectUnmappedManyToOneColumns(targetMeta, nestedRelationshipName);
+
+        IncludeProcessingResult includeResult;
+        if (relationship.getType() == RelationshipMetadata.RelationshipType.HAS_MANY) {
+            includeResult = processHasManyInclude(
+                    parentResults,
+                    parentMeta,
+                    relationship,
+                    targetMeta,
+                    includeOptions,
+                    nestedManyToOneColumns,
+                    dialect
+            );
+        } else {
+            includeResult = processManyToOneInclude(
+                    parentResults,
+                    parentMeta,
+                    relationship,
+                    targetMeta,
+                    includeOptions,
+                    dialect,
+                    parentColumnValues,
+                    nestedManyToOneColumns
+            );
+        }
+
+        if (!leafPath) {
+            processIncludePath(
+                    includeResult.getRelatedEntities(),
+                    targetMeta,
+                    includeResult.getRelatedColumnValues(),
+                    relationshipPath,
+                    depth + 1,
+                    leafOptions,
+                    dialect
+            );
         }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void processHasManyInclude(
-            List<?> mainResults,
+    private IncludeProcessingResult processHasManyInclude(
+            List<?> parentResults,
             EntityMetadata parentMeta,
-            RelationshipMetadata rel,
+            RelationshipMetadata relationship,
             EntityMetadata targetMeta,
-            Include include,
+            IncludeQueryOptions includeOptions,
+            Set<String> nestedManyToOneColumns,
             Dialect dialect
     ) {
-        List<Object> parentIds = mainResults.stream()
+        List<Object> parentIds = parentResults.stream()
                 .map(entity -> extractIdValue(entity, parentMeta))
                 .collect(Collectors.toList());
 
         if (parentIds.isEmpty()) {
-            return;
+            return IncludeProcessingResult.empty();
         }
 
-        List<EntityRowMapper.MappedRow<Object>> secondaryResults = executeIncludeQueryWithCapturedColumn(
+        LinkedHashSet<String> capturedColumns = new LinkedHashSet<>(nestedManyToOneColumns);
+        capturedColumns.add(relationship.getForeignKeyColumn());
+
+        List<EntityRowMapper.MappedRow<Object>> secondaryResults = executeIncludeQueryWithCapturedColumns(
                 targetMeta,
-                rel.getForeignKeyColumn(),
+                relationship.getForeignKeyColumn(),
                 parentIds,
-                include,
+                includeOptions,
                 dialect,
-                rel.getForeignKeyColumn()
+                capturedColumns
         );
 
         Map<Object, List<Object>> grouped = new HashMap<>();
+        List<Object> relatedEntities = new ArrayList<>(secondaryResults.size());
+        Map<Object, Map<String, Object>> relatedColumnValues = new IdentityHashMap<>();
+
         for (EntityRowMapper.MappedRow<Object> mappedRow : secondaryResults) {
-            Object fkValue = mappedRow.getColumnValues().get(rel.getForeignKeyColumn());
-            grouped.computeIfAbsent(fkValue, key -> new ArrayList<>()).add(mappedRow.getEntity());
+            Object childEntity = mappedRow.getEntity();
+            Map<String, Object> capturedValues = mappedRow.getColumnValues();
+            Object fkValue = capturedValues.get(relationship.getForeignKeyColumn());
+
+            grouped.computeIfAbsent(fkValue, key -> new ArrayList<>()).add(childEntity);
+            relatedEntities.add(childEntity);
+
+            if (!nestedManyToOneColumns.isEmpty()) {
+                Map<String, Object> nestedColumns = new LinkedHashMap<>();
+                for (String columnName : nestedManyToOneColumns) {
+                    nestedColumns.put(columnName, capturedValues.get(columnName));
+                }
+                relatedColumnValues.put(childEntity, nestedColumns);
+            }
         }
 
-        for (Object parent : mainResults) {
+        for (Object parent : parentResults) {
             Object parentId = extractIdValue(parent, parentMeta);
             List<Object> children = grouped.getOrDefault(parentId, Collections.emptyList());
-            setCollectionFieldValue(rel.getField(), parent, children);
+            setCollectionFieldValue(relationship.getField(), parent, children);
         }
+
+        return new IncludeProcessingResult(deduplicateByIdentity(relatedEntities), relatedColumnValues);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void processManyToOneInclude(
-            List<?> mainResults,
+    private IncludeProcessingResult processManyToOneInclude(
+            List<?> parentResults,
             EntityMetadata parentMeta,
-            RelationshipMetadata rel,
+            RelationshipMetadata relationship,
             EntityMetadata targetMeta,
-            Include include,
+            IncludeQueryOptions includeOptions,
             Dialect dialect,
-            Map<Object, Map<String, Object>> rootColumnValues
+            Map<Object, Map<String, Object>> parentColumnValues,
+            Set<String> nestedManyToOneColumns
     ) {
-        List<Object> fkValues = mainResults.stream()
-                .map(entity -> resolveManyToOneForeignKeyValue(entity, parentMeta, rel, rootColumnValues))
+        List<Object> fkValues = parentResults.stream()
+                .map(entity -> resolveManyToOneForeignKeyValue(entity, parentMeta, relationship, parentColumnValues))
                 .filter(value -> value != null)
                 .distinct()
                 .collect(Collectors.toList());
 
         if (fkValues.isEmpty()) {
-            return;
+            return IncludeProcessingResult.empty();
         }
 
         String targetIdColumn = targetMeta.getIdMetadata().getColumns().get(0).getColumnName();
-        List<Object> targets = executeIncludeQuery(targetMeta, targetIdColumn, fkValues, include, dialect);
-
         Map<Object, Object> targetById = new HashMap<>();
-        for (Object target : targets) {
-            Object id = extractIdValue(target, targetMeta);
-            targetById.put(id, target);
+        Map<Object, Map<String, Object>> relatedColumnValues = new IdentityHashMap<>();
+
+        if (nestedManyToOneColumns.isEmpty()) {
+            List<Object> targets = executeIncludeQuery(targetMeta, targetIdColumn, fkValues, includeOptions, dialect);
+            for (Object target : targets) {
+                Object id = extractIdValue(target, targetMeta);
+                targetById.put(id, target);
+            }
+        } else {
+            List<EntityRowMapper.MappedRow<Object>> mappedTargets = executeIncludeQueryWithCapturedColumns(
+                    targetMeta,
+                    targetIdColumn,
+                    fkValues,
+                    includeOptions,
+                    dialect,
+                    nestedManyToOneColumns
+            );
+
+            for (EntityRowMapper.MappedRow<Object> mappedTarget : mappedTargets) {
+                Object targetEntity = mappedTarget.getEntity();
+                targetById.put(extractIdValue(targetEntity, targetMeta), targetEntity);
+
+                Map<String, Object> nestedColumns = new LinkedHashMap<>();
+                for (String columnName : nestedManyToOneColumns) {
+                    nestedColumns.put(columnName, mappedTarget.getColumnValues().get(columnName));
+                }
+                relatedColumnValues.put(targetEntity, nestedColumns);
+            }
         }
 
-        for (Object parent : mainResults) {
-            Object fkValue = resolveManyToOneForeignKeyValue(parent, parentMeta, rel, rootColumnValues);
+        List<Object> relatedTargets = new ArrayList<>();
+        IdentityHashMap<Object, Boolean> seenTargets = new IdentityHashMap<>();
+
+        for (Object parent : parentResults) {
+            Object fkValue = resolveManyToOneForeignKeyValue(parent, parentMeta, relationship, parentColumnValues);
             if (fkValue == null) {
                 continue;
             }
 
             Object target = targetById.get(fkValue);
             if (target != null) {
-                setFieldValue(rel.getField(), parent, target);
+                setFieldValue(relationship.getField(), parent, target);
+
+                if (!seenTargets.containsKey(target)) {
+                    seenTargets.put(target, Boolean.TRUE);
+                    relatedTargets.add(target);
+                }
             }
         }
+
+        return new IncludeProcessingResult(relatedTargets, relatedColumnValues);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -437,7 +553,7 @@ public class QueryMethodHandler {
             EntityMetadata targetMeta,
             String inColumn,
             List<Object> inValues,
-            Include include,
+            IncludeQueryOptions includeOptions,
             Dialect dialect
     ) {
         if (inValues.isEmpty()) {
@@ -450,19 +566,19 @@ public class QueryMethodHandler {
         for (int start = 0; start < inValues.size(); start += maxBindParameters) {
             int end = Math.min(inValues.size(), start + maxBindParameters);
             List<Object> currentChunk = inValues.subList(start, end);
-            aggregatedResults.addAll(executeIncludeQueryChunk(targetMeta, inColumn, currentChunk, include, dialect));
+            aggregatedResults.addAll(executeIncludeQueryChunk(targetMeta, inColumn, currentChunk, includeOptions, dialect));
         }
 
         return aggregatedResults;
     }
 
-    private List<EntityRowMapper.MappedRow<Object>> executeIncludeQueryWithCapturedColumn(
+    private List<EntityRowMapper.MappedRow<Object>> executeIncludeQueryWithCapturedColumns(
             EntityMetadata targetMeta,
             String inColumn,
             List<Object> inValues,
-            Include include,
+            IncludeQueryOptions includeOptions,
             Dialect dialect,
-            String capturedColumn
+            Collection<String> capturedColumns
     ) {
         if (inValues.isEmpty()) {
             return Collections.emptyList();
@@ -474,13 +590,13 @@ public class QueryMethodHandler {
         for (int start = 0; start < inValues.size(); start += maxBindParameters) {
             int end = Math.min(inValues.size(), start + maxBindParameters);
             List<Object> currentChunk = inValues.subList(start, end);
-            aggregatedResults.addAll(executeIncludeQueryChunkWithCapturedColumn(
+            aggregatedResults.addAll(executeIncludeQueryChunkWithCapturedColumns(
                     targetMeta,
                     inColumn,
                     currentChunk,
-                    include,
+                    includeOptions,
                     dialect,
-                    capturedColumn
+                    capturedColumns
             ));
         }
 
@@ -492,7 +608,7 @@ public class QueryMethodHandler {
             EntityMetadata targetMeta,
             String inColumn,
             List<Object> inValues,
-            Include include,
+            IncludeQueryOptions includeOptions,
             Dialect dialect
     ) {
         StringBuilder sql = new StringBuilder();
@@ -507,12 +623,12 @@ public class QueryMethodHandler {
 
         List<Object> params = new ArrayList<>(inValues);
 
-        if (!include.where().isEmpty()) {
-            sql.append(" AND ").append(include.where());
+        if (!includeOptions.getWhere().isEmpty()) {
+            sql.append(" AND ").append(includeOptions.getWhere());
         }
 
-        if (!include.orderBy().isEmpty()) {
-            sql.append(" ORDER BY ").append(include.orderBy());
+        if (!includeOptions.getOrderBy().isEmpty()) {
+            sql.append(" ORDER BY ").append(includeOptions.getOrderBy());
         }
 
         EntityRowMapper targetMapper = new EntityRowMapper(targetMeta);
@@ -530,13 +646,13 @@ public class QueryMethodHandler {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private List<EntityRowMapper.MappedRow<Object>> executeIncludeQueryChunkWithCapturedColumn(
+    private List<EntityRowMapper.MappedRow<Object>> executeIncludeQueryChunkWithCapturedColumns(
             EntityMetadata targetMeta,
             String inColumn,
             List<Object> inValues,
-            Include include,
+            IncludeQueryOptions includeOptions,
             Dialect dialect,
-            String capturedColumn
+            Collection<String> capturedColumns
     ) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT * FROM ").append(dialect.quoteIdentifier(targetMeta.getTableName()));
@@ -550,12 +666,12 @@ public class QueryMethodHandler {
 
         List<Object> params = new ArrayList<>(inValues);
 
-        if (!include.where().isEmpty()) {
-            sql.append(" AND ").append(include.where());
+        if (!includeOptions.getWhere().isEmpty()) {
+            sql.append(" AND ").append(includeOptions.getWhere());
         }
 
-        if (!include.orderBy().isEmpty()) {
-            sql.append(" ORDER BY ").append(include.orderBy());
+        if (!includeOptions.getOrderBy().isEmpty()) {
+            sql.append(" ORDER BY ").append(includeOptions.getOrderBy());
         }
 
         EntityRowMapper targetMapper = new EntityRowMapper(targetMeta);
@@ -565,7 +681,7 @@ public class QueryMethodHandler {
             bindParameters(ps, params);
 
             try (ResultSet rs = ps.executeQuery()) {
-                return targetMapper.mapRowsWithColumns(rs, Collections.singleton(capturedColumn));
+                return targetMapper.mapRowsWithColumns(rs, capturedColumns);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute include query", e);
@@ -652,7 +768,8 @@ public class QueryMethodHandler {
 
         Set<String> requiredColumns = new LinkedHashSet<>();
         for (Include include : includes) {
-            RelationshipMetadata relationship = entityMetadata.getRelationship(include.value());
+            List<String> relationshipPath = parseRelationshipPath(include.value());
+            RelationshipMetadata relationship = entityMetadata.getRelationship(relationshipPath.get(0));
             if (relationship.getType() != RelationshipMetadata.RelationshipType.MANY_TO_ONE) {
                 continue;
             }
@@ -665,6 +782,23 @@ public class QueryMethodHandler {
         }
 
         return requiredColumns;
+    }
+
+    private Set<String> collectUnmappedManyToOneColumns(EntityMetadata sourceMetadata, String relationshipName) {
+        if (relationshipName == null) {
+            return Collections.emptySet();
+        }
+
+        RelationshipMetadata relationship = sourceMetadata.getRelationship(relationshipName);
+        if (relationship.getType() != RelationshipMetadata.RelationshipType.MANY_TO_ONE) {
+            return Collections.emptySet();
+        }
+
+        if (isMappedColumn(sourceMetadata, relationship.getForeignKeyColumn())) {
+            return Collections.emptySet();
+        }
+
+        return Collections.singleton(relationship.getForeignKeyColumn());
     }
 
     private boolean isMappedColumn(EntityMetadata entityMetadata, String columnName) {
@@ -698,6 +832,48 @@ public class QueryMethodHandler {
         }
 
         return capturedColumns.get(relationship.getForeignKeyColumn());
+    }
+
+    private List<String> parseRelationshipPath(String relationshipPath) {
+        if (relationshipPath == null) {
+            throw new IllegalArgumentException("Include relationship path cannot be null");
+        }
+
+        String trimmedPath = relationshipPath.trim();
+        if (trimmedPath.isEmpty()) {
+            throw new IllegalArgumentException("Include relationship path cannot be empty");
+        }
+
+        String[] rawSegments = trimmedPath.split("\\.");
+        List<String> segments = new ArrayList<>(rawSegments.length);
+
+        for (String rawSegment : rawSegments) {
+            String segment = rawSegment.trim();
+            if (segment.isEmpty()) {
+                throw new IllegalArgumentException("Invalid include relationship path '" + relationshipPath + "'");
+            }
+            segments.add(segment);
+        }
+
+        return segments;
+    }
+
+    private List<Object> deduplicateByIdentity(List<Object> entities) {
+        if (entities.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>();
+        List<Object> deduplicated = new ArrayList<>();
+
+        for (Object entity : entities) {
+            if (!seen.containsKey(entity)) {
+                seen.put(entity, Boolean.TRUE);
+                deduplicated.add(entity);
+            }
+        }
+
+        return deduplicated;
     }
 
     @SuppressWarnings("unchecked")
@@ -738,6 +914,55 @@ public class QueryMethodHandler {
         if (primitiveType == boolean.class) return Boolean.class;
         if (primitiveType == char.class) return Character.class;
         return primitiveType;
+    }
+
+    private static final class IncludeQueryOptions {
+        private static final IncludeQueryOptions EMPTY = new IncludeQueryOptions("", "");
+
+        private final String where;
+        private final String orderBy;
+
+        private IncludeQueryOptions(String where, String orderBy) {
+            this.where = where == null ? "" : where;
+            this.orderBy = orderBy == null ? "" : orderBy;
+        }
+
+        private static IncludeQueryOptions empty() {
+            return EMPTY;
+        }
+
+        private String getWhere() {
+            return where;
+        }
+
+        private String getOrderBy() {
+            return orderBy;
+        }
+    }
+
+    private static final class IncludeProcessingResult {
+        private static final IncludeProcessingResult EMPTY =
+                new IncludeProcessingResult(Collections.emptyList(), Collections.emptyMap());
+
+        private final List<Object> relatedEntities;
+        private final Map<Object, Map<String, Object>> relatedColumnValues;
+
+        private IncludeProcessingResult(List<Object> relatedEntities, Map<Object, Map<String, Object>> relatedColumnValues) {
+            this.relatedEntities = relatedEntities;
+            this.relatedColumnValues = relatedColumnValues;
+        }
+
+        private static IncludeProcessingResult empty() {
+            return EMPTY;
+        }
+
+        private List<Object> getRelatedEntities() {
+            return relatedEntities;
+        }
+
+        private Map<Object, Map<String, Object>> getRelatedColumnValues() {
+            return relatedColumnValues;
+        }
     }
 
     private static final class ParsedQueryTemplate {

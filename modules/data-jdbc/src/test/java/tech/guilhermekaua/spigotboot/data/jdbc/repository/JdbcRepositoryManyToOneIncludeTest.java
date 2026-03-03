@@ -240,6 +240,81 @@ class JdbcRepositoryManyToOneIncludeTest {
             assertEquals(1, players.get(0).getQuests().size());
             assertEquals(fixture.quest.getId(), players.get(0).getQuests().get(0).getId());
         }
+
+        @Test
+        void selectIncludeHydratesNestedHasManyManyToOneWithoutMappedForeignKeyField() {
+            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+
+            List<PlayerWithoutMappedChildFk> players = playerWithoutMappedChildFkRepository.select()
+                    .include("quests.player")
+                    .fetchAll();
+
+            assertEquals(1, players.size());
+            PlayerWithoutMappedChildFk player = players.get(0);
+            assertEquals(fixture.player.getId(), player.getId());
+            assertEquals(1, player.getQuests().size());
+            assertNotNull(player.getQuests().get(0).getPlayer());
+            assertEquals(fixture.player.getId(), player.getQuests().get(0).getPlayer().getId());
+        }
+
+        @Test
+        void selectIncludeHydratesNestedManyToOneHasManyWithoutMappedForeignKeyField() {
+            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+
+            List<QuestWithoutMappedPlayerFk> quests = questWithoutMappedPlayerFkRepository.select()
+                    .include("player.quests")
+                    .fetchAll();
+
+            assertEquals(1, quests.size());
+            QuestWithoutMappedPlayerFk quest = quests.get(0);
+            assertNotNull(quest.getPlayer());
+            assertEquals(fixture.player.getId(), quest.getPlayer().getId());
+            assertEquals(1, quest.getPlayer().getQuests().size());
+            assertEquals(quest.getId(), quest.getPlayer().getQuests().get(0).getId());
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void queryAnnotationIncludeHydratesNestedHasManyManyToOneWithoutMappedForeignKeyField() throws Exception {
+            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+            Method queryMethod = PlayerWithoutMappedChildFkNestedQueryRepository.class.getMethod("findById", UUID.class);
+
+            Object queryResult = queryMethodHandler.execute(
+                    queryMethod,
+                    new Object[]{fixture.player.getId()},
+                    playerWithoutMappedChildFkMetadata,
+                    dialect
+            );
+
+            List<PlayerWithoutMappedChildFk> players = (List<PlayerWithoutMappedChildFk>) queryResult;
+            assertEquals(1, players.size());
+            PlayerWithoutMappedChildFk player = players.get(0);
+            assertEquals(1, player.getQuests().size());
+            assertNotNull(player.getQuests().get(0).getPlayer());
+            assertEquals(fixture.player.getId(), player.getQuests().get(0).getPlayer().getId());
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void queryAnnotationIncludeHydratesNestedManyToOneHasManyWithoutMappedForeignKeyField() throws Exception {
+            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+            Method queryMethod = QuestWithoutMappedPlayerFkNestedQueryRepository.class.getMethod("findById", UUID.class);
+
+            Object queryResult = queryMethodHandler.execute(
+                    queryMethod,
+                    new Object[]{fixture.quest.getId()},
+                    questWithoutMappedPlayerFkMetadata,
+                    dialect
+            );
+
+            List<QuestWithoutMappedPlayerFk> quests = (List<QuestWithoutMappedPlayerFk>) queryResult;
+            assertEquals(1, quests.size());
+            QuestWithoutMappedPlayerFk quest = quests.get(0);
+            assertNotNull(quest.getPlayer());
+            assertEquals(fixture.player.getId(), quest.getPlayer().getId());
+            assertEquals(1, quest.getPlayer().getQuests().size());
+            assertEquals(quest.getId(), quest.getPlayer().getQuests().get(0).getId());
+        }
     }
 
     private Fixture createFixture() {
@@ -307,6 +382,18 @@ class JdbcRepositoryManyToOneIncludeTest {
         @Query("SELECT * FROM players_unmapped_fk WHERE id = :id")
         @Include("quests")
         List<PlayerWithoutMappedChildFk> findById(@Param("id") UUID id);
+    }
+
+    private interface PlayerWithoutMappedChildFkNestedQueryRepository {
+        @Query("SELECT * FROM players_unmapped_fk WHERE id = :id")
+        @Include("quests.player")
+        List<PlayerWithoutMappedChildFk> findById(@Param("id") UUID id);
+    }
+
+    private interface QuestWithoutMappedPlayerFkNestedQueryRepository {
+        @Query("SELECT * FROM quests_unmapped_fk WHERE id = :id")
+        @Include("player.quests")
+        List<QuestWithoutMappedPlayerFk> findById(@Param("id") UUID id);
     }
 
     private static final class Fixture {
