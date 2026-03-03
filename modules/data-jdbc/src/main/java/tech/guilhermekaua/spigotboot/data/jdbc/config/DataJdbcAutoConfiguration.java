@@ -109,8 +109,12 @@ public class DataJdbcAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(ConnectionProvider.class)
-    public ConnectionProvider connectionProvider(DataSource dataSource) {
-        return new ConnectionProvider(dataSource);
+    public ConnectionProvider connectionProvider(
+            DataSource dataSource,
+            BootPlugin plugin,
+            JdbcSchemaOptions schemaOptions
+    ) {
+        return new ConnectionProvider(dataSource, plugin.getLogger(), schemaOptions.isShowSql());
     }
 
     @Bean

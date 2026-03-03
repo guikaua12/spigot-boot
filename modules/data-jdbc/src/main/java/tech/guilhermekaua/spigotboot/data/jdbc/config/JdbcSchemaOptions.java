@@ -22,18 +22,21 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.config;
 
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
 public class JdbcSchemaOptions {
     private final boolean autoDdlEnabled;
+    private final boolean showSql;
 
     public JdbcSchemaOptions() {
-        this(true);
+        this(true, false);
     }
 
-    public JdbcSchemaOptions(boolean autoDdlEnabled) {
+    public JdbcSchemaOptions(boolean autoDdlEnabled, boolean showSql) {
         this.autoDdlEnabled = autoDdlEnabled;
-    }
-
-    public boolean isAutoDdlEnabled() {
-        return autoDdlEnabled;
+        this.showSql = showSql;
     }
 }

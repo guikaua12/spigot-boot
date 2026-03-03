@@ -127,13 +127,21 @@ public class PlayerService {
 
 ## Auto-DDL and Schema Options
 
-By default, auto-DDL is enabled and generates `CREATE TABLE IF NOT EXISTS` statements.
+By default, auto-DDL is enabled and SQL logging is disabled.
 
-To disable:
+To disable auto-DDL:
 
 ```java
 context.registerBean(new JdbcSchemaOptions(false));
 ```
+
+To print every SQL statement executed by data-jdbc:
+
+```java
+context.registerBean(new JdbcSchemaOptions(true, true));
+```
+
+When SQL logging is enabled, prepared statements are logged with `?` placeholders.
 
 ## SQLite Caveats
 
