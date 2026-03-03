@@ -123,7 +123,11 @@ public class SelectQuery<T> {
     }
 
     public List<T> fetchAll() {
-        String sql = buildSqlWithExists();
+        return fetchAllInternal(orderBys, limit, offset);
+    }
+
+    private List<T> fetchAllInternal(List<OrderByEntry> appliedOrderBys, Integer appliedLimit, Integer appliedOffset) {
+        String sql = buildSqlWithExists(appliedOrderBys, appliedLimit, appliedOffset);
         List<Object> params = collectAllParameters();
         Set<String> rootIncludeColumns = collectRootManyToOneColumns();
 
@@ -190,9 +194,11 @@ public class SelectQuery<T> {
     }
 
     public Page<T> fetchPage(Pageable pageable) {
+        List<OrderByEntry> pageOrderBys = new ArrayList<>(orderBys);
+
         if (pageable.getSort().isSorted()) {
             for (Sort.Order order : pageable.getSort().getOrders()) {
-                orderBys.add(new OrderByEntry(
+                pageOrderBys.add(new OrderByEntry(
                         resolveColumnOrProperty(metadata, order.getProperty()),
                         order.getDirection() == Sort.Direction.ASC
                 ));
@@ -201,10 +207,12 @@ public class SelectQuery<T> {
 
         long totalElements = fetchCount();
 
-        this.limit = pageable.getPageSize();
-        this.offset = (int) pageable.getOffset();
+        long requestedOffset = pageable.getOffset();
+        if (requestedOffset > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Pageable offset exceeds supported range for JDBC pagination");
+        }
 
-        List<T> content = fetchAll();
+        List<T> content = fetchAllInternal(pageOrderBys, pageable.getPageSize(), (int) requestedOffset);
 
         return new Page<>(content, totalElements, pageable.getPageNumber(), pageable.getPageSize());
     }
@@ -217,9 +225,18 @@ public class SelectQuery<T> {
         orderBys.add(entry);
     }
 
-    private String buildSqlWithExists() {
-        String baseSql = sqlBuilder.buildSelectSql(metadata, conditions, orderBys, limit, offset);
-        return appendExistsSubqueries(baseSql);
+    private String buildSqlWithExists(List<OrderByEntry> appliedOrderBys, Integer appliedLimit, Integer appliedOffset) {
+        String baseSql = sqlBuilder.buildSelectSql(metadata, conditions, Collections.emptyList(), null, null);
+        String sqlWithExists = appendExistsSubqueries(baseSql);
+        String sqlWithOrderBy = appendOrderBy(sqlWithExists, appliedOrderBys);
+
+        if (appliedLimit != null || appliedOffset != null) {
+            int resolvedLimit = appliedLimit != null ? appliedLimit : Integer.MAX_VALUE;
+            int resolvedOffset = appliedOffset != null ? appliedOffset : 0;
+            return dialect.paginationSql(sqlWithOrderBy, resolvedLimit, resolvedOffset);
+        }
+
+        return sqlWithOrderBy;
     }
 
     private String buildCountSqlWithExists() {
@@ -273,6 +290,19 @@ public class SelectQuery<T> {
                 sb.append(" AND ").append(dialect.quoteIdentifier(resolvedColumn));
                 if (cond.getOperator().isNoValue()) {
                     sb.append(" ").append(cond.getOperator().getSql());
+                } else if (cond.getOperator().isCollection()) {
+                    Collection<?> values = (Collection<?>) cond.getValue();
+                    if (values == null || values.isEmpty()) {
+                        throw new IllegalArgumentException("IN condition requires at least one value");
+                    }
+
+                    StringJoiner joiner = new StringJoiner(", ");
+                    for (int i = 0; i < values.size(); i++) {
+                        joiner.add("?");
+                    }
+
+                    sb.append(" ").append(cond.getOperator().getSql())
+                            .append(" (").append(joiner).append(")");
                 } else {
                     sb.append(" ").append(cond.getOperator().getSql()).append(" ?");
                 }
@@ -281,6 +311,21 @@ public class SelectQuery<T> {
             sb.append(")");
         }
 
+        return sb.toString();
+    }
+
+    private String appendOrderBy(String baseSql, List<OrderByEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return baseSql;
+        }
+
+        StringBuilder sb = new StringBuilder(baseSql);
+        sb.append(" ORDER BY ");
+        StringJoiner joiner = new StringJoiner(", ");
+        for (OrderByEntry entry : entries) {
+            joiner.add(dialect.quoteIdentifier(entry.getColumn()) + (entry.isAscending() ? " ASC" : " DESC"));
+        }
+        sb.append(joiner);
         return sb.toString();
     }
 

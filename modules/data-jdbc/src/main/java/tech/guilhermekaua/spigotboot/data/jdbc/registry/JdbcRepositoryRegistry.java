@@ -27,6 +27,8 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.pagination.Page;
+import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.Query;
 import tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProvider;
@@ -113,6 +115,7 @@ public class JdbcRepositoryRegistry {
             }
 
             if (method.isAnnotationPresent(Query.class)) {
+                validatePagedQueryMethodSignature(repositoryClass, method);
                 continue;
             }
 
@@ -125,6 +128,26 @@ public class JdbcRepositoryRegistry {
 
     private boolean isBaseRepositoryMethod(Method method) {
         return isDeclaredBy(method, JdbcRepository.class) || isDeclaredBy(method, Repository.class);
+    }
+
+    private void validatePagedQueryMethodSignature(Class<? extends JdbcRepository> repositoryClass, Method method) {
+        if (!Page.class.isAssignableFrom(method.getReturnType())) {
+            return;
+        }
+
+        int pageableParameterCount = 0;
+        for (Class<?> parameterType : method.getParameterTypes()) {
+            if (Pageable.class.isAssignableFrom(parameterType)) {
+                pageableParameterCount++;
+            }
+        }
+
+        if (pageableParameterCount != 1) {
+            throw new IllegalStateException(
+                    "Invalid paged @Query method " + repositoryClass.getName() + "#" + method.getName() +
+                            ". Methods returning Page must declare exactly one Pageable parameter."
+            );
+        }
     }
 
     private boolean isDeclaredBy(Method method, Class<?> baseType) {

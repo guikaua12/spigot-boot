@@ -22,6 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.repository;
 
+import tech.guilhermekaua.spigotboot.core.pagination.Page;
+import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
 import tech.guilhermekaua.spigotboot.data.jdbc.query.SelectQuery;
 import tech.guilhermekaua.spigotboot.data.repository.Repository;
 
@@ -29,6 +31,8 @@ public interface JdbcRepository<T, ID> extends Repository<T, ID> {
     T insert(T entity);
 
     T update(T entity);
+
+    Page<T> findAll(Pageable pageable);
 
     SelectQuery<T> select();
 }

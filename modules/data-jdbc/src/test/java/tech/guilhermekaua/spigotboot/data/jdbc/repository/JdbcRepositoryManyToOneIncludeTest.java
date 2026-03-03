@@ -27,6 +27,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.pagination.Page;
+import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
+import tech.guilhermekaua.spigotboot.core.pagination.Sort;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.*;
 import tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProvider;
 import tech.guilhermekaua.spigotboot.data.jdbc.converter.BuiltInConverters;
@@ -318,6 +321,89 @@ class JdbcRepositoryManyToOneIncludeTest {
     }
 
     @Nested
+    class PaginationTests {
+        @Test
+        void selectFetchPageSupportsWhereHasWithRootOrderBy() {
+            createPaginationFixture();
+
+            Page<Player> page = playerRepository.select()
+                    .whereHas("quests", include -> include.where("completed").eq(false))
+                    .orderBy("name").asc()
+                    .fetchPage(Pageable.of(0, 2));
+
+            assertEquals(3, page.getTotalElements());
+            assertEquals(2, page.getContent().size());
+            assertEquals("amy", page.getContent().get(0).getName());
+            assertEquals("bob", page.getContent().get(1).getName());
+        }
+
+        @Test
+        void repositoryFindAllPageableDelegatesToSelectPagination() {
+            createPaginationFixture();
+
+            Page<Player> page = playerRepository.findAll(Pageable.of(0, 2, Sort.asc("name")));
+
+            assertEquals(4, page.getTotalElements());
+            assertEquals(2, page.getContent().size());
+            assertEquals("amy", page.getContent().get(0).getName());
+            assertEquals("bob", page.getContent().get(1).getName());
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void queryAnnotationPageSupportsIncludesAndPageableSorting() throws Exception {
+            createPaginationFixture();
+            Method queryMethod = PlayerPagedQueryRepository.class.getMethod("findByNameLike", String.class, Pageable.class);
+
+            Object queryResult = queryMethodHandler.execute(
+                    queryMethod,
+                    new Object[]{"%", Pageable.of(0, 2, Sort.asc("name"))},
+                    playerMetadata,
+                    dialect
+            );
+
+            Page<Player> page = (Page<Player>) queryResult;
+            assertEquals(4, page.getTotalElements());
+            assertEquals(2, page.getContent().size());
+            assertEquals("amy", page.getContent().get(0).getName());
+            assertEquals("bob", page.getContent().get(1).getName());
+            assertNotNull(page.getContent().get(0).getGuild());
+            assertNotNull(page.getContent().get(1).getGuild());
+        }
+
+        @Test
+        void queryAnnotationPageWithoutPageableThrowsHelpfulError() throws Exception {
+            createPaginationFixture();
+            Method queryMethod = InvalidPagedQueryRepository.class.getMethod("findAllPaged");
+
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> queryMethodHandler.execute(queryMethod, new Object[0], playerMetadata, dialect)
+            );
+
+            assertTrue(exception.getMessage().contains("exactly one Pageable parameter"));
+        }
+
+        @Test
+        void queryAnnotationPageRejectsSqlWithLimitOffset() throws Exception {
+            createPaginationFixture();
+            Method queryMethod = LimitedPagedQueryRepository.class.getMethod("findAllPaged", Pageable.class);
+
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> queryMethodHandler.execute(
+                            queryMethod,
+                            new Object[]{Pageable.of(0, 2, Sort.asc("name"))},
+                            playerMetadata,
+                            dialect
+                    )
+            );
+
+            assertTrue(exception.getMessage().contains("LIMIT/OFFSET"));
+        }
+    }
+
+    @Nested
     class MetadataValidationTests {
         @Test
         void oneToManyWithoutJoinColumnThrowsHelpfulError() {
@@ -377,6 +463,30 @@ class JdbcRepositoryManyToOneIncludeTest {
         return new UnmappedOneToManyFixture(player, quest);
     }
 
+    private void createPaginationFixture() {
+        Guild guild = new Guild();
+        guild.setName("archers");
+        guildRepository.insert(guild);
+
+        insertPlayerWithQuest(guild, "amy", "amy-open", false);
+        insertPlayerWithQuest(guild, "bob", "bob-open", false);
+        insertPlayerWithQuest(guild, "cara", "cara-open", false);
+        insertPlayerWithQuest(guild, "zed", "zed-closed", true);
+    }
+
+    private void insertPlayerWithQuest(Guild guild, String playerName, String questTitle, boolean completed) {
+        Player player = new Player();
+        player.setName(playerName);
+        player.setGuild(guild);
+        playerRepository.insert(player);
+
+        Quest quest = new Quest();
+        quest.setPlayerId(player.getId());
+        quest.setTitle(questTitle);
+        quest.setCompleted(completed);
+        questRepository.insert(quest);
+    }
+
     private void createTable(String ddl) throws Exception {
         try (Connection connection = connectionProvider.getConnection();
              Statement statement = connection.createStatement()) {
@@ -410,6 +520,22 @@ class JdbcRepositoryManyToOneIncludeTest {
         @Query("SELECT * FROM quests_unmapped_fk WHERE id = :id")
         @Include("player.quests")
         List<QuestWithoutMappedPlayerFk> findById(@Param("id") UUID id);
+    }
+
+    private interface PlayerPagedQueryRepository {
+        @Query("SELECT * FROM players WHERE name LIKE :name")
+        @Include("guild")
+        Page<Player> findByNameLike(@Param("name") String name, Pageable pageable);
+    }
+
+    private interface InvalidPagedQueryRepository {
+        @Query("SELECT * FROM players")
+        Page<Player> findAllPaged();
+    }
+
+    private interface LimitedPagedQueryRepository {
+        @Query("SELECT * FROM players LIMIT 1")
+        Page<Player> findAllPaged(Pageable pageable);
     }
 
     private static final class Fixture {

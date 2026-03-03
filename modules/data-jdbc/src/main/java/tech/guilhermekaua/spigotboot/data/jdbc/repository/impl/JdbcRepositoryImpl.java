@@ -22,6 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.repository.impl;
 
+import tech.guilhermekaua.spigotboot.core.pagination.Page;
+import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
 import tech.guilhermekaua.spigotboot.data.converter.AttributeConverter;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.IdStrategy;
 import tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProvider;
@@ -248,6 +250,11 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find all entities", e);
         }
+    }
+
+    @Override
+    public Page<T> findAll(Pageable pageable) {
+        return select().fetchPage(pageable);
     }
 
     @Override

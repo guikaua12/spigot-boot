@@ -23,6 +23,9 @@
 package tech.guilhermekaua.spigotboot.data.jdbc.methodHandler;
 
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.pagination.Page;
+import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
+import tech.guilhermekaua.spigotboot.core.pagination.Sort;
 import tech.guilhermekaua.spigotboot.data.converter.AttributeConverter;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.Include;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.Param;
@@ -81,10 +84,29 @@ public class QueryMethodHandler {
 
         Map<String, Object> paramValues = resolveParamValues(method, args);
         List<Object> positionalParams = toPositionalParams(parsedQueryTemplate, paramValues, method);
-        String sql = parsedQueryTemplate.getSql();
+        String sql = trimTrailingSemicolon(parsedQueryTemplate.getSql());
         boolean selectQuery = isSelectQuery(sql);
         Class<?> returnType = method.getReturnType();
         Set<String> rootIncludeColumns = collectRootManyToOneColumns(method, entityMetadata);
+
+        if (isPageReturn(returnType)) {
+            if (!selectQuery) {
+                throw new IllegalStateException(
+                        "@Query method " + method.getName() + " must use SELECT when returning Page"
+                );
+            }
+
+            Pageable pageable = resolveRequiredPageable(method, args);
+            return executePagedEntityQuery(
+                    method,
+                    sql,
+                    positionalParams,
+                    entityMetadata,
+                    dialect,
+                    rootIncludeColumns,
+                    pageable
+            );
+        }
 
         if (isEntityReturn(returnType)) {
             if (!selectQuery) {
@@ -187,6 +209,241 @@ public class QueryMethodHandler {
         }
     }
 
+    private Page<Object> executePagedEntityQuery(
+            Method method,
+            String sql,
+            List<Object> positionalParams,
+            EntityMetadata entityMetadata,
+            Dialect dialect,
+            Set<String> rootIncludeColumns,
+            Pageable pageable
+    ) {
+        if (hasTopLevelLimitOrOffset(sql)) {
+            throw new IllegalStateException(
+                    "@Query method " + method.getName() +
+                            " already declares LIMIT/OFFSET. Remove SQL pagination and use Pageable only."
+            );
+        }
+
+        String countSourceSql = stripTopLevelOrderBy(sql);
+        String countSql = "SELECT COUNT(*) FROM (" + countSourceSql + ") AS __spigot_boot_count__";
+        long totalElements = executeCountQuery(countSql, positionalParams);
+
+        String sortedSql = appendPageableSort(sql, pageable, entityMetadata, dialect);
+        long requestedOffset = pageable.getOffset();
+        if (requestedOffset > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Pageable offset exceeds supported range for JDBC pagination");
+        }
+
+        String pagedSql = dialect.paginationSql(sortedSql, pageable.getPageSize(), (int) requestedOffset);
+        EntityQueryResult queryResult = executeEntityQuery(pagedSql, positionalParams, entityMetadata, rootIncludeColumns);
+        applyIncludes(method, queryResult.getEntities(), entityMetadata, dialect, queryResult.getRootColumnValues());
+        return new Page<>(queryResult.getEntities(), totalElements, pageable.getPageNumber(), pageable.getPageSize());
+    }
+
+    private long executeCountQuery(String countSql, List<Object> positionalParams) {
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement ps = conn.prepareStatement(countSql)) {
+            bindParameters(ps, positionalParams);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+
+                return 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute @Query page count", e);
+        }
+    }
+
+    private Pageable resolveRequiredPageable(Method method, Object[] args) {
+        Parameter[] parameters = method.getParameters();
+        int pageableIndex = -1;
+
+        for (int i = 0; i < parameters.length; i++) {
+            if (!Pageable.class.isAssignableFrom(parameters[i].getType())) {
+                continue;
+            }
+
+            if (pageableIndex != -1) {
+                throw new IllegalStateException(
+                        "@Query method " + method.getName() +
+                                " returning Page must declare exactly one Pageable parameter"
+                );
+            }
+
+            pageableIndex = i;
+        }
+
+        if (pageableIndex == -1) {
+            throw new IllegalStateException(
+                    "@Query method " + method.getName() +
+                            " returning Page must declare exactly one Pageable parameter"
+            );
+        }
+
+        Object[] safeArgs = args == null ? new Object[0] : args;
+        Object pageableArg = pageableIndex < safeArgs.length ? safeArgs[pageableIndex] : null;
+        if (!(pageableArg instanceof Pageable)) {
+            throw new IllegalStateException(
+                    "@Query method " + method.getName() +
+                            " requires a non-null Pageable argument"
+            );
+        }
+
+        return (Pageable) pageableArg;
+    }
+
+    private String appendPageableSort(String sql, Pageable pageable, EntityMetadata entityMetadata, Dialect dialect) {
+        if (!pageable.getSort().isSorted() || hasTopLevelOrderBy(sql)) {
+            return sql;
+        }
+
+        StringJoiner orderJoiner = new StringJoiner(", ");
+        for (Sort.Order order : pageable.getSort().getOrders()) {
+            String resolvedColumn = resolveColumnOrProperty(entityMetadata, order.getProperty());
+            orderJoiner.add(dialect.quoteIdentifier(resolvedColumn) + (order.getDirection() == Sort.Direction.ASC ? " ASC" : " DESC"));
+        }
+
+        return sql + " ORDER BY " + orderJoiner;
+    }
+
+    private String stripTopLevelOrderBy(String sql) {
+        int orderByIndex = findTopLevelOrderByIndex(sql);
+        if (orderByIndex < 0) {
+            return sql;
+        }
+
+        return sql.substring(0, orderByIndex).trim();
+    }
+
+    private boolean hasTopLevelOrderBy(String sql) {
+        return findTopLevelOrderByIndex(sql) >= 0;
+    }
+
+    private int findTopLevelOrderByIndex(String sql) {
+        int depth = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            char current = sql.charAt(i);
+            if (current == '\'' || current == '"' || current == '`') {
+                i = skipQuotedSection(sql, i, current);
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+                continue;
+            }
+
+            if (depth != 0 || !isKeywordAt(sql, i, "order")) {
+                continue;
+            }
+
+            int cursor = i + "order".length();
+            while (cursor < sql.length() && Character.isWhitespace(sql.charAt(cursor))) {
+                cursor++;
+            }
+
+            if (isKeywordAt(sql, cursor, "by")) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private boolean hasTopLevelLimitOrOffset(String sql) {
+        int depth = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            char current = sql.charAt(i);
+            if (current == '\'' || current == '"' || current == '`') {
+                i = skipQuotedSection(sql, i, current);
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+                continue;
+            }
+
+            if (depth == 0 && (isKeywordAt(sql, i, "limit") || isKeywordAt(sql, i, "offset"))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int skipQuotedSection(String text, int startIndex, char quoteChar) {
+        int i = startIndex + 1;
+        while (i < text.length()) {
+            char current = text.charAt(i);
+            if (current == quoteChar) {
+                if (quoteChar == '\'' && i + 1 < text.length() && text.charAt(i + 1) == '\'') {
+                    i += 2;
+                    continue;
+                }
+
+                return i;
+            }
+
+            if (current == '\\' && i + 1 < text.length()) {
+                i += 2;
+                continue;
+            }
+
+            i++;
+        }
+
+        return text.length() - 1;
+    }
+
+    private boolean isKeywordAt(String text, int index, String keyword) {
+        if (index < 0 || index + keyword.length() > text.length()) {
+            return false;
+        }
+
+        if (!text.regionMatches(true, index, keyword, 0, keyword.length())) {
+            return false;
+        }
+
+        int previousIndex = index - 1;
+        if (previousIndex >= 0 && isIdentifierCharacter(text.charAt(previousIndex))) {
+            return false;
+        }
+
+        int nextIndex = index + keyword.length();
+        return nextIndex >= text.length() || !isIdentifierCharacter(text.charAt(nextIndex));
+    }
+
+    private boolean isIdentifierCharacter(char character) {
+        return Character.isLetterOrDigit(character) || character == '_' || character == '$';
+    }
+
+    private String trimTrailingSemicolon(String sql) {
+        String trimmed = sql.trim();
+        while (trimmed.endsWith(";")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
+        }
+        return trimmed;
+    }
+
     private void bindParameters(PreparedStatement ps, List<Object> positionalParams) throws SQLException {
         for (int i = 0; i < positionalParams.size(); i++) {
             ps.setObject(i + 1, positionalParams.get(i));
@@ -196,7 +453,11 @@ public class QueryMethodHandler {
     private boolean isEntityReturn(Class<?> returnType) {
         return List.class.isAssignableFrom(returnType)
                 || Optional.class.isAssignableFrom(returnType)
-                || (!isScalarReturn(returnType) && !isVoidReturn(returnType));
+                || (!isScalarReturn(returnType) && !isVoidReturn(returnType) && !isPageReturn(returnType));
+    }
+
+    private boolean isPageReturn(Class<?> returnType) {
+        return Page.class.isAssignableFrom(returnType);
     }
 
     private boolean isScalarReturn(Class<?> returnType) {
@@ -809,6 +1070,22 @@ public class QueryMethodHandler {
         }
 
         return false;
+    }
+
+    private String resolveColumnOrProperty(EntityMetadata sourceMetadata, String propertyOrColumn) {
+        for (ColumnMetadata columnMetadata : sourceMetadata.getColumns()) {
+            if (columnMetadata.getField().getName().equals(propertyOrColumn)) {
+                return columnMetadata.getColumnName();
+            }
+        }
+
+        for (ColumnMetadata columnMetadata : sourceMetadata.getColumns()) {
+            if (columnMetadata.getColumnName().equals(propertyOrColumn)) {
+                return columnMetadata.getColumnName();
+            }
+        }
+
+        return propertyOrColumn;
     }
 
     private Object resolveManyToOneForeignKeyValue(
