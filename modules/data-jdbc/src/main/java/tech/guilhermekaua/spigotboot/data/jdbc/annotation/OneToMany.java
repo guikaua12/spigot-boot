@@ -20,32 +20,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin;
+package tech.guilhermekaua.spigotboot.data.jdbc.annotation;
 
-import com.j256.ormlite.field.DataType;
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
-import lombok.*;
-import tech.guilhermekaua.spigotboot.data.ormLite.persisters.InstantPersister;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.UUID;
-
-
-@Getter
-@Setter
-@NoArgsConstructor(force = true)
-@AllArgsConstructor
-@ToString
-@DatabaseTable(tableName = "person")
-public class People implements Serializable {
-    @DatabaseField(generatedId = true, columnName = "id", canBeNull = false, dataType = DataType.UUID)
-    private final UUID uuid;
-    @DatabaseField(columnName = "name", canBeNull = false)
-    private String name;
-    @DatabaseField(columnName = "email", canBeNull = false)
-    private String email;
-    @DatabaseField(columnName = "created_at", canBeNull = false, persisterClass = InstantPersister.class)
-    private final Instant createdAt;
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface OneToMany {
 }

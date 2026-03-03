@@ -208,8 +208,8 @@ class JdbcRepositoryManyToOneIncludeTest {
         }
 
         @Test
-        void selectIncludeHydratesHasManyWithoutMappedForeignKeyField() {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void selectIncludeHydratesOneToManyWithoutMappedForeignKeyField() {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
 
             List<PlayerWithoutMappedChildFk> players = playerWithoutMappedChildFkRepository.select()
                     .include("quests")
@@ -223,8 +223,8 @@ class JdbcRepositoryManyToOneIncludeTest {
 
         @Test
         @SuppressWarnings("unchecked")
-        void queryAnnotationIncludeHydratesHasManyWithoutMappedForeignKeyField() throws Exception {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void queryAnnotationIncludeHydratesOneToManyWithoutMappedForeignKeyField() throws Exception {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
             Method queryMethod = PlayerWithoutMappedChildFkQueryRepository.class.getMethod("findById", UUID.class);
 
             Object queryResult = queryMethodHandler.execute(
@@ -242,8 +242,8 @@ class JdbcRepositoryManyToOneIncludeTest {
         }
 
         @Test
-        void selectIncludeHydratesNestedHasManyManyToOneWithoutMappedForeignKeyField() {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void selectIncludeHydratesNestedOneToManyManyToOneWithoutMappedForeignKeyField() {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
 
             List<PlayerWithoutMappedChildFk> players = playerWithoutMappedChildFkRepository.select()
                     .include("quests.player")
@@ -258,8 +258,8 @@ class JdbcRepositoryManyToOneIncludeTest {
         }
 
         @Test
-        void selectIncludeHydratesNestedManyToOneHasManyWithoutMappedForeignKeyField() {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void selectIncludeHydratesNestedManyToOneOneToManyWithoutMappedForeignKeyField() {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
 
             List<QuestWithoutMappedPlayerFk> quests = questWithoutMappedPlayerFkRepository.select()
                     .include("player.quests")
@@ -275,8 +275,8 @@ class JdbcRepositoryManyToOneIncludeTest {
 
         @Test
         @SuppressWarnings("unchecked")
-        void queryAnnotationIncludeHydratesNestedHasManyManyToOneWithoutMappedForeignKeyField() throws Exception {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void queryAnnotationIncludeHydratesNestedOneToManyManyToOneWithoutMappedForeignKeyField() throws Exception {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
             Method queryMethod = PlayerWithoutMappedChildFkNestedQueryRepository.class.getMethod("findById", UUID.class);
 
             Object queryResult = queryMethodHandler.execute(
@@ -296,8 +296,8 @@ class JdbcRepositoryManyToOneIncludeTest {
 
         @Test
         @SuppressWarnings("unchecked")
-        void queryAnnotationIncludeHydratesNestedManyToOneHasManyWithoutMappedForeignKeyField() throws Exception {
-            UnmappedHasManyFixture fixture = createUnmappedHasManyFixture();
+        void queryAnnotationIncludeHydratesNestedManyToOneOneToManyWithoutMappedForeignKeyField() throws Exception {
+            UnmappedOneToManyFixture fixture = createUnmappedOneToManyFixture();
             Method queryMethod = QuestWithoutMappedPlayerFkNestedQueryRepository.class.getMethod("findById", UUID.class);
 
             Object queryResult = queryMethodHandler.execute(
@@ -314,6 +314,22 @@ class JdbcRepositoryManyToOneIncludeTest {
             assertEquals(fixture.player.getId(), quest.getPlayer().getId());
             assertEquals(1, quest.getPlayer().getQuests().size());
             assertEquals(quest.getId(), quest.getPlayer().getQuests().get(0).getId());
+        }
+    }
+
+    @Nested
+    class MetadataValidationTests {
+        @Test
+        void oneToManyWithoutJoinColumnThrowsHelpfulError() {
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> metadataRegistry.getOrParse(PlayerWithInvalidOneToMany.class)
+            );
+
+            assertEquals(
+                    "@OneToMany field quests on " + PlayerWithInvalidOneToMany.class.getName() + " requires @JoinColumn.",
+                    exception.getMessage()
+            );
         }
     }
 
@@ -348,7 +364,7 @@ class JdbcRepositoryManyToOneIncludeTest {
         return new QuestFixture(fixture.player, completedQuest, incompleteQuest);
     }
 
-    private UnmappedHasManyFixture createUnmappedHasManyFixture() {
+    private UnmappedOneToManyFixture createUnmappedOneToManyFixture() {
         PlayerWithoutMappedChildFk player = new PlayerWithoutMappedChildFk();
         player.setName("sam");
         playerWithoutMappedChildFkRepository.insert(player);
@@ -358,7 +374,7 @@ class JdbcRepositoryManyToOneIncludeTest {
         quest.setPlayer(player);
         questWithoutMappedPlayerFkRepository.insert(quest);
 
-        return new UnmappedHasManyFixture(player, quest);
+        return new UnmappedOneToManyFixture(player, quest);
     }
 
     private void createTable(String ddl) throws Exception {
@@ -418,11 +434,11 @@ class JdbcRepositoryManyToOneIncludeTest {
         }
     }
 
-    private static final class UnmappedHasManyFixture {
+    private static final class UnmappedOneToManyFixture {
         private final PlayerWithoutMappedChildFk player;
         private final QuestWithoutMappedPlayerFk quest;
 
-        private UnmappedHasManyFixture(PlayerWithoutMappedChildFk player, QuestWithoutMappedPlayerFk quest) {
+        private UnmappedOneToManyFixture(PlayerWithoutMappedChildFk player, QuestWithoutMappedPlayerFk quest) {
             this.player = player;
             this.quest = quest;
         }
@@ -470,7 +486,8 @@ class JdbcRepositoryManyToOneIncludeTest {
         @JoinColumn("guild_id")
         private Guild guild;
 
-        @HasMany(foreignKey = "player_id")
+        @OneToMany
+        @JoinColumn("player_id")
         private final List<Quest> quests = new ArrayList<>();
 
         public Player() {
@@ -502,6 +519,19 @@ class JdbcRepositoryManyToOneIncludeTest {
 
         public List<Quest> getQuests() {
             return quests;
+        }
+    }
+
+    @Table("players_invalid_one_to_many")
+    public static final class PlayerWithInvalidOneToMany {
+        @Id(strategy = IdStrategy.UUID)
+        @Column("id")
+        private UUID id;
+
+        @OneToMany
+        private final List<Quest> quests = new ArrayList<>();
+
+        public PlayerWithInvalidOneToMany() {
         }
     }
 
@@ -565,7 +595,8 @@ class JdbcRepositoryManyToOneIncludeTest {
         @Column("name")
         private String name;
 
-        @HasMany(foreignKey = "player_id")
+        @OneToMany
+        @JoinColumn("player_id")
         private final List<QuestWithoutMappedPlayerFk> quests = new ArrayList<>();
 
         public PlayerWithoutMappedChildFk() {

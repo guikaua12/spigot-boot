@@ -37,7 +37,7 @@ public class RelationshipMetadata {
     private final boolean collection;
 
     public enum RelationshipType {
-        HAS_MANY,
+        ONE_TO_MANY,
         MANY_TO_ONE
     }
 }

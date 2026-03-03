@@ -376,8 +376,8 @@ public class QueryMethodHandler {
         Set<String> nestedManyToOneColumns = collectUnmappedManyToOneColumns(targetMeta, nestedRelationshipName);
 
         IncludeProcessingResult includeResult;
-        if (relationship.getType() == RelationshipMetadata.RelationshipType.HAS_MANY) {
-            includeResult = processHasManyInclude(
+        if (relationship.getType() == RelationshipMetadata.RelationshipType.ONE_TO_MANY) {
+            includeResult = processOneToManyInclude(
                     parentResults,
                     parentMeta,
                     relationship,
@@ -413,7 +413,7 @@ public class QueryMethodHandler {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private IncludeProcessingResult processHasManyInclude(
+    private IncludeProcessingResult processOneToManyInclude(
             List<?> parentResults,
             EntityMetadata parentMeta,
             RelationshipMetadata relationship,

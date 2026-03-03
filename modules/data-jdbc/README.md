@@ -48,7 +48,8 @@ public class Player {
     @Column("name")
     private String name;
 
-    @HasMany(foreignKey = "player_id")
+    @OneToMany
+    @JoinColumn("player_id")
     private List<Quest> quests = new ArrayList<>();
 }
 ```
@@ -59,7 +60,7 @@ Supported mapping annotations:
 - `@Column`
 - `@Id`
 - `@EmbeddedId`
-- `@HasMany`
+- `@OneToMany` + `@JoinColumn`
 - `@ManyToOne` + `@JoinColumn`
 
 ## Repository API

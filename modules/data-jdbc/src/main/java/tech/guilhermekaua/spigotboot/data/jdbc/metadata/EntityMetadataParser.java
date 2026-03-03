@@ -132,15 +132,22 @@ public class EntityMetadataParser {
         List<RelationshipMetadata> relationships = new ArrayList<>();
 
         for (Field field : getAllFields(entityClass)) {
-            HasMany hasMany = field.getAnnotation(HasMany.class);
+            OneToMany oneToMany = field.getAnnotation(OneToMany.class);
             ManyToOne manyToOne = field.getAnnotation(ManyToOne.class);
 
-            if (hasMany != null) {
+            if (oneToMany != null) {
+                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+                if (joinColumn == null) {
+                    throw new IllegalArgumentException(
+                            "@OneToMany field " + field.getName() + " on " + entityClass.getName() + " requires @JoinColumn."
+                    );
+                }
+
                 Class<?> targetEntity = resolveCollectionGenericType(field);
                 relationships.add(new RelationshipMetadata(
                         field,
-                        RelationshipMetadata.RelationshipType.HAS_MANY,
-                        hasMany.foreignKey(),
+                        RelationshipMetadata.RelationshipType.ONE_TO_MANY,
+                        joinColumn.value(),
                         targetEntity,
                         true
                 ));
@@ -176,7 +183,7 @@ public class EntityMetadataParser {
                     Class<?> resolvedType = (Class<?>) typeArg;
                     if (resolvedType.isInterface() || Modifier.isAbstract(resolvedType.getModifiers())) {
                         throw new IllegalArgumentException(
-                                "@HasMany field " + field.getName() + " must target a concrete entity type."
+                                "@OneToMany field " + field.getName() + " must target a concrete entity type."
                         );
                     }
                     return resolvedType;
@@ -184,7 +191,7 @@ public class EntityMetadataParser {
             }
         }
         throw new IllegalArgumentException(
-                "Could not resolve generic type for @HasMany field " + field.getName() +
+                "Could not resolve generic type for @OneToMany field " + field.getName() +
                         ". Ensure the field uses a parameterized Collection type (e.g. List<Entity>)."
         );
     }

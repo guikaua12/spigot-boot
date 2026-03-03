@@ -251,7 +251,7 @@ public class SelectQuery<T> {
             sb.append(dialect.quoteIdentifier(targetMeta.getTableName()));
             sb.append(" WHERE ");
 
-            if (rel.getType() == RelationshipMetadata.RelationshipType.HAS_MANY) {
+            if (rel.getType() == RelationshipMetadata.RelationshipType.ONE_TO_MANY) {
                 // child.fk = parent.id
                 sb.append(dialect.quoteIdentifier(targetMeta.getTableName()))
                         .append(".").append(dialect.quoteIdentifier(rel.getForeignKeyColumn()))
@@ -335,8 +335,8 @@ public class SelectQuery<T> {
         Set<String> nestedManyToOneColumns = collectUnmappedManyToOneColumns(targetMeta, nestedRelationshipName);
 
         IncludeProcessingResult includeResult;
-        if (relationship.getType() == RelationshipMetadata.RelationshipType.HAS_MANY) {
-            includeResult = processHasManyInclude(
+        if (relationship.getType() == RelationshipMetadata.RelationshipType.ONE_TO_MANY) {
+            includeResult = processOneToManyInclude(
                     mainResults,
                     parentMeta,
                     relationship,
@@ -369,7 +369,7 @@ public class SelectQuery<T> {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private IncludeProcessingResult processHasManyInclude(
+    private IncludeProcessingResult processOneToManyInclude(
             List<?> mainResults,
             EntityMetadata parentMeta,
             RelationshipMetadata relationship,
