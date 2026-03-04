@@ -26,12 +26,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.ColumnMetadata;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.*;
+import java.util.*;
 
 public class MySQLDialect implements Dialect {
 
@@ -42,15 +40,24 @@ public class MySQLDialect implements Dialect {
 
     @Override
     public String mapJavaTypeToSqlType(Class<?> javaType) {
-        if (javaType == String.class || javaType == UUID.class) return "VARCHAR(255)";
+        if (javaType == String.class || javaType == UUID.class
+                || javaType == OffsetDateTime.class
+                || javaType == OffsetTime.class
+                || javaType == ZonedDateTime.class) return "VARCHAR(255)";
+        if (javaType == BigDecimal.class) return "DECIMAL(38, 18)";
+        if (javaType == BigInteger.class) return "DECIMAL(38, 0)";
         if (javaType == int.class || javaType == Integer.class) return "INT";
         if (javaType == long.class || javaType == Long.class) return "BIGINT";
         if (javaType == double.class || javaType == Double.class) return "DOUBLE";
         if (javaType == float.class || javaType == Float.class) return "FLOAT";
         if (javaType == boolean.class || javaType == Boolean.class) return "BOOLEAN";
         if (javaType == byte[].class) return "BLOB";
-        if (javaType == Instant.class || javaType == LocalDateTime.class) return "DATETIME";
+        if (javaType == Instant.class || javaType == LocalDateTime.class
+                || javaType == Date.class
+                || javaType == Calendar.class) return "DATETIME";
         if (javaType == LocalDate.class) return "DATE";
+        if (javaType == LocalTime.class) return "TIME";
+        if (javaType == Duration.class) return "BIGINT";
         if (javaType == short.class || javaType == Short.class) return "SMALLINT";
         if (javaType == byte.class || javaType == Byte.class) return "TINYINT";
         return "VARCHAR(255)";

@@ -26,12 +26,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.ColumnMetadata;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.*;
+import java.util.*;
 
 public class SQLiteDialect implements Dialect {
 
@@ -42,15 +40,23 @@ public class SQLiteDialect implements Dialect {
 
     @Override
     public String mapJavaTypeToSqlType(Class<?> javaType) {
-        if (javaType == String.class || javaType == UUID.class) return "TEXT";
+        if (javaType == String.class || javaType == UUID.class
+                || javaType == OffsetDateTime.class
+                || javaType == OffsetTime.class
+                || javaType == ZonedDateTime.class) return "TEXT";
+        if (javaType == BigDecimal.class || javaType == BigInteger.class) return "NUMERIC";
         if (javaType == int.class || javaType == Integer.class) return "INTEGER";
         if (javaType == long.class || javaType == Long.class) return "INTEGER";
         if (javaType == double.class || javaType == Double.class) return "REAL";
         if (javaType == float.class || javaType == Float.class) return "REAL";
         if (javaType == boolean.class || javaType == Boolean.class) return "INTEGER";
         if (javaType == byte[].class) return "BLOB";
-        if (javaType == Instant.class || javaType == LocalDateTime.class) return "TEXT";
+        if (javaType == Instant.class || javaType == LocalDateTime.class
+                || javaType == Date.class
+                || javaType == Calendar.class) return "TEXT";
         if (javaType == LocalDate.class) return "TEXT";
+        if (javaType == LocalTime.class) return "TEXT";
+        if (javaType == Duration.class) return "INTEGER";
         if (javaType == short.class || javaType == Short.class) return "INTEGER";
         if (javaType == byte.class || javaType == Byte.class) return "INTEGER";
         return "TEXT";
