@@ -98,7 +98,7 @@ public class DataJdbcModule implements Module {
             return;
         }
 
-        DdlGenerator ddlGenerator = new DdlGenerator(dialect);
+        DdlGenerator ddlGenerator = new DdlGenerator(dialect, metadataRegistry);
 
         try (Connection connection = connectionProvider.getConnection();
              Statement stmt = connection.createStatement()) {

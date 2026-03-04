@@ -22,16 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.ddl;
 
-import tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId;
-import tech.guilhermekaua.spigotboot.data.jdbc.annotation.Id;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.IdStrategy;
 import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.ColumnMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.IdMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.RelationshipMetadata;
+import tech.guilhermekaua.spigotboot.data.jdbc.metadata.*;
 
-import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,9 +33,11 @@ import java.util.StringJoiner;
 
 public class DdlGenerator {
     private final Dialect dialect;
+    private final EntityMetadataRegistry metadataRegistry;
 
-    public DdlGenerator(Dialect dialect) {
+    public DdlGenerator(Dialect dialect, EntityMetadataRegistry metadataRegistry) {
         this.dialect = dialect;
+        this.metadataRegistry = metadataRegistry;
     }
 
     public String generateCreateTable(EntityMetadata metadata) {
@@ -116,35 +112,43 @@ public class DdlGenerator {
                 continue;
             }
 
-            String joinColumn = relationship.getForeignKeyColumn();
-            if (declaredColumns.contains(joinColumn)) {
-                continue;
-            }
+            EntityMetadata targetMetadata = resolveTargetMetadata(relationship.getTargetEntityClass());
+            for (RelationshipJoinColumn joinColumn : relationship.getJoinColumns()) {
+                String localJoinColumnName = joinColumn.getColumnName();
+                if (declaredColumns.contains(localJoinColumnName)) {
+                    continue;
+                }
 
-            Class<?> targetIdType = resolveSingleIdType(relationship.getTargetEntityClass());
-            String columnDefinition = dialect.quoteIdentifier(joinColumn) + " " + dialect.mapJavaTypeToSqlType(targetIdType);
-            columnDefs.add(columnDefinition);
-            declaredColumns.add(joinColumn);
+                ColumnMetadata referencedColumn = resolveReferencedColumn(targetMetadata, joinColumn.getReferencedColumnName());
+                String columnDefinition = dialect.quoteIdentifier(localJoinColumnName) + " " +
+                        dialect.mapJavaTypeToSqlType(referencedColumn.getJavaType());
+                columnDefs.add(columnDefinition);
+                declaredColumns.add(localJoinColumnName);
+            }
         }
     }
 
-    private Class<?> resolveSingleIdType(Class<?> targetEntityClass) {
-        Class<?> current = targetEntityClass;
-
-        while (current != null && current != Object.class) {
-            for (Field field : current.getDeclaredFields()) {
-                if (field.isAnnotationPresent(EmbeddedId.class)) {
-                    throw new IllegalArgumentException("@ManyToOne target " + targetEntityClass.getName() + " must use a single @Id field");
-                }
-
-                if (field.isAnnotationPresent(Id.class)) {
-                    return field.getType();
-                }
-            }
-
-            current = current.getSuperclass();
+    private EntityMetadata resolveTargetMetadata(Class<?> targetEntityClass) {
+        if (metadataRegistry == null) {
+            throw new IllegalStateException(
+                    "EntityMetadataRegistry is required for DDL join-column generation. " +
+                            "Use DdlGenerator(dialect, metadataRegistry)."
+            );
         }
 
-        throw new IllegalArgumentException("Could not resolve @Id field for @ManyToOne target " + targetEntityClass.getName());
+        return metadataRegistry.getOrParse(targetEntityClass);
+    }
+
+    private ColumnMetadata resolveReferencedColumn(EntityMetadata targetMetadata, String referencedColumnName) {
+        for (ColumnMetadata columnMetadata : targetMetadata.getColumns()) {
+            if (columnMetadata.getColumnName().equals(referencedColumnName)) {
+                return columnMetadata;
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "Could not resolve referenced column '" + referencedColumnName + "' on entity " +
+                        targetMetadata.getEntityClass().getName()
+        );
     }
 }

@@ -22,15 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.annotation;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-@Repeatable(JoinColumns.class)
-public @interface JoinColumn {
-    String value() default "";
-
-    String columnName() default "";
-
-    String referencedColumnName() default "";
+public @interface JoinColumns {
+    JoinColumn[] value();
 }

@@ -38,9 +38,7 @@ import tech.guilhermekaua.spigotboot.data.persistable.Persistable;
 
 import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
     private final ConnectionProvider connectionProvider;
@@ -113,15 +111,10 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
     }
 
     private List<InsertJoinColumnBinding> resolveImplicitManyToOneJoinColumns(T entity) {
-        List<InsertJoinColumnBinding> joinColumns = new ArrayList<>();
+        Map<String, Object> resolvedValues = new LinkedHashMap<>();
 
         for (RelationshipMetadata relationship : metadata.getRelationships()) {
             if (relationship.getType() != RelationshipMetadata.RelationshipType.MANY_TO_ONE) {
-                continue;
-            }
-
-            String joinColumn = relationship.getForeignKeyColumn();
-            if (isMappedColumn(joinColumn)) {
                 continue;
             }
 
@@ -131,24 +124,37 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
             }
 
             EntityMetadata targetMetadata = metadataRegistry.getOrParse(relationship.getTargetEntityClass());
-            if (targetMetadata.getIdMetadata().isComposite()) {
-                throw new IllegalStateException(
-                        "@ManyToOne target " + relationship.getTargetEntityClass().getName() +
-                                " uses @EmbeddedId which is not supported for implicit join-column inserts"
-                );
-            }
+            for (RelationshipJoinColumn joinColumn : relationship.getJoinColumns()) {
+                String localColumn = joinColumn.getColumnName();
+                if (isMappedColumn(localColumn)) {
+                    continue;
+                }
 
-            ColumnMetadata targetIdColumn = targetMetadata.getIdMetadata().getColumns().get(0);
-            Object targetId = getFieldValue(targetIdColumn.getField(), relatedEntity);
-            if (targetId == null) {
-                throw new IllegalStateException(
-                        "Cannot insert " + metadata.getEntityClass().getName() +
-                                " because relationship '" + relationship.getField().getName() + "' has null @Id value"
-                );
-            }
+                ColumnMetadata referencedColumn = findColumnMetadata(targetMetadata, joinColumn.getReferencedColumnName());
+                Object referencedValue = readColumnValue(relatedEntity, targetMetadata, referencedColumn);
+                if (referencedValue == null) {
+                    throw new IllegalStateException(
+                            "Cannot insert " + metadata.getEntityClass().getName() +
+                                    " because relationship '" + relationship.getField().getName() +
+                                    "' has null value for referenced column '" + joinColumn.getReferencedColumnName() + "'"
+                    );
+                }
 
-            Object dbValue = convertForDatabase(targetIdColumn, targetId);
-            joinColumns.add(new InsertJoinColumnBinding(joinColumn, dbValue));
+                Object dbValue = convertForDatabase(referencedColumn, referencedValue);
+                if (resolvedValues.containsKey(localColumn) && !resolvedValues.get(localColumn).equals(dbValue)) {
+                    throw new IllegalStateException(
+                            "Conflicting implicit join-column values for column '" + localColumn + "' on " +
+                                    metadata.getEntityClass().getName()
+                    );
+                }
+
+                resolvedValues.put(localColumn, dbValue);
+            }
+        }
+
+        List<InsertJoinColumnBinding> joinColumns = new ArrayList<>(resolvedValues.size());
+        for (Map.Entry<String, Object> entry : resolvedValues.entrySet()) {
+            joinColumns.add(new InsertJoinColumnBinding(entry.getKey(), entry.getValue()));
         }
 
         return joinColumns;
@@ -252,6 +258,63 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
         }
     }
 
+    private Object readColumnValue(Object entity, EntityMetadata entityMetadata, ColumnMetadata columnMetadata) {
+        Field field = columnMetadata.getField();
+        if (field.getDeclaringClass().isInstance(entity)) {
+            return getFieldValue(field, entity);
+        }
+
+        if (!entityMetadata.getIdMetadata().isComposite()) {
+            return getFieldValue(field, entity);
+        }
+
+        Object embeddedKey = getEmbeddedKeyValue(entity, entityMetadata);
+        if (embeddedKey == null) {
+            return null;
+        }
+
+        return getFieldValue(field, embeddedKey);
+    }
+
+    private Object getEmbeddedKeyValue(Object entity, EntityMetadata entityMetadata) {
+        Class<?> embeddedKeyClass = entityMetadata.getIdMetadata().getEmbeddedKeyClass();
+        if (embeddedKeyClass == null) {
+            return null;
+        }
+
+        Class<?> current = entityMetadata.getEntityClass();
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (!field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
+                    continue;
+                }
+
+                if (field.getType() != embeddedKeyClass) {
+                    continue;
+                }
+
+                return getFieldValue(field, entity);
+            }
+
+            current = current.getSuperclass();
+        }
+
+        return null;
+    }
+
+    private ColumnMetadata findColumnMetadata(EntityMetadata sourceMetadata, String columnName) {
+        for (ColumnMetadata columnMetadata : sourceMetadata.getColumns()) {
+            if (columnMetadata.getColumnName().equals(columnName)) {
+                return columnMetadata;
+            }
+        }
+
+        throw new IllegalStateException(
+                "Could not resolve referenced column '" + columnName + "' on entity " +
+                        sourceMetadata.getEntityClass().getName()
+        );
+    }
+
     @Override
     public Page<T> findAll(Pageable pageable) {
         return select().fetchPage(pageable);
@@ -339,7 +402,18 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
         IdMetadata idMeta = metadata.getIdMetadata();
         if (idMeta.isComposite()) {
             Object embeddedKey = parameterBinder.extractId(entity);
-            return embeddedKey == null;
+            if (embeddedKey == null) {
+                return true;
+            }
+
+            for (ColumnMetadata idColumn : idMeta.getColumns()) {
+                Object idColumnValue = getFieldValue(idColumn.getField(), embeddedKey);
+                if (idColumnValue == null) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         Object id = parameterBinder.extractId(entity);

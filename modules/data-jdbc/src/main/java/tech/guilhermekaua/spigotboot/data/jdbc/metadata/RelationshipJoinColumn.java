@@ -20,17 +20,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.data.jdbc.annotation;
+package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import java.lang.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-@Repeatable(JoinColumns.class)
-public @interface JoinColumn {
-    String value() default "";
-
-    String columnName() default "";
-
-    String referencedColumnName() default "";
+@AllArgsConstructor
+@Data
+public class RelationshipJoinColumn {
+    private final String columnName;
+    private final String referencedColumnName;
 }

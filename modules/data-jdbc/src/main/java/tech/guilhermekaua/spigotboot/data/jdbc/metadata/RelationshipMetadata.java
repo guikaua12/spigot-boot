@@ -22,19 +22,70 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.metadata;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-@Getter
-@RequiredArgsConstructor
 public class RelationshipMetadata {
     private final Field field;
     private final RelationshipType type;
-    private final String foreignKeyColumn;
+    private final List<RelationshipJoinColumn> joinColumns;
     private final Class<?> targetEntityClass;
     private final boolean collection;
+
+    public RelationshipMetadata(
+            Field field,
+            RelationshipType type,
+            List<RelationshipJoinColumn> joinColumns,
+            Class<?> targetEntityClass,
+            boolean collection
+    ) {
+        if (joinColumns == null || joinColumns.isEmpty()) {
+            throw new IllegalArgumentException("Relationship metadata requires at least one join column");
+        }
+
+        this.field = field;
+        this.type = type;
+        this.joinColumns = Collections.unmodifiableList(new ArrayList<>(joinColumns));
+        this.targetEntityClass = targetEntityClass;
+        this.collection = collection;
+    }
+
+    public Field getField() {
+        return field;
+    }
+
+    public RelationshipType getType() {
+        return type;
+    }
+
+    public List<RelationshipJoinColumn> getJoinColumns() {
+        return joinColumns;
+    }
+
+    public String getForeignKeyColumn() {
+        if (joinColumns.size() != 1) {
+            throw new IllegalStateException(
+                    "Relationship '" + field.getName() + "' on " + field.getDeclaringClass().getName() +
+                            " has multiple join columns. Use getJoinColumns() instead."
+            );
+        }
+
+        return joinColumns.get(0).getColumnName();
+    }
+
+    public boolean hasSingleJoinColumn() {
+        return joinColumns.size() == 1;
+    }
+
+    public Class<?> getTargetEntityClass() {
+        return targetEntityClass;
+    }
+
+    public boolean isCollection() {
+        return collection;
+    }
 
     public enum RelationshipType {
         ONE_TO_MANY,

@@ -31,9 +31,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class EntityMetadataParser {
     private final TypeConverterRegistry converterRegistry;
@@ -123,12 +121,12 @@ public class EntityMetadataParser {
                 embeddedKeyClass
         );
 
-        List<RelationshipMetadata> relationships = parseRelationships(entityClass);
+        List<RelationshipMetadata> relationships = parseRelationships(entityClass, idColumns);
 
         return new EntityMetadata(tableName, entityClass, columns, idMetadata, relationships);
     }
 
-    private List<RelationshipMetadata> parseRelationships(Class<?> entityClass) {
+    private List<RelationshipMetadata> parseRelationships(Class<?> entityClass, List<ColumnMetadata> sourceIdColumns) {
         List<RelationshipMetadata> relationships = new ArrayList<>();
 
         for (Field field : getAllFields(entityClass)) {
@@ -136,35 +134,30 @@ public class EntityMetadataParser {
             ManyToOne manyToOne = field.getAnnotation(ManyToOne.class);
 
             if (oneToMany != null) {
-                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
-                if (joinColumn == null) {
-                    throw new IllegalArgumentException(
-                            "@OneToMany field " + field.getName() + " on " + entityClass.getName() + " requires @JoinColumn."
-                    );
-                }
-
                 Class<?> targetEntity = resolveCollectionGenericType(field);
+                List<RelationshipJoinColumn> joinColumns = resolveOneToManyJoinColumns(
+                        entityClass,
+                        field,
+                        sourceIdColumns
+                );
                 relationships.add(new RelationshipMetadata(
                         field,
                         RelationshipMetadata.RelationshipType.ONE_TO_MANY,
-                        joinColumn.value(),
+                        joinColumns,
                         targetEntity,
                         true
                 ));
             } else if (manyToOne != null) {
-                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
-                if (joinColumn == null) {
-                    throw new IllegalArgumentException(
-                            "@ManyToOne field " + field.getName() + " on " + entityClass.getName() + " requires @JoinColumn."
-                    );
-                }
-
-                validateManyToOneTarget(field.getType(), entityClass, field);
+                List<RelationshipJoinColumn> joinColumns = resolveManyToOneJoinColumns(
+                        entityClass,
+                        field,
+                        field.getType()
+                );
 
                 relationships.add(new RelationshipMetadata(
                         field,
                         RelationshipMetadata.RelationshipType.MANY_TO_ONE,
-                        joinColumn.value(),
+                        joinColumns,
                         field.getType(),
                         false
                 ));
@@ -172,6 +165,219 @@ public class EntityMetadataParser {
         }
 
         return relationships;
+    }
+
+    private List<RelationshipJoinColumn> resolveOneToManyJoinColumns(
+            Class<?> sourceEntityType,
+            Field relationshipField,
+            List<ColumnMetadata> sourceIdColumns
+    ) {
+        List<RawJoinColumnMapping> rawMappings = parseJoinColumnMappings(sourceEntityType, relationshipField, "@OneToMany");
+        Set<String> sourceIdColumnNames = new HashSet<>();
+        for (ColumnMetadata sourceIdColumn : sourceIdColumns) {
+            sourceIdColumnNames.add(sourceIdColumn.getColumnName());
+        }
+
+        if (sourceIdColumnNames.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                            " cannot resolve source id columns"
+            );
+        }
+
+        if (sourceIdColumnNames.size() == 1) {
+            if (rawMappings.size() != 1) {
+                throw new IllegalArgumentException(
+                        "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " requires exactly one join mapping for single-column @Id"
+                );
+            }
+
+            RawJoinColumnMapping mapping = rawMappings.get(0);
+            String sourceIdColumnName = sourceIdColumns.get(0).getColumnName();
+            String referencedColumn = mapping.referencedColumnName == null
+                    ? sourceIdColumnName
+                    : mapping.referencedColumnName;
+
+            if (!sourceIdColumnName.equals(referencedColumn)) {
+                throw new IllegalArgumentException(
+                        "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " must reference id column '" + sourceIdColumnName + "'"
+                );
+            }
+
+            return Collections.singletonList(new RelationshipJoinColumn(mapping.columnName, referencedColumn));
+        }
+
+        if (rawMappings.size() != sourceIdColumnNames.size()) {
+            throw new IllegalArgumentException(
+                    "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                            " requires " + sourceIdColumnNames.size() + " join mappings to match composite @EmbeddedId"
+            );
+        }
+
+        Set<String> seenReferenced = new HashSet<>();
+        List<RelationshipJoinColumn> resolvedMappings = new ArrayList<>(rawMappings.size());
+
+        for (RawJoinColumnMapping mapping : rawMappings) {
+            if (mapping.referencedColumnName == null) {
+                throw new IllegalArgumentException(
+                        "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " requires referencedColumnName for composite @EmbeddedId mappings"
+                );
+            }
+
+            if (!sourceIdColumnNames.contains(mapping.referencedColumnName)) {
+                throw new IllegalArgumentException(
+                        "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " references unknown source id column '" + mapping.referencedColumnName + "'"
+                );
+            }
+
+            if (!seenReferenced.add(mapping.referencedColumnName)) {
+                throw new IllegalArgumentException(
+                        "@OneToMany field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " declares duplicate referencedColumnName '" + mapping.referencedColumnName + "'"
+                );
+            }
+
+            resolvedMappings.add(new RelationshipJoinColumn(mapping.columnName, mapping.referencedColumnName));
+        }
+
+        return resolvedMappings;
+    }
+
+    private List<RelationshipJoinColumn> resolveManyToOneJoinColumns(
+            Class<?> sourceEntityType,
+            Field relationshipField,
+            Class<?> targetEntityType
+    ) {
+        List<RawJoinColumnMapping> rawMappings = parseJoinColumnMappings(sourceEntityType, relationshipField, "@ManyToOne");
+        List<ColumnMetadata> targetIdColumns = resolveIdColumns(targetEntityType);
+
+        if (targetIdColumns.size() == 1) {
+            if (rawMappings.size() != 1) {
+                throw new IllegalArgumentException(
+                        "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " requires exactly one join mapping for single-column target @Id"
+                );
+            }
+
+            RawJoinColumnMapping mapping = rawMappings.get(0);
+            String targetIdColumnName = targetIdColumns.get(0).getColumnName();
+            String referencedColumn = mapping.referencedColumnName == null
+                    ? targetIdColumnName
+                    : mapping.referencedColumnName;
+
+            if (!targetIdColumnName.equals(referencedColumn)) {
+                throw new IllegalArgumentException(
+                        "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " must reference target id column '" + targetIdColumnName + "'"
+                );
+            }
+
+            return Collections.singletonList(new RelationshipJoinColumn(mapping.columnName, referencedColumn));
+        }
+
+        Set<String> targetIdColumnNames = new HashSet<>();
+        for (ColumnMetadata targetIdColumn : targetIdColumns) {
+            targetIdColumnNames.add(targetIdColumn.getColumnName());
+        }
+
+        if (rawMappings.size() != targetIdColumnNames.size()) {
+            throw new IllegalArgumentException(
+                    "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                            " requires " + targetIdColumnNames.size() + " join mappings to match composite target @EmbeddedId"
+            );
+        }
+
+        Set<String> seenReferenced = new HashSet<>();
+        List<RelationshipJoinColumn> resolvedMappings = new ArrayList<>(rawMappings.size());
+
+        for (RawJoinColumnMapping mapping : rawMappings) {
+            if (mapping.referencedColumnName == null) {
+                throw new IllegalArgumentException(
+                        "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " requires referencedColumnName for composite target @EmbeddedId mappings"
+                );
+            }
+
+            if (!targetIdColumnNames.contains(mapping.referencedColumnName)) {
+                throw new IllegalArgumentException(
+                        "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " references unknown target id column '" + mapping.referencedColumnName + "'"
+                );
+            }
+
+            if (!seenReferenced.add(mapping.referencedColumnName)) {
+                throw new IllegalArgumentException(
+                        "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " declares duplicate referencedColumnName '" + mapping.referencedColumnName + "'"
+                );
+            }
+
+            resolvedMappings.add(new RelationshipJoinColumn(mapping.columnName, mapping.referencedColumnName));
+        }
+
+        return resolvedMappings;
+    }
+
+    private List<RawJoinColumnMapping> parseJoinColumnMappings(
+            Class<?> sourceEntityType,
+            Field relationshipField,
+            String relationshipType
+    ) {
+        JoinColumn[] joinColumns = relationshipField.getAnnotationsByType(JoinColumn.class);
+        if (joinColumns.length == 0) {
+            throw new IllegalArgumentException(
+                    relationshipType + " field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                            " requires @JoinColumn or @JoinColumns."
+            );
+        }
+
+        List<RawJoinColumnMapping> mappings = new ArrayList<>(joinColumns.length);
+        Set<String> seenColumns = new HashSet<>();
+
+        for (JoinColumn joinColumn : joinColumns) {
+            String valueColumnName = trimToNull(joinColumn.value());
+            String explicitColumnName = trimToNull(joinColumn.columnName());
+            String referencedColumnName = trimToNull(joinColumn.referencedColumnName());
+
+            if (valueColumnName != null && explicitColumnName != null && !valueColumnName.equals(explicitColumnName)) {
+                throw new IllegalArgumentException(
+                        relationshipType + " field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " declares both JoinColumn.value and JoinColumn.columnName with different values"
+                );
+            }
+
+            String columnName = explicitColumnName != null ? explicitColumnName : valueColumnName;
+            if (columnName == null) {
+                throw new IllegalArgumentException(
+                        relationshipType + " field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " declares an empty @JoinColumn"
+                );
+            }
+
+            if (!seenColumns.add(columnName)) {
+                throw new IllegalArgumentException(
+                        relationshipType + " field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
+                                " declares duplicate join column '" + columnName + "'"
+                );
+            }
+
+            mappings.add(new RawJoinColumnMapping(columnName, referencedColumnName));
+        }
+
+        return mappings;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private Class<?> resolveCollectionGenericType(Field field) {
@@ -227,34 +433,65 @@ public class EntityMetadataParser {
         }
     }
 
-    private void validateManyToOneTarget(Class<?> targetEntityType, Class<?> sourceEntityType, Field relationshipField) {
-        int idCount = 0;
-        Class<?> current = targetEntityType;
+    private List<ColumnMetadata> resolveIdColumns(Class<?> entityClass) {
+        List<ColumnMetadata> idColumns = new ArrayList<>();
+        int idFieldCount = 0;
+        int embeddedIdFieldCount = 0;
 
-        while (current != null && current != Object.class) {
-            for (Field field : current.getDeclaredFields()) {
-                if (field.isAnnotationPresent(EmbeddedId.class)) {
+        for (Field field : getAllFields(entityClass)) {
+            EmbeddedId embeddedId = field.getAnnotation(EmbeddedId.class);
+            Id id = field.getAnnotation(Id.class);
+
+            if (embeddedId != null) {
+                if (idFieldCount > 0) {
                     throw new IllegalArgumentException(
-                            "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
-                                    " references " + targetEntityType.getName() + " which uses @EmbeddedId. " +
-                                    "v1 requires a single @Id target."
+                            "Entity class " + entityClass.getName() + " cannot declare both @Id and @EmbeddedId."
                     );
                 }
 
-                if (field.isAnnotationPresent(Id.class)) {
-                    idCount++;
+                embeddedIdFieldCount++;
+                if (embeddedIdFieldCount > 1) {
+                    throw new IllegalArgumentException(
+                            "Entity class " + entityClass.getName() + " must declare only one @EmbeddedId field."
+                    );
                 }
+
+                validateEmbeddedKeyClass(field.getType(), entityClass);
+                idColumns.addAll(parseEmbeddedIdFields(field.getType()));
+                continue;
             }
 
-            current = current.getSuperclass();
+            if (id == null) {
+                continue;
+            }
+
+            if (embeddedIdFieldCount > 0) {
+                throw new IllegalArgumentException(
+                        "Entity class " + entityClass.getName() + " cannot declare both @Id and @EmbeddedId."
+                );
+            }
+
+            idFieldCount++;
+            if (idFieldCount > 1) {
+                throw new IllegalArgumentException(
+                        "Entity class " + entityClass.getName() + " must declare a single @Id field."
+                );
+            }
+
+            Column column = field.getAnnotation(Column.class);
+            String columnName = resolveColumnName(field, column);
+            AttributeConverter<Object, Object> converter = resolveConverter(field);
+            field.setAccessible(true);
+            idColumns.add(new ColumnMetadata(field, columnName, field.getType(), converter, true));
         }
 
-        if (idCount != 1) {
+        if (idColumns.isEmpty()) {
             throw new IllegalArgumentException(
-                    "@ManyToOne field " + relationshipField.getName() + " on " + sourceEntityType.getName() +
-                            " requires target " + targetEntityType.getName() + " to declare exactly one @Id field."
+                    "Entity class " + entityClass.getName() + " has no @Id or @EmbeddedId field."
             );
         }
+
+        return idColumns;
     }
 
     @SuppressWarnings("unchecked")
@@ -283,5 +520,15 @@ public class EntityMetadataParser {
             current = current.getSuperclass();
         }
         return fields;
+    }
+
+    private static final class RawJoinColumnMapping {
+        private final String columnName;
+        private final String referencedColumnName;
+
+        private RawJoinColumnMapping(String columnName, String referencedColumnName) {
+            this.columnName = columnName;
+            this.referencedColumnName = referencedColumnName;
+        }
     }
 }

@@ -71,7 +71,8 @@ public class EntityParameterBinder {
         }
 
         // then id columns in WHERE clause
-        index = bindIdParameters(ps, entity, index);
+        Object idSource = metadata.getIdMetadata().isComposite() ? getEmbeddedKeyValue(entity) : entity;
+        index = bindIdParameters(ps, idSource, index);
 
         return index;
     }

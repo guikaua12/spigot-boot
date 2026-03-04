@@ -95,7 +95,7 @@ class JdbcRepositoryManyToOneIncludeTest {
         playerWithoutMappedChildFkMetadata = metadataRegistry.getOrParse(PlayerWithoutMappedChildFk.class);
         questWithoutMappedPlayerFkMetadata = metadataRegistry.getOrParse(QuestWithoutMappedPlayerFk.class);
 
-        DdlGenerator ddlGenerator = new DdlGenerator(dialect);
+        DdlGenerator ddlGenerator = new DdlGenerator(dialect, metadataRegistry);
         createTable(ddlGenerator.generateCreateTable(guildMetadata));
         createTable(ddlGenerator.generateCreateTable(playerMetadata));
         createTable(ddlGenerator.generateCreateTable(questMetadata));
@@ -413,7 +413,7 @@ class JdbcRepositoryManyToOneIncludeTest {
             );
 
             assertEquals(
-                    "@OneToMany field quests on " + PlayerWithInvalidOneToMany.class.getName() + " requires @JoinColumn.",
+                    "@OneToMany field quests on " + PlayerWithInvalidOneToMany.class.getName() + " requires @JoinColumn or @JoinColumns.",
                     exception.getMessage()
             );
         }

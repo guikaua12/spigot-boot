@@ -27,10 +27,7 @@ import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
 import tech.guilhermekaua.spigotboot.core.pagination.Sort;
 import tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProvider;
 import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.ColumnMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadata;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.EntityMetadataRegistry;
-import tech.guilhermekaua.spigotboot.data.jdbc.metadata.RelationshipMetadata;
+import tech.guilhermekaua.spigotboot.data.jdbc.metadata.*;
 import tech.guilhermekaua.spigotboot.data.jdbc.repository.mapper.EntityRowMapper;
 
 import java.lang.reflect.Field;
@@ -268,21 +265,26 @@ public class SelectQuery<T> {
             sb.append(dialect.quoteIdentifier(targetMeta.getTableName()));
             sb.append(" WHERE ");
 
-            if (rel.getType() == RelationshipMetadata.RelationshipType.ONE_TO_MANY) {
-                // child.fk = parent.id
-                sb.append(dialect.quoteIdentifier(targetMeta.getTableName()))
-                        .append(".").append(dialect.quoteIdentifier(rel.getForeignKeyColumn()))
-                        .append(" = ")
-                        .append(dialect.quoteIdentifier(metadata.getTableName()))
-                        .append(".").append(dialect.quoteIdentifier(metadata.getIdMetadata().getColumns().get(0).getColumnName()));
-            } else {
-                // child.id = parent.fk
-                sb.append(dialect.quoteIdentifier(targetMeta.getTableName()))
-                        .append(".").append(dialect.quoteIdentifier(targetMeta.getIdMetadata().getColumns().get(0).getColumnName()))
-                        .append(" = ")
-                        .append(dialect.quoteIdentifier(metadata.getTableName()))
-                        .append(".").append(dialect.quoteIdentifier(rel.getForeignKeyColumn()));
+            StringJoiner relationshipPredicate = new StringJoiner(" AND ");
+            for (RelationshipJoinColumn joinColumn : rel.getJoinColumns()) {
+                String leftColumn;
+                String rightColumn;
+                if (rel.getType() == RelationshipMetadata.RelationshipType.ONE_TO_MANY) {
+                    leftColumn = dialect.quoteIdentifier(targetMeta.getTableName()) + "." +
+                            dialect.quoteIdentifier(joinColumn.getColumnName());
+                    rightColumn = dialect.quoteIdentifier(metadata.getTableName()) + "." +
+                            dialect.quoteIdentifier(joinColumn.getReferencedColumnName());
+                } else {
+                    leftColumn = dialect.quoteIdentifier(targetMeta.getTableName()) + "." +
+                            dialect.quoteIdentifier(joinColumn.getReferencedColumnName());
+                    rightColumn = dialect.quoteIdentifier(metadata.getTableName()) + "." +
+                            dialect.quoteIdentifier(joinColumn.getColumnName());
+                }
+
+                relationshipPredicate.add(leftColumn + " = " + rightColumn);
             }
+
+            sb.append(relationshipPredicate);
 
             // append additional conditions
             for (WhereCondition cond : subquery.getConditions()) {
@@ -387,6 +389,7 @@ public class SelectQuery<T> {
                     relationship,
                     targetMeta,
                     includeSpec,
+                    parentColumnValues,
                     nestedManyToOneColumns
             );
         } else {
@@ -420,37 +423,54 @@ public class SelectQuery<T> {
             RelationshipMetadata relationship,
             EntityMetadata targetMeta,
             IncludeSpec includeSpec,
+            Map<Object, Map<String, Object>> parentColumnValues,
             Set<String> nestedManyToOneColumns
     ) {
-        List<Object> parentIds = mainResults.stream()
-                .map(parent -> extractIdValue(parent, parentMeta))
+        List<String> childJoinColumns = relationship.getJoinColumns().stream()
+                .map(RelationshipJoinColumn::getColumnName)
+                .collect(Collectors.toList());
+        List<String> parentReferencedColumns = relationship.getJoinColumns().stream()
+                .map(RelationshipJoinColumn::getReferencedColumnName)
                 .collect(Collectors.toList());
 
-        if (parentIds.isEmpty()) {
+        Map<Object, JoinKey> parentKeyByEntity = new IdentityHashMap<>();
+        LinkedHashSet<JoinKey> uniqueParentKeys = new LinkedHashSet<>();
+        for (Object parent : mainResults) {
+            JoinKey parentKey = resolveEntityJoinKey(parent, parentMeta, parentReferencedColumns, parentColumnValues);
+            parentKeyByEntity.put(parent, parentKey);
+            if (parentKey != null) {
+                uniqueParentKeys.add(parentKey);
+            }
+        }
+
+        if (uniqueParentKeys.isEmpty()) {
             return IncludeProcessingResult.empty();
         }
 
         LinkedHashSet<String> capturedColumns = new LinkedHashSet<>(nestedManyToOneColumns);
-        capturedColumns.add(relationship.getForeignKeyColumn());
+        capturedColumns.addAll(childJoinColumns);
 
         List<EntityRowMapper.MappedRow<Object>> secondaryResults = executeSecondaryQueryWithCapturedColumns(
                 targetMeta,
-                relationship.getForeignKeyColumn(),
-                parentIds,
+                childJoinColumns,
+                new ArrayList<>(uniqueParentKeys),
                 includeSpec,
                 capturedColumns
         );
 
-        Map<Object, List<Object>> grouped = new HashMap<>();
+        Map<JoinKey, List<Object>> groupedByParentKey = new HashMap<>();
         List<Object> relatedEntities = new ArrayList<>(secondaryResults.size());
         Map<Object, Map<String, Object>> relatedColumnValues = new IdentityHashMap<>();
 
         for (EntityRowMapper.MappedRow<Object> mappedRow : secondaryResults) {
             Object childEntity = mappedRow.getEntity();
             Map<String, Object> capturedValues = mappedRow.getColumnValues();
-            Object foreignKeyValue = capturedValues.get(relationship.getForeignKeyColumn());
+            JoinKey childForeignKey = resolveCapturedJoinKey(capturedValues, childJoinColumns);
+            if (childForeignKey == null) {
+                continue;
+            }
 
-            grouped.computeIfAbsent(foreignKeyValue, ignored -> new ArrayList<>()).add(childEntity);
+            groupedByParentKey.computeIfAbsent(childForeignKey, ignored -> new ArrayList<>()).add(childEntity);
             relatedEntities.add(childEntity);
 
             if (!nestedManyToOneColumns.isEmpty()) {
@@ -463,8 +483,10 @@ public class SelectQuery<T> {
         }
 
         for (Object parent : mainResults) {
-            Object parentId = extractIdValue(parent, parentMeta);
-            List<Object> children = grouped.getOrDefault(parentId, Collections.emptyList());
+            JoinKey parentKey = parentKeyByEntity.get(parent);
+            List<Object> children = parentKey == null
+                    ? Collections.emptyList()
+                    : groupedByParentKey.getOrDefault(parentKey, Collections.emptyList());
             setCollectionFieldValue(relationship.getField(), parent, children);
         }
 
@@ -481,29 +503,43 @@ public class SelectQuery<T> {
             Map<Object, Map<String, Object>> parentColumnValues,
             Set<String> nestedManyToOneColumns
     ) {
-        List<Object> fkValues = mainResults.stream()
-                .map(parent -> resolveManyToOneForeignKeyValue(parent, parentMeta, relationship, parentColumnValues))
-                .filter(value -> value != null)
-                .distinct()
+        List<String> parentJoinColumns = relationship.getJoinColumns().stream()
+                .map(RelationshipJoinColumn::getColumnName)
+                .collect(Collectors.toList());
+        List<String> targetReferencedColumns = relationship.getJoinColumns().stream()
+                .map(RelationshipJoinColumn::getReferencedColumnName)
                 .collect(Collectors.toList());
 
-        if (fkValues.isEmpty()) {
+        Map<Object, JoinKey> parentKeyByEntity = new IdentityHashMap<>();
+        LinkedHashSet<JoinKey> uniqueParentKeys = new LinkedHashSet<>();
+        for (Object parent : mainResults) {
+            JoinKey foreignKey = resolveEntityJoinKey(parent, parentMeta, parentJoinColumns, parentColumnValues);
+            parentKeyByEntity.put(parent, foreignKey);
+            if (foreignKey != null) {
+                uniqueParentKeys.add(foreignKey);
+            }
+        }
+
+        if (uniqueParentKeys.isEmpty()) {
             return IncludeProcessingResult.empty();
         }
 
-        String targetIdColumn = targetMeta.getIdMetadata().getColumns().get(0).getColumnName();
-        Map<Object, Object> targetById = new HashMap<>();
+        Map<JoinKey, Object> targetByKey = new HashMap<>();
         Map<Object, Map<String, Object>> relatedColumnValues = new IdentityHashMap<>();
+        List<JoinKey> fkValues = new ArrayList<>(uniqueParentKeys);
 
         if (nestedManyToOneColumns.isEmpty()) {
-            List<Object> targets = executeSecondaryQuery(targetMeta, targetIdColumn, fkValues, includeSpec);
+            List<Object> targets = executeSecondaryQuery(targetMeta, targetReferencedColumns, fkValues, includeSpec);
             for (Object target : targets) {
-                targetById.put(extractIdValue(target, targetMeta), target);
+                JoinKey targetKey = resolveEntityJoinKey(target, targetMeta, targetReferencedColumns, null);
+                if (targetKey != null) {
+                    targetByKey.put(targetKey, target);
+                }
             }
         } else {
             List<EntityRowMapper.MappedRow<Object>> mappedTargets = executeSecondaryQueryWithCapturedColumns(
                     targetMeta,
-                    targetIdColumn,
+                    targetReferencedColumns,
                     fkValues,
                     includeSpec,
                     nestedManyToOneColumns
@@ -511,7 +547,10 @@ public class SelectQuery<T> {
 
             for (EntityRowMapper.MappedRow<Object> mappedTarget : mappedTargets) {
                 Object targetEntity = mappedTarget.getEntity();
-                targetById.put(extractIdValue(targetEntity, targetMeta), targetEntity);
+                JoinKey targetKey = resolveEntityJoinKey(targetEntity, targetMeta, targetReferencedColumns, null);
+                if (targetKey != null) {
+                    targetByKey.put(targetKey, targetEntity);
+                }
 
                 Map<String, Object> nestedColumns = new LinkedHashMap<>();
                 for (String columnName : nestedManyToOneColumns) {
@@ -525,12 +564,12 @@ public class SelectQuery<T> {
         IdentityHashMap<Object, Boolean> seenTargets = new IdentityHashMap<>();
 
         for (Object parent : mainResults) {
-            Object fkValue = resolveManyToOneForeignKeyValue(parent, parentMeta, relationship, parentColumnValues);
+            JoinKey fkValue = parentKeyByEntity.get(parent);
             if (fkValue == null) {
                 continue;
             }
 
-            Object target = targetById.get(fkValue);
+            Object target = targetByKey.get(fkValue);
             if (target == null) {
                 continue;
             }
@@ -547,17 +586,24 @@ public class SelectQuery<T> {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private List<Object> executeSecondaryQuery(EntityMetadata targetMeta, String inColumn, List<Object> inValues, IncludeSpec includeSpec) {
-        if (inValues.isEmpty()) {
+    private List<Object> executeSecondaryQuery(
+            EntityMetadata targetMeta,
+            List<String> joinColumns,
+            List<JoinKey> joinValues,
+            IncludeSpec includeSpec
+    ) {
+        if (joinValues.isEmpty()) {
             return Collections.emptyList();
         }
 
+        int columnsPerKey = Math.max(1, joinColumns.size());
         int maxBindParameters = Math.max(1, dialect.maxBindParameters());
+        int maxKeysPerChunk = Math.max(1, maxBindParameters / columnsPerKey);
         List<Object> results = new ArrayList<>();
 
-        for (int start = 0; start < inValues.size(); start += maxBindParameters) {
-            int end = Math.min(inValues.size(), start + maxBindParameters);
-            results.addAll(executeSecondaryQueryChunk(targetMeta, inColumn, inValues.subList(start, end), includeSpec));
+        for (int start = 0; start < joinValues.size(); start += maxKeysPerChunk) {
+            int end = Math.min(joinValues.size(), start + maxKeysPerChunk);
+            results.addAll(executeSecondaryQueryChunk(targetMeta, joinColumns, joinValues.subList(start, end), includeSpec));
         }
 
         return results;
@@ -565,24 +611,26 @@ public class SelectQuery<T> {
 
     private List<EntityRowMapper.MappedRow<Object>> executeSecondaryQueryWithCapturedColumns(
             EntityMetadata targetMeta,
-            String inColumn,
-            List<Object> inValues,
+            List<String> joinColumns,
+            List<JoinKey> joinValues,
             IncludeSpec includeSpec,
             Collection<String> capturedColumns
     ) {
-        if (inValues.isEmpty()) {
+        if (joinValues.isEmpty()) {
             return Collections.emptyList();
         }
 
+        int columnsPerKey = Math.max(1, joinColumns.size());
         int maxBindParameters = Math.max(1, dialect.maxBindParameters());
+        int maxKeysPerChunk = Math.max(1, maxBindParameters / columnsPerKey);
         List<EntityRowMapper.MappedRow<Object>> results = new ArrayList<>();
 
-        for (int start = 0; start < inValues.size(); start += maxBindParameters) {
-            int end = Math.min(inValues.size(), start + maxBindParameters);
+        for (int start = 0; start < joinValues.size(); start += maxKeysPerChunk) {
+            int end = Math.min(joinValues.size(), start + maxKeysPerChunk);
             results.addAll(executeSecondaryQueryChunkWithCapturedColumns(
                     targetMeta,
-                    inColumn,
-                    inValues.subList(start, end),
+                    joinColumns,
+                    joinValues.subList(start, end),
                     includeSpec,
                     capturedColumns
             ));
@@ -592,48 +640,21 @@ public class SelectQuery<T> {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private List<Object> executeSecondaryQueryChunk(EntityMetadata targetMeta, String inColumn, List<Object> inValues, IncludeSpec includeSpec) {
+    private List<Object> executeSecondaryQueryChunk(
+            EntityMetadata targetMeta,
+            List<String> joinColumns,
+            List<JoinKey> joinValues,
+            IncludeSpec includeSpec
+    ) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT * FROM ").append(dialect.quoteIdentifier(targetMeta.getTableName()));
-        sql.append(" WHERE ").append(dialect.quoteIdentifier(inColumn)).append(" IN (");
-        StringJoiner placeholders = new StringJoiner(", ");
-        for (int i = 0; i < inValues.size(); i++) {
-            placeholders.add("?");
-        }
-        sql.append(placeholders).append(")");
 
-        List<Object> params = new ArrayList<>(inValues);
+        List<Object> params = new ArrayList<>();
+        sql.append(" WHERE ");
+        appendJoinKeyPredicate(sql, joinColumns, joinValues, params);
 
-        // extra conditions
-        for (WhereCondition cond : includeSpec.getConditions()) {
-            String resolvedColumn = resolveColumnOrProperty(targetMeta, cond.getColumn());
-            sql.append(" AND ").append(dialect.quoteIdentifier(resolvedColumn));
-            if (cond.getOperator().isNoValue()) {
-                sql.append(" ").append(cond.getOperator().getSql());
-            } else if (cond.getOperator().isCollection()) {
-                Collection<?> values = (Collection<?>) cond.getValue();
-                StringJoiner joiner = new StringJoiner(", ");
-                for (int i = 0; i < values.size(); i++) {
-                    joiner.add("?");
-                }
-                sql.append(" IN (").append(joiner).append(")");
-                params.addAll(values);
-            } else {
-                sql.append(" ").append(cond.getOperator().getSql()).append(" ?");
-                params.add(cond.getValue());
-            }
-        }
-
-        // order by
-        if (!includeSpec.getOrderBys().isEmpty()) {
-            sql.append(" ORDER BY ");
-            StringJoiner orderJoiner = new StringJoiner(", ");
-            for (OrderByEntry entry : includeSpec.getOrderBys()) {
-                String resolvedColumn = resolveColumnOrProperty(targetMeta, entry.getColumn());
-                orderJoiner.add(dialect.quoteIdentifier(resolvedColumn) + (entry.isAscending() ? " ASC" : " DESC"));
-            }
-            sql.append(orderJoiner);
-        }
+        appendIncludeConditions(sql, params, targetMeta, includeSpec);
+        appendIncludeOrderBy(sql, targetMeta, includeSpec);
 
         EntityRowMapper<?> targetMapper = new EntityRowMapper<>(targetMeta);
 
@@ -652,22 +673,72 @@ public class SelectQuery<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private List<EntityRowMapper.MappedRow<Object>> executeSecondaryQueryChunkWithCapturedColumns(
             EntityMetadata targetMeta,
-            String inColumn,
-            List<Object> inValues,
+            List<String> joinColumns,
+            List<JoinKey> joinValues,
             IncludeSpec includeSpec,
             Collection<String> capturedColumns
     ) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT * FROM ").append(dialect.quoteIdentifier(targetMeta.getTableName()));
-        sql.append(" WHERE ").append(dialect.quoteIdentifier(inColumn)).append(" IN (");
-        StringJoiner placeholders = new StringJoiner(", ");
-        for (int i = 0; i < inValues.size(); i++) {
-            placeholders.add("?");
+
+        List<Object> params = new ArrayList<>();
+        sql.append(" WHERE ");
+        appendJoinKeyPredicate(sql, joinColumns, joinValues, params);
+
+        appendIncludeConditions(sql, params, targetMeta, includeSpec);
+        appendIncludeOrderBy(sql, targetMeta, includeSpec);
+
+        EntityRowMapper<?> targetMapper = new EntityRowMapper<>(targetMeta);
+
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            bindParameters(ps, params);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return (List) targetMapper.mapRowsWithColumns(rs, capturedColumns);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute secondary query for include", e);
         }
-        sql.append(placeholders).append(")");
+    }
 
-        List<Object> params = new ArrayList<>(inValues);
+    private void appendJoinKeyPredicate(
+            StringBuilder sql,
+            List<String> joinColumns,
+            List<JoinKey> joinValues,
+            List<Object> params
+    ) {
+        if (joinColumns.size() == 1) {
+            String joinColumn = joinColumns.get(0);
+            sql.append(dialect.quoteIdentifier(joinColumn)).append(" IN (");
+            StringJoiner placeholders = new StringJoiner(", ");
+            for (JoinKey joinValue : joinValues) {
+                placeholders.add("?");
+                params.add(joinValue.getValue(0));
+            }
+            sql.append(placeholders).append(")");
+            return;
+        }
 
+        StringJoiner orPredicates = new StringJoiner(" OR ");
+        for (JoinKey joinValue : joinValues) {
+            StringJoiner andPredicates = new StringJoiner(" AND ", "(", ")");
+            for (int i = 0; i < joinColumns.size(); i++) {
+                andPredicates.add(dialect.quoteIdentifier(joinColumns.get(i)) + " = ?");
+                params.add(joinValue.getValue(i));
+            }
+            orPredicates.add(andPredicates.toString());
+        }
+
+        sql.append("(").append(orPredicates).append(")");
+    }
+
+    private void appendIncludeConditions(
+            StringBuilder sql,
+            List<Object> params,
+            EntityMetadata targetMeta,
+            IncludeSpec includeSpec
+    ) {
         for (WhereCondition cond : includeSpec.getConditions()) {
             String resolvedColumn = resolveColumnOrProperty(targetMeta, cond.getColumn());
             sql.append(" AND ").append(dialect.quoteIdentifier(resolvedColumn));
@@ -686,75 +757,128 @@ public class SelectQuery<T> {
                 params.add(cond.getValue());
             }
         }
-
-        if (!includeSpec.getOrderBys().isEmpty()) {
-            sql.append(" ORDER BY ");
-            StringJoiner orderJoiner = new StringJoiner(", ");
-            for (OrderByEntry entry : includeSpec.getOrderBys()) {
-                String resolvedColumn = resolveColumnOrProperty(targetMeta, entry.getColumn());
-                orderJoiner.add(dialect.quoteIdentifier(resolvedColumn) + (entry.isAscending() ? " ASC" : " DESC"));
-            }
-            sql.append(orderJoiner);
-        }
-
-        EntityRowMapper<?> targetMapper = new EntityRowMapper<>(targetMeta);
-
-        try (Connection conn = connectionProvider.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            bindParameters(ps, params);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return (List) targetMapper.mapRowsWithColumns(rs, capturedColumns);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to execute secondary query for include", e);
-        }
     }
 
-    @SuppressWarnings("unchecked")
-    private Object extractIdValue(Object entity, EntityMetadata meta) {
-        try {
-            if (meta.getIdMetadata().isComposite()) {
-                // return embedded key object
-                for (Field field : meta.getEntityClass().getDeclaredFields()) {
-                    if (field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
-                        field.setAccessible(true);
-                        return field.get(entity);
-                    }
-                }
-            }
-            ColumnMetadata idCol = meta.getIdMetadata().getColumns().get(0);
-            Field idField = idCol.getField();
-            idField.setAccessible(true);
-            Object value = idField.get(entity);
-            // apply converter to get the database representation
-            if (idCol.getConverter() != null && value != null) {
-                return ((tech.guilhermekaua.spigotboot.data.converter.AttributeConverter<Object, Object>) idCol.getConverter())
-                        .convertToDatabaseColumn(value);
-            }
-            return value;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to extract ID value", e);
+    private void appendIncludeOrderBy(StringBuilder sql, EntityMetadata targetMeta, IncludeSpec includeSpec) {
+        if (includeSpec.getOrderBys().isEmpty()) {
+            return;
         }
+
+        sql.append(" ORDER BY ");
+        StringJoiner orderJoiner = new StringJoiner(", ");
+        for (OrderByEntry entry : includeSpec.getOrderBys()) {
+            String resolvedColumn = resolveColumnOrProperty(targetMeta, entry.getColumn());
+            orderJoiner.add(dialect.quoteIdentifier(resolvedColumn) + (entry.isAscending() ? " ASC" : " DESC"));
+        }
+        sql.append(orderJoiner);
     }
 
     private Object getFieldValueByColumnName(Object entity, EntityMetadata meta, String columnName) {
-        // check regular columns
         for (ColumnMetadata col : meta.getColumns()) {
-            if (col.getColumnName().equals(columnName)) {
-                try {
-                    col.getField().setAccessible(true);
-                    Object value = col.getField().get(entity);
-                    if (col.getConverter() != null && value != null) {
-                        return col.getConverter().convertToDatabaseColumn(value);
-                    }
-                    return value;
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("Failed to access field for column " + columnName, e);
+            if (!col.getColumnName().equals(columnName)) {
+                continue;
+            }
+
+            try {
+                Field field = col.getField();
+                field.setAccessible(true);
+
+                Object owner = field.getDeclaringClass().isInstance(entity)
+                        ? entity
+                        : resolveEmbeddedIdOwner(entity, meta, field.getDeclaringClass());
+                if (owner == null) {
+                    return null;
                 }
+
+                Object value = field.get(owner);
+                if (col.getConverter() != null && value != null) {
+                    return col.getConverter().convertToDatabaseColumn(value);
+                }
+
+                return value;
+            } catch (IllegalAccessException | IllegalArgumentException e) {
+                throw new RuntimeException("Failed to access field for column " + columnName, e);
             }
         }
+
         return null;
+    }
+
+    private Object resolveEmbeddedIdOwner(Object entity, EntityMetadata meta, Class<?> expectedOwnerType) {
+        if (!meta.getIdMetadata().isComposite()) {
+            return null;
+        }
+
+        Class<?> embeddedKeyClass = meta.getIdMetadata().getEmbeddedKeyClass();
+        if (embeddedKeyClass == null || !expectedOwnerType.isAssignableFrom(embeddedKeyClass)) {
+            return null;
+        }
+
+        for (Field field : getAllFields(meta.getEntityClass())) {
+            if (!field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
+                continue;
+            }
+
+            if (field.getType() != embeddedKeyClass) {
+                continue;
+            }
+
+            try {
+                field.setAccessible(true);
+                return field.get(entity);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Failed to access @EmbeddedId field " + field.getName(), e);
+            }
+        }
+
+        return null;
+    }
+
+    private JoinKey resolveEntityJoinKey(
+            Object entity,
+            EntityMetadata entityMetadata,
+            List<String> columnNames,
+            Map<Object, Map<String, Object>> capturedColumnValues
+    ) {
+        Map<String, Object> capturedColumns = capturedColumnValues == null ? null : capturedColumnValues.get(entity);
+        List<Object> values = new ArrayList<>(columnNames.size());
+
+        for (String columnName : columnNames) {
+            Object value = getFieldValueByColumnName(entity, entityMetadata, columnName);
+            if (value == null && capturedColumns != null) {
+                value = capturedColumns.get(columnName);
+            }
+            values.add(value);
+        }
+
+        return toJoinKey(values);
+    }
+
+    private JoinKey resolveCapturedJoinKey(Map<String, Object> capturedColumns, List<String> columnNames) {
+        if (capturedColumns == null || capturedColumns.isEmpty()) {
+            return null;
+        }
+
+        List<Object> values = new ArrayList<>(columnNames.size());
+        for (String columnName : columnNames) {
+            values.add(capturedColumns.get(columnName));
+        }
+
+        return toJoinKey(values);
+    }
+
+    private JoinKey toJoinKey(List<Object> values) {
+        if (values.isEmpty()) {
+            return null;
+        }
+
+        for (Object value : values) {
+            if (value == null) {
+                return null;
+            }
+        }
+
+        return new JoinKey(values);
     }
 
     private void setFieldValue(Field field, Object target, Object value) {
@@ -814,11 +938,13 @@ public class SelectQuery<T> {
                 continue;
             }
 
-            if (isMappedColumn(metadata, relationship.getForeignKeyColumn())) {
-                continue;
-            }
+            for (RelationshipJoinColumn joinColumn : relationship.getJoinColumns()) {
+                if (isMappedColumn(metadata, joinColumn.getColumnName())) {
+                    continue;
+                }
 
-            requiredColumns.add(relationship.getForeignKeyColumn());
+                requiredColumns.add(joinColumn.getColumnName());
+            }
         }
 
         return requiredColumns;
@@ -834,29 +960,6 @@ public class SelectQuery<T> {
         return false;
     }
 
-    private Object resolveManyToOneForeignKeyValue(
-            Object entity,
-            EntityMetadata parentMeta,
-            RelationshipMetadata relationship,
-            Map<Object, Map<String, Object>> parentColumnValues
-    ) {
-        Object mappedColumnValue = getFieldValueByColumnName(entity, parentMeta, relationship.getForeignKeyColumn());
-        if (mappedColumnValue != null) {
-            return mappedColumnValue;
-        }
-
-        if (parentColumnValues == null || parentColumnValues.isEmpty()) {
-            return null;
-        }
-
-        Map<String, Object> capturedColumns = parentColumnValues.get(entity);
-        if (capturedColumns == null) {
-            return null;
-        }
-
-        return capturedColumns.get(relationship.getForeignKeyColumn());
-    }
-
     private Set<String> collectUnmappedManyToOneColumns(EntityMetadata sourceMetadata, String relationshipName) {
         if (relationshipName == null) {
             return Collections.emptySet();
@@ -867,11 +970,27 @@ public class SelectQuery<T> {
             return Collections.emptySet();
         }
 
-        if (isMappedColumn(sourceMetadata, relationship.getForeignKeyColumn())) {
-            return Collections.emptySet();
+        Set<String> unmappedColumns = new LinkedHashSet<>();
+        for (RelationshipJoinColumn joinColumn : relationship.getJoinColumns()) {
+            if (isMappedColumn(sourceMetadata, joinColumn.getColumnName())) {
+                continue;
+            }
+
+            unmappedColumns.add(joinColumn.getColumnName());
         }
 
-        return Collections.singleton(relationship.getForeignKeyColumn());
+        return unmappedColumns;
+    }
+
+    private List<Field> getAllFields(Class<?> type) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> current = type;
+        while (current != null && current != Object.class) {
+            fields.addAll(Arrays.asList(current.getDeclaredFields()));
+            current = current.getSuperclass();
+        }
+
+        return fields;
     }
 
     private List<String> parseRelationshipPath(String relationshipPath) {
@@ -914,6 +1033,37 @@ public class SelectQuery<T> {
         }
 
         return deduplicated;
+    }
+
+    private static final class JoinKey {
+        private final List<Object> values;
+
+        private JoinKey(List<Object> values) {
+            this.values = Collections.unmodifiableList(new ArrayList<>(values));
+        }
+
+        private Object getValue(int index) {
+            return values.get(index);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+
+            if (!(other instanceof JoinKey)) {
+                return false;
+            }
+
+            JoinKey joinKey = (JoinKey) other;
+            return values.equals(joinKey.values);
+        }
+
+        @Override
+        public int hashCode() {
+            return values.hashCode();
+        }
     }
 
     private static final class IncludeProcessingResult {

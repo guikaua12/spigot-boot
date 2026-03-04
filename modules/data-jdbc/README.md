@@ -61,7 +61,54 @@ Supported mapping annotations:
 - `@Id`
 - `@EmbeddedId`
 - `@OneToMany` + `@JoinColumn`
+- `@OneToMany` + `@JoinColumns`
 - `@ManyToOne` + `@JoinColumn`
+- `@ManyToOne` + `@JoinColumns`
+
+`@JoinColumn` supports:
+
+- legacy shorthand: `@JoinColumn("guild_id")`
+- explicit mapping: `@JoinColumn(columnName = "guild_id", referencedColumnName = "id")`
+
+For composite ids, use `@JoinColumns` and map every id part. Keeping FK fields explicit in the owning entity makes the
+mapping clearer:
+
+```java
+
+@Table("teams")
+public class Team {
+  @EmbeddedId
+  private TeamId id;
+}
+
+public class TeamId {
+  @Column("tenant_id")
+  private UUID tenantId;
+
+  @Column("code")
+  private String code;
+}
+
+@Table("tasks")
+public class Task {
+  @Id(strategy = IdStrategy.UUID)
+  @Column("id")
+  private UUID id;
+
+  @Column("team_tenant_id")
+  private UUID teamTenantId;
+
+  @Column("team_code")
+  private String teamCode;
+
+  @ManyToOne
+  @JoinColumns({
+          @JoinColumn(columnName = "team_tenant_id", referencedColumnName = "tenant_id"),
+          @JoinColumn(columnName = "team_code", referencedColumnName = "code")
+  })
+  private Team team;
+}
+```
 
 ## Repository API
 
@@ -195,4 +242,22 @@ private UUID guildId;
 @ManyToOne
 @JoinColumn("guild_id")
 private Guild guild;
+```
+
+for composite foreign keys, map all parts:
+
+```java
+
+@Column("team_tenant_id")
+private UUID teamTenantId;
+
+@Column("team_code")
+private String teamCode;
+
+@ManyToOne
+@JoinColumns({
+        @JoinColumn(columnName = "team_tenant_id", referencedColumnName = "tenant_id"),
+        @JoinColumn(columnName = "team_code", referencedColumnName = "code")
+})
+private Team team;
 ```
