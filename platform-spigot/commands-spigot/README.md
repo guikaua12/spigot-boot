@@ -48,6 +48,45 @@ public class AdminCommands {
 }
 ```
 
+## Nested Command Groups
+
+`@Command` can also annotate classes nested inside a `@CommandHandler`. The nested class path is treated as a prefix,
+and
+its command methods are flattened into the same root namespace.
+
+```java
+
+@CommandHandler
+@RootCommand("admin|adm")
+public class AdminCommands {
+
+    @Command("coin")
+    public static class CoinCommands {
+        @Command("<player> set <amount>")
+        public void setCoin(
+                @Sender CommandSender sender,
+                String player,
+                Integer amount
+        ) {
+        }
+
+        @DefaultCommand
+        public void rootCoinMenu(@Sender CommandSender sender) {
+        }
+    }
+}
+```
+
+This registers:
+
+- `/admin coin <player> set <amount>`
+- `/admin coin`
+- the same routes under `/adm`
+
+Both `static` nested classes and non-static inner classes are supported. Nested command groups may declare
+`@DefaultCommand`, but nested `@CatchUnknown` handlers are not supported; only the root handler may define
+`@CatchUnknown`.
+
 ## Custom Argument Resolvers
 
 Register a resolver as a normal bean:

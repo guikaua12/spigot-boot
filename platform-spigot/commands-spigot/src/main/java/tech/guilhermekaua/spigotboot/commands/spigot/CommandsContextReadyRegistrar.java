@@ -53,7 +53,7 @@ public class CommandsContextReadyRegistrar implements ContextReadyListener, Orde
 
         List<RootCommandMetadata> metadata = new ArrayList<>();
         for (Object handler : handlers) {
-            metadata.add(commandHandlerIntrospector.introspect(handler));
+            metadata.add(commandHandlerIntrospector.introspect(handler, context.getDependencyManager()));
         }
 
         List<CompiledRootCommand> roots = routeFactory.create(metadata);

@@ -1,23 +1,30 @@
 package tech.guilhermekaua.spigotboot.commands.metadata;
 
 import tech.guilhermekaua.spigotboot.commands.annotations.*;
+import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.lang.reflect.*;
+import java.util.*;
 
 public class CommandHandlerIntrospector {
+    private final NestedCommandHandlerInstantiator nestedCommandHandlerInstantiator = new NestedCommandHandlerInstantiator();
+
     public RootCommandMetadata introspect(Object handlerBean) {
+        return introspect(handlerBean, null);
+    }
+
+    public RootCommandMetadata introspect(Object handlerBean, DependencyManager dependencyManager) {
+        Objects.requireNonNull(handlerBean, "handlerBean cannot be null.");
+
         Class<?> handlerType = ProxyUtils.getRealClass(handlerBean);
         CommandHandler commandHandler = handlerType.getAnnotation(CommandHandler.class);
         if (commandHandler == null) {
             throw new IllegalStateException("Handler bean is not annotated with @CommandHandler: " + handlerType.getName());
+        }
+        if (handlerType.isAnnotationPresent(Command.class)) {
+            throw new IllegalStateException("Root command handler cannot also declare type-level @Command: " + handlerType.getName());
         }
 
         RootCommand rootCommand = handlerType.getAnnotation(RootCommand.class);
@@ -26,12 +33,7 @@ public class CommandHandlerIntrospector {
         }
 
         List<CommandMethodMetadata> methods = new ArrayList<>();
-        for (Method method : handlerType.getDeclaredMethods()) {
-            CommandMethodMetadata methodMetadata = introspectMethod(handlerBean, handlerType, method);
-            if (methodMetadata != null) {
-                methods.add(methodMetadata);
-            }
-        }
+        collectMethods(handlerBean, handlerType, null, true, dependencyManager, methods);
 
         if (methods.isEmpty()) {
             throw new IllegalStateException("Command handler declares no command methods: " + handlerType.getName());
@@ -47,7 +49,45 @@ public class CommandHandlerIntrospector {
         );
     }
 
-    private CommandMethodMetadata introspectMethod(Object handlerBean, Class<?> handlerType, Method method) {
+    private void collectMethods(Object handlerBean,
+                                Class<?> handlerType,
+                                CommandAliasSet pathAliases,
+                                boolean rootScope,
+                                DependencyManager dependencyManager,
+                                List<CommandMethodMetadata> methods) {
+        for (Method method : handlerType.getDeclaredMethods()) {
+            CommandMethodMetadata methodMetadata = introspectMethod(handlerBean, handlerType, method, pathAliases, rootScope);
+            if (methodMetadata != null) {
+                methods.add(methodMetadata);
+            }
+        }
+
+        for (Class<?> nestedType : handlerType.getDeclaredClasses()) {
+            Command nestedCommand = nestedType.getAnnotation(Command.class);
+            if (nestedCommand == null) {
+                continue;
+            }
+
+            validateNestedHandlerType(nestedType);
+            CommandAliasSet nestedAliases = combineAliases(pathAliases, CommandAliasSet.of(nestedCommand.value(), nestedCommand.aliases()));
+            if (nestedAliases.allValues().isEmpty()) {
+                throw new IllegalStateException("Nested command group must declare at least one path: " + nestedType.getName());
+            }
+
+            Object nestedHandler = nestedCommandHandlerInstantiator.instantiate(handlerBean, nestedType, dependencyManager);
+            int sizeBefore = methods.size();
+            collectMethods(nestedHandler, nestedType, nestedAliases, false, dependencyManager, methods);
+            if (methods.size() == sizeBefore) {
+                throw new IllegalStateException("Nested command group declares no executable command methods: " + nestedType.getName());
+            }
+        }
+    }
+
+    private CommandMethodMetadata introspectMethod(Object handlerBean,
+                                                   Class<?> handlerType,
+                                                   Method method,
+                                                   CommandAliasSet pathAliases,
+                                                   boolean rootScope) {
         Command command = method.getAnnotation(Command.class);
         DefaultCommand defaultCommand = method.getAnnotation(DefaultCommand.class);
         CatchUnknown catchUnknown = method.getAnnotation(CatchUnknown.class);
@@ -69,13 +109,24 @@ public class CommandHandlerIntrospector {
         String usage = "";
         if (command != null) {
             kind = CommandMethodKind.COMMAND;
-            aliases = CommandAliasSet.of(command.value(), command.aliases());
+            aliases = combineAliases(pathAliases, CommandAliasSet.of(command.value(), command.aliases()));
             description = command.description();
             usage = command.usage();
         } else if (defaultCommand != null) {
-            kind = CommandMethodKind.DEFAULT;
-            aliases = CommandAliasSet.of("", new String[0]);
+            if (!rootScope) {
+                if (pathAliases == null || pathAliases.allValues().isEmpty()) {
+                    throw new IllegalStateException("Nested @DefaultCommand requires a type-level @Command path: " + method);
+                }
+                kind = CommandMethodKind.COMMAND;
+                aliases = pathAliases;
+            } else {
+                kind = CommandMethodKind.DEFAULT;
+                aliases = CommandAliasSet.of("", new String[0]);
+            }
         } else {
+            if (!rootScope) {
+                throw new IllegalStateException("Nested command groups do not support @CatchUnknown: " + method);
+            }
             kind = CommandMethodKind.UNKNOWN;
             aliases = CommandAliasSet.of("", new String[0]);
         }
@@ -155,5 +206,72 @@ public class CommandHandlerIntrospector {
             }
         }
         return ids;
+    }
+
+    private void validateNestedHandlerType(Class<?> nestedType) {
+        if (nestedType.isAnnotationPresent(CommandHandler.class)) {
+            throw new IllegalStateException("Nested command group cannot declare @CommandHandler: " + nestedType.getName());
+        }
+        if (nestedType.isAnnotationPresent(RootCommand.class)) {
+            throw new IllegalStateException("Nested command group cannot declare @RootCommand: " + nestedType.getName());
+        }
+
+        int modifiers = nestedType.getModifiers();
+        if (Modifier.isAbstract(modifiers) || nestedType.isInterface() || nestedType.isEnum() || nestedType.isAnnotation()) {
+            throw new IllegalStateException("Nested command group must be a concrete class: " + nestedType.getName());
+        }
+    }
+
+    private CommandAliasSet combineAliases(CommandAliasSet parent, CommandAliasSet child) {
+        if (parent == null || parent.allValues().isEmpty()) {
+            return child;
+        }
+        if (child == null || child.allValues().isEmpty()) {
+            return parent;
+        }
+
+        Map<String, String> combined = new LinkedHashMap<>();
+        for (String parentValue : parent.allValues()) {
+            for (String childValue : child.allValues()) {
+                String value = joinCommandPath(parentValue, childValue);
+                if (!value.isEmpty()) {
+                    combined.put(normalizeCommandPath(value), value);
+                }
+            }
+        }
+
+        if (combined.isEmpty()) {
+            return new CommandAliasSet("", Collections.<String>emptyList());
+        }
+
+        List<String> values = new ArrayList<>(combined.values());
+        return new CommandAliasSet(values.get(0), values.subList(1, values.size()));
+    }
+
+    private String joinCommandPath(String left, String right) {
+        String leftTrimmed = left == null ? "" : left.trim();
+        String rightTrimmed = right == null ? "" : right.trim();
+        if (leftTrimmed.isEmpty()) {
+            return rightTrimmed;
+        }
+        if (rightTrimmed.isEmpty()) {
+            return leftTrimmed;
+        }
+        return leftTrimmed + " " + rightTrimmed;
+    }
+
+    private String normalizeCommandPath(String value) {
+        String[] parts = value.trim().split("\\s+");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(CommandSupport.normalizeLabel(part));
+        }
+        return builder.toString();
     }
 }
