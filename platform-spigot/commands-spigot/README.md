@@ -1,0 +1,101 @@
+# Commands Spigot
+
+`spigot-boot-commands-spigot` adds annotation-driven Bukkit command registration to Spigot Boot.
+
+## Setup
+
+Add the module dependency:
+
+```xml
+<dependency>
+    <groupId>tech.guilhermekaua.spigot-boot</groupId>
+    <artifactId>spigot-boot-commands-spigot</artifactId>
+    <version>2.0.2</version>
+</dependency>
+```
+
+No `plugin.yml` command entries are required. The module is discovered through the normal Spigot Boot module loader.
+
+## Example
+
+```java
+
+@CommandHandler
+@RootCommand(value = "admin", aliases = {"adm"}, description = "Administrative commands")
+public class AdminCommands {
+
+    @DefaultCommand
+    public void root(@Sender CommandSender sender, CommandExecutionContext context) {
+        sender.sendMessage("Usage: " + context.getUsage());
+    }
+
+    @Command(value = "greet <player> [reason]", usage = "/admin greet <player> [reason]")
+    @Permission("plugin.admin.greet")
+    public void greet(
+            @Sender CommandSender sender,
+            @Completion("onlinePlayers") Player player,
+            @DefaultValue("No reason provided") String reason,
+            AuditService auditService,
+            CommandExecutionContext context
+    ) {
+        auditService.recordGreeting(sender.getName(), player.getName(), reason);
+    }
+
+    @CatchUnknown
+    public void unknown(@Sender CommandSender sender, CommandExecutionContext context) {
+        sender.sendMessage("Unknown command: " + context.getInput());
+    }
+}
+```
+
+## Custom Argument Resolvers
+
+Register a resolver as a normal bean:
+
+```java
+@Component
+public class WarpResolver implements CommandArgumentResolver<Warp> {
+    @Override
+    public boolean supports(CommandParameterMetadata parameter) {
+        return Warp.class.equals(parameter.getValueType());
+    }
+
+    @Override
+    public Warp resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
+        return context.getContext().getBean(WarpService.class).findByName(input);
+    }
+}
+```
+
+## Custom Messages
+
+Provide a primary `CommandMessages` bean:
+
+```java
+@Component
+@Primary
+public class CustomCommandMessages implements CommandMessages {
+    // implement the message methods you want to customize
+}
+```
+
+## Completions And Replacements
+
+Use the registry customizers to add named providers or replacement tokens:
+
+```java
+@Configuration
+public class CommandsCustomization {
+    @Bean
+    public CommandCompletionRegistryCustomizer commandCompletionRegistryCustomizer() {
+        return registry -> registry.register("warps", (context, parameter, input) -> context.getContext()
+                .getBean(WarpService.class)
+                .allNames());
+    }
+
+    @Bean
+    public CommandReplacementRegistryCustomizer commandReplacementRegistryCustomizer() {
+        return registry -> registry.register("plugin.name", "ExamplePlugin");
+    }
+}
+```
