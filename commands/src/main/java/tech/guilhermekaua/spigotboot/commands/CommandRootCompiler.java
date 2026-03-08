@@ -42,7 +42,7 @@ public class CommandRootCompiler {
             metadata.add(commandHandlerIntrospector.introspect(handler, context.getDependencyManager()));
         }
 
-        List<CompiledRootCommand> roots = routeFactory.create(metadata);
+        List<CompiledRootCommand> roots = routeFactory.create(context, metadata);
         routeValidator.validate(roots);
         commandInterceptorChain.validate(context, roots);
         return roots;

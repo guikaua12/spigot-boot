@@ -45,8 +45,14 @@ public class SpigotCommandsConfiguration {
     @Bean
     public CommandRouteFactory commandRouteFactory(CommandPatternParser commandPatternParser,
                                                    CommandReplacementRegistry commandReplacementRegistry,
+                                                   CommandTextResolverChain commandTextResolverChain,
                                                    CommandInvocationFactory commandInvocationFactory) {
-        return new CommandRouteFactory(commandPatternParser, commandReplacementRegistry, commandInvocationFactory);
+        return new CommandRouteFactory(
+                commandPatternParser,
+                commandReplacementRegistry,
+                commandTextResolverChain,
+                commandInvocationFactory
+        );
     }
 
     @Bean

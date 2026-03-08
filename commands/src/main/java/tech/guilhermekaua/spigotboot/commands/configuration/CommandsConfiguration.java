@@ -36,6 +36,11 @@ public class CommandsConfiguration {
     }
 
     @Bean
+    public CommandTextResolverChain commandTextResolverChain(List<CommandTextResolver> resolvers) {
+        return new CommandTextResolverChain(resolvers);
+    }
+
+    @Bean
     public CommandArgumentResolverRegistry commandArgumentResolverRegistry(List<CommandArgumentResolver<?>> customResolvers,
                                                                            List<CommandArgumentResolverRegistryCustomizer> customizers) {
         return new DefaultCommandArgumentResolverRegistry(customResolvers, customizers);

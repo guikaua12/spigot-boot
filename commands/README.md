@@ -48,6 +48,7 @@ The main reusable SPIs now live here:
 - `CommandCompletionProvider`
 - `CommandCompletionRegistryCustomizer`
 - `CommandReplacementRegistryCustomizer`
+- `CommandTextResolver`
 - `CommandInterceptor`
 - `CommandAnnotationInterceptor`
 - `CommandMessages`
@@ -56,6 +57,10 @@ The main reusable SPIs now live here:
 If your implementation only needs `CommandExecutionContext`, parsed arguments, injected services, or
 `CommandSenderHandle`,
 it can be reused by any future platform adapter.
+
+For config-backed annotation text on Spigot, keep depending on `spigot-boot-commands-spigot` for the runtime adapter and
+add `spigot-boot-commands-config-spigot` as an extra optional bridge. The `${...}` syntax is owned by that bridge, not
+by this shared module.
 
 ## Portable Command Logic
 
