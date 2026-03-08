@@ -1,5 +1,7 @@
 package tech.guilhermekaua.spigotboot.commands.metadata;
 
+import tech.guilhermekaua.spigotboot.commands.CommandInterceptorAnnotationBinding;
+
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +16,7 @@ public final class CommandMethodMetadata {
     private final String usage;
     private final String permission;
     private final List<String> completionIds;
+    private final List<CommandInterceptorAnnotationBinding> interceptorBindings;
     private final List<CommandParameterMetadata> parameters;
 
     public CommandMethodMetadata(Object handlerBean,
@@ -25,6 +28,7 @@ public final class CommandMethodMetadata {
                                  String usage,
                                  String permission,
                                  List<String> completionIds,
+                                 List<CommandInterceptorAnnotationBinding> interceptorBindings,
                                  List<CommandParameterMetadata> parameters) {
         this.handlerBean = handlerBean;
         this.handlerType = handlerType;
@@ -34,8 +38,15 @@ public final class CommandMethodMetadata {
         this.description = description == null ? "" : description;
         this.usage = usage == null ? "" : usage;
         this.permission = permission == null ? "" : permission;
-        this.completionIds = completionIds == null ? Collections.<String>emptyList() : Collections.unmodifiableList(completionIds);
-        this.parameters = parameters == null ? Collections.<CommandParameterMetadata>emptyList() : Collections.unmodifiableList(parameters);
+        this.completionIds = completionIds == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new java.util.ArrayList<>(completionIds));
+        this.interceptorBindings = interceptorBindings == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new java.util.ArrayList<>(interceptorBindings));
+        this.parameters = parameters == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new java.util.ArrayList<>(parameters));
     }
 
     public Object getHandlerBean() {
@@ -72,6 +83,10 @@ public final class CommandMethodMetadata {
 
     public List<String> getCompletionIds() {
         return completionIds;
+    }
+
+    public List<CommandInterceptorAnnotationBinding> getInterceptorBindings() {
+        return interceptorBindings;
     }
 
     public List<CommandParameterMetadata> getParameters() {

@@ -15,7 +15,8 @@ public class CommandInvocationFactory {
         return new CommandInvocationPlan(
                 methodMetadata.getHandlerBean(),
                 methodMetadata.getMethod(),
-                roleResolver.resolve(methodMetadata, pattern)
+                roleResolver.resolve(methodMetadata, pattern),
+                methodMetadata.getInterceptorBindings()
         );
     }
 }

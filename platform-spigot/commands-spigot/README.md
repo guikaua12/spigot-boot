@@ -118,6 +118,69 @@ public class CustomCommandMessages implements CommandMessages {
 }
 ```
 
+## Global Interceptors
+
+Register a `CommandInterceptor` bean to run logic for every command.
+
+If a `CommandInterceptor` bean exists in the context, it is automatically applied to all commands, including default
+and unknown command handlers.
+
+Return `CommandExecutionDecision.stopExecution()` to block the command before arguments are bound or the handler method
+is
+invoked:
+
+```java
+
+@Component
+public class AuditInterceptor implements CommandInterceptor {
+    @Override
+    public CommandExecutionDecision before(CommandExecutionContext context, CommandInvocationPlan invocation) {
+        context.getPlugin().getLogger().info("Executing " + context.getInput());
+        return CommandExecutionDecision.continueExecution();
+    }
+}
+```
+
+## Annotation-Bound Interceptors
+
+For opt-in behavior, create a custom annotation and bind it to a `CommandAnnotationInterceptor`.
+
+`CommandAnnotationInterceptor` does not extend `CommandInterceptor`. Use `CommandInterceptor` for global behavior and
+`CommandAnnotationInterceptor` for annotation-scoped behavior.
+
+```java
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+@CommandInterceptedBy(CooldownInterceptor.class)
+public @interface Cooldown {
+    String time();
+}
+
+@Component
+public class CooldownInterceptor implements CommandAnnotationInterceptor<Cooldown> {
+    @Override
+    public CommandExecutionDecision before(Cooldown annotation,
+                                           CommandExecutionContext context,
+                                           CommandInvocationPlan invocation) {
+        if (isOnCooldown(context.getSender(), annotation.time())) {
+            context.sendMessage("Wait before using this command again.");
+            return CommandExecutionDecision.stopExecution();
+        }
+        return CommandExecutionDecision.continueExecution();
+    }
+}
+
+@CommandHandler
+@RootCommand("kit")
+public class KitCommands {
+    @Cooldown(time = "30s")
+    @Command("daily")
+    public void daily(@Sender Player sender) {
+    }
+}
+```
+
 ## Completions And Replacements
 
 Use the registry customizers to add named providers or replacement tokens:

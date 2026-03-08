@@ -2,6 +2,7 @@ package tech.guilhermekaua.spigotboot.commands.spigot;
 
 import tech.guilhermekaua.spigotboot.commands.CommandReplacementRegistry;
 import tech.guilhermekaua.spigotboot.commands.annotations.CommandHandler;
+import tech.guilhermekaua.spigotboot.commands.interceptor.CommandInterceptorChain;
 import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandHandlerIntrospector;
 import tech.guilhermekaua.spigotboot.commands.metadata.RootCommandMetadata;
@@ -23,17 +24,20 @@ public class CommandsContextReadyRegistrar implements ContextReadyListener, Orde
     private final CommandRouteValidator routeValidator;
     private final BukkitCommandRegistrar bukkitCommandRegistrar;
     private final CommandReplacementRegistry replacementRegistry;
+    private final CommandInterceptorChain commandInterceptorChain;
 
     public CommandsContextReadyRegistrar(CommandHandlerIntrospector commandHandlerIntrospector,
                                          CommandRouteFactory routeFactory,
                                          CommandRouteValidator routeValidator,
                                          BukkitCommandRegistrar bukkitCommandRegistrar,
-                                         CommandReplacementRegistry replacementRegistry) {
+                                         CommandReplacementRegistry replacementRegistry,
+                                         CommandInterceptorChain commandInterceptorChain) {
         this.commandHandlerIntrospector = commandHandlerIntrospector;
         this.routeFactory = routeFactory;
         this.routeValidator = routeValidator;
         this.bukkitCommandRegistrar = bukkitCommandRegistrar;
         this.replacementRegistry = replacementRegistry;
+        this.commandInterceptorChain = commandInterceptorChain;
     }
 
     @Override
@@ -58,6 +62,7 @@ public class CommandsContextReadyRegistrar implements ContextReadyListener, Orde
 
         List<CompiledRootCommand> roots = routeFactory.create(metadata);
         routeValidator.validate(roots);
+        commandInterceptorChain.validate(context, roots);
 
         final RegisteredCommandSet registered = bukkitCommandRegistrar.register(context, roots);
         context.registerShutdownHook(() -> bukkitCommandRegistrar.unregister(registered));

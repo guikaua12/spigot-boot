@@ -1,10 +1,13 @@
 package tech.guilhermekaua.spigotboot.commands.metadata;
 
+import tech.guilhermekaua.spigotboot.commands.CommandAnnotationInterceptor;
+import tech.guilhermekaua.spigotboot.commands.CommandInterceptorAnnotationBinding;
 import tech.guilhermekaua.spigotboot.commands.annotations.*;
 import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -33,7 +36,7 @@ public class CommandHandlerIntrospector {
         }
 
         List<CommandMethodMetadata> methods = new ArrayList<>();
-        collectMethods(handlerBean, handlerType, null, true, dependencyManager, methods);
+        collectMethods(handlerBean, handlerType, null, true, dependencyManager, new LinkedHashMap<>(), methods);
 
         if (methods.isEmpty()) {
             throw new IllegalStateException("Command handler declares no command methods: " + handlerType.getName());
@@ -54,9 +57,20 @@ public class CommandHandlerIntrospector {
                                 CommandAliasSet pathAliases,
                                 boolean rootScope,
                                 DependencyManager dependencyManager,
+                                Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> inheritedInterceptorBindings,
                                 List<CommandMethodMetadata> methods) {
+        Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> typeInterceptorBindings =
+                overlayInterceptorBindings(inheritedInterceptorBindings, getDirectInterceptorBindings(handlerType));
+
         for (Method method : handlerType.getDeclaredMethods()) {
-            CommandMethodMetadata methodMetadata = introspectMethod(handlerBean, handlerType, method, pathAliases, rootScope);
+            CommandMethodMetadata methodMetadata = introspectMethod(
+                    handlerBean,
+                    handlerType,
+                    method,
+                    pathAliases,
+                    rootScope,
+                    typeInterceptorBindings
+            );
             if (methodMetadata != null) {
                 methods.add(methodMetadata);
             }
@@ -76,7 +90,7 @@ public class CommandHandlerIntrospector {
 
             Object nestedHandler = nestedCommandHandlerInstantiator.instantiate(handlerBean, nestedType, dependencyManager);
             int sizeBefore = methods.size();
-            collectMethods(nestedHandler, nestedType, nestedAliases, false, dependencyManager, methods);
+            collectMethods(nestedHandler, nestedType, nestedAliases, false, dependencyManager, typeInterceptorBindings, methods);
             if (methods.size() == sizeBefore) {
                 throw new IllegalStateException("Nested command group declares no executable command methods: " + nestedType.getName());
             }
@@ -87,7 +101,8 @@ public class CommandHandlerIntrospector {
                                                    Class<?> handlerType,
                                                    Method method,
                                                    CommandAliasSet pathAliases,
-                                                   boolean rootScope) {
+                                                   boolean rootScope,
+                                                   Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> inheritedInterceptorBindings) {
         Command command = method.getAnnotation(Command.class);
         DefaultCommand defaultCommand = method.getAnnotation(DefaultCommand.class);
         CatchUnknown catchUnknown = method.getAnnotation(CatchUnknown.class);
@@ -137,6 +152,9 @@ public class CommandHandlerIntrospector {
             parameters.add(introspectParameter(reflectedParameters[index], index));
         }
 
+        Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> methodInterceptorBindings =
+                overlayInterceptorBindings(inheritedInterceptorBindings, getDirectInterceptorBindings(method));
+
         return new CommandMethodMetadata(
                 handlerBean,
                 handlerType,
@@ -147,6 +165,7 @@ public class CommandHandlerIntrospector {
                 usage,
                 permission == null ? "" : permission.value(),
                 splitCompletionIds(completion == null ? "" : completion.value()),
+                new ArrayList<>(methodInterceptorBindings.values()),
                 parameters
         );
     }
@@ -241,7 +260,7 @@ public class CommandHandlerIntrospector {
         }
 
         if (combined.isEmpty()) {
-            return new CommandAliasSet("", Collections.<String>emptyList());
+            return new CommandAliasSet("", Collections.emptyList());
         }
 
         List<String> values = new ArrayList<>(combined.values());
@@ -273,5 +292,30 @@ public class CommandHandlerIntrospector {
             builder.append(CommandSupport.normalizeLabel(part));
         }
         return builder.toString();
+    }
+
+    private Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> overlayInterceptorBindings(
+            Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> inheritedBindings,
+            List<CommandInterceptorAnnotationBinding> directBindings) {
+        Map<Class<? extends Annotation>, CommandInterceptorAnnotationBinding> resolved =
+                new LinkedHashMap<>(inheritedBindings);
+        for (CommandInterceptorAnnotationBinding binding : directBindings) {
+            resolved.put(binding.getAnnotationType(), binding);
+        }
+        return resolved;
+    }
+
+    private List<CommandInterceptorAnnotationBinding> getDirectInterceptorBindings(AnnotatedElement element) {
+        List<CommandInterceptorAnnotationBinding> bindings = new ArrayList<>();
+        for (Annotation annotation : element.getDeclaredAnnotations()) {
+            CommandInterceptedBy interceptedBy = annotation.annotationType().getAnnotation(CommandInterceptedBy.class);
+            if (interceptedBy == null) {
+                continue;
+            }
+
+            List<Class<? extends CommandAnnotationInterceptor<?>>> interceptorTypes = Arrays.asList(interceptedBy.value());
+            bindings.add(new CommandInterceptorAnnotationBinding(annotation, interceptorTypes));
+        }
+        return bindings;
     }
 }

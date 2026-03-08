@@ -110,8 +110,15 @@ public class CommandsConfiguration {
     public CommandDispatcher commandDispatcher(CommandParameterBinder commandParameterBinder,
                                                CommandInvocationExecutor commandInvocationExecutor,
                                                CommandMessagesProvider commandMessagesProvider,
-                                               CompletionResolver completionResolver) {
-        return new CommandDispatcher(commandParameterBinder, commandInvocationExecutor, commandMessagesProvider, completionResolver);
+                                               CompletionResolver completionResolver,
+                                               CommandInterceptorChain commandInterceptorChain) {
+        return new CommandDispatcher(
+                commandParameterBinder,
+                commandInvocationExecutor,
+                commandMessagesProvider,
+                completionResolver,
+                commandInterceptorChain
+        );
     }
 
     @Bean
@@ -130,13 +137,15 @@ public class CommandsConfiguration {
                                                                        CommandRouteFactory commandRouteFactory,
                                                                        CommandRouteValidator commandRouteValidator,
                                                                        BukkitCommandRegistrar bukkitCommandRegistrar,
-                                                                       CommandReplacementRegistry commandReplacementRegistry) {
+                                                                       CommandReplacementRegistry commandReplacementRegistry,
+                                                                       CommandInterceptorChain commandInterceptorChain) {
         return new CommandsContextReadyRegistrar(
                 commandHandlerIntrospector,
                 commandRouteFactory,
                 commandRouteValidator,
                 bukkitCommandRegistrar,
-                commandReplacementRegistry
+                commandReplacementRegistry,
+                commandInterceptorChain
         );
     }
 }

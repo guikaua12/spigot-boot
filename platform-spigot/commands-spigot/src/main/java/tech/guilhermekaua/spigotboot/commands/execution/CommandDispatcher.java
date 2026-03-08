@@ -1,11 +1,13 @@
 package tech.guilhermekaua.spigotboot.commands.execution;
 
 import org.bukkit.command.CommandSender;
+import tech.guilhermekaua.spigotboot.commands.CommandExecutionDecision;
 import tech.guilhermekaua.spigotboot.commands.CommandMessages;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandBindingException;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinder;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinding;
 import tech.guilhermekaua.spigotboot.commands.completion.CompletionResolver;
+import tech.guilhermekaua.spigotboot.commands.interceptor.CommandInterceptorChain;
 import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessagesProvider;
 import tech.guilhermekaua.spigotboot.commands.parse.CommandPattern;
@@ -20,15 +22,25 @@ public class CommandDispatcher {
     private final CommandInvocationExecutor invocationExecutor;
     private final CommandMessagesProvider messagesProvider;
     private final CompletionResolver completionResolver;
+    private final CommandInterceptorChain interceptorChain;
 
     public CommandDispatcher(CommandParameterBinder parameterBinder,
                              CommandInvocationExecutor invocationExecutor,
                              CommandMessagesProvider messagesProvider,
                              CompletionResolver completionResolver) {
+        this(parameterBinder, invocationExecutor, messagesProvider, completionResolver, new CommandInterceptorChain());
+    }
+
+    public CommandDispatcher(CommandParameterBinder parameterBinder,
+                             CommandInvocationExecutor invocationExecutor,
+                             CommandMessagesProvider messagesProvider,
+                             CompletionResolver completionResolver,
+                             CommandInterceptorChain interceptorChain) {
         this.parameterBinder = parameterBinder;
         this.invocationExecutor = invocationExecutor;
         this.messagesProvider = messagesProvider;
         this.completionResolver = completionResolver;
+        this.interceptorChain = interceptorChain;
     }
 
     public boolean dispatch(Context context, CompiledRootCommand root, CommandSender sender, String label, String[] args) {
@@ -85,17 +97,36 @@ public class CommandDispatcher {
 
     private boolean execute(CompiledCommandRoute route, DefaultCommandExecutionContext context) {
         CommandMessages messages = messagesProvider.resolve(context.getContext());
+        CommandInvocationPlan invocation = route.getInvocationPlan();
+        CommandInterceptorChain.ResolvedChain resolvedChain = interceptorChain.resolve(context, invocation);
         try {
             if (!route.getPermission().isEmpty() && !context.getSender().hasPermission(route.getPermission())) {
                 context.sendMessage(messages.noPermission(context, route.getPermission()));
                 return true;
             }
 
-            Object[] arguments = parameterBinder.bind(context, route.getInvocationPlan(), context.getParsedArguments());
-            invocationExecutor.execute(context, route.getInvocationPlan(), arguments);
-            return true;
-        } catch (CommandBindingException e) {
-            handleBindingException(context, messages, e);
+            CommandExecutionDecision decision;
+            try {
+                decision = resolvedChain.before(context, invocation);
+            } catch (Throwable throwable) {
+                resolvedChain.onError(context, invocation, throwable);
+                throw throwable;
+            }
+
+            if (!decision.shouldContinue()) {
+                return true;
+            }
+
+            Object[] arguments;
+            try {
+                arguments = parameterBinder.bind(context, invocation, context.getParsedArguments());
+            } catch (CommandBindingException e) {
+                resolvedChain.onError(context, invocation, e);
+                handleBindingException(context, messages, e);
+                return true;
+            }
+
+            invocationExecutor.execute(context, invocation, arguments, resolvedChain);
             return true;
         } catch (Throwable throwable) {
             context.sendMessage(messages.executionError(context, throwable));
