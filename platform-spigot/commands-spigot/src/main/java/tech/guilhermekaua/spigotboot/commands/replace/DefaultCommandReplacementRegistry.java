@@ -5,13 +5,14 @@ import tech.guilhermekaua.spigotboot.commands.CommandReplacementRegistryCustomiz
 import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DefaultCommandReplacementRegistry implements CommandReplacementRegistry {
-    private static final Pattern TOKEN_PATTERN = Pattern.compile("\\{([A-Za-z0-9_.-]+)}");
+    private static final Pattern TOKEN_PATTERN = Pattern.compile("%([A-Za-z0-9_.-]+)%");
 
-    private final Map<String, String> replacements = new LinkedHashMap<>();
+    private final Map<String, Supplier<String>> replacements = new LinkedHashMap<>();
 
     public DefaultCommandReplacementRegistry(List<CommandReplacementRegistryCustomizer> customizers) {
         for (CommandReplacementRegistryCustomizer customizer : CommandSupport.sortBeans(customizers)) {
@@ -21,11 +22,17 @@ public class DefaultCommandReplacementRegistry implements CommandReplacementRegi
 
     @Override
     public void register(String key, String value) {
+        final String resolvedValue = value == null ? "" : value;
+        register(key, () -> resolvedValue);
+    }
+
+    @Override
+    public void register(String key, Supplier<String> valueSupplier) {
         String normalizedKey = key == null ? "" : key.trim();
         if (normalizedKey.isEmpty()) {
             throw new IllegalArgumentException("Replacement key cannot be blank.");
         }
-        replacements.put(normalizedKey, value == null ? "" : value);
+        replacements.put(normalizedKey, valueSupplier == null ? () -> "" : valueSupplier);
     }
 
     @Override
@@ -41,14 +48,16 @@ public class DefaultCommandReplacementRegistry implements CommandReplacementRegi
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             String key = matcher.group(1);
-            if (!replacements.containsKey(key)) {
+            Supplier<String> valueSupplier = replacements.get(key);
+            if (valueSupplier == null) {
                 continue;
             }
             if (!stack.add(key)) {
                 throw new IllegalStateException("Cyclic command replacement detected for key '" + key + "'.");
             }
 
-            String replacement = replace(replacements.get(key), stack);
+            String resolvedValue = valueSupplier.get();
+            String replacement = replace(resolvedValue == null ? "" : resolvedValue, stack);
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
             stack.remove(key);
         }
