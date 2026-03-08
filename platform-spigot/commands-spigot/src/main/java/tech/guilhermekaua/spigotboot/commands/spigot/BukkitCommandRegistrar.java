@@ -2,6 +2,7 @@ package tech.guilhermekaua.spigotboot.commands.spigot;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
+import tech.guilhermekaua.spigotboot.commands.CommandPlatformSupport;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
@@ -11,10 +12,14 @@ import java.util.*;
 public class BukkitCommandRegistrar {
     private final BukkitCommandMapAccessor commandMapAccessor;
     private final CommandDispatcher dispatcher;
+    private final CommandPlatformSupport commandPlatformSupport;
 
-    public BukkitCommandRegistrar(BukkitCommandMapAccessor commandMapAccessor, CommandDispatcher dispatcher) {
+    public BukkitCommandRegistrar(BukkitCommandMapAccessor commandMapAccessor,
+                                  CommandDispatcher dispatcher,
+                                  CommandPlatformSupport commandPlatformSupport) {
         this.commandMapAccessor = commandMapAccessor;
         this.dispatcher = dispatcher;
+        this.commandPlatformSupport = commandPlatformSupport;
     }
 
     public RegisteredCommandSet register(Context context, List<CompiledRootCommand> roots) {
@@ -26,7 +31,7 @@ public class BukkitCommandRegistrar {
         for (CompiledRootCommand root : roots) {
             checkAndPrepareCollisions(context, root, commandMap, knownCommands, removedExisting);
 
-            SpigotBootCommand command = new SpigotBootCommand(context, root, dispatcher);
+            SpigotBootCommand command = new SpigotBootCommand(context, root, dispatcher, commandPlatformSupport);
             commandMap.register(context.getPlugin().getName().toLowerCase(Locale.ROOT), command);
             commands.add(command);
         }

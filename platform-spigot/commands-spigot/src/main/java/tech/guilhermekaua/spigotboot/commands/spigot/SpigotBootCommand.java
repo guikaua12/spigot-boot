@@ -4,6 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.commands.CommandPlatformSupport;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
@@ -17,27 +18,36 @@ public class SpigotBootCommand extends Command {
     private final BootPlugin plugin;
     private final CompiledRootCommand rootCommand;
     private final CommandDispatcher dispatcher;
+    private final CommandPlatformSupport commandPlatformSupport;
 
     public SpigotBootCommand(Context context,
                              CompiledRootCommand rootCommand,
-                             CommandDispatcher dispatcher) {
+                             CommandDispatcher dispatcher,
+                             CommandPlatformSupport commandPlatformSupport) {
         super(rootCommand.getAliases().getPrimary(), rootCommand.getDescription(), rootCommand.getUsage(), rootCommand.getAliases().getAliases());
         this.context = context;
         this.plugin = context.getPlugin();
         this.rootCommand = rootCommand;
         this.dispatcher = dispatcher;
+        this.commandPlatformSupport = commandPlatformSupport;
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-        return dispatcher.dispatch(context, rootCommand, sender, commandLabel, args);
+        return dispatcher.dispatch(context, rootCommand, commandPlatformSupport.createSender(sender), commandLabel, args);
     }
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender,
                                              @NotNull String alias,
                                              @NotNull String[] args) throws IllegalArgumentException {
-        List<String> completions = dispatcher.complete(context, rootCommand, sender, alias, args);
+        List<String> completions = dispatcher.complete(
+                context,
+                rootCommand,
+                commandPlatformSupport.createSender(sender),
+                alias,
+                args
+        );
         return completions == null ? Collections.emptyList() : completions;
     }
 

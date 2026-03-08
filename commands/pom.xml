@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
-        <artifactId>spigot-boot-platform-spigot</artifactId>
+        <artifactId>spigot-boot</artifactId>
         <version>2.0.2</version>
     </parent>
 
     <name>${project.artifactId}</name>
-    <description>Runtime commands module for Spigot Boot.</description>
+    <description>Platform-agnostic commands module for Spigot Boot.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-commands-spigot</artifactId>
+    <artifactId>spigot-boot-commands</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -42,13 +42,13 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-commands</artifactId>
+            <artifactId>spigot-boot-core</artifactId>
             <version>2.0.2</version>
         </dependency>
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-core-spigot</artifactId>
+            <artifactId>spigot-boot-utils</artifactId>
             <version>2.0.2</version>
         </dependency>
     </dependencies>
