@@ -2,6 +2,8 @@ package tech.guilhermekaua.spigotboot.commands;
 
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 
+import java.time.Duration;
+
 public interface CommandMessages {
     String missingRequiredArgument(CommandExecutionContext context, CommandParameterMetadata parameter);
 
@@ -16,4 +18,13 @@ public interface CommandMessages {
     String usage(CommandExecutionContext context, String usage);
 
     String executionError(CommandExecutionContext context, Throwable throwable);
+
+    default String onCooldown(CommandExecutionContext context, Duration remaining) {
+        long millis = remaining == null ? 0L : Math.max(0L, remaining.toMillis());
+        if (millis >= 1000L) {
+            long seconds = (millis + 999L) / 1000L;
+            return "You must wait " + seconds + "s before using this command again.";
+        }
+        return "You must wait " + millis + "ms before using this command again.";
+    }
 }

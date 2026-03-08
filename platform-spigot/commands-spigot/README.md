@@ -141,36 +141,16 @@ public class AuditInterceptor implements CommandInterceptor {
 }
 ```
 
-## Annotation-Bound Interceptors
+## Built-in Cooldowns
 
-For opt-in behavior, create a custom annotation and bind it to a `CommandAnnotationInterceptor`.
+`@Cooldown` is built in. It can be placed on a command method, a nested command group, or a root handler type.
 
-`CommandAnnotationInterceptor` does not extend `CommandInterceptor`. Use `CommandInterceptor` for global behavior and
-`CommandAnnotationInterceptor` for annotation-scoped behavior.
+The cooldown key is per sender and per handler method, so aliases share the same cooldown but different command methods
+do not.
+
+Static cooldown:
 
 ```java
-
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.METHOD})
-@CommandInterceptedBy(CooldownInterceptor.class)
-public @interface Cooldown {
-    String time();
-}
-
-@Component
-public class CooldownInterceptor implements CommandAnnotationInterceptor<Cooldown> {
-    @Override
-    public CommandExecutionDecision before(Cooldown annotation,
-                                           CommandExecutionContext context,
-                                           CommandInvocationPlan invocation) {
-        if (isOnCooldown(context.getSender(), annotation.time())) {
-            context.sendMessage("Wait before using this command again.");
-            return CommandExecutionDecision.stopExecution();
-        }
-        return CommandExecutionDecision.continueExecution();
-    }
-}
-
 @CommandHandler
 @RootCommand("kit")
 public class KitCommands {
@@ -180,6 +160,45 @@ public class KitCommands {
     }
 }
 ```
+
+The `time` value is parsed with `Timestring`, so values such as `30s`, `5m`, and `1h30m` are valid.
+
+For context-sensitive cooldowns, provide a `CommandCooldownPolicy` bean and reference it from the annotation:
+
+```java
+@Component
+public class VipCooldownPolicy implements CommandCooldownPolicy {
+    @Override
+    public Duration resolve(Cooldown annotation,
+                            CommandExecutionContext context,
+                            CommandInvocationPlan invocation) {
+        CommandSender sender = context.getSender();
+        if (sender instanceof Player && sender.hasPermission("plugin.vip")) {
+            return Duration.ofSeconds(5);
+        }
+
+        return Duration.ofMillis(Timestring.durationLong(annotation.time(), "ms"));
+    }
+}
+
+@CommandHandler
+@RootCommand("kit")
+public class KitCommands {
+    @Cooldown(time = "30s", policy = VipCooldownPolicy.class)
+    @Command("daily")
+    public void daily(@Sender Player sender) {
+    }
+}
+```
+
+Returning `Duration.ZERO` or a negative duration from a policy disables the cooldown for that execution.
+
+## Annotation-Bound Interceptors
+
+For behavior other than cooldowns, create a custom annotation and bind it to a `CommandAnnotationInterceptor`.
+
+`CommandAnnotationInterceptor` does not extend `CommandInterceptor`. Use `CommandInterceptor` for global behavior and
+`CommandAnnotationInterceptor` for annotation-scoped behavior.
 
 ## Completions And Replacements
 

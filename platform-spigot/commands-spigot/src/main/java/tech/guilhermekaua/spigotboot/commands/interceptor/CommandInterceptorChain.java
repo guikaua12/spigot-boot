@@ -31,35 +31,38 @@ public class CommandInterceptorChain {
 
         validateGlobalInterceptors(context);
 
-        Set<Class<? extends CommandAnnotationInterceptor<?>>> validatedTypes =
-                Collections.newSetFromMap(new IdentityHashMap<>());
+        Map<Class<? extends CommandAnnotationInterceptor<?>>, CommandAnnotationInterceptor<?>> resolved =
+                new IdentityHashMap<>();
         for (CompiledRootCommand root : roots) {
-            validate(context, root.getRoutes(), validatedTypes);
-            validate(context, root.getDefaultRoute(), validatedTypes);
-            validate(context, root.getUnknownRoute(), validatedTypes);
+            validate(context, root.getRoutes(), resolved);
+            validate(context, root.getDefaultRoute(), resolved);
+            validate(context, root.getUnknownRoute(), resolved);
         }
     }
 
     private void validate(Context context,
                           Collection<CompiledCommandRoute> routes,
-                          Set<Class<? extends CommandAnnotationInterceptor<?>>> validatedTypes) {
+                          Map<Class<? extends CommandAnnotationInterceptor<?>>, CommandAnnotationInterceptor<?>> resolved) {
         for (CompiledCommandRoute route : routes) {
-            validate(context, route, validatedTypes);
+            validate(context, route, resolved);
         }
     }
 
     private void validate(Context context,
                           CompiledCommandRoute route,
-                          Set<Class<? extends CommandAnnotationInterceptor<?>>> validatedTypes) {
+                          Map<Class<? extends CommandAnnotationInterceptor<?>>, CommandAnnotationInterceptor<?>> resolved) {
         if (route == null) {
             return;
         }
 
         for (CommandInterceptorAnnotationBinding binding : route.getInvocationPlan().getInterceptorBindings()) {
             for (Class<? extends CommandAnnotationInterceptor<?>> interceptorType : binding.getInterceptorTypes()) {
-                if (validatedTypes.add(interceptorType)) {
-                    resolveAnnotationInterceptor(context, interceptorType);
+                CommandAnnotationInterceptor<?> interceptor = resolved.get(interceptorType);
+                if (interceptor == null) {
+                    interceptor = resolveAnnotationInterceptor(context, interceptorType);
+                    resolved.put(interceptorType, interceptor);
                 }
+                validateAnnotationInterceptor(interceptor, binding, context, route.getInvocationPlan());
             }
         }
     }
@@ -103,6 +106,18 @@ public class CommandInterceptorChain {
                 validateInterceptorInterfaces(instance, "Global command interceptor");
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateAnnotationInterceptor(CommandAnnotationInterceptor<?> interceptor,
+                                               CommandInterceptorAnnotationBinding binding,
+                                               Context context,
+                                               CommandInvocationPlan invocation) {
+        ((CommandAnnotationInterceptor<Annotation>) interceptor).validate(
+                binding.getAnnotation(),
+                context,
+                invocation
+        );
     }
 
     private CommandAnnotationInterceptor<?> resolveAnnotationInterceptor(Context context,

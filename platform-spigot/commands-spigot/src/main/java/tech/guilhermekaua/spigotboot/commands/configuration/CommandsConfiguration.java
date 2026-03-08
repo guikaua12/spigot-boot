@@ -5,6 +5,8 @@ import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinder;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterRoleResolver;
 import tech.guilhermekaua.spigotboot.commands.completion.CompletionResolver;
 import tech.guilhermekaua.spigotboot.commands.completion.DefaultCommandCompletionRegistry;
+import tech.guilhermekaua.spigotboot.commands.cooldown.CommandCooldownInterceptor;
+import tech.guilhermekaua.spigotboot.commands.cooldown.FixedCommandCooldownPolicy;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationExecutor;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationFactory;
@@ -22,6 +24,7 @@ import tech.guilhermekaua.spigotboot.commands.spigot.BukkitCommandRegistrar;
 import tech.guilhermekaua.spigotboot.commands.spigot.CommandsContextReadyRegistrar;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.cooldown.CooldownManager;
 
 import java.util.List;
 
@@ -61,6 +64,17 @@ public class CommandsConfiguration {
     @Bean
     public CommandMessagesProvider commandMessagesProvider(DefaultCommandMessages defaultCommandMessages) {
         return new CommandMessagesProvider(defaultCommandMessages);
+    }
+
+    @Bean
+    public FixedCommandCooldownPolicy fixedCommandCooldownPolicy() {
+        return new FixedCommandCooldownPolicy();
+    }
+
+    @Bean
+    public CommandCooldownInterceptor commandCooldownInterceptor(CooldownManager cooldownManager,
+                                                                 CommandMessagesProvider commandMessagesProvider) {
+        return new CommandCooldownInterceptor(cooldownManager, commandMessagesProvider);
     }
 
     @Bean
