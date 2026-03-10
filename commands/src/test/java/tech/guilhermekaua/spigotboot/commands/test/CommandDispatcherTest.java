@@ -1,6 +1,7 @@
 package tech.guilhermekaua.spigotboot.commands.test;
 
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.commands.CommandCompletionRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
 import tech.guilhermekaua.spigotboot.commands.CommandReplacementRegistry;
 import tech.guilhermekaua.spigotboot.commands.annotations.*;
@@ -26,10 +27,7 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -146,6 +144,22 @@ class CommandDispatcherTest {
         assertEquals("pre-Sam-post", recorder.value);
     }
 
+    @Test
+    void completionSkipsProtectedRoutesForUnauthorizedSender() {
+        CompiledRootCommand root = compileRoot(new RestrictedCompletionCommands());
+        CommandDispatcher dispatcher = newDispatcher(Collections.singletonList(
+                registry -> registry.register("targets", (context, parameter, input) -> Arrays.asList("Target", "TopSecret"))
+        ));
+
+        DependencyManager dependencyManager = new DependencyManager();
+        Context context = newContext(dependencyManager);
+        TestSender sender = testSender("Console");
+
+        List<String> suggestions = dispatcher.complete(context, root, senderHandleFor(sender), "admin", new String[]{"tp", "T"});
+
+        assertEquals(Collections.emptyList(), suggestions);
+    }
+
     private CompiledRootCommand compileRoot(Object handler) {
         return compileRoot(handler, new DependencyManager());
     }
@@ -164,12 +178,16 @@ class CommandDispatcherTest {
     }
 
     private CommandDispatcher newDispatcher() {
+        return newDispatcher(Collections.emptyList());
+    }
+
+    private CommandDispatcher newDispatcher(List<CommandCompletionRegistryCustomizer> completionCustomizers) {
         DefaultCommandArgumentResolverRegistry resolverRegistry = new DefaultCommandArgumentResolverRegistry(Collections.emptyList(), Collections.emptyList());
         return new CommandDispatcher(
                 new CommandParameterBinder(resolverRegistry),
                 new CommandInvocationExecutor(new CommandInterceptorChain()),
                 new CommandMessagesProvider(new DefaultCommandMessages()),
-                new CompletionResolver(new DefaultCommandCompletionRegistry(Collections.emptyList()), resolverRegistry)
+                new CompletionResolver(new DefaultCommandCompletionRegistry(completionCustomizers), resolverRegistry)
         );
     }
 
@@ -302,6 +320,15 @@ class CommandDispatcherTest {
 
     static class Recorder {
         private String value;
+    }
+
+    @CommandHandler
+    @RootCommand("admin")
+    static class RestrictedCompletionCommands {
+        @Permission("admin.tp")
+        @Command("tp <target>")
+        public void teleport(@Completion("targets") String target) {
+        }
     }
 
 }

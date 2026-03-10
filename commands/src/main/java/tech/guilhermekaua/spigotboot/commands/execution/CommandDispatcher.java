@@ -70,6 +70,10 @@ public class CommandDispatcher {
         String[] completionArgs = args == null ? new String[0] : args;
         LinkedHashSet<String> suggestions = new LinkedHashSet<>();
         for (CompiledCommandRoute route : root.getRoutes()) {
+            if (!route.getPermission().isEmpty() && !sender.hasPermission(route.getPermission())) {
+                continue;
+            }
+
             MatchProgress progress = progress(route, completionArgs);
             if (progress == null || progress.nextSegment == null) {
                 continue;
