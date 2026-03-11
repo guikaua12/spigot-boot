@@ -10,9 +10,13 @@ import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BukkitOfflinePlayerArgumentResolver implements CommandArgumentResolver<OfflinePlayer>, Ordered {
+    private volatile List<String> cachedNames = Collections.emptyList();
+    private volatile long lastRefreshTime;
+
     @Override
     public int getOrder() {
         return 1000;
@@ -40,13 +44,26 @@ public class BukkitOfflinePlayerArgumentResolver implements CommandArgumentResol
     @Override
     public CommandCompletionProvider defaultCompletionProvider() {
         return (context, parameter, input) -> {
-            List<String> values = new ArrayList<>();
-            for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
-                if (player.getName() != null) {
-                    values.add(player.getName());
+            long now = System.currentTimeMillis();
+            if (now - lastRefreshTime > 30_000) {
+                List<String> names = new ArrayList<>();
+                for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
+                    if (player.getName() != null) {
+                        names.add(player.getName());
+                    }
+                }
+                cachedNames = names;
+                lastRefreshTime = now;
+            }
+
+            String prefix = input == null ? "" : input.toLowerCase();
+            List<String> filtered = new ArrayList<>();
+            for (String name : cachedNames) {
+                if (name.toLowerCase().startsWith(prefix)) {
+                    filtered.add(name);
                 }
             }
-            return values;
+            return filtered;
         };
     }
 }
