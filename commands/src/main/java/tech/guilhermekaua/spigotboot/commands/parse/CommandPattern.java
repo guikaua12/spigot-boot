@@ -1,8 +1,6 @@
 package tech.guilhermekaua.spigotboot.commands.parse;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class CommandPattern {
     private final String source;
@@ -11,8 +9,8 @@ public final class CommandPattern {
 
     public CommandPattern(String source, List<CommandSegment> segments, Set<String> parameterNames) {
         this.source = source == null ? "" : source.trim();
-        this.segments = Collections.unmodifiableList(segments);
-        this.parameterNames = Collections.unmodifiableSet(parameterNames);
+        this.segments = Collections.unmodifiableList(new ArrayList<>(segments));
+        this.parameterNames = Collections.unmodifiableSet(new LinkedHashSet<>(parameterNames));
     }
 
     public String getSource() {
