@@ -14,6 +14,9 @@ public final class CommandSupport {
     }
 
     public static int resolveOrder(Object bean) {
+        if (bean == null) {
+            return 0;
+        }
         if (bean instanceof Ordered) {
             return ((Ordered) bean).getOrder();
         }
