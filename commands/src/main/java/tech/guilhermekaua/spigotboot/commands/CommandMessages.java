@@ -20,7 +20,10 @@ public interface CommandMessages {
     String executionError(CommandExecutionContext context, Throwable throwable);
 
     default String onCooldown(CommandExecutionContext context, Duration remaining) {
-        long millis = remaining == null ? 0L : Math.max(0L, remaining.toMillis());
+        if (remaining == null) {
+            throw new IllegalArgumentException("remaining duration must not be null");
+        }
+        long millis = Math.max(0L, remaining.toMillis());
         if (millis >= 1000L) {
             long seconds = (millis + 999L) / 1000L;
             return "You must wait " + seconds + "s before using this command again.";
