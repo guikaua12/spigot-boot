@@ -68,6 +68,9 @@ public final class CommandPattern {
         private final String literal;
 
         public LiteralSegment(String literal) {
+            if (literal == null) {
+                throw new IllegalArgumentException("literal must not be null");
+            }
             this.literal = literal;
         }
 
