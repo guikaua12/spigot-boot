@@ -20,8 +20,9 @@ public class CompletionResolver {
 
     public List<String> resolve(CommandExecutionContext context, CommandParameterBinding binding, String input) {
         CommandCompletionProvider provider = null;
-        if (!binding.getCompletionId().isEmpty()) {
-            provider = completionRegistry.resolve(binding.getCompletionId());
+        String completionId = binding.getCompletionId();
+        if (completionId != null && !completionId.isEmpty()) {
+            provider = completionRegistry.resolve(completionId);
         }
 
         if (provider == null) {
