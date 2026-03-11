@@ -249,8 +249,24 @@ public class CommandInterceptorChain {
         }
 
         public void after(CommandExecutionContext context, CommandInvocationPlan invocation, Object result) throws Throwable {
+            Throwable primaryFailure = null;
             for (int i = engagedInterceptors.size() - 1; i >= 0; i--) {
-                engagedInterceptors.get(i).after(context, invocation, result);
+                ResolvedInterceptor interceptor = engagedInterceptors.get(i);
+                try {
+                    interceptor.after(context, invocation, result);
+                } catch (Throwable afterFailure) {
+                    if (primaryFailure == null) {
+                        primaryFailure = afterFailure;
+                        continue;
+                    }
+
+                    primaryFailure.addSuppressed(afterFailure);
+                    logAfterFailure(context, interceptor, primaryFailure, afterFailure);
+                }
+            }
+
+            if (primaryFailure != null) {
+                throw primaryFailure;
             }
         }
 
@@ -273,6 +289,18 @@ public class CommandInterceptorChain {
             context.getPlugin().getLogger().severe(
                     "Command interceptor " + interceptor.getBeanClassName() +
                             " threw while handling a command failure triggered by " +
+                            primaryFailure.getClass().getName() + "."
+            );
+            secondaryFailure.printStackTrace();
+        }
+
+        private void logAfterFailure(CommandExecutionContext context,
+                                     ResolvedInterceptor interceptor,
+                                     Throwable primaryFailure,
+                                     Throwable secondaryFailure) {
+            context.getPlugin().getLogger().severe(
+                    "Command interceptor " + interceptor.getBeanClassName() +
+                            " threw while running after() for a command whose earlier after() interceptor already failed with " +
                             primaryFailure.getClass().getName() + "."
             );
             secondaryFailure.printStackTrace();

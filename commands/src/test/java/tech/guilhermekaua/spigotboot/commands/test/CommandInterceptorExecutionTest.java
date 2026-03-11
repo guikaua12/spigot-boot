@@ -252,6 +252,33 @@ class CommandInterceptorExecutionTest {
     }
 
     @Test
+    void afterFailuresDoNotStopRemainingAfterInterceptors() {
+        DependencyManager dependencyManager = new DependencyManager();
+        List<String> events = new ArrayList<>();
+        registerBeans(
+                dependencyManager,
+                new ErrorLoggingInterceptor(events),
+                new OrderedGlobalInterceptor("safe", 10, events),
+                new FailingAfterInterceptor()
+        );
+
+        CommandDispatcher dispatcher = newDispatcher();
+        Context context = newContext(dependencyManager);
+        TestSender sender = newSender();
+
+        dispatcher.dispatch(context, compileRoot(new SimpleOkCommands(), dependencyManager), senderHandleFor(sender), "admin", new String[]{"ok"});
+
+        assertEquals(
+                Arrays.asList("before", "safe.before", "safe.after", "safe.error", "IllegalStateException"),
+                events
+        );
+        assertEquals(
+                Collections.singletonList("An internal error occurred while executing this command."),
+                sender.getMessages()
+        );
+    }
+
+    @Test
     void validationFailsWhenAnnotationInterceptorBeanIsMissing() {
         DependencyManager dependencyManager = new DependencyManager();
         CommandInterceptorChain chain = new CommandInterceptorChain();
