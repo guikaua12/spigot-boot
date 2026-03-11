@@ -30,12 +30,6 @@ public class BukkitOfflinePlayerArgumentResolver implements CommandArgumentResol
             return online;
         }
 
-        for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
-            if (player.getName() != null && player.getName().equalsIgnoreCase(input)) {
-                return player;
-            }
-        }
-
         OfflinePlayer fallback = Bukkit.getOfflinePlayer(input);
         if (fallback.getName() == null && !fallback.hasPlayedBefore()) {
             throw new IllegalArgumentException("Offline player not found: " + input);
