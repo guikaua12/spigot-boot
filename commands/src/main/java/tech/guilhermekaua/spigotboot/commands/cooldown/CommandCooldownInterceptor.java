@@ -20,6 +20,8 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
     private final CommandMessagesProvider commandMessagesProvider;
     private final Map<CommandExecutionContext, PendingCooldown> pendingCooldowns =
             Collections.synchronizedMap(new IdentityHashMap<>());
+    private final Map<CommandExecutionContext, PendingCooldown> appliedCooldowns =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     public CommandCooldownInterceptor(CooldownManager cooldownManager,
                                       CommandMessagesProvider commandMessagesProvider) {
@@ -44,6 +46,7 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
     public CommandExecutionDecision before(Cooldown annotation,
                                            CommandExecutionContext context,
                                            CommandInvocationPlan invocation) {
+        appliedCooldowns.remove(context);
         CommandCooldownPolicy policy = resolvePolicy(context.getContext(), annotation.policy());
         Duration duration = policy.resolve(annotation, context, invocation);
         if (duration == null || duration.isZero() || duration.isNegative()) {
@@ -73,6 +76,7 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
         }
 
         cooldownManager.start(pendingCooldown.key, pendingCooldown.duration);
+        appliedCooldowns.put(context, pendingCooldown);
     }
 
     @Override
@@ -80,7 +84,16 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
                         CommandExecutionContext context,
                         CommandInvocationPlan invocation,
                         Throwable throwable) {
-        pendingCooldowns.remove(context);
+        PendingCooldown pendingCooldown = pendingCooldowns.remove(context);
+        if (pendingCooldown != null) {
+            appliedCooldowns.remove(context);
+            return;
+        }
+
+        PendingCooldown appliedCooldown = appliedCooldowns.remove(context);
+        if (appliedCooldown != null) {
+            cooldownManager.clear(appliedCooldown.key);
+        }
     }
 
     private String buildCooldownKey(CommandExecutionContext context, CommandInvocationPlan invocation) {
