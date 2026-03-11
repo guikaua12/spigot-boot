@@ -19,11 +19,33 @@ public class CommandBindingException extends RuntimeException {
                                     String input,
                                     Class<?> expectedSenderType,
                                     Throwable cause) {
-        super(cause);
+        super(buildMessage(kind, parameter, input, expectedSenderType), cause);
         this.kind = kind;
         this.parameter = parameter;
         this.input = input;
         this.expectedSenderType = expectedSenderType;
+    }
+
+    private static String buildMessage(Kind kind,
+                                       CommandParameterMetadata parameter,
+                                       String input,
+                                       Class<?> expectedSenderType) {
+        switch (kind) {
+            case MISSING_ARGUMENT:
+                return "Missing required argument '" + parameter.getParameterName()
+                        + "' of type " + parameter.getValueType().getSimpleName();
+            case INVALID_ARGUMENT:
+                return "Invalid value '" + input + "' for argument '"
+                        + parameter.getParameterName() + "' of type "
+                        + parameter.getValueType().getSimpleName();
+            case SENDER_MISMATCH:
+                return "Sender type mismatch for parameter '"
+                        + parameter.getParameterName() + "': expected "
+                        + expectedSenderType.getSimpleName();
+            default:
+                return "Command binding error for parameter '"
+                        + parameter.getParameterName() + "'";
+        }
     }
 
     public static CommandBindingException missing(CommandParameterMetadata parameter) {
