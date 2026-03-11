@@ -54,6 +54,7 @@ public final class CommandSupport {
     }
 
     public static String joinArgs(String[] args, int startInclusive) {
+        startInclusive = Math.max(0, startInclusive);
         if (args == null || startInclusive >= args.length) {
             return "";
         }
