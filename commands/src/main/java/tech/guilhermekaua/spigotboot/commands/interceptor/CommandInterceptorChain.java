@@ -12,6 +12,7 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
+import java.util.logging.Level;
 
 public class CommandInterceptorChain {
     public ResolvedChain resolve(CommandExecutionContext context, CommandInvocationPlan invocation) {
@@ -286,24 +287,26 @@ public class CommandInterceptorChain {
                                          ResolvedInterceptor interceptor,
                                          Throwable primaryFailure,
                                          Throwable secondaryFailure) {
-            context.getPlugin().getLogger().severe(
+            context.getPlugin().getLogger().log(
+                    Level.SEVERE,
                     "Command interceptor " + interceptor.getBeanClassName() +
                             " threw while handling a command failure triggered by " +
-                            primaryFailure.getClass().getName() + "."
+                            primaryFailure.getClass().getName() + ".",
+                    secondaryFailure
             );
-            secondaryFailure.printStackTrace();
         }
 
         private void logAfterFailure(CommandExecutionContext context,
                                      ResolvedInterceptor interceptor,
                                      Throwable primaryFailure,
                                      Throwable secondaryFailure) {
-            context.getPlugin().getLogger().severe(
+            context.getPlugin().getLogger().log(
+                    Level.SEVERE,
                     "Command interceptor " + interceptor.getBeanClassName() +
                             " threw while running after() for a command whose earlier after() interceptor already failed with " +
-                            primaryFailure.getClass().getName() + "."
+                            primaryFailure.getClass().getName() + ".",
+                    secondaryFailure
             );
-            secondaryFailure.printStackTrace();
         }
     }
 
