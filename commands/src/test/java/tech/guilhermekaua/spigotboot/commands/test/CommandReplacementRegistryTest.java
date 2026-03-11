@@ -17,6 +17,7 @@ import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +42,17 @@ class CommandReplacementRegistryTest {
         );
 
         assertEquals("coins", registry.replace("%dynamic%"));
+    }
+
+    @Test
+    void defaultRegistryEvaluatesSupplierForEachReplacement() {
+        DefaultCommandReplacementRegistry registry = new DefaultCommandReplacementRegistry(Collections.<CommandReplacementRegistryCustomizer>emptyList());
+        AtomicInteger counter = new AtomicInteger();
+
+        registry.register("dynamic", () -> "value-" + counter.incrementAndGet());
+
+        assertEquals("value-1", registry.replace("%dynamic%"));
+        assertEquals("value-2", registry.replace("%dynamic%"));
     }
 
     @Test
