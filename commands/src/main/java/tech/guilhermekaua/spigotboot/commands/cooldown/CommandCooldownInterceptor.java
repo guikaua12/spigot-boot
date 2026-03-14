@@ -112,7 +112,7 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
 
         BeanDefinition definition = resolveSingleDefinition(definitions, policyType);
         Object instance = resolveInstance(dependencyManager, definition, policyType);
-        if (!policyType.isInstance(instance) || !(instance instanceof CommandCooldownPolicy)) {
+        if (!policyType.isInstance(instance)) {
             throw new IllegalStateException(
                     "Resolved bean for command cooldown policy type " + policyType.getName() +
                             " does not implement CommandCooldownPolicy."
