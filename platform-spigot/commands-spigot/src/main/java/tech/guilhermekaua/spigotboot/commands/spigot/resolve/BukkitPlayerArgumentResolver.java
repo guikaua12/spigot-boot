@@ -43,8 +43,11 @@ public class BukkitPlayerArgumentResolver implements CommandArgumentResolver<Pla
     public CommandCompletionProvider defaultCompletionProvider() {
         return (context, parameter, input) -> {
             List<String> values = new ArrayList<>();
+            Player requester = context.getSender().unwrap(Player.class).orElse(null);
             for (Player player : Bukkit.getOnlinePlayers()) {
-                values.add(player.getName());
+                if (requester == null || requester.canSee(player)) {
+                    values.add(player.getName());
+                }
             }
             return values;
         };
