@@ -16,6 +16,8 @@ public final class CommandAliasSet {
             normalized.put(CommandSupport.normalizeLabel(this.primary), this.primary);
         }
 
+        String normalizedPrimary = this.primary.isEmpty() ? null : CommandSupport.normalizeLabel(this.primary);
+
         if (aliases != null) {
             for (String alias : aliases) {
                 if (alias == null) {
@@ -24,7 +26,10 @@ public final class CommandAliasSet {
 
                 String trimmed = alias.trim();
                 if (!trimmed.isEmpty()) {
-                    normalized.put(CommandSupport.normalizeLabel(trimmed), trimmed);
+                    String normalizedKey = CommandSupport.normalizeLabel(trimmed);
+                    if (!normalizedKey.equals(normalizedPrimary)) {
+                        normalized.put(normalizedKey, trimmed);
+                    }
                 }
             }
         }
