@@ -5,6 +5,7 @@ import tech.guilhermekaua.spigotboot.commands.CommandInterceptorAnnotationBindin
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public final class CommandMethodMetadata {
     private final Object handlerBean;
@@ -30,11 +31,11 @@ public final class CommandMethodMetadata {
                                  List<String> completionIds,
                                  List<CommandInterceptorAnnotationBinding> interceptorBindings,
                                  List<CommandParameterMetadata> parameters) {
-        this.handlerBean = handlerBean;
-        this.handlerType = handlerType;
-        this.method = method;
-        this.kind = kind;
-        this.aliases = aliases;
+        this.handlerBean = Objects.requireNonNull(handlerBean, "handlerBean must not be null");
+        this.handlerType = Objects.requireNonNull(handlerType, "handlerType must not be null");
+        this.method = Objects.requireNonNull(method, "method must not be null");
+        this.kind = Objects.requireNonNull(kind, "kind must not be null");
+        this.aliases = Objects.requireNonNull(aliases, "aliases must not be null");
         this.description = description == null ? "" : description;
         this.usage = usage == null ? "" : usage;
         this.permission = permission == null ? "" : permission;
