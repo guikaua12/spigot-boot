@@ -11,6 +11,7 @@ import static java.util.Optional.empty;
 
 public class DefaultCommandArgumentResolverRegistry implements CommandArgumentResolverRegistry {
     private final List<CommandArgumentResolver<?>> resolvers = new ArrayList<>();
+    private boolean needsSort;
 
     public DefaultCommandArgumentResolverRegistry(List<CommandArgumentResolver<?>> customResolvers,
                                                   List<CommandArgumentResolverRegistryCustomizer> customizers) {
@@ -29,19 +30,27 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
             return;
         }
         resolvers.add(resolver);
-        List<CommandArgumentResolver<?>> sorted = CommandSupport.sortBeans(resolvers);
-        resolvers.clear();
-        resolvers.addAll(sorted);
+        needsSort = true;
     }
 
     @Override
     public Optional<CommandArgumentResolver<?>> resolve(CommandParameterMetadata parameter) {
+        ensureSorted();
         for (CommandArgumentResolver<?> resolver : resolvers) {
             if (resolver.supports(parameter)) {
                 return Optional.of(resolver);
             }
         }
         return empty();
+    }
+
+    private void ensureSorted() {
+        if (needsSort) {
+            List<CommandArgumentResolver<?>> sorted = CommandSupport.sortBeans(resolvers);
+            resolvers.clear();
+            resolvers.addAll(sorted);
+            needsSort = false;
+        }
     }
 
     private void registerBuiltIns() {
