@@ -1,6 +1,7 @@
 package tech.guilhermekaua.spigotboot.commands.parse;
 
 import java.util.*;
+import java.util.Locale;
 
 public final class CommandPattern {
     private final String source;
@@ -90,7 +91,7 @@ public final class CommandPattern {
 
         @Override
         public String signatureToken() {
-            return literal.toLowerCase();
+            return literal.toLowerCase(Locale.ROOT);
         }
     }
 
