@@ -5,7 +5,9 @@ import tech.guilhermekaua.spigotboot.commands.CommandSenderHandle;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,8 +31,8 @@ public final class DefaultCommandExecutionContext implements CommandExecutionCon
         this.sender = sender;
         this.commandLabel = commandLabel;
         this.input = input;
-        this.arguments = Collections.unmodifiableList(arguments);
-        this.parsedArguments = Collections.unmodifiableMap(parsedArguments);
+        this.arguments = Collections.unmodifiableList(new ArrayList<>(arguments));
+        this.parsedArguments = Collections.unmodifiableMap(new HashMap<>(parsedArguments));
         this.usage = usage == null ? "" : usage;
     }
 
