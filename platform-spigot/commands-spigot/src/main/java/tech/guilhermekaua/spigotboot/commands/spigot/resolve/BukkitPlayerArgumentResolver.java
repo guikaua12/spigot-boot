@@ -26,7 +26,12 @@ public class BukkitPlayerArgumentResolver implements CommandArgumentResolver<Pla
     public Player resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
         Player player = Bukkit.getPlayerExact(input);
         if (player == null) {
-            player = Bukkit.getPlayer(input);
+            List<Player> matches = Bukkit.matchPlayer(input);
+            if (matches.size() == 1) {
+                player = matches.get(0);
+            } else if (matches.size() > 1) {
+                throw new IllegalArgumentException("Ambiguous player name: " + input);
+            }
         }
         if (player == null) {
             throw new IllegalArgumentException("Player not found: " + input);
