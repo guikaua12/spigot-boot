@@ -16,6 +16,7 @@ import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class CommandDispatcher {
     private final CommandParameterBinder parameterBinder;
@@ -134,8 +135,7 @@ public class CommandDispatcher {
             return true;
         } catch (Throwable throwable) {
             context.sendMessage(messages.executionError(context, throwable));
-            context.getPlugin().getLogger().severe("Error executing command " + context.getInput());
-            throwable.printStackTrace();
+            context.getPlugin().getLogger().log(Level.SEVERE, "Error executing command " + context.getInput(), throwable);
             return true;
         }
     }
