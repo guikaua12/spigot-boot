@@ -95,6 +95,17 @@ class SpigotBootCommandTest {
 
         assertEquals(Collections.singletonList("Target"), playerSuggestions);
         assertTrue(worldSuggestions.contains("world"));
+
+        // permission-gated command: player without permission gets no tab suggestions
+        SpigotBootCommand restrictedCommand = new SpigotBootCommand(
+                newContext(plugin),
+                compileRoot(new AdminOnlyCommands()),
+                newDispatcher(),
+                platformSupport
+        );
+
+        List<String> restrictedSuggestions = restrictedCommand.tabComplete(sender, "restricted", new String[]{"m"});
+        assertTrue(restrictedSuggestions.isEmpty());
     }
 
     private Context newContext(JavaPlugin plugin) {
@@ -131,6 +142,15 @@ class SpigotBootCommandTest {
                 new CommandMessagesProvider(new DefaultCommandMessages()),
                 new CompletionResolver(completionRegistry, resolverRegistry)
         );
+    }
+
+    @CommandHandler
+    @RootCommand("restricted")
+    static class AdminOnlyCommands {
+        @Permission("admin.manage")
+        @Command("manage")
+        public void manage(@Sender Player sender) {
+        }
     }
 
     @CommandHandler
