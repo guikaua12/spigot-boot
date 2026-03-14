@@ -84,9 +84,19 @@ public class CommandPatternParser {
             return Collections.singletonList(token);
         }
 
-        String[] parts = token.split("\\|");
+        String[] parts = token.split("\\|", -1);
         List<String> values = new ArrayList<>();
         for (String part : parts) {
+            if (part.isEmpty()) {
+                throw new CommandPatternException("Empty alias in token: " + token);
+            }
+            if (isRequiredArgument(part) || isOptionalArgument(part)) {
+                throw new CommandPatternException("Cannot mix argument and literal aliases in token: " + token);
+            }
+            if (part.indexOf('<') >= 0 || part.indexOf('>') >= 0
+                    || part.indexOf('[') >= 0 || part.indexOf(']') >= 0) {
+                throw new CommandPatternException("Malformed alias '" + part + "' in token: " + token);
+            }
             String normalized = CommandSupport.normalizeLabel(part);
             if (normalized.isEmpty()) {
                 throw new CommandPatternException("Invalid empty alias in token: " + token);

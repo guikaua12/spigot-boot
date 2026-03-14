@@ -40,4 +40,34 @@ class CommandPatternParserTest {
     void rejectsRequiredArgumentAfterOptionalArgument() {
         assertThrows(CommandPatternException.class, () -> parser.parse("ban [reason] <player>"));
     }
+
+    @Test
+    void rejectsTrailingEmptyAlias() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("heal|"));
+    }
+
+    @Test
+    void rejectsLeadingEmptyAlias() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("|heal"));
+    }
+
+    @Test
+    void rejectsConsecutivePipes() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("heal||cure"));
+    }
+
+    @Test
+    void rejectsMixedLiteralAndRequiredArgument() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("heal|<player>"));
+    }
+
+    @Test
+    void rejectsMixedLiteralAndOptionalArgument() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("heal|[player]"));
+    }
+
+    @Test
+    void rejectsMalformedBracketInAlias() {
+        assertThrows(CommandPatternException.class, () -> parser.expandAliases("heal|<broken"));
+    }
 }
