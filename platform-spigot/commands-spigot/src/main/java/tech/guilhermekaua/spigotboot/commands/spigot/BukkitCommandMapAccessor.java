@@ -10,6 +10,8 @@ import java.util.Map;
 
 public class BukkitCommandMapAccessor {
     public CommandMap getCommandMap() {
+        ReflectiveOperationException lastException = null;
+
         try {
             PluginManager pluginManager = Bukkit.getPluginManager();
             Field field = findField(pluginManager.getClass(), "commandMap");
@@ -17,17 +19,22 @@ public class BukkitCommandMapAccessor {
                 field.setAccessible(true);
                 return (CommandMap) field.get(pluginManager);
             }
+        } catch (ReflectiveOperationException e) {
+            lastException = e;
+        }
 
+        try {
             Object server = Bukkit.getServer();
-            field = findField(server.getClass(), "commandMap");
+            Field field = findField(server.getClass(), "commandMap");
             if (field != null) {
                 field.setAccessible(true);
                 return (CommandMap) field.get(server);
             }
-        } catch (ReflectiveOperationException ignored) {
+        } catch (ReflectiveOperationException e) {
+            lastException = e;
         }
 
-        throw new IllegalStateException("Failed to access Bukkit command map.");
+        throw new IllegalStateException("Failed to access Bukkit command map.", lastException);
     }
 
     @SuppressWarnings("unchecked")
