@@ -54,7 +54,12 @@ public class DefaultCooldownManager implements CooldownManager {
 
         Instant now = Instant.now(clock);
         if (!expiresAt.isAfter(now)) {
-            cooldowns.remove(key, expiresAt);
+            if (!cooldowns.remove(key, expiresAt)) {
+                Instant newExpires = cooldowns.get(key);
+                if (newExpires != null && newExpires.isAfter(now)) {
+                    return CooldownState.active(Duration.between(now, newExpires), newExpires);
+                }
+            }
             return CooldownState.inactive();
         }
 
