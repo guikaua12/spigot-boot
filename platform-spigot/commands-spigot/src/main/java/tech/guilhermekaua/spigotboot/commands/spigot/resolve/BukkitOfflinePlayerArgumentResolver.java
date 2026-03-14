@@ -2,7 +2,6 @@ package tech.guilhermekaua.spigotboot.commands.spigot.resolve;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.CommandCompletionProvider;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
@@ -24,7 +23,7 @@ public class BukkitOfflinePlayerArgumentResolver implements CommandArgumentResol
 
     @Override
     public boolean supports(CommandParameterMetadata parameter) {
-        return OfflinePlayer.class.equals(parameter.getValueType()) && !Player.class.equals(parameter.getValueType());
+        return OfflinePlayer.class.equals(parameter.getValueType());
     }
 
     @Override
