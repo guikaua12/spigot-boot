@@ -218,10 +218,10 @@ public class CommandHandlerIntrospector {
         }
 
         String[] parts = trimmed.split("\\s+");
-        List<String> ids = new ArrayList<>();
+        List<String> ids = new ArrayList<>(parts.length);
         for (String part : parts) {
-            if (!part.trim().isEmpty()) {
-                ids.add(part.trim());
+            if (!part.isEmpty()) {
+                ids.add(part);
             }
         }
         return ids;
