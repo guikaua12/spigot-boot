@@ -37,9 +37,8 @@ public class DefaultCommandReplacementRegistry implements CommandReplacementRegi
 
     @Override
     public String replace(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return value == null ? "" : value.trim();
-        }
+        if (value == null) return "";
+        if (value.trim().isEmpty()) return "";
         return replace(value, new LinkedHashSet<>());
     }
 
