@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class DefaultCommandCompletionRegistry implements CommandCompletionRegistry {
     private final Map<String, CommandCompletionProvider> providers = new LinkedHashMap<>();
@@ -30,11 +31,11 @@ public class DefaultCommandCompletionRegistry implements CommandCompletionRegist
     }
 
     @Override
-    public CommandCompletionProvider resolve(String id) {
+    public Optional<CommandCompletionProvider> resolve(String id) {
         if (id == null) {
-            return null;
+            return Optional.empty();
         }
-        return providers.get(id.trim());
+        return Optional.ofNullable(providers.get(id.trim()));
     }
 
     private void registerBuiltIns() {

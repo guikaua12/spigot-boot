@@ -19,11 +19,10 @@ public class CompletionResolver {
     }
 
     public List<String> resolve(CommandExecutionContext context, CommandParameterBinding binding, String input) {
-        CommandCompletionProvider provider = null;
         String completionId = binding.getCompletionId();
-        if (completionId != null && !completionId.isEmpty()) {
-            provider = completionRegistry.resolve(completionId);
-        }
+        CommandCompletionProvider provider = (completionId != null && !completionId.isEmpty())
+                ? completionRegistry.resolve(completionId).orElse(null)
+                : null;
 
         if (provider == null) {
             provider = argumentResolverRegistry.resolve(binding.getMetadata())
