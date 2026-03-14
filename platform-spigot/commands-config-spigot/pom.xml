@@ -43,13 +43,13 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-commands</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>
