@@ -26,10 +26,9 @@ public class CompletionResolver {
         }
 
         if (provider == null) {
-            CommandArgumentResolver<?> resolver = argumentResolverRegistry.resolve(binding.getMetadata());
-            if (resolver != null) {
-                provider = resolver.defaultCompletionProvider();
-            }
+            provider = argumentResolverRegistry.resolve(binding.getMetadata())
+                    .map(CommandArgumentResolver::defaultCompletionProvider)
+                    .orElse(null);
         }
 
         if (provider == null) {

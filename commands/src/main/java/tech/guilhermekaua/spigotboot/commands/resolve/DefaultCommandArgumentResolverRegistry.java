@@ -7,6 +7,8 @@ import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 
 import java.util.*;
 
+import static java.util.Optional.empty;
+
 public class DefaultCommandArgumentResolverRegistry implements CommandArgumentResolverRegistry {
     private final List<CommandArgumentResolver<?>> resolvers = new ArrayList<>();
 
@@ -33,13 +35,13 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
     }
 
     @Override
-    public CommandArgumentResolver<?> resolve(CommandParameterMetadata parameter) {
+    public Optional<CommandArgumentResolver<?>> resolve(CommandParameterMetadata parameter) {
         for (CommandArgumentResolver<?> resolver : resolvers) {
             if (resolver.supports(parameter)) {
-                return resolver;
+                return Optional.of(resolver);
             }
         }
-        return null;
+        return empty();
     }
 
     private void registerBuiltIns() {
