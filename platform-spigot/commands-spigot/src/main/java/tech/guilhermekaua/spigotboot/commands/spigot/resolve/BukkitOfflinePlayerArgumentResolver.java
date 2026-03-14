@@ -2,6 +2,7 @@ package tech.guilhermekaua.spigotboot.commands.spigot.resolve;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.CommandCompletionProvider;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
