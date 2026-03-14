@@ -17,7 +17,15 @@ public class BukkitCommandCompletionRegistryCustomizer implements CommandComplet
     public void customize(CommandCompletionRegistry registry) {
         registry.register("onlinePlayers", (context, parameter, input) -> {
             List<String> values = new ArrayList<>();
+            Player senderPlayer = context.getSender().unwrap(Player.class).orElse(null);
+            String lowerInput = input != null ? input.toLowerCase(Locale.ROOT) : "";
             for (Player player : Bukkit.getOnlinePlayers()) {
+                if (senderPlayer != null && !senderPlayer.canSee(player)) {
+                    continue;
+                }
+                if (!lowerInput.isEmpty() && !player.getName().toLowerCase(Locale.ROOT).startsWith(lowerInput)) {
+                    continue;
+                }
                 values.add(player.getName());
             }
             return values;
