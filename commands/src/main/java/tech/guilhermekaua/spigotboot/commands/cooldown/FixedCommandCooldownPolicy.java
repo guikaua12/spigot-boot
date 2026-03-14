@@ -24,7 +24,7 @@ public class FixedCommandCooldownPolicy implements CommandCooldownPolicy {
     }
 
     private Duration parse(Cooldown annotation, CommandInvocationPlan invocation) {
-        String time = annotation.time() == null ? "" : annotation.time().trim();
+        String time = annotation.time().trim();
         if (time.isEmpty()) {
             throw new IllegalStateException(
                     "@Cooldown on " + invocation.getMethod().toGenericString() +
