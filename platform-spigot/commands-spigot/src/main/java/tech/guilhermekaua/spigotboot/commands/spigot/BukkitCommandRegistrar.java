@@ -4,6 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import tech.guilhermekaua.spigotboot.commands.CommandPlatformSupport;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
+import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 
@@ -61,7 +62,7 @@ public class BukkitCommandRegistrar {
                                     Map<String, Command> knownCommands,
                                     Set<Command> toRemove) {
         for (String label : root.getAliases().allValues()) {
-            Command existing = knownCommands.get(label.toLowerCase(Locale.ROOT));
+            Command existing = knownCommands.get(CommandSupport.normalizeLabel(label));
             if (existing == null) {
                 continue;
             }
