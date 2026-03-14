@@ -13,6 +13,7 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class CommandRootCompiler {
@@ -34,7 +35,7 @@ public class CommandRootCompiler {
     public List<CompiledRootCommand> compile(Context context) {
         List<Object> handlers = collectHandlers(context);
         if (handlers.isEmpty()) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         List<RootCommandMetadata> metadata = new ArrayList<>();
