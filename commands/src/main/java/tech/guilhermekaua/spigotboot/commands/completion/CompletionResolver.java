@@ -37,8 +37,12 @@ public class CompletionResolver {
         }
 
         String prefix = input == null ? "" : input;
+        List<String> suggestions = provider.complete(context, binding.getMetadata(), prefix);
+        if (suggestions == null) {
+            return java.util.Collections.emptyList();
+        }
         LinkedHashSet<String> values = new LinkedHashSet<>();
-        for (String value : provider.complete(context, binding.getMetadata(), prefix)) {
+        for (String value : suggestions) {
             if (value == null) {
                 continue;
             }
