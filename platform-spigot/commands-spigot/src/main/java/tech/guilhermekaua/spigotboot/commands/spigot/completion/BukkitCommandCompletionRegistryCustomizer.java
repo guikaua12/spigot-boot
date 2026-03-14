@@ -32,9 +32,18 @@ public class BukkitCommandCompletionRegistryCustomizer implements CommandComplet
         });
         registry.register("offlinePlayers", (context, parameter, input) -> {
             List<String> values = new ArrayList<>();
+            String lowerInput = input != null ? input.toLowerCase(Locale.ROOT) : "";
             for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
-                if (player.getName() != null) {
-                    values.add(player.getName());
+                String name = player.getName();
+                if (name == null) {
+                    continue;
+                }
+                if (!lowerInput.isEmpty() && !name.toLowerCase(Locale.ROOT).startsWith(lowerInput)) {
+                    continue;
+                }
+                values.add(name);
+                if (values.size() >= 20) {
+                    break;
                 }
             }
             return values;
