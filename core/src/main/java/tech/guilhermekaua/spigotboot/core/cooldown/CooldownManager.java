@@ -29,6 +29,8 @@ public interface CooldownManager {
 
     CooldownState start(String key, Duration duration);
 
+    boolean startIfInactive(String key, Duration duration);
+
     void clear(String key);
 
     void clearAll();

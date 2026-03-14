@@ -55,8 +55,8 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
         }
 
         String key = buildCooldownKey(context, invocation);
-        CooldownState state = cooldownManager.getState(key);
-        if (state.isActive()) {
+        if (!cooldownManager.startIfInactive(key, duration)) {
+            CooldownState state = cooldownManager.getState(key);
             context.sendMessage(commandMessagesProvider.resolve(context.getContext()).onCooldown(context, state.getRemaining()));
             return CommandExecutionDecision.stopExecution();
         }
@@ -75,7 +75,6 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
             return;
         }
 
-        cooldownManager.start(pendingCooldown.key, pendingCooldown.duration);
         appliedCooldowns.put(context, pendingCooldown);
     }
 
@@ -86,6 +85,7 @@ public class CommandCooldownInterceptor implements CommandAnnotationInterceptor<
                         Throwable throwable) {
         PendingCooldown pendingCooldown = pendingCooldowns.remove(context);
         if (pendingCooldown != null) {
+            cooldownManager.clear(pendingCooldown.key);
             appliedCooldowns.remove(context);
             return;
         }

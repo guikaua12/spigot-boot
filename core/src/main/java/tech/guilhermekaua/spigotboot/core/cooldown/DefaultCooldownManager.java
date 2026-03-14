@@ -86,6 +86,35 @@ public class DefaultCooldownManager implements CooldownManager {
     }
 
     @Override
+    public boolean startIfInactive(String key, Duration duration) {
+        Objects.requireNonNull(key, "key cannot be null.");
+        Objects.requireNonNull(duration, "duration cannot be null.");
+
+        if (duration.isNegative()) {
+            throw new IllegalArgumentException("duration cannot be negative.");
+        }
+
+        if (duration.isZero()) {
+            return true;
+        }
+
+        Instant now = Instant.now(clock);
+        Instant newExpiresAt = now.plus(duration);
+        boolean[] started = {false};
+
+        cooldowns.compute(key, (k, existing) -> {
+            if (existing == null || !existing.isAfter(now)) {
+                started[0] = true;
+                return newExpiresAt;
+            }
+            started[0] = false;
+            return existing;
+        });
+
+        return started[0];
+    }
+
+    @Override
     public void clear(String key) {
         Objects.requireNonNull(key, "key cannot be null.");
         cooldowns.remove(key);
