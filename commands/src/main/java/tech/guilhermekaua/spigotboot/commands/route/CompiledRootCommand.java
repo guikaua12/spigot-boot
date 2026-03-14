@@ -2,6 +2,7 @@ package tech.guilhermekaua.spigotboot.commands.route;
 
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandAliasSet;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public final class CompiledRootCommand {
         this.aliases = aliases;
         this.description = description == null ? "" : description;
         this.usage = usage == null ? "" : usage;
-        this.routes = Collections.unmodifiableList(routes);
+        this.routes = Collections.unmodifiableList(new ArrayList<>(routes));
         this.defaultRoute = defaultRoute;
         this.unknownRoute = unknownRoute;
     }
