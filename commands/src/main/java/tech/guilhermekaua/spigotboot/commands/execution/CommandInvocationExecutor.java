@@ -34,7 +34,6 @@ public class CommandInvocationExecutor {
         Objects.requireNonNull(resolvedChain, "resolvedChain cannot be null.");
 
         try {
-            plan.getMethod().setAccessible(true);
             Object result = plan.getMethod().invoke(plan.getHandlerBean(), arguments);
             resolvedChain.after(context, plan, result);
             return result;

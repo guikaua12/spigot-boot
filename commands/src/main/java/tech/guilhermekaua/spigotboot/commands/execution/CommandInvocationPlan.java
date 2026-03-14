@@ -20,6 +20,7 @@ public final class CommandInvocationPlan {
                                  List<CommandInterceptorAnnotationBinding> interceptorBindings) {
         this.handlerBean = handlerBean;
         this.method = method;
+        this.method.setAccessible(true);
         this.bindings = Collections.unmodifiableList(new ArrayList<>(bindings));
         this.interceptorBindings = interceptorBindings == null
                 ? Collections.emptyList()
