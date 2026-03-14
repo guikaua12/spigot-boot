@@ -28,7 +28,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 @Configuration
 public class CooldownConfiguration {
     @Bean
-    public DefaultCooldownManager defaultCooldownManager() {
+    public CooldownManager defaultCooldownManager() {
         return new DefaultCooldownManager();
     }
 }
