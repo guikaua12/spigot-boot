@@ -59,6 +59,11 @@ public class SpigotBootCommand extends Command {
         return rootCommand;
     }
 
+    /**
+     * Returns {@code null} so Bukkit skips its top-level permission check.
+     * Per-route permissions ({@literal @Permission}) are enforced by {@link CommandDispatcher}
+     * during both dispatch and tab-completion.
+     */
     @Override
     public @Nullable String getPermission() {
         return null;
