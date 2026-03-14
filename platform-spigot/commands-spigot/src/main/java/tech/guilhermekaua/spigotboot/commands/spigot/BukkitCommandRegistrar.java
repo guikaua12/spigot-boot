@@ -25,15 +25,23 @@ public class BukkitCommandRegistrar {
     public RegisteredCommandSet register(Context context, List<CompiledRootCommand> roots) {
         CommandMap commandMap = commandMapAccessor.getCommandMap();
         Map<String, Command> knownCommands = commandMapAccessor.getKnownCommands(commandMap);
-        Set<Command> removedExisting = Collections.newSetFromMap(new IdentityHashMap<>());
 
+        Set<Command> toRemove = Collections.newSetFromMap(new IdentityHashMap<>());
         List<SpigotBootCommand> commands = new ArrayList<>();
-        for (CompiledRootCommand root : roots) {
-            checkAndPrepareCollisions(context, root, commandMap, knownCommands, removedExisting);
 
-            SpigotBootCommand command = new SpigotBootCommand(context, root, dispatcher, commandPlatformSupport);
-            commandMap.register(context.getPlugin().getName().toLowerCase(Locale.ROOT), command);
-            commands.add(command);
+        for (CompiledRootCommand root : roots) {
+            collectCollisions(context, root, knownCommands, toRemove);
+            commands.add(new SpigotBootCommand(context, root, dispatcher, commandPlatformSupport));
+        }
+
+        for (Command existing : toRemove) {
+            existing.unregister(commandMap);
+            knownCommands.entrySet().removeIf(entry -> entry.getValue() == existing);
+        }
+
+        String prefix = context.getPlugin().getName().toLowerCase(Locale.ROOT);
+        for (SpigotBootCommand command : commands) {
+            commandMap.register(prefix, command);
         }
 
         return new RegisteredCommandSet(commands);
@@ -48,11 +56,10 @@ public class BukkitCommandRegistrar {
         }
     }
 
-    private void checkAndPrepareCollisions(Context context,
-                                           CompiledRootCommand root,
-                                           CommandMap commandMap,
-                                           Map<String, Command> knownCommands,
-                                           Set<Command> removedExisting) {
+    private void collectCollisions(Context context,
+                                    CompiledRootCommand root,
+                                    Map<String, Command> knownCommands,
+                                    Set<Command> toRemove) {
         for (String label : root.getAliases().allValues()) {
             Command existing = knownCommands.get(label.toLowerCase(Locale.ROOT));
             if (existing == null) {
@@ -60,10 +67,7 @@ public class BukkitCommandRegistrar {
             }
 
             if (existing instanceof SpigotBootCommand && ((SpigotBootCommand) existing).isOwnedBy(context.getPlugin())) {
-                if (removedExisting.add(existing)) {
-                    existing.unregister(commandMap);
-                    knownCommands.entrySet().removeIf(entry -> entry.getValue() == existing);
-                }
+                toRemove.add(existing);
                 continue;
             }
 
