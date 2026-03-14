@@ -88,7 +88,7 @@ final class NestedCommandHandlerInstantiator {
     }
 
     private Constructor<?> findInjectConstructor(Class<?> type) {
-        if (type.isInterface()) {
+        if (type.isInterface() || Modifier.isAbstract(type.getModifiers())) {
             return null;
         }
 
