@@ -8,13 +8,14 @@ import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class CommandParameterBinder {
     private final CommandArgumentResolverRegistry resolverRegistry;
 
     public CommandParameterBinder(CommandArgumentResolverRegistry resolverRegistry) {
-        this.resolverRegistry = resolverRegistry;
+        this.resolverRegistry = Objects.requireNonNull(resolverRegistry, "resolverRegistry must not be null");
     }
 
     public Object[] bind(CommandExecutionContext context, CommandInvocationPlan plan, Map<String, String> parsedArguments) {
