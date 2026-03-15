@@ -102,7 +102,7 @@ class ConfigBackedCommandTextResolverTest {
     @Test
     void resolvesFolderConfigItemReferencesInsideCommandText() throws Exception {
         Files.createDirectories(tempDir.resolve("items"));
-        writeYaml("items\\sword.yml", "name: sword\n");
+        writeYaml("items/sword.yml", "name: sword\n");
 
         configManager.registerFolderConfig(ItemConfig.class, ItemConfig.class.getAnnotation(FolderConfig.class));
         configManager.initializeAll();
