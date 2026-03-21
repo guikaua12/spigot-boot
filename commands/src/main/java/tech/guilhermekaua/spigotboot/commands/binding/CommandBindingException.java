@@ -6,7 +6,8 @@ public class CommandBindingException extends RuntimeException {
     public enum Kind {
         MISSING_ARGUMENT,
         INVALID_ARGUMENT,
-        SENDER_MISMATCH
+        SENDER_MISMATCH,
+        MISSING_RESOLVER
     }
 
     private final Kind kind;
@@ -42,6 +43,9 @@ public class CommandBindingException extends RuntimeException {
                 return "Sender type mismatch for parameter '"
                         + parameter.getParameterName() + "': expected "
                         + expectedSenderType.getSimpleName();
+            case MISSING_RESOLVER:
+                return "No command argument resolver found for type "
+                        + parameter.getValueType().getName();
             default:
                 return "Command binding error for parameter '"
                         + parameter.getParameterName() + "'";
@@ -58,6 +62,10 @@ public class CommandBindingException extends RuntimeException {
 
     public static CommandBindingException senderMismatch(CommandParameterMetadata parameter, Class<?> expectedSenderType) {
         return new CommandBindingException(Kind.SENDER_MISMATCH, parameter, null, expectedSenderType, null);
+    }
+
+    public static CommandBindingException missingResolver(CommandParameterMetadata parameter) {
+        return new CommandBindingException(Kind.MISSING_RESOLVER, parameter, null, null, null);
     }
 
     public Kind getKind() {

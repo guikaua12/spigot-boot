@@ -75,7 +75,7 @@ public class CommandParameterBinder {
         }
 
         CommandArgumentResolver<?> resolver = resolverRegistry.resolve(parameter)
-                .orElseThrow(() -> new IllegalStateException("No command argument resolver found for type " + parameter.getValueType().getName()));
+                .orElseThrow(() -> CommandBindingException.missingResolver(parameter));
 
         try {
             Object resolved = resolver.resolve(context, parameter, resolvedInput);

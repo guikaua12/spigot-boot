@@ -156,6 +156,9 @@ public class CommandDispatcher {
             case SENDER_MISMATCH:
                 context.sendMessage(messages.senderTypeMismatch(context, exception.getExpectedSenderType()));
                 return;
+            case MISSING_RESOLVER:
+                context.sendMessage(exception.getMessage());
+                return;
             default:
                 throw new IllegalStateException("Unhandled binding exception type: " + exception.getKind());
         }
