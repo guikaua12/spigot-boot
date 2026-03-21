@@ -74,7 +74,7 @@ class ConfigBackedCommandTextResolverTest {
 
     @Test
     void resolvesConfigReferencesAcrossCommandMetadata() throws Exception {
-        writeYaml("main.yml",
+        writeYaml(Path.of("main.yml"),
                 """
                         root: admin
                         root_description: Admin commands
@@ -102,7 +102,7 @@ class ConfigBackedCommandTextResolverTest {
     @Test
     void resolvesFolderConfigItemReferencesInsideCommandText() throws Exception {
         Files.createDirectories(tempDir.resolve("items"));
-        writeYaml("items/sword.yml", "name: sword\n");
+        writeYaml(Path.of("items").resolve("sword.yml"), "name: sword\n");
 
         configManager.registerFolderConfig(ItemConfig.class, ItemConfig.class.getAnnotation(FolderConfig.class));
         configManager.initializeAll();
@@ -114,8 +114,8 @@ class ConfigBackedCommandTextResolverTest {
 
     @Test
     void deepResolvesNestedConfigReferencesBeforeStringifying() throws Exception {
-        writeYaml("main.yml", "root: admin\nverb: ${shared:action}\ncommand_permission: plugin.admin.coin.set\n");
-        writeYaml("shared.yml", "action: set\n");
+        writeYaml(Path.of("main.yml"), "root: admin\nverb: ${shared:action}\ncommand_permission: plugin.admin.coin.set\n");
+        writeYaml(Path.of("shared.yml"), "action: set\n");
 
         configManager.register(MainConfig.class);
         configManager.register(SharedConfig.class);
@@ -139,7 +139,7 @@ class ConfigBackedCommandTextResolverTest {
 
     @Test
     void failsWhenReferenceIsMissing() throws Exception {
-        writeYaml("main.yml", "root: admin\n");
+        writeYaml(Path.of("main.yml"), "root: admin\n");
 
         configManager.register(MainConfig.class);
         configManager.initializeAll();
@@ -155,7 +155,7 @@ class ConfigBackedCommandTextResolverTest {
 
     @Test
     void failsWhenReferenceResolvesToNonScalarValue() throws Exception {
-        writeYaml("main.yml",
+        writeYaml(Path.of("main.yml"),
                 """
                         root: admin
                         command_permission:
@@ -176,7 +176,7 @@ class ConfigBackedCommandTextResolverTest {
 
     @Test
     void failsWhenTokenIsInvalid() throws Exception {
-        writeYaml("main.yml", "root: admin\n");
+        writeYaml(Path.of("main.yml"), "root: admin\n");
 
         configManager.register(MainConfig.class);
         configManager.initializeAll();
@@ -195,8 +195,8 @@ class ConfigBackedCommandTextResolverTest {
         return factory.create(context, metadata);
     }
 
-    private void writeYaml(String relativePath, String content) throws Exception {
-        Path file = tempDir.resolve(relativePath);
+    private void writeYaml(Path relativePath, String content) throws Exception {
+        Path file = tempDir.resolve(relativePath).normalize();
         Path parent = file.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
