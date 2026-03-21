@@ -45,16 +45,17 @@ public class CommandDispatcher {
     }
 
     public boolean dispatch(Context context, CompiledRootCommand root, CommandSenderHandle sender, String label, String[] args) {
-        MatchResult match = findBestMatch(root, args);
+        String[] dispatchArgs = args == null ? new String[0] : args;
+        MatchResult match = findBestMatch(root, dispatchArgs);
         if (match == null) {
-            if (args.length > 0 && root.getUnknownRoute() != null) {
-                DefaultCommandExecutionContext unknownContext = createContext(context, root, root.getUnknownRoute(), sender, label, args, Collections.emptyMap());
+            if (dispatchArgs.length > 0 && root.getUnknownRoute() != null) {
+                DefaultCommandExecutionContext unknownContext = createContext(context, root, root.getUnknownRoute(), sender, label, dispatchArgs, Collections.emptyMap());
                 return execute(root.getUnknownRoute(), unknownContext);
             }
 
-            DefaultCommandExecutionContext executionContext = createContext(context, root, null, sender, label, args, Collections.emptyMap());
+            DefaultCommandExecutionContext executionContext = createContext(context, root, null, sender, label, dispatchArgs, Collections.emptyMap());
             CommandMessages messages = messagesProvider.resolve(context);
-            if (args.length > 0) {
+            if (dispatchArgs.length > 0) {
                 executionContext.sendMessage(messages.unknownSubcommand(executionContext));
             }
             if (!executionContext.getUsage().isEmpty()) {
@@ -63,7 +64,7 @@ public class CommandDispatcher {
             return true;
         }
 
-        DefaultCommandExecutionContext executionContext = createContext(context, root, match.route, sender, label, args, match.parsedArguments);
+        DefaultCommandExecutionContext executionContext = createContext(context, root, match.route, sender, label, dispatchArgs, match.parsedArguments);
         return execute(match.route, executionContext);
     }
 
