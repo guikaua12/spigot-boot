@@ -3,10 +3,8 @@ package tech.guilhermekaua.spigotboot.commands.completion;
 import tech.guilhermekaua.spigotboot.commands.*;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinding;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.logging.Level;
 
 public class CompletionResolver {
     private final CommandCompletionRegistry completionRegistry;
@@ -31,13 +29,24 @@ public class CompletionResolver {
         }
 
         if (provider == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
         String prefix = input == null ? "" : input;
-        List<String> suggestions = provider.complete(context, binding.getMetadata(), prefix);
+        List<String> suggestions;
+        try {
+            suggestions = provider.complete(context, binding.getMetadata(), prefix);
+        } catch (Exception e) {
+            context.getPlugin().getLogger().log(
+                    Level.WARNING,
+                    "Error resolving command completions for parameter "
+                            + binding.getMetadata().getParameterName(),
+                    e
+            );
+            return Collections.emptyList();
+        }
         if (suggestions == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         LinkedHashSet<String> values = new LinkedHashSet<>();
         for (String value : suggestions) {
