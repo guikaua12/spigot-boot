@@ -59,7 +59,7 @@ public class CommandParameterBinder {
                               String input) {
         CommandParameterMetadata parameter = binding.getMetadata();
         String resolvedInput = input;
-        if (resolvedInput == null || resolvedInput.isEmpty()) {
+        if (resolvedInput == null || resolvedInput.trim().isEmpty()) {
             if (parameter.hasDefaultValue()) {
                 resolvedInput = parameter.getDefaultValue();
             } else if (parameter.isOptionalWrapper()) {
