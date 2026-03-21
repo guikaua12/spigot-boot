@@ -17,6 +17,8 @@
 
     <modules>
         <module>core-spigot</module>
+        <module>commands-spigot</module>
+        <module>commands-config-spigot</module>
         <module>config-spigot</module>
         <module>pmc</module>
         <module>placeholder</module>

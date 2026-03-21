@@ -37,6 +37,7 @@
 
     <modules>
         <module>core</module>
+        <module>commands</module>
         <module>platform-spigot</module>
         <module>data</module>
         <module>modules</module>

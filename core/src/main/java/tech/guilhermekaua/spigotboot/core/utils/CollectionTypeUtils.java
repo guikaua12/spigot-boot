@@ -104,22 +104,12 @@ public final class CollectionTypeUtils {
             return null;
         }
 
-        Type elementType = typeArguments[0];
-        if (!(elementType instanceof Class)) {
-            if (elementType instanceof WildcardType) {
-                WildcardType wildcardType = (WildcardType) elementType;
-                Type[] upperBounds = wildcardType.getUpperBounds();
-                if (upperBounds.length > 0 && upperBounds[0] instanceof Class) {
-                    elementType = upperBounds[0];
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
+        Class<?> elementClass = resolveTypeToClass(typeArguments[0]);
+        if (elementClass == null) {
+            return null;
         }
 
-        return new CollectionTypeInfo(rawClass, (Class<?>) elementType);
+        return new CollectionTypeInfo(rawClass, elementClass);
     }
 
     /**
