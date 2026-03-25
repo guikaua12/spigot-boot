@@ -71,19 +71,25 @@ public class QuerySqlBuilder {
                 sb.append(" ").append(cond.getConjunction().name()).append(" ");
             }
 
-            sb.append(dialect.quoteIdentifier(cond.getColumn()));
-
-            if (cond.getOperator().isNoValue()) {
-                sb.append(" ").append(cond.getOperator().getSql());
-            } else if (cond.getOperator().isCollection()) {
+            if (cond.getOperator().isCollection()) {
                 Collection<?> values = (Collection<?>) cond.getValue();
-                StringJoiner joiner = new StringJoiner(", ");
-                for (int j = 0; j < values.size(); j++) {
-                    joiner.add("?");
+                if (values.isEmpty()) {
+                    sb.append("1=0");
+                } else {
+                    sb.append(dialect.quoteIdentifier(cond.getColumn()));
+                    StringJoiner joiner = new StringJoiner(", ");
+                    for (int j = 0; j < values.size(); j++) {
+                        joiner.add("?");
+                    }
+                    sb.append(" IN (").append(joiner).append(")");
                 }
-                sb.append(" IN (").append(joiner).append(")");
             } else {
-                sb.append(" ").append(cond.getOperator().getSql()).append(" ?");
+                sb.append(dialect.quoteIdentifier(cond.getColumn()));
+                if (cond.getOperator().isNoValue()) {
+                    sb.append(" ").append(cond.getOperator().getSql());
+                } else {
+                    sb.append(" ").append(cond.getOperator().getSql()).append(" ?");
+                }
             }
         }
     }
@@ -106,7 +112,10 @@ public class QuerySqlBuilder {
                 continue;
             }
             if (cond.getOperator().isCollection()) {
-                params.addAll((Collection<?>) cond.getValue());
+                Collection<?> values = (Collection<?>) cond.getValue();
+                if (!values.isEmpty()) {
+                    params.addAll(values);
+                }
             } else {
                 params.add(cond.getValue());
             }
