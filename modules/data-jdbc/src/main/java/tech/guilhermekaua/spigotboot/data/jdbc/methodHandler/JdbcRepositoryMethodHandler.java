@@ -43,7 +43,11 @@ public class JdbcRepositoryMethodHandler {
     @MethodHandler(targetClass = JdbcRepository.class)
     public Object handle(MethodHandlerContext context) throws Throwable {
         if (context.self() == null || context.thisMethod() == null) {
-            return null;
+            throw new IllegalStateException(String.format(
+                    "Incomplete proxy context: missing self or method on JdbcRepositoryMethodHandler, self=%s method=%s",
+                    context.self(),
+                    context.thisMethod()
+            ));
         }
 
         if (context.proceed() != null) {
