@@ -55,10 +55,8 @@ public class EntityRowMapper<T> {
                 }
                 // find the embedded id field on the entity and set it
                 Field embeddedIdField = findEmbeddedIdField(metadata.getEntityClass(), idMeta.getEmbeddedKeyClass());
-                if (embeddedIdField != null) {
-                    embeddedIdField.setAccessible(true);
-                    embeddedIdField.set(entity, embeddedKey);
-                }
+                embeddedIdField.setAccessible(true);
+                embeddedIdField.set(entity, embeddedKey);
             } else {
                 for (ColumnMetadata col : idMeta.getColumns()) {
                     Object value = getValueFromResultSet(rs, col);
@@ -146,13 +144,19 @@ public class EntityRowMapper<T> {
     }
 
     private Field findEmbeddedIdField(Class<?> entityClass, Class<?> embeddedKeyClass) {
-        for (Field field : entityClass.getDeclaredFields()) {
-            if (field.getType() == embeddedKeyClass &&
-                    field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
-                return field;
+        Class<?> current = entityClass;
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.getType() == embeddedKeyClass &&
+                        field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
+                    return field;
+                }
             }
+            current = current.getSuperclass();
         }
-        return null;
+        throw new IllegalStateException(
+                "No @EmbeddedId field of type " + embeddedKeyClass.getName() +
+                        " found in class hierarchy of " + entityClass.getName());
     }
 
     public static final class MappedRow<E> {
