@@ -287,7 +287,7 @@ public final class BuiltInConverters {
     static class DurationConverter implements AttributeConverter<Duration, Object> {
         @Override
         public Object convertToDatabaseColumn(Duration attribute) {
-            return attribute == null ? null : attribute.toMillis();
+            return attribute == null ? null : attribute.toNanos();
         }
 
         @Override
@@ -301,13 +301,13 @@ public final class BuiltInConverters {
             }
 
             if (dbData instanceof Number) {
-                return Duration.ofMillis(((Number) dbData).longValue());
+                return Duration.ofNanos(((Number) dbData).longValue());
             }
 
             if (dbData instanceof String) {
                 String text = ((String) dbData).trim();
                 try {
-                    return Duration.ofMillis(Long.parseLong(text));
+                    return Duration.ofNanos(Long.parseLong(text));
                 } catch (NumberFormatException ignored) {
                     return Duration.parse(text);
                 }

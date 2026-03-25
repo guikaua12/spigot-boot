@@ -134,8 +134,20 @@ class BuiltInConvertersTest {
         void durationConverterReadsNumericAndIsoValues() {
             AttributeConverter<Duration, Object> converter = converterFor(Duration.class);
 
-            assertEquals(Duration.ofMillis(1500), converter.convertToEntityAttribute(1500L));
+            assertEquals(Duration.ofNanos(1500), converter.convertToEntityAttribute(1500L));
+            assertEquals(Duration.ofNanos(2500), converter.convertToEntityAttribute("2500"));
             assertEquals(Duration.ofMinutes(5), converter.convertToEntityAttribute("PT5M"));
+        }
+
+        @Test
+        void durationConverterRoundTripsSubMillisecondPrecision() {
+            AttributeConverter<Duration, Object> converter = converterFor(Duration.class);
+            Duration value = Duration.ofNanos(1_234_567);
+
+            Object dbValue = converter.convertToDatabaseColumn(value);
+
+            assertEquals(1_234_567L, dbValue);
+            assertEquals(value, converter.convertToEntityAttribute(dbValue));
         }
 
         @Test
