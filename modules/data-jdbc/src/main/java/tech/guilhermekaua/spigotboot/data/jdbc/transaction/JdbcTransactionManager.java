@@ -81,10 +81,10 @@ public class JdbcTransactionManager implements TransactionManager {
 
             if (TransactionContext.isRollbackOnly()) {
                 connection.rollback();
-            } else {
-                connection.commit();
+                throw new IllegalStateException("Transaction was marked as rollback-only");
             }
 
+            connection.commit();
             return result;
         } catch (Throwable throwable) {
             rollbackSafely(connection, throwable);
