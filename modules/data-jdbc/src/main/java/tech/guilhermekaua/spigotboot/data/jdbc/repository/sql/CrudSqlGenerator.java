@@ -59,6 +59,10 @@ public class CrudSqlGenerator {
             placeholders.add("?");
         }
 
+        if (columnNames.length() == 0) {
+            return dialect.insertDefaultValuesSql(metadata);
+        }
+
         return "INSERT INTO " + dialect.quoteIdentifier(metadata.getTableName()) +
                 " (" + columnNames + ") VALUES (" + placeholders + ")";
     }

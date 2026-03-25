@@ -34,6 +34,10 @@ public interface Dialect {
 
     String upsertSql(EntityMetadata metadata);
 
+    default String insertDefaultValuesSql(EntityMetadata metadata) {
+        return "INSERT INTO " + quoteIdentifier(metadata.getTableName()) + " DEFAULT VALUES";
+    }
+
     String paginationSql(String baseSql, int limit, int offset);
 
     int maxBindParameters();
