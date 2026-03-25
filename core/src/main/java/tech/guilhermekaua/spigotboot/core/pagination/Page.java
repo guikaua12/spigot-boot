@@ -71,16 +71,16 @@ public final class Page<T> {
         return pageSize;
     }
 
-    public int getTotalPages() {
+    public long getTotalPages() {
         if (totalElements == 0) {
             return 0;
         }
 
-        return (int) ((totalElements + pageSize - 1) / pageSize);
+        return (totalElements + pageSize - 1L) / pageSize;
     }
 
     public boolean hasNext() {
-        return pageNumber + 1 < getTotalPages();
+        return pageNumber + 1L < getTotalPages();
     }
 
     public boolean hasPrevious() {
