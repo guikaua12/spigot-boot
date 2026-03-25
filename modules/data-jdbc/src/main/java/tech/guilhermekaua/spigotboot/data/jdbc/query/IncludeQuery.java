@@ -26,21 +26,41 @@ import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Getter
 public class IncludeQuery {
+    private static final Pattern COLUMN_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+
     private final List<WhereCondition> conditions = new ArrayList<>();
     private final List<OrderByEntry> orderBys = new ArrayList<>();
 
+    private static void validateColumn(String column) {
+        if (column == null) {
+            throw new IllegalArgumentException("Column name must not be null");
+        }
+        if (column.trim().isEmpty()) {
+            throw new IllegalArgumentException("Column name must not be blank");
+        }
+        if (!COLUMN_PATTERN.matcher(column).matches()) {
+            throw new IllegalArgumentException(
+                    "Invalid column name '" + column + "': must match [A-Za-z_][A-Za-z0-9_]*"
+            );
+        }
+    }
+
     public IncludeWhereClause where(String column) {
+        validateColumn(column);
         return new IncludeWhereClause(this, column, WhereCondition.Conjunction.NONE);
     }
 
     public IncludeWhereClause and(String column) {
+        validateColumn(column);
         return new IncludeWhereClause(this, column, WhereCondition.Conjunction.AND);
     }
 
     public IncludeOrderByClause orderBy(String column) {
+        validateColumn(column);
         return new IncludeOrderByClause(this, column);
     }
 
