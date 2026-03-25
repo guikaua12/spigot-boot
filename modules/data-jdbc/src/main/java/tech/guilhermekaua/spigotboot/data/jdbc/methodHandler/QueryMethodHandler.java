@@ -125,7 +125,7 @@ public class QueryMethodHandler {
         Object scalar = selectQuery
                 ? executeScalarQuery(sql, positionalParams)
                 : Integer.valueOf(executeUpdate(sql, positionalParams));
-        return adaptScalarReturn(returnType, scalar);
+        return adaptScalarReturn(method, scalar);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -493,8 +493,46 @@ public class QueryMethodHandler {
         return first;
     }
 
-    private Object adaptScalarReturn(Class<?> returnType, Object value) {
-        if (returnType == int.class || returnType == Integer.class) {
+    private Object adaptScalarReturn(Method method, Object value) {
+        Class<?> returnType = method.getReturnType();
+
+        if (List.class.isAssignableFrom(returnType)) {
+            throw new IllegalStateException(
+                    "@Query method " + method.getName() + " declares scalar return type " +
+                            method.getGenericReturnType().getTypeName() +
+                            "; scalar @Query methods return at most one value. " +
+                            "Use an entity return type or Optional instead."
+            );
+        }
+
+        if (Optional.class.isAssignableFrom(returnType)) {
+            Class<?> innerType = resolveGenericComponent(method.getGenericReturnType());
+            Object converted = innerType != null ? convertScalarValue(innerType, value) : value;
+            return Optional.ofNullable(converted);
+        }
+
+        return convertScalarValue(returnType, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object convertScalarValue(Class<?> targetType, Object value) {
+        if (targetType == boolean.class || targetType == Boolean.class) {
+            if (value == null) {
+                return false;
+            }
+
+            if (value instanceof Boolean) {
+                return value;
+            }
+
+            if (value instanceof Number) {
+                return ((Number) value).intValue() != 0;
+            }
+
+            return Boolean.parseBoolean(value.toString());
+        }
+
+        if (targetType == int.class || targetType == Integer.class) {
             if (value == null) {
                 return 0;
             }
@@ -506,7 +544,7 @@ public class QueryMethodHandler {
             return Integer.parseInt(value.toString());
         }
 
-        if (returnType == long.class || returnType == Long.class) {
+        if (targetType == long.class || targetType == Long.class) {
             if (value == null) {
                 return 0L;
             }
@@ -516,6 +554,11 @@ public class QueryMethodHandler {
             }
 
             return Long.parseLong(value.toString());
+        }
+
+        AttributeConverter<?, ?> converter = converterRegistry.getConverter(targetType);
+        if (converter != null) {
+            return ((AttributeConverter<Object, Object>) converter).convertToEntityAttribute(value);
         }
 
         return value;
