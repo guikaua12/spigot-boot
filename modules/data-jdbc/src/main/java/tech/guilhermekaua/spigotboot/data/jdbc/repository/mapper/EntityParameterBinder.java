@@ -154,11 +154,15 @@ public class EntityParameterBinder {
     private Object getEmbeddedKeyValue(Object entity) {
         IdMetadata idMeta = metadata.getIdMetadata();
         Class<?> embeddedKeyClass = idMeta.getEmbeddedKeyClass();
-        for (Field field : metadata.getEntityClass().getDeclaredFields()) {
-            if (field.getType() == embeddedKeyClass &&
-                    field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
-                return getFieldValue(field, entity);
+        Class<?> current = metadata.getEntityClass();
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.getType() == embeddedKeyClass &&
+                        field.isAnnotationPresent(tech.guilhermekaua.spigotboot.data.jdbc.annotation.EmbeddedId.class)) {
+                    return getFieldValue(field, entity);
+                }
             }
+            current = current.getSuperclass();
         }
         throw new IllegalStateException("No @EmbeddedId field found on " + metadata.getEntityClass().getName());
     }
