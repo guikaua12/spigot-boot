@@ -120,6 +120,9 @@ public class IncludeQuery {
         }
 
         private IncludeQuery addCondition(WhereCondition.Operator operator, Object value) {
+            if (value == null && operator != WhereCondition.Operator.IS_NULL && operator != WhereCondition.Operator.IS_NOT_NULL) {
+                throw new IllegalArgumentException("Value must not be null for operator " + operator);
+            }
             query.addCondition(new WhereCondition(column, operator, value, conjunction));
             return query;
         }
