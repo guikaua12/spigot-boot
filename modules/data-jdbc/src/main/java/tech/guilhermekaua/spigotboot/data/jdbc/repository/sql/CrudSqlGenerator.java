@@ -68,11 +68,19 @@ public class CrudSqlGenerator {
     }
 
     public String updateSql(EntityMetadata metadata) {
+        return updateSql(metadata, Collections.emptyList());
+    }
+
+    public String updateSql(EntityMetadata metadata, List<String> additionalColumns) {
         List<ColumnMetadata> nonIdColumns = metadata.getNonIdColumns();
         StringJoiner setClauses = new StringJoiner(", ");
 
         for (ColumnMetadata col : nonIdColumns) {
             setClauses.add(dialect.quoteIdentifier(col.getColumnName()) + " = ?");
+        }
+
+        for (String col : additionalColumns) {
+            setClauses.add(dialect.quoteIdentifier(col) + " = ?");
         }
 
         return "UPDATE " + dialect.quoteIdentifier(metadata.getTableName()) +

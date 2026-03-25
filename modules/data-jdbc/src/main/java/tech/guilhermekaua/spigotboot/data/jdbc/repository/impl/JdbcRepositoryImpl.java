@@ -204,11 +204,18 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
 
     @Override
     public T update(T entity) {
-        String sql = sqlGenerator.updateSql(metadata);
+        List<InsertJoinColumnBinding> implicitJoinColumns = resolveImplicitManyToOneJoinColumns(entity);
+        List<String> additionalColumns = new ArrayList<>(implicitJoinColumns.size());
+        for (InsertJoinColumnBinding joinColumn : implicitJoinColumns) {
+            additionalColumns.add(joinColumn.getColumnName());
+        }
+
+        String sql = sqlGenerator.updateSql(metadata, additionalColumns);
 
         try (Connection conn = connectionProvider.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            parameterBinder.bindUpdateParameters(ps, entity);
+            int bindIndex = parameterBinder.bindUpdateParameters(ps, entity);
+            bindJoinColumnParameters(ps, implicitJoinColumns, bindIndex);
             ps.executeUpdate();
             return entity;
         } catch (SQLException e) {
