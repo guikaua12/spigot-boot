@@ -228,6 +228,16 @@ class JdbcRepositoryCompositeJoinColumnsTest {
 
             assertTrue(exception.getMessage().contains("requires referencedColumnName"));
         }
+
+        @Test
+        void embeddedIdRequiresPublicNoArgConstructor() {
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> metadataRegistry.getOrParse(InvalidPrivateEmbeddedIdEntity.class)
+            );
+
+            assertTrue(exception.getMessage().contains("public no-arg constructor"));
+        }
     }
 
     private Fixture createFixture() {
@@ -400,6 +410,23 @@ class JdbcRepositoryCompositeJoinColumnsTest {
         private Team team;
 
         public InvalidTaskMissingReferencedColumns() {
+        }
+    }
+
+    @Table("invalid_private_embedded_id_entity")
+    public static final class InvalidPrivateEmbeddedIdEntity {
+        @EmbeddedId
+        private InvalidPrivateEmbeddedId id;
+
+        public InvalidPrivateEmbeddedIdEntity() {
+        }
+    }
+
+    public static final class InvalidPrivateEmbeddedId {
+        @Column("tenant_id")
+        private UUID tenantId;
+
+        private InvalidPrivateEmbeddedId() {
         }
     }
 }

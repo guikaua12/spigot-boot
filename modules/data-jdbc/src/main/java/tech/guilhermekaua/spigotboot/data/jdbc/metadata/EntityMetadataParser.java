@@ -424,11 +424,11 @@ public class EntityMetadataParser {
 
     private void validateEmbeddedKeyClass(Class<?> embeddedKeyClass, Class<?> entityClass) {
         try {
-            embeddedKeyClass.getDeclaredConstructor();
+            embeddedKeyClass.getConstructor();
         } catch (NoSuchMethodException e) {
             throw new IllegalArgumentException(
                     "@EmbeddedId type " + embeddedKeyClass.getName() + " on " + entityClass.getName() +
-                            " must declare an accessible no-arg constructor."
+                            " must declare a public no-arg constructor."
             );
         }
     }
