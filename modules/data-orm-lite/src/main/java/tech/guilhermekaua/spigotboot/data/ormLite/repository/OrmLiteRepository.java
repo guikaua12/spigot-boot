@@ -28,6 +28,10 @@ import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.UpdateBuilder;
 import tech.guilhermekaua.spigotboot.data.repository.Repository;
 
+/**
+ * @deprecated use {@code JdbcRepository} from data-jdbc.
+ */
+@Deprecated
 public interface OrmLiteRepository<T, ID> extends Repository<T, ID> {
     QueryBuilder<T, ID> queryBuilder();
 

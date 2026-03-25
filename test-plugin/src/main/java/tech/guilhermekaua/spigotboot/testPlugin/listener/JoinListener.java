@@ -31,7 +31,6 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.messaging.bungee.BungeeChannel;
-import tech.guilhermekaua.spigotboot.testPlugin.placeholders.Placeholders;
 import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
 @Component
@@ -39,7 +38,6 @@ import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 public class JoinListener implements Listener {
     private final BungeeChannel bungeeChannel;
     private final UserService userService;
-    private final Placeholders placeholders;
 
     @EventHandler
     public void onChat(PlayerJoinEvent event) {

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
+        <artifactId>spigot-boot-modules</artifactId>
+        <version>2.0.2</version>
+    </parent>
+
+    <name>${project.artifactId}</name>
+    <description>${project.artifactId} JDBC data module for Spigot Boot.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
+    <artifactId>spigot-boot-data-jdbc</artifactId>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-data</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.1.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>
