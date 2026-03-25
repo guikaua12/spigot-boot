@@ -62,19 +62,43 @@ public class EntityParameterBinder {
     }
 
     public int bindUpdateParameters(PreparedStatement ps, Object entity) throws SQLException {
+        return bindUpdateParameters(ps, entity, 0);
+    }
+
+    /**
+     * Binds parameters for an UPDATE statement whose SET clause is ordered as:
+     * [non-id columns] [additionalColumnsCount FK placeholders] WHERE [id columns].
+     *
+     * <p>Non-id columns are bound first. The {@code additionalColumnsCount} FK placeholder
+     * positions are skipped so that the id columns land at the correct WHERE offset. The
+     * method returns the index of the first FK placeholder so the caller can bind those
+     * values immediately after (e.g. via {@code bindJoinColumnParameters}).
+     *
+     * @param additionalColumnsCount number of extra (FK) placeholder positions that appear
+     *                               in the SET clause after the non-id columns and before
+     *                               the WHERE id placeholder(s)
+     * @return the bind index of the first FK placeholder (i.e. one past the last non-id column)
+     */
+    public int bindUpdateParameters(PreparedStatement ps, Object entity, int additionalColumnsCount) throws SQLException {
         int index = 1;
 
-        // set non-id columns first
+        // bind non-id columns first
         for (ColumnMetadata col : metadata.getNonIdColumns()) {
             Object value = getFieldValue(col.getField(), entity);
             ps.setObject(index++, convertForDb(col, value));
         }
 
-        // then id columns in WHERE clause
-        Object idSource = metadata.getIdMetadata().isComposite() ? getEmbeddedKeyValue(entity) : entity;
-        index = bindIdParameters(ps, idSource, index);
+        // remember where FK (additional) placeholders start
+        int fkStartIndex = index;
 
-        return index;
+        // skip over FK placeholder positions so id lands at the right offset in WHERE
+        index += additionalColumnsCount;
+
+        // bind id columns in WHERE clause
+        Object idSource = metadata.getIdMetadata().isComposite() ? getEmbeddedKeyValue(entity) : entity;
+        bindIdParameters(ps, idSource, index);
+
+        return fkStartIndex;
     }
 
     public int bindIdParameters(PreparedStatement ps, Object id, int startIndex) throws SQLException {

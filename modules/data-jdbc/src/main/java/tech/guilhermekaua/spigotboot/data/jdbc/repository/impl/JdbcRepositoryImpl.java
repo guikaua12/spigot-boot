@@ -214,8 +214,8 @@ public class JdbcRepositoryImpl<T, ID> implements JdbcRepository<T, ID> {
 
         try (Connection conn = connectionProvider.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            int bindIndex = parameterBinder.bindUpdateParameters(ps, entity);
-            bindJoinColumnParameters(ps, implicitJoinColumns, bindIndex);
+            int fkStartIndex = parameterBinder.bindUpdateParameters(ps, entity, additionalColumns.size());
+            bindJoinColumnParameters(ps, implicitJoinColumns, fkStartIndex);
             ps.executeUpdate();
             return entity;
         } catch (SQLException e) {

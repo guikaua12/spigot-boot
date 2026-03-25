@@ -132,6 +132,43 @@ class JdbcRepositoryCompositeJoinColumnsTest {
             assertEquals("new-name", loaded.getDisplayName());
             assertTrue(teamRepository.existsById(new TeamId(team.getId().getTenantId(), team.getId().getCode())));
         }
+
+        @Test
+        void updateBindsImplicitCompositeJoinColumnsAtCorrectPositions() throws Exception {
+            Team teamA = new Team();
+            teamA.setId(new TeamId(UUID.randomUUID(), "alpha"));
+            teamA.setDisplayName("team-a");
+            teamRepository.insert(teamA);
+
+            Team teamB = new Team();
+            teamB.setId(new TeamId(UUID.randomUUID(), "beta"));
+            teamB.setDisplayName("team-b");
+            teamRepository.insert(teamB);
+
+            Task task = new Task();
+            task.setTitle("original-title");
+            task.setTeam(teamA);
+            taskRepository.insert(task);
+
+            // update: change both the regular column and the FK relationship
+            task.setTitle("updated-title");
+            task.setTeam(teamB);
+            taskRepository.update(task);
+
+            try (Connection connection = connectionProvider.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "SELECT title, team_tenant_id, team_code FROM tasks WHERE id = ?"
+                 )) {
+                statement.setString(1, task.getId().toString());
+
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    assertTrue(resultSet.next());
+                    assertEquals("updated-title", resultSet.getString("title"));
+                    assertEquals(teamB.getId().getTenantId().toString(), resultSet.getString("team_tenant_id"));
+                    assertEquals(teamB.getId().getCode(), resultSet.getString("team_code"));
+                }
+            }
+        }
     }
 
     @Nested
