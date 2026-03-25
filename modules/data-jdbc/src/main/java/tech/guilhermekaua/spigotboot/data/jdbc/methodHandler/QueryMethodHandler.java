@@ -44,14 +44,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
 public class QueryMethodHandler {
-    private static final Pattern NAMED_PARAM_PATTERN = Pattern.compile(":(\\w+)");
-
     private final ConnectionProvider connectionProvider;
     private final EntityMetadataRegistry metadataRegistry;
     private final TypeConverterRegistry converterRegistry;
@@ -558,17 +554,88 @@ public class QueryMethodHandler {
     }
 
     private ParsedQueryTemplate parseQueryTemplate(String sqlTemplate) {
-        Matcher matcher = NAMED_PARAM_PATTERN.matcher(sqlTemplate);
-        StringBuilder parsedSql = new StringBuilder();
+        StringBuilder parsedSql = new StringBuilder(sqlTemplate.length());
         List<String> orderedParamNames = new ArrayList<>();
 
-        while (matcher.find()) {
-            orderedParamNames.add(matcher.group(1));
-            matcher.appendReplacement(parsedSql, "?");
+        for (int i = 0; i < sqlTemplate.length(); i++) {
+            char current = sqlTemplate.charAt(i);
+
+            if (current == '\'' || current == '"' || current == '`') {
+                int quoteEnd = skipQuotedSection(sqlTemplate, i, current);
+                parsedSql.append(sqlTemplate, i, quoteEnd + 1);
+                i = quoteEnd;
+                continue;
+            }
+
+            if (current == '$') {
+                int dollarQuoteEnd = skipDollarQuotedSection(sqlTemplate, i);
+                if (dollarQuoteEnd > i) {
+                    parsedSql.append(sqlTemplate, i, dollarQuoteEnd + 1);
+                    i = dollarQuoteEnd;
+                    continue;
+                }
+            }
+
+            if (current == ':' && i + 1 < sqlTemplate.length() && sqlTemplate.charAt(i + 1) == ':') {
+                parsedSql.append("::");
+                i++;
+                continue;
+            }
+
+            if (current == ':' && i + 1 < sqlTemplate.length() && isNamedParameterCharacter(sqlTemplate.charAt(i + 1))) {
+                int paramEnd = i + 2;
+                while (paramEnd < sqlTemplate.length() && isNamedParameterCharacter(sqlTemplate.charAt(paramEnd))) {
+                    paramEnd++;
+                }
+
+                orderedParamNames.add(sqlTemplate.substring(i + 1, paramEnd));
+                parsedSql.append('?');
+                i = paramEnd - 1;
+                continue;
+            }
+
+            parsedSql.append(current);
         }
 
-        matcher.appendTail(parsedSql);
         return new ParsedQueryTemplate(parsedSql.toString(), orderedParamNames);
+    }
+
+    private int skipDollarQuotedSection(String text, int startIndex) {
+        int delimiterEnd = findDollarQuoteDelimiterEnd(text, startIndex);
+        if (delimiterEnd < 0) {
+            return startIndex;
+        }
+
+        String delimiter = text.substring(startIndex, delimiterEnd + 1);
+        int closingIndex = text.indexOf(delimiter, delimiterEnd + 1);
+        if (closingIndex < 0) {
+            return text.length() - 1;
+        }
+
+        return closingIndex + delimiter.length() - 1;
+    }
+
+    private int findDollarQuoteDelimiterEnd(String text, int startIndex) {
+        if (startIndex < 0 || startIndex >= text.length() || text.charAt(startIndex) != '$') {
+            return -1;
+        }
+
+        for (int i = startIndex + 1; i < text.length(); i++) {
+            char current = text.charAt(i);
+            if (current == '$') {
+                return i;
+            }
+
+            if (!isNamedParameterCharacter(current)) {
+                return -1;
+            }
+        }
+
+        return -1;
+    }
+
+    private boolean isNamedParameterCharacter(char current) {
+        return Character.isLetterOrDigit(current) || current == '_';
     }
 
     private List<Object> toPositionalParams(
