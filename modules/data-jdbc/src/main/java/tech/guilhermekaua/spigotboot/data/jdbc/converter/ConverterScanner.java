@@ -69,17 +69,43 @@ public final class ConverterScanner {
     }
 
     private static Class<?> resolveSourceType(Class<?> converterClass) {
-        for (Type genericInterface : converterClass.getGenericInterfaces()) {
-            if (genericInterface instanceof ParameterizedType) {
-                ParameterizedType pt = (ParameterizedType) genericInterface;
-                if (pt.getRawType() == AttributeConverter.class) {
-                    Type sourceType = pt.getActualTypeArguments()[0];
-                    if (sourceType instanceof Class<?>) {
-                        return (Class<?>) sourceType;
-                    }
+        return resolveSourceType((Type) converterClass);
+    }
+
+    private static Class<?> resolveSourceType(Type type) {
+        if (type == null) {
+            return null;
+        }
+
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            Type rawType = parameterizedType.getRawType();
+            if (rawType instanceof Class<?> && AttributeConverter.class.isAssignableFrom((Class<?>) rawType)) {
+                Type sourceType = parameterizedType.getActualTypeArguments()[0];
+                if (sourceType instanceof Class<?>) {
+                    return (Class<?>) sourceType;
                 }
             }
+
+            if (rawType instanceof Class<?>) {
+                return resolveSourceType((Class<?>) rawType);
+            }
+
+            return null;
         }
-        return null;
+
+        if (!(type instanceof Class<?>)) {
+            return null;
+        }
+
+        Class<?> converterClass = (Class<?>) type;
+        for (Type genericInterface : converterClass.getGenericInterfaces()) {
+            Class<?> sourceType = resolveSourceType(genericInterface);
+            if (sourceType != null) {
+                return sourceType;
+            }
+        }
+
+        return resolveSourceType(converterClass.getGenericSuperclass());
     }
 }
