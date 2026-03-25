@@ -146,7 +146,7 @@ public class DdlGenerator {
             ParameterizedType parameterizedType = (ParameterizedType) type;
             Type rawType = parameterizedType.getRawType();
             if (rawType instanceof Class<?> && AttributeConverter.class.isAssignableFrom((Class<?>) rawType)) {
-                return toClass(parameterizedType.getActualTypeArguments()[1]);
+                return normalizeStoredJavaType(toClass(parameterizedType.getActualTypeArguments()[1]));
             }
 
             if (rawType instanceof Class<?>) {
@@ -169,6 +169,17 @@ public class DdlGenerator {
         }
 
         return resolveConverterTargetType(converterClass.getGenericSuperclass());
+    }
+
+    private Class<?> normalizeStoredJavaType(Class<?> storedJavaType) {
+        if (storedJavaType == null
+                || storedJavaType == Object.class
+                || storedJavaType == Void.class
+                || storedJavaType == void.class) {
+            return null;
+        }
+
+        return storedJavaType;
     }
 
     private Class<?> toClass(Type type) {
