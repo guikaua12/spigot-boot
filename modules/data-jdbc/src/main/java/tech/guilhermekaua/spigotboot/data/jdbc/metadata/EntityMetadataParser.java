@@ -515,6 +515,11 @@ public class EntityMetadataParser {
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers())
+                        || Modifier.isTransient(field.getModifiers())
+                        || field.isSynthetic()) {
+                    continue;
+                }
                 fields.add(field);
             }
             current = current.getSuperclass();
