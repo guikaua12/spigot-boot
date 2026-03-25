@@ -111,8 +111,9 @@ public class CrudSqlGenerator {
     }
 
     public String existsByIdSql(EntityMetadata metadata) {
-        return "SELECT 1 FROM " + dialect.quoteIdentifier(metadata.getTableName()) +
-                " WHERE " + idWhereClause(metadata) + " LIMIT 1";
+        String baseSql = "SELECT 1 FROM " + dialect.quoteIdentifier(metadata.getTableName()) +
+                " WHERE " + idWhereClause(metadata);
+        return dialect.paginationSql(baseSql, 1, 0);
     }
 
     public String upsertSql(EntityMetadata metadata) {
