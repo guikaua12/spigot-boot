@@ -89,7 +89,12 @@ public class JdbcRepositoryRegistry {
             return;
         }
 
-        // register the repository interface as a bean (with proxy)
+        // create the implementation
+        EntityMetadata metadata = metadataRegistry.getOrParse(entityClass);
+        JdbcRepositoryImpl<?, ?> impl = new JdbcRepositoryImpl<>(connectionProvider, metadata, dialect, metadataRegistry);
+        repositoryMap.put(entityClass, impl);
+
+        // register the repository interface as a bean (with proxy) only after impl is ready
         dependencyManager.registerDependency(
                 (Class<JdbcRepository>) repositoryClass,
                 repositoryClass,
@@ -97,11 +102,6 @@ public class JdbcRepositoryRegistry {
                 BeanUtils.getIsPrimary(repositoryClass),
                 (clazz) -> ComponentProxy.createProxy(clazz, null, new Class[0], new Object[0])
         );
-
-        // create the implementation
-        EntityMetadata metadata = metadataRegistry.getOrParse(entityClass);
-        JdbcRepositoryImpl<?, ?> impl = new JdbcRepositoryImpl<>(connectionProvider, metadata, dialect, metadataRegistry);
-        repositoryMap.put(entityClass, impl);
     }
 
     private void validateRepositoryContract(Class<? extends JdbcRepository> repositoryClass) {
