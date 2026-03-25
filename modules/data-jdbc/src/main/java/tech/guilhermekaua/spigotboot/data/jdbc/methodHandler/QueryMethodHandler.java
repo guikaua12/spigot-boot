@@ -37,9 +37,7 @@ import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.*;
 import tech.guilhermekaua.spigotboot.data.jdbc.repository.mapper.EntityRowMapper;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -106,7 +104,7 @@ public class QueryMethodHandler {
             );
         }
 
-        if (isEntityReturn(returnType)) {
+        if (isEntityClassReturn(method, entityMetadata.getEntityClass())) {
             if (!selectQuery) {
                 throw new IllegalStateException(
                         "@Query method " + method.getName() + " must use SELECT when returning entities"
@@ -116,13 +114,6 @@ public class QueryMethodHandler {
             EntityQueryResult queryResult = executeEntityQuery(sql, positionalParams, entityMetadata, rootIncludeColumns);
             applyIncludes(method, queryResult.getEntities(), entityMetadata, dialect, queryResult.getRootColumnValues());
             return adaptEntityReturn(queryResult.getEntities(), returnType);
-        }
-
-        if (isScalarReturn(returnType)) {
-            Object scalar = selectQuery
-                    ? executeScalarQuery(sql, positionalParams)
-                    : Integer.valueOf(executeUpdate(sql, positionalParams));
-            return adaptScalarReturn(returnType, scalar);
         }
 
         if (isVoidReturn(returnType)) {
@@ -135,13 +126,10 @@ public class QueryMethodHandler {
             return null;
         }
 
-        if (!selectQuery) {
-            throw new IllegalStateException("@Query method " + method.getName() + " must use SELECT for object returns");
-        }
-
-        EntityQueryResult queryResult = executeEntityQuery(sql, positionalParams, entityMetadata, rootIncludeColumns);
-        applyIncludes(method, queryResult.getEntities(), entityMetadata, dialect, queryResult.getRootColumnValues());
-        return queryResult.getEntities().isEmpty() ? null : queryResult.getEntities().get(0);
+        Object scalar = selectQuery
+                ? executeScalarQuery(sql, positionalParams)
+                : Integer.valueOf(executeUpdate(sql, positionalParams));
+        return adaptScalarReturn(returnType, scalar);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -448,21 +436,34 @@ public class QueryMethodHandler {
         }
     }
 
-    private boolean isEntityReturn(Class<?> returnType) {
-        return List.class.isAssignableFrom(returnType)
-                || Optional.class.isAssignableFrom(returnType)
-                || (!isScalarReturn(returnType) && !isVoidReturn(returnType) && !isPageReturn(returnType));
+    private boolean isEntityClassReturn(Method method, Class<?> entityClass) {
+        Class<?> returnType = method.getReturnType();
+        if (returnType == entityClass) {
+            return true;
+        }
+
+        if (List.class.isAssignableFrom(returnType) || Optional.class.isAssignableFrom(returnType)) {
+            return entityClass == resolveGenericComponent(method.getGenericReturnType());
+        }
+
+        return false;
+    }
+
+    private Class<?> resolveGenericComponent(Type genericType) {
+        if (!(genericType instanceof ParameterizedType)) {
+            return null;
+        }
+
+        Type[] args = ((ParameterizedType) genericType).getActualTypeArguments();
+        if (args.length == 0 || !(args[0] instanceof Class)) {
+            return null;
+        }
+
+        return (Class<?>) args[0];
     }
 
     private boolean isPageReturn(Class<?> returnType) {
         return Page.class.isAssignableFrom(returnType);
-    }
-
-    private boolean isScalarReturn(Class<?> returnType) {
-        return returnType == int.class
-                || returnType == Integer.class
-                || returnType == long.class
-                || returnType == Long.class;
     }
 
     private boolean isVoidReturn(Class<?> returnType) {
