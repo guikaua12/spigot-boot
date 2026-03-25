@@ -22,10 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.ddl;
 
+import tech.guilhermekaua.spigotboot.data.converter.AttributeConverter;
 import tech.guilhermekaua.spigotboot.data.jdbc.annotation.IdStrategy;
 import tech.guilhermekaua.spigotboot.data.jdbc.dialect.Dialect;
 import tech.guilhermekaua.spigotboot.data.jdbc.metadata.*;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,15 +61,7 @@ public class DdlGenerator {
             StringBuilder colDef = new StringBuilder();
             colDef.append(dialect.quoteIdentifier(col.getColumnName()));
             colDef.append(" ");
-
-            Class<?> javaType = col.getJavaType();
-            if (col.getConverter() != null) {
-                // when a converter is present, the db type depends on the converter's target type,
-                // but for ddl we use the java type as-is since the converter handles the mapping
-                colDef.append(dialect.mapJavaTypeToSqlType(javaType));
-            } else {
-                colDef.append(dialect.mapJavaTypeToSqlType(javaType));
-            }
+            colDef.append(dialect.mapJavaTypeToSqlType(resolveStoredJavaType(col)));
 
             if (isSingleIdentityId && col.isId()) {
                 if (dialect instanceof tech.guilhermekaua.spigotboot.data.jdbc.dialect.SQLiteDialect) {
@@ -121,11 +116,74 @@ public class DdlGenerator {
 
                 ColumnMetadata referencedColumn = resolveReferencedColumn(targetMetadata, joinColumn.getReferencedColumnName());
                 String columnDefinition = dialect.quoteIdentifier(localJoinColumnName) + " " +
-                        dialect.mapJavaTypeToSqlType(referencedColumn.getJavaType());
+                        dialect.mapJavaTypeToSqlType(resolveStoredJavaType(referencedColumn));
                 columnDefs.add(columnDefinition);
                 declaredColumns.add(localJoinColumnName);
             }
         }
+    }
+
+    private Class<?> resolveStoredJavaType(ColumnMetadata column) {
+        AttributeConverter<Object, Object> converter = column.getConverter();
+        if (converter == null) {
+            return column.getJavaType();
+        }
+
+        Class<?> storedJavaType = resolveConverterTargetType(converter.getClass());
+        return storedJavaType != null ? storedJavaType : column.getJavaType();
+    }
+
+    private Class<?> resolveConverterTargetType(Class<?> converterClass) {
+        return resolveConverterTargetType((Type) converterClass);
+    }
+
+    private Class<?> resolveConverterTargetType(Type type) {
+        if (type == null) {
+            return null;
+        }
+
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            Type rawType = parameterizedType.getRawType();
+            if (rawType instanceof Class<?> && AttributeConverter.class.isAssignableFrom((Class<?>) rawType)) {
+                return toClass(parameterizedType.getActualTypeArguments()[1]);
+            }
+
+            if (rawType instanceof Class<?>) {
+                return resolveConverterTargetType((Class<?>) rawType);
+            }
+
+            return null;
+        }
+
+        if (!(type instanceof Class<?>)) {
+            return null;
+        }
+
+        Class<?> converterClass = (Class<?>) type;
+        for (Type genericInterface : converterClass.getGenericInterfaces()) {
+            Class<?> storedJavaType = resolveConverterTargetType(genericInterface);
+            if (storedJavaType != null) {
+                return storedJavaType;
+            }
+        }
+
+        return resolveConverterTargetType(converterClass.getGenericSuperclass());
+    }
+
+    private Class<?> toClass(Type type) {
+        if (type instanceof Class<?>) {
+            return (Class<?>) type;
+        }
+
+        if (type instanceof ParameterizedType) {
+            Type rawType = ((ParameterizedType) type).getRawType();
+            if (rawType instanceof Class<?>) {
+                return (Class<?>) rawType;
+            }
+        }
+
+        return null;
     }
 
     private EntityMetadata resolveTargetMetadata(Class<?> targetEntityClass) {
