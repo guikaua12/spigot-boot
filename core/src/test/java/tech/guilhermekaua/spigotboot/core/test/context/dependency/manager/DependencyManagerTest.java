@@ -190,7 +190,8 @@ public class DependencyManagerTest {
 
         Exception exception = assertThrows(RuntimeException.class,
                 () -> dependencyManager.resolveDependency(Service.class, null));
-        assertTrue(exception.getCause().getMessage().contains("No primary dependency found for class"));
+        assertTrue(exception.getCause().getMessage().contains("Multiple dependencies found for type"));
+        assertTrue(exception.getCause().getMessage().contains("Available qualifiers: [serviceImpl, someQualifier]"));
     }
 
     @Test

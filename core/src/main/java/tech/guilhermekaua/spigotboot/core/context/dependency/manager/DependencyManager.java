@@ -167,7 +167,17 @@ public class DependencyManager {
             List<BeanDefinition> primary = definitions.stream().filter(BeanDefinition::isPrimary).collect(Collectors.toList());
 
             if (primary.isEmpty()) {
-                throw new IllegalStateException(String.format("No primary dependency found for class %s and qualifier %s", clazz.getSimpleName(), qualifier));
+                String candidates = definitions.stream()
+                        .map(def -> {
+                            String candidateQualifier = def.getQualifierName();
+                            return candidateQualifier == null ? "<default>" : candidateQualifier;
+                        })
+                        .collect(Collectors.joining(", "));
+                throw new IllegalStateException(String.format(
+                        "Multiple dependencies found for type %s but none is marked as @Primary. Available qualifiers: [%s]. " +
+                                "Add @Primary to one bean or use @Qualifier at the injection point.",
+                        clazz.getName(),
+                        candidates));
             }
 
             if (primary.size() > 1) {
