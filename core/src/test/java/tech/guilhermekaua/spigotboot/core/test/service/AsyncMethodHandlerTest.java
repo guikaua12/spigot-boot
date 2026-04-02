@@ -40,6 +40,21 @@ public class AsyncMethodHandlerTest {
         }
     }
 
+    public interface InheritedInterfaceAsyncService {
+        @Async("inheritedExecutor")
+        CompletableFuture<String> load();
+    }
+
+    public abstract static class InheritedInterfaceAsyncServiceBase implements InheritedInterfaceAsyncService {
+        @Override
+        public CompletableFuture<String> load() {
+            return CompletableFuture.completedFuture(Thread.currentThread().getName());
+        }
+    }
+
+    public static class InheritedInterfaceAsyncServiceImpl extends InheritedInterfaceAsyncServiceBase {
+    }
+
     public static class MissingExecutorAsyncService {
         @Async("missingExecutor")
         public CompletableFuture<String> load() {
@@ -92,6 +107,27 @@ public class AsyncMethodHandlerTest {
             CompletableFuture<?> future = assertInstanceOf(CompletableFuture.class, result);
             assertEquals("custom-async", future.join());
             verify(context).getBean(ExecutorService.class, "customExecutor");
+        } finally {
+            executorService.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldResolveNamedExecutorFromInterfaceInheritedThroughSuperclass() throws Throwable {
+        Context context = mock(Context.class);
+        ExecutorService executorService = Executors.newSingleThreadExecutor(r -> new Thread(r, "inherited-async"));
+        when(context.getBean(ExecutorService.class, "inheritedExecutor")).thenReturn(executorService);
+
+        try {
+            AsyncMethodHandler handler = new AsyncMethodHandler(context);
+            InheritedInterfaceAsyncServiceImpl service = new InheritedInterfaceAsyncServiceImpl();
+            Method method = InheritedInterfaceAsyncServiceImpl.class.getMethod("load");
+
+            Object result = handler.handle(new MethodHandlerContext(service, method, method, new Object[0]));
+
+            CompletableFuture<?> future = assertInstanceOf(CompletableFuture.class, result);
+            assertEquals("inherited-async", future.join());
+            verify(context).getBean(ExecutorService.class, "inheritedExecutor");
         } finally {
             executorService.shutdownNow();
         }

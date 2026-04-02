@@ -88,10 +88,12 @@ public class AsyncMethodHandler {
             return annotation;
         }
 
-        for (Class<?> iface : realClass.getInterfaces()) {
-            annotation = findAsyncAnnotation(findMethod(iface, signatureSource));
-            if (annotation != null) {
-                return annotation;
+        for (Class<?> currentClass = realClass; currentClass != null; currentClass = currentClass.getSuperclass()) {
+            for (Class<?> iface : currentClass.getInterfaces()) {
+                annotation = findAsyncAnnotation(findMethod(iface, signatureSource));
+                if (annotation != null) {
+                    return annotation;
+                }
             }
         }
 
