@@ -67,6 +67,7 @@ public class ContextLifecycle {
         beanRegistrar.registerInstance(logger, null, false);
         beanRegistrar.registerInstance(Logger.class, logger, null, false);
         beanRegistrar.registerInstance(BootPlugin.class, bootPlugin, null, false);
+        beanRegistrar.registerInstance(context, null, false);
         beanRegistrar.registerInstance(dependencyManager, null, false);
 
         CustomInjectorRegistry customInjectorRegistry = dependencyManager.getCustomInjectorRegistry();

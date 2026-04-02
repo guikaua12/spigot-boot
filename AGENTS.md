@@ -756,17 +756,15 @@ Important caveat:
 
 Files:
 
-- `core/.../service/ServiceMethodHandler.java`
+- `core/.../service/AsyncMethodHandler.java`
 - `core/.../service/configuration/ServiceAsyncConfig.java`
-- `core/.../service/configuration/ServiceProperties.java`
 
 ### What exists
 
 - `ServiceAsyncConfig` is a `@Configuration`
     - exposes `ExecutorService serviceAsyncExecutor()`
-    - exposes `ServiceProperties serviceProperties()`
-- `ServiceMethodHandler` is a `@RegisterMethodHandler`
-    - uses `ServiceProperties`
+- `AsyncMethodHandler` is a `@RegisterMethodHandler`
+    - uses `Context` to resolve an `ExecutorService` bean directly by qualifier
     - expects intercepted methods to return exactly `CompletableFuture`
     - runs them on the configured executor
 
@@ -774,22 +772,22 @@ Files:
 
 The handler annotation is:
 
-- `classAnnotatedWith = Service.class`
-- `methodAnnotatedWith = Service.class`
+- `methodAnnotatedWith = Async.class`
 
 That means a method is only intercepted if:
 
-- the class is annotated `@Service`
-- and the method itself is also annotated `@Service`
+- the method itself is annotated `@Async`
 
-In the current repository, only class-level `@Service` usage exists:
+`@Service` is now only a component stereotype. It has no special async behavior.
 
-- `test-plugin/.../UserService.java`
+Default executor behavior:
 
-So the built-in async service handler will not intercept that service method as the code stands today unless
-method-level `@Service` is also added or the handler metadata is changed.
+- `@Async` with no value uses the `serviceAsyncExecutor` bean
+- `@Async("myCustomExecutor")` resolves the named `ExecutorService` bean directly from the context
 
-Treat this as a current implementation detail, not an assumption that all `@Service` classes are automatically async.
+If the named executor bean does not exist, invocation fails fast.
+
+Treat this as the current implementation detail, not an assumption that all `@Service` classes are automatically async.
 
 ## Custom injectors
 
@@ -1116,8 +1114,8 @@ Provides:
 
 - `test-plugin/.../UserService.java`
     - class-level `@Service`
+    - async methods annotated with `@Async`
     - returns `CompletableFuture`
-    - see caveat above about built-in service interception requiring method-level `@Service` too
 
 ### Module example with field injection
 
@@ -1244,6 +1242,5 @@ These are the things most likely to matter during refactors:
 - `Context.registerBean(...)` is effectively pre-instantiation only, not a post-startup dynamic registration API.
 - Field and setter injection do not traverse inherited members.
 - `ListenerRegister` exists but is currently unused.
-- Built-in async `ServiceMethodHandler` currently requires method-level `@Service` in addition to class-level
-  `@Service`.
+- Built-in async interception is controlled by method-level `@Async`; `@Service` is only a stereotype.
 - Multi-constructor classes must use `@Inject` on exactly one constructor.
