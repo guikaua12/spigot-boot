@@ -46,15 +46,13 @@ public class AsyncMethodHandler {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Method invoker = context.proceed() != null ? context.proceed() : context.thisMethod();
-                CompletableFuture<?> result = invoker != null
-                        ? (CompletableFuture<?>) invoker.invoke(context.self(), context.args())
-                        : CompletableFuture.completedFuture(null);
+                Object invocationResult = invoker.invoke(context.self(), context.args());
 
-                if (result == null) {
+                if (invocationResult == null) {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return result;
+                return (CompletableFuture<?>) invocationResult;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to invoke async method: " + invocationMethod.getName(), e);
             }
