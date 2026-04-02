@@ -1,5 +1,7 @@
 package tech.guilhermekaua.spigotboot.core.test.service;
 
+import javassist.util.proxy.MethodHandler;
+import javassist.util.proxy.ProxyObject;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Async;
@@ -53,6 +55,59 @@ public class AsyncMethodHandlerTest {
     }
 
     public static class InheritedInterfaceAsyncServiceImpl extends InheritedInterfaceAsyncServiceBase {
+    }
+
+    public static class NestedProxyAsyncService {
+        @Async("nestedExecutor")
+        public CompletableFuture<String> load() {
+            return CompletableFuture.completedFuture(Thread.currentThread().getName());
+        }
+    }
+
+    public static class NestedProxyAsyncServiceLevel1 extends NestedProxyAsyncService implements ProxyObject {
+        private MethodHandler handler;
+
+        @Override
+        public void setHandler(MethodHandler mi) {
+            this.handler = mi;
+        }
+
+        @Override
+        public MethodHandler getHandler() {
+            return handler;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public CompletableFuture<String> load() {
+            try {
+                return (CompletableFuture<String>) handler.invoke(
+                        this,
+                        NestedProxyAsyncServiceLevel1.class.getMethod("load"),
+                        null,
+                        new Object[0]
+                );
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        }
+    }
+
+    public static class NestedProxyAsyncServiceLevel2 extends NestedProxyAsyncServiceLevel1 {
+        @Override
+        @SuppressWarnings("unchecked")
+        public CompletableFuture<String> load() {
+            try {
+                return (CompletableFuture<String>) getHandler().invoke(
+                        this,
+                        NestedProxyAsyncServiceLevel2.class.getMethod("load"),
+                        null,
+                        new Object[0]
+                );
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        }
     }
 
     public static class MissingExecutorAsyncService {
@@ -134,6 +189,27 @@ public class AsyncMethodHandlerTest {
     }
 
     @Test
+    void shouldResolveNamedExecutorFromDeeplyNestedProxyImplementationMethod() throws Throwable {
+        Context context = mock(Context.class);
+        ExecutorService executorService = Executors.newSingleThreadExecutor(r -> new Thread(r, "nested-async"));
+        when(context.getBean(ExecutorService.class, "nestedExecutor")).thenReturn(executorService);
+
+        try {
+            AsyncMethodHandler handler = new AsyncMethodHandler(context);
+            Object service = createNestedProxy();
+            Method proxyMethod = service.getClass().getMethod("load");
+
+            Object result = handler.handle(new MethodHandlerContext(service, proxyMethod, null, new Object[0]));
+
+            CompletableFuture<?> future = assertInstanceOf(CompletableFuture.class, result);
+            assertEquals("nested-async", future.join());
+            verify(context).getBean(ExecutorService.class, "nestedExecutor");
+        } finally {
+            executorService.shutdownNow();
+        }
+    }
+
+    @Test
     void shouldFailFastWhenNamedExecutorBeanIsMissing() throws Throwable {
         Context context = mock(Context.class);
         AsyncMethodHandler handler = new AsyncMethodHandler(context);
@@ -165,5 +241,12 @@ public class AsyncMethodHandlerTest {
         );
 
         assertEquals("Async methods must return CompletableFuture", exception.getMessage());
+    }
+
+    private Object createNestedProxy() {
+        NestedProxyAsyncServiceLevel2 proxy = new NestedProxyAsyncServiceLevel2();
+        proxy.setHandler((self, thisMethod, proceed, args) ->
+                CompletableFuture.completedFuture(Thread.currentThread().getName()));
+        return proxy;
     }
 }

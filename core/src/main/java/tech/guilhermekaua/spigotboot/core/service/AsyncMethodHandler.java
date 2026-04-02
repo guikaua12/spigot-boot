@@ -81,7 +81,7 @@ public class AsyncMethodHandler {
             return null;
         }
 
-        Class<?> realClass = ProxyUtils.getRealClass(context.self());
+        Class<?> realClass = resolveRealClass(context.self());
         Method realMethod = findMethod(realClass, signatureSource);
         annotation = findAsyncAnnotation(realMethod);
         if (annotation != null) {
@@ -95,6 +95,23 @@ public class AsyncMethodHandler {
                     return annotation;
                 }
             }
+        }
+
+        return null;
+    }
+
+    private Class<?> resolveRealClass(Object self) {
+        if (self == null) {
+            return null;
+        }
+
+        Class<?> current = ProxyUtils.getRealClass(self);
+        while (current != null) {
+            Class<?> unwrapped = ProxyUtils.unwrapProxyType(current);
+            if (unwrapped == current) {
+                return current;
+            }
+            current = unwrapped;
         }
 
         return null;
