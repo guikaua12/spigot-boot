@@ -38,6 +38,17 @@ public class SelectiveProxyingTest {
         }
     }
 
+    static class SelfInvokingBean {
+        @Intercept
+        public String interceptedMethod() {
+            return "inner";
+        }
+
+        public String outerMethod() {
+            return interceptedMethod();
+        }
+    }
+
     private DependencyManager dependencyManager;
 
     @BeforeEach
@@ -85,6 +96,20 @@ public class SelectiveProxyingTest {
 
         assertFalse(bean instanceof ProxyObject, "Bean should not be proxied when no handlers could apply");
         assertEquals("original", bean.hello());
+    }
+
+    @Test
+    void selfInvocationShouldBypassMethodHandlerProxy() {
+        dependencyManager.registerDependency(SelfInvokingBean.class, null, false, null, null);
+
+        SelfInvokingBean bean = dependencyManager.resolveDependency(SelfInvokingBean.class, null);
+        assertNotNull(bean);
+        assertInstanceOf(ProxyObject.class, bean, "Bean should be proxied because it has a matching annotated method");
+
+        assertEquals("intercepted", bean.interceptedMethod(),
+                "Direct calls through the proxy should be intercepted");
+        assertEquals("inner", bean.outerMethod(),
+                "Internal calls on this should bypass the proxy and hit the raw target method");
     }
 }
 
