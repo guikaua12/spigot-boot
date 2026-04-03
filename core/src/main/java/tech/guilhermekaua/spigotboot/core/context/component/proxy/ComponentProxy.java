@@ -86,7 +86,18 @@ public class ComponentProxy implements MethodHandler {
         }
 
         try {
-            return invokeHandlerChain(handlers, 0, self, delegating, invocationTarget, thisMethod, proceed, invokeMethod, args);
+            Object result = invokeHandlerChain(
+                    handlers,
+                    0,
+                    self,
+                    delegating,
+                    invocationTarget,
+                    thisMethod,
+                    proceed,
+                    invokeMethod,
+                    args
+            );
+            return normalizeResult(self, delegating, invocationTarget, result);
         } catch (Throwable t) {
             throw new RuntimeException("Error handling method " + thisMethod.getName() + " in " + invocationTarget.getClass().getName(), t);
         }
@@ -138,7 +149,11 @@ public class ComponentProxy implements MethodHandler {
 
         invokeMethod.setAccessible(true);
         Object result = invokeMethod.invoke(invocationTarget, args);
-        if (result != null && (result == invocationTarget || result == realObject)) {
+        return normalizeResult(self, delegating, invocationTarget, result);
+    }
+
+    private Object normalizeResult(Object self, boolean delegating, Object invocationTarget, Object result) {
+        if (delegating && result != null && (result == invocationTarget || result == realObject)) {
             return self;
         }
 

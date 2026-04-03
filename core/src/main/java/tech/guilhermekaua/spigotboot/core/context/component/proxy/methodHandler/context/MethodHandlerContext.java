@@ -48,10 +48,24 @@ public class MethodHandlerContext {
         return self;
     }
 
+    /**
+     * Returns metadata about the intercepted method.
+     *
+     * @deprecated This accessor does not continue the handler chain. Handlers
+     * should call {@link #invokeNext()} to continue execution.
+     */
+    @Deprecated
     public Method thisMethod() {
         return thisMethod;
     }
 
+    /**
+     * Returns metadata about the underlying invocation target method.
+     *
+     * @deprecated This accessor does not continue the handler chain. Handlers
+     * should call {@link #invokeNext()} to continue execution.
+     */
+    @Deprecated
     public Method proceed() {
         return proceed;
     }
@@ -61,8 +75,9 @@ public class MethodHandlerContext {
     }
 
     /**
-     * Continue to the next matching handler in the chain. If none remain, this
-     * invokes the underlying target method.
+     * Continue to the next matching handler in the chain. This is the
+     * continuation method handlers should call. If none remain, this invokes
+     * the underlying target method.
      *
      * @return the return object of the next handler
      */

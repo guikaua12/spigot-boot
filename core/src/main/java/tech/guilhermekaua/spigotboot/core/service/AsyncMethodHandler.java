@@ -21,6 +21,7 @@ public class AsyncMethodHandler {
     private final Context context;
 
     @MethodHandler(methodAnnotatedWith = Async.class, order = ORDER)
+    @SuppressWarnings("deprecation")
     public Object handle(MethodHandlerContext context) {
         if (context.self() == null || (context.thisMethod() == null && context.proceed() == null)) {
             return null;
@@ -59,6 +60,7 @@ public class AsyncMethodHandler {
         }, executorService).thenCompose(result -> result);
     }
 
+    @SuppressWarnings("deprecation")
     private Async findAsyncAnnotation(MethodHandlerContext context) {
         Async annotation = findAsyncAnnotation(context.thisMethod());
         if (annotation != null) {

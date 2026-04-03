@@ -29,16 +29,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class MethodHandlerRegistry {
     private static final List<RegisteredMethodHandler> handlers = new ArrayList<>();
+    private static long nextRegistrationIndex = 0L;
 
     private MethodHandlerRegistry() {
     }
 
     public static void registerAll(List<RegisteredMethodHandler> handlers) {
-        MethodHandlerRegistry.handlers.addAll(handlers);
+        handlers.forEach(MethodHandlerRegistry::register);
+    }
+
+    public static void register(RegisteredMethodHandler handler) {
+        Objects.requireNonNull(handler, "handler cannot be null");
+        handlers.add(handler.withRegistrationIndex(nextRegistrationIndex++));
     }
 
     public static @NotNull List<RegisteredMethodHandler> getAllHandlers() {
@@ -48,11 +55,15 @@ public final class MethodHandlerRegistry {
     public static List<RegisteredMethodHandler> getHandlersFor(@NotNull MethodHandlerContext context) {
         return handlers.stream()
                 .filter(handler -> handler.canHandle(context))
-                .sorted(Comparator.comparingInt(RegisteredMethodHandler::getOrder))
+                .sorted(
+                        Comparator.comparingInt(RegisteredMethodHandler::getOrder)
+                                .thenComparingLong(RegisteredMethodHandler::getRegistrationIndex)
+                )
                 .collect(Collectors.toList());
     }
 
     public static void clear() {
         handlers.clear();
+        nextRegistrationIndex = 0L;
     }
 }

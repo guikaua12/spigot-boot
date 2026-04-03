@@ -30,7 +30,9 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyM
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,17 +40,19 @@ public class MethodHandlerProcessor {
     public List<RegisteredMethodHandler> processFromPackage(String basePackage, DependencyManager dependencyManager) {
         return ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class)
                 .stream()
+                .sorted(Comparator.comparing(Class::getName))
                 .flatMap(clazz -> processClass(clazz, dependencyManager).stream())
                 .collect(Collectors.toList());
     }
 
-    private List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
+    public List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
             Object handler = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(MethodHandler.class))
                     .filter(method -> method.getParameterCount() == 1 && method.getParameterTypes()[0] == MethodHandlerContext.class)
+                    .sorted(Comparator.comparing(Method::toGenericString))
                     .map(method -> {
                         MethodHandler annotation = method.getAnnotation(MethodHandler.class);
                         return new RegisteredMethodHandler(
