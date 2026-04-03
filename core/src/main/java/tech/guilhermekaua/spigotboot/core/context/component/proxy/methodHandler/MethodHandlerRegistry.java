@@ -27,6 +27,7 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,7 @@ public final class MethodHandlerRegistry {
     public static List<RegisteredMethodHandler> getHandlersFor(@NotNull MethodHandlerContext context) {
         return handlers.stream()
                 .filter(handler -> handler.canHandle(context))
+                .sorted(Comparator.comparingInt(RegisteredMethodHandler::getOrder))
                 .collect(Collectors.toList());
     }
 

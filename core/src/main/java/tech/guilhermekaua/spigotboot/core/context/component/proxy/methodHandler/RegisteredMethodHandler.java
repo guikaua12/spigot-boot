@@ -36,16 +36,27 @@ public class RegisteredMethodHandler {
     private final Class<?> targetClass;
     private final Class<? extends Annotation> classTargetAnnotation;
     private final Class<? extends Annotation> methodTargetAnnotation;
+    private final int order;
 
     public RegisteredMethodHandler(RegisteredMethodHandlerRunnable runnable,
                                    Class<?> targetClass,
                                    Class<? extends Annotation> classTargetAnnotation,
                                    Class<? extends Annotation> methodTargetAnnotation
     ) {
+        this(runnable, targetClass, classTargetAnnotation, methodTargetAnnotation, 0);
+    }
+
+    public RegisteredMethodHandler(RegisteredMethodHandlerRunnable runnable,
+                                   Class<?> targetClass,
+                                   Class<? extends Annotation> classTargetAnnotation,
+                                   Class<? extends Annotation> methodTargetAnnotation,
+                                   int order
+    ) {
         this.runnable = runnable;
         this.targetClass = targetClass != void.class ? targetClass : null;
         this.classTargetAnnotation = classTargetAnnotation != Annotation.class ? classTargetAnnotation : null;
         this.methodTargetAnnotation = methodTargetAnnotation != Annotation.class ? methodTargetAnnotation : null;
+        this.order = order;
     }
 
     @SuppressWarnings("RedundantIfStatement")

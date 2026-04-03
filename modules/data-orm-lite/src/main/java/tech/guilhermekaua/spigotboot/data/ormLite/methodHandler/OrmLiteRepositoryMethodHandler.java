@@ -35,16 +35,18 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 @RegisterMethodHandler
 public class OrmLiteRepositoryMethodHandler {
+    private static final int ORDER = 100;
+
     private final OrmLiteRepositoryRegistry repositoryRegistry;
 
-    @MethodHandler(targetClass = OrmLiteRepository.class)
+    @MethodHandler(targetClass = OrmLiteRepository.class, order = ORDER)
     public Object handle(MethodHandlerContext context) throws Throwable {
         if (context.self() == null || context.thisMethod() == null) {
             return null;
         }
 
         if (context.proceed() != null) {
-            return context.proceed().invoke(context.self(), context.args());
+            return context.invokeNext();
         }
 
         Class<?> entityType = OrmLiteTypeUtils.resolveEntityType(context.self().getClass());

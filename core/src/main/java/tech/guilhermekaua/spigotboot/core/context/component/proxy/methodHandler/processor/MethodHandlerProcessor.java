@@ -55,7 +55,8 @@ public class MethodHandlerProcessor {
                                 context -> method.invoke(handler, context),
                                 annotation.targetClass(),
                                 annotation.classAnnotatedWith(),
-                                annotation.methodAnnotatedWith()
+                                annotation.methodAnnotatedWith(),
+                                annotation.order()
                         );
                     })
                     .collect(Collectors.toList());
