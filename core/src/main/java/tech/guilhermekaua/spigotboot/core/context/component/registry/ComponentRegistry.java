@@ -29,6 +29,7 @@ import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
 import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
+import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -63,13 +64,7 @@ public class ComponentRegistry {
                 continue;
             }
 
-            dependencyManager.registerDependency(
-                    componentsClass,
-                    BeanUtils.getQualifier(componentsClass),
-                    BeanUtils.getIsPrimary(componentsClass),
-                    null,
-                    BeanUtils.createDependencyReloadCallback(componentsClass)
-            );
+            registerScannedComponent(componentsClass, dependencyManager);
         }
     }
 
@@ -109,5 +104,20 @@ public class ComponentRegistry {
                 .flatMap(Collection::stream)
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
                 .collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerScannedComponent(@NotNull Class<?> componentClass, @NotNull DependencyManager dependencyManager) {
+        registerScannedComponentTyped((Class<Object>) componentClass, dependencyManager);
+    }
+
+    private <T> void registerScannedComponentTyped(@NotNull Class<T> componentClass,
+                                                   @NotNull DependencyManager dependencyManager) {
+        dependencyManager.registerDependency(
+                componentClass,
+                BeanUtils.getQualifier(componentClass),
+                BeanUtils.getIsPrimary(componentClass),
+                (DependencyResolveResolver<T>) null
+        );
     }
 }

@@ -3,12 +3,9 @@ package tech.guilhermekaua.spigotboot.core.test.utils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
-import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
-import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
@@ -39,26 +36,6 @@ public class BeanUtilsTest {
     }
 
     static class NonPrimaryClass {
-    }
-
-    static class WithReloadMethod {
-        private String stringDep;
-        private Integer integerDep;
-        private String anotherStringDep;
-
-        @OnReload
-        public void onReload(String dependency) {
-            this.stringDep = dependency;
-        }
-
-        @OnReload
-        public void anotherReload(Integer dependency, String anotherDep) {
-            this.integerDep = dependency;
-            this.anotherStringDep = anotherDep;
-        }
-
-        public void normalMethod() {
-        }
     }
 
     static class CircularA {
@@ -206,36 +183,6 @@ public class BeanUtilsTest {
     @Test
     void testGetIsPrimary_NullElement() {
         assertThrows(NullPointerException.class, () -> BeanUtils.getIsPrimary(null));
-    }
-
-    @Test
-    void testCreateDependencyReloadCallback() {
-        DependencyManager dependencyManager = new DependencyManager();
-        dependencyManager.registerDependency(String.class, "test", null, false);
-        dependencyManager.registerDependency(Integer.class, 42, null, false);
-
-        DependencyReloadCallback callback = BeanUtils.createDependencyReloadCallback(WithReloadMethod.class);
-        WithReloadMethod instance = new WithReloadMethod();
-
-        assertDoesNotThrow(() -> callback.reload(instance, dependencyManager));
-        assertEquals("test", instance.stringDep);
-        assertEquals(42, instance.integerDep);
-        assertEquals("test", instance.anotherStringDep);
-    }
-
-    @Test
-    void testCreateDependencyReloadCallback_NullClass() {
-        assertThrows(NullPointerException.class, () -> BeanUtils.createDependencyReloadCallback(null));
-    }
-
-    @Test
-    void testCreateDependencyReloadCallback_NoReloadMethods() {
-        DependencyManager dependencyManager = new DependencyManager();
-        DependencyReloadCallback callback = BeanUtils.createDependencyReloadCallback(NonPrimaryClass.class);
-        NonPrimaryClass instance = new NonPrimaryClass();
-
-        assertDoesNotThrow(() -> callback.reload(instance, dependencyManager));
-        assertTrue(dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().isEmpty());
     }
 
     @Test

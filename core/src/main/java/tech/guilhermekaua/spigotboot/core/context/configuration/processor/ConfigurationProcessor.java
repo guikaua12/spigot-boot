@@ -25,6 +25,8 @@ package tech.guilhermekaua.spigotboot.core.context.configuration.processor;
 import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
+import tech.guilhermekaua.spigotboot.core.context.annotations.OnDisable;
+import tech.guilhermekaua.spigotboot.core.context.annotations.OnEnable;
 import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
 import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
@@ -92,6 +94,8 @@ public class ConfigurationProcessor {
 
     @SuppressWarnings("unchecked")
     private void registerBeanMethod(Method method, Object configProxy, DependencyManager dependencyManager) {
+        validateBeanMethodLifecycleUsage(method);
+
         ConditionContext conditionContext = new SimpleConditionContext(
                 dependencyManager.getBeanDefinitionRegistry(),
                 null,
@@ -127,5 +131,23 @@ public class ConfigurationProcessor {
                         throw new RuntimeException("Failed to invoke @Bean method: " + method.getName(), t);
                     }
                 });
+    }
+
+    private void validateBeanMethodLifecycleUsage(Method method) {
+        if (method.isAnnotationPresent(OnEnable.class)) {
+            throw new IllegalStateException(String.format(
+                    "Method '%s' in class '%s' cannot be annotated with both @Bean and @OnEnable.",
+                    method.getName(),
+                    method.getDeclaringClass().getName()
+            ));
+        }
+
+        if (method.isAnnotationPresent(OnDisable.class)) {
+            throw new IllegalStateException(String.format(
+                    "Method '%s' in class '%s' cannot be annotated with both @Bean and @OnDisable.",
+                    method.getName(),
+                    method.getDeclaringClass().getName()
+            ));
+        }
     }
 }

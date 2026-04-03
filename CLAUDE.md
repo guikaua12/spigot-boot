@@ -146,8 +146,9 @@ Key behavior:
     - runs lifecycle
     - sets `initialized = true`
 - `destroy()`
-    - executes shutdown hooks first
-    - runs `ContextPreDestroyProcessor` beans
+    - invokes `@OnDisable` callbacks first
+    - executes shutdown hooks next
+    - runs `ContextPreDestroyProcessor` beans after shutdown hooks
     - clears shutdown hooks
     - clears dependency manager registries
     - sets `initialized = false`
@@ -175,13 +176,17 @@ Important caveat:
 3. `MODULES`
 4. `DEFINITIONS_READY`
 5. `INSTANTIATE`
-6. `READY`
-7. final state `RUNNING`
+6. native plugin injection
+7. `@OnEnable` callbacks
+8. `READY`
+9. final state `RUNNING`
 
 Related note:
 
-- `ContextPhase` also defines `DESTROY`, `PRE_DESTROY_PROCESSORS`, and `CLEARED`, but `ContextLifecycle` does not
-  currently drive those states during destroy.
+- `PluginContext.destroy()` now reflects the destroy phases in `ContextPhase`:
+    - `DESTROY` while `@OnDisable` callbacks and shutdown hooks run
+    - `PRE_DESTROY_PROCESSORS` while `ContextPreDestroyProcessor` beans run
+    - `CLEARED` after the registries are cleared
 
 ### Phase details
 
@@ -283,6 +288,7 @@ Real example:
 - `ComponentRegistry.resolveAllComponents(...)` walks every bean definition and resolves it
 - Then the native plugin instance is field/setter injected
     - class used for injection is `ProxyUtils.getRealClass(nativePlugin)`
+- Then instantiated beans are walked for `@OnEnable` callbacks
 
 Consequence:
 
@@ -290,7 +296,7 @@ Consequence:
 
 #### 6. `READY`
 
-- Finds `ContextReadyListener` beans
+- Finds `ContextReadyListener` beans after `@OnEnable` callbacks have completed
 - Sorts them by `Ordered.getOrder()`
 - Calls `onContextReady(context)`
 
@@ -474,21 +480,29 @@ Important limitations:
 
 - `Context.reload()` delegates to `DependencyManager.reloadDependencies()`
 - only instantiated beans with non-null reload callbacks participate
+- reload callbacks are now a low-level/manual API only
+- no lifecycle annotation maps to `Context.reload()`
 - no bean recreation happens
 - no condition re-evaluation happens
 - no registry rebuild happens
 
-### `@OnReload`
+### `@OnEnable` / `@OnDisable`
 
-- `BeanUtils.createDependencyReloadCallback(clazz)` creates a callback that:
-    - finds all declared methods annotated with `@OnReload`
-    - resolves method arguments from the current dependency manager
-    - invokes the methods
-
-This callback is attached automatically for:
-
-- scanned components
-- module beans registered through `Context.registerBean(...)`
+- lifecycle methods are discovered by walking instantiated beans from `BeanInstanceRegistry`
+- discovery uses `ProxyUtils.getRealClass(instance).getDeclaredMethods()`
+- method arguments are resolved through `DependencyManager.resolveArguments(...)`
+- the same underlying bean instance is invoked only once even if it is registered under multiple requested types
+- callback order is:
+    - `Ordered#getOrder()` when implemented by the bean instance
+    - else class-level `@Order`
+    - else `0`
+    - then bean identifier for deterministic tie-breaking
+- `@OnEnable` runs after instantiation and native plugin injection, before `ContextReadyListener`
+- `@OnDisable` runs before shutdown hooks and before `ContextPreDestroyProcessor`
+- `@OnEnable` failure aborts initialization
+- `@OnDisable` failure is logged and remaining cleanup continues
+- lifecycle annotations are valid on configuration classes and on `@Bean` products
+- lifecycle annotations are invalid on `@Bean` factory methods themselves
 
 ## Manual registration API
 
@@ -904,8 +918,10 @@ It compares:
     - type or method
 - `@Order`
     - type-level ordering for modules
-- `@OnReload`
-    - method invoked during `Context.reload()`
+- `@OnEnable`
+    - method invoked during context startup after instantiation
+- `@OnDisable`
+    - method invoked during context destroy before shutdown hooks
 - `@RegisterMethodHandler`
     - meta-stereotype for method-handler beans
 - `@Conditional`
@@ -933,7 +949,7 @@ It compares:
 
 ### `ContextReadyListener`
 
-- Runs after all beans are instantiated and native plugin injection is complete.
+- Runs after all beans are instantiated, native plugin injection is complete, and `@OnEnable` callbacks have run.
 - Best extension point for:
     - listener registration
     - final integration setup
@@ -942,11 +958,11 @@ It compares:
 ### Shutdown hooks
 
 - Registered per context with `Context.registerShutdownHook(...)`
-- Executed before pre-destroy processors
+- Executed after `@OnDisable` callbacks and before pre-destroy processors
 
 ### Pre-destroy processors
 
-- Any instantiated `ContextPreDestroyProcessor` bean is invoked on destroy.
+- Any instantiated `ContextPreDestroyProcessor` bean is invoked on destroy after shutdown hooks.
 - Built-in processor:
     - `ShutdownExecutorServicesContextPreDestroyProcessor`
     - shuts down all `ExecutorService` beans in the context
@@ -1047,7 +1063,6 @@ Provides:
 
 - qualifier lookup
 - primary lookup
-- automatic reload callback generation from `@OnReload`
 - circular dependency detection
 
 ### `ClassUtils`
