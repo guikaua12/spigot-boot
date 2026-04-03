@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.BeanLifecycleInvoker;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextLifecycle;
-import tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextPhase;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
 import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
 import tech.guilhermekaua.spigotboot.core.module.Module;
@@ -87,15 +86,11 @@ public class PluginContext implements Context {
             return;
         }
 
-        transitionLifecycle(ContextPhase.DESTROY);
-        callDisableCallbacks();
-        callShutdownHooks();
-
-        transitionLifecycle(ContextPhase.PRE_DESTROY_PROCESSORS);
-        callPreDestroyProcessors();
-
-        dependencyManager.clear();
-        transitionLifecycle(ContextPhase.CLEARED);
+        lifecycle.destroy(
+                this::callDisableCallbacks,
+                this::callShutdownHooks,
+                this::callPreDestroyProcessors
+        );
 
         initialized = false;
     }
@@ -142,12 +137,6 @@ public class PluginContext implements Context {
         }
 
         shutdownHooks.clear();
-    }
-
-    private void transitionLifecycle(@NotNull ContextPhase phase) {
-        if (lifecycle != null) {
-            lifecycle.setCurrentPhase(phase);
-        }
     }
 
     @Override

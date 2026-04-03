@@ -202,8 +202,14 @@ public class ContextLifecycle {
         return currentPhase;
     }
 
-    public void setCurrentPhase(@NotNull ContextPhase phase) {
-        currentPhase = Objects.requireNonNull(phase, "phase cannot be null.");
+    public void destroy(@NotNull Runnable onDisable, @NotNull Runnable shutdownHooks, @NotNull Runnable preDestroyProcessors) {
+        currentPhase = ContextPhase.DESTROY;
+        onDisable.run();
+        shutdownHooks.run();
+        currentPhase = ContextPhase.PRE_DESTROY_PROCESSORS;
+        preDestroyProcessors.run();
+        dependencyManager.clear();
+        currentPhase = ContextPhase.CLEARED;
     }
 
     public BeanRegistrar getBeanRegistrar() {
