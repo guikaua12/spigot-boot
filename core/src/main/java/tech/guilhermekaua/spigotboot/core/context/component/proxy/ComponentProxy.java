@@ -81,14 +81,59 @@ public class ComponentProxy implements MethodHandler {
         final MethodHandlerContext context = new MethodHandlerContext(invocationTarget, thisMethod, invokeMethod, args);
 
         List<RegisteredMethodHandler> handlers = MethodHandlerRegistry.getHandlersFor(context);
-        for (RegisteredMethodHandler handler : handlers) {
-            try {
-                return handler.getRunnable().handle(context);
-            } catch (Throwable t) {
-                throw new RuntimeException("Error handling method " + thisMethod.getName() + " in " + invocationTarget.getClass().getName(), t);
-            }
+        if (handlers.isEmpty()) {
+            return invokeTerminal(self, delegating, invocationTarget, thisMethod, proceed, invokeMethod, args);
         }
 
+        try {
+            Object result = invokeHandlerChain(
+                    handlers,
+                    0,
+                    self,
+                    delegating,
+                    invocationTarget,
+                    thisMethod,
+                    proceed,
+                    invokeMethod,
+                    args
+            );
+            return normalizeResult(self, delegating, invocationTarget, result);
+        } catch (Throwable t) {
+            throw new RuntimeException("Error handling method " + thisMethod.getName() + " in " + invocationTarget.getClass().getName(), t);
+        }
+    }
+
+    private Object invokeHandlerChain(List<RegisteredMethodHandler> handlers,
+                                      int handlerIndex,
+                                      Object self,
+                                      boolean delegating,
+                                      Object invocationTarget,
+                                      Method thisMethod,
+                                      Method proceed,
+                                      Method invokeMethod,
+                                      Object[] args) throws Throwable {
+        if (handlerIndex >= handlers.size()) {
+            return invokeTerminal(self, delegating, invocationTarget, thisMethod, proceed, invokeMethod, args);
+        }
+
+        RegisteredMethodHandler handler = handlers.get(handlerIndex);
+        MethodHandlerContext chainedContext = new MethodHandlerContext(
+                invocationTarget,
+                thisMethod,
+                invokeMethod,
+                args,
+                () -> invokeHandlerChain(handlers, handlerIndex + 1, self, delegating, invocationTarget, thisMethod, proceed, invokeMethod, args)
+        );
+        return handler.getRunnable().handle(chainedContext);
+    }
+
+    private Object invokeTerminal(Object self,
+                                  boolean delegating,
+                                  Object invocationTarget,
+                                  Method thisMethod,
+                                  Method proceed,
+                                  Method invokeMethod,
+                                  Object[] args) throws Throwable {
         if (!delegating) {
             if (proceed == null) {
                 throw new IllegalStateException("No proceed method available for: " + thisMethod);
@@ -104,7 +149,11 @@ public class ComponentProxy implements MethodHandler {
 
         invokeMethod.setAccessible(true);
         Object result = invokeMethod.invoke(invocationTarget, args);
-        if (result != null && (result == invocationTarget || result == realObject)) {
+        return normalizeResult(self, delegating, invocationTarget, result);
+    }
+
+    private Object normalizeResult(Object self, boolean delegating, Object invocationTarget, Object result) {
+        if (delegating && result != null && (result == invocationTarget || result == realObject)) {
             return self;
         }
 

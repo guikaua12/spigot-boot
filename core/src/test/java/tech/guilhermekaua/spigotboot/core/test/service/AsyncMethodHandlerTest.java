@@ -12,9 +12,11 @@ import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -241,6 +243,40 @@ public class AsyncMethodHandlerTest {
         );
 
         assertEquals("Async methods must return CompletableFuture", exception.getMessage());
+    }
+
+    @Test
+    void shouldInvokeNextHandlerInsideExecutorThread() throws Throwable {
+        Context context = mock(Context.class);
+        ExecutorService executorService = Executors.newSingleThreadExecutor(r -> new Thread(r, "chain-async"));
+        when(context.getBean(ExecutorService.class, DEFAULT_EXECUTOR_BEAN_NAME)).thenReturn(executorService);
+
+        try {
+            AsyncMethodHandler handler = new AsyncMethodHandler(context);
+            DefaultAsyncService service = new DefaultAsyncService();
+            Method method = DefaultAsyncService.class.getMethod("load");
+            AtomicReference<String> nextThread = new AtomicReference<>();
+            String callerThread = Thread.currentThread().getName();
+
+            Object result = handler.handle(new MethodHandlerContext(
+                    service,
+                    method,
+                    method,
+                    new Object[0],
+                    () -> {
+                        nextThread.set(Thread.currentThread().getName());
+                        return CompletableFuture.completedFuture(nextThread.get());
+                    }
+            ));
+
+            CompletableFuture<?> future = assertInstanceOf(CompletableFuture.class, result);
+            assertEquals("chain-async", future.join());
+            assertEquals("chain-async", nextThread.get());
+            assertNotEquals(callerThread, nextThread.get());
+            verify(context).getBean(ExecutorService.class, DEFAULT_EXECUTOR_BEAN_NAME);
+        } finally {
+            executorService.shutdownNow();
+        }
     }
 
     private Object createNestedProxy() {

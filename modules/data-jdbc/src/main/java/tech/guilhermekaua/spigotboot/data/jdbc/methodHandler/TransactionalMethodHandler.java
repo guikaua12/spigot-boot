@@ -32,9 +32,11 @@ import tech.guilhermekaua.spigotboot.data.transaction.Transactional;
 @RequiredArgsConstructor
 @RegisterMethodHandler
 public class TransactionalMethodHandler {
+    private static final int ORDER = -100;
+
     private final TransactionManager transactionManager;
 
-    @MethodHandler(methodAnnotatedWith = Transactional.class)
+    @MethodHandler(methodAnnotatedWith = Transactional.class, order = ORDER)
     public Object handle(MethodHandlerContext context) throws Throwable {
         if (context.proceed() == null) {
             return null;
@@ -42,7 +44,7 @@ public class TransactionalMethodHandler {
 
         assertConcreteMethodTarget(context);
 
-        return transactionManager.execute(() -> context.proceed().invoke(context.self(), context.args()));
+        return transactionManager.execute(context::invokeNext);
     }
 
     private void assertConcreteMethodTarget(MethodHandlerContext context) {

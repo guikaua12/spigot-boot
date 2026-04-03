@@ -16,10 +16,12 @@ import java.util.concurrent.ExecutorService;
 @RegisterMethodHandler
 public class AsyncMethodHandler {
     static final String DEFAULT_EXECUTOR_BEAN_NAME = "serviceAsyncExecutor";
+    private static final int ORDER = -200;
 
     private final Context context;
 
-    @MethodHandler(methodAnnotatedWith = Async.class)
+    @MethodHandler(methodAnnotatedWith = Async.class, order = ORDER)
+    @SuppressWarnings("deprecation")
     public Object handle(MethodHandlerContext context) {
         if (context.self() == null || (context.thisMethod() == null && context.proceed() == null)) {
             return null;
@@ -45,20 +47,20 @@ public class AsyncMethodHandler {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                Method invoker = context.proceed() != null ? context.proceed() : context.thisMethod();
-                Object invocationResult = invoker.invoke(context.self(), context.args());
+                Object invocationResult = context.invokeNext();
 
                 if (invocationResult == null) {
                     return CompletableFuture.completedFuture(null);
                 }
 
                 return (CompletableFuture<?>) invocationResult;
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 throw new RuntimeException("Failed to invoke async method: " + invocationMethod.getName(), e);
             }
         }, executorService).thenCompose(result -> result);
     }
 
+    @SuppressWarnings("deprecation")
     private Async findAsyncAnnotation(MethodHandlerContext context) {
         Async annotation = findAsyncAnnotation(context.thisMethod());
         if (annotation != null) {

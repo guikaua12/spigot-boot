@@ -32,23 +32,59 @@ import java.util.Objects;
 
 @Getter
 public class RegisteredMethodHandler {
+    private static final long UNREGISTERED_INDEX = -1L;
+
     private final RegisteredMethodHandlerRunnable runnable;
     private final Class<?> targetClass;
     private final Class<? extends Annotation> classTargetAnnotation;
     private final Class<? extends Annotation> methodTargetAnnotation;
+    private final int order;
+    private final long registrationIndex;
 
     public RegisteredMethodHandler(RegisteredMethodHandlerRunnable runnable,
                                    Class<?> targetClass,
                                    Class<? extends Annotation> classTargetAnnotation,
                                    Class<? extends Annotation> methodTargetAnnotation
     ) {
+        this(runnable, targetClass, classTargetAnnotation, methodTargetAnnotation, 0);
+    }
+
+    public RegisteredMethodHandler(RegisteredMethodHandlerRunnable runnable,
+                                   Class<?> targetClass,
+                                   Class<? extends Annotation> classTargetAnnotation,
+                                   Class<? extends Annotation> methodTargetAnnotation,
+                                   int order
+    ) {
+        this(runnable, targetClass, classTargetAnnotation, methodTargetAnnotation, order, UNREGISTERED_INDEX);
+    }
+
+    private RegisteredMethodHandler(RegisteredMethodHandlerRunnable runnable,
+                                    Class<?> targetClass,
+                                    Class<? extends Annotation> classTargetAnnotation,
+                                    Class<? extends Annotation> methodTargetAnnotation,
+                                    int order,
+                                    long registrationIndex
+    ) {
         this.runnable = runnable;
         this.targetClass = targetClass != void.class ? targetClass : null;
         this.classTargetAnnotation = classTargetAnnotation != Annotation.class ? classTargetAnnotation : null;
         this.methodTargetAnnotation = methodTargetAnnotation != Annotation.class ? methodTargetAnnotation : null;
+        this.order = order;
+        this.registrationIndex = registrationIndex;
     }
 
-    @SuppressWarnings("RedundantIfStatement")
+    public RegisteredMethodHandler withRegistrationIndex(long registrationIndex) {
+        return new RegisteredMethodHandler(
+                runnable,
+                targetClass != null ? targetClass : void.class,
+                classTargetAnnotation != null ? classTargetAnnotation : Annotation.class,
+                methodTargetAnnotation != null ? methodTargetAnnotation : Annotation.class,
+                order,
+                registrationIndex
+        );
+    }
+
+    @SuppressWarnings({"RedundantIfStatement", "deprecation"})
     public boolean canHandle(MethodHandlerContext context) {
         Objects.requireNonNull(context, "context cannot be null.");
 

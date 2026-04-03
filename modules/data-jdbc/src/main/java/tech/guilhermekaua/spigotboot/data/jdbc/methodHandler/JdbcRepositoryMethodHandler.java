@@ -37,10 +37,12 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 @RegisterMethodHandler
 public class JdbcRepositoryMethodHandler {
+    private static final int ORDER = 100;
+
     private final JdbcRepositoryRegistry repositoryRegistry;
     private final QueryMethodHandler queryMethodHandler;
 
-    @MethodHandler(targetClass = JdbcRepository.class)
+    @MethodHandler(targetClass = JdbcRepository.class, order = ORDER)
     public Object handle(MethodHandlerContext context) throws Throwable {
         if (context.self() == null || context.thisMethod() == null) {
             throw new IllegalStateException(String.format(
@@ -51,7 +53,7 @@ public class JdbcRepositoryMethodHandler {
         }
 
         if (context.proceed() != null) {
-            return context.proceed().invoke(context.self(), context.args());
+            return context.invokeNext();
         }
 
         Class<?> entityType = JdbcTypeUtils.resolveEntityType(context.self().getClass());
