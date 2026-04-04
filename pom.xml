@@ -43,6 +43,7 @@
         <module>modules</module>
         <module>utils</module>
         <module>config</module>
+        <module>versions</module>
         <module>test-plugin</module>
     </modules>
 

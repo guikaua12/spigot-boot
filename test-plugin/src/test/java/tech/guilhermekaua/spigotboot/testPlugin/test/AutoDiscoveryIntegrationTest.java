@@ -12,6 +12,8 @@ import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
+import tech.guilhermekaua.spigotboot.testPlugin.listener.ZombieTestListener;
+import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +43,8 @@ class AutoDiscoveryIntegrationTest {
         assertNotNull(ctx.getBean(Plugin.class));
         assertNotNull(ctx.getBean(ConfigRegistry.class));
         assertNotNull(ctx.getBean(OrmLiteRepositoryRegistry.class));
+        assertNotNull(ctx.getBean(VersionedZombieService.class));
+        assertNotNull(ctx.getBean(ZombieTestListener.class));
     }
 
     @Test

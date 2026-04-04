@@ -29,6 +29,7 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
 import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
+import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
 @Getter
 @Plugin(
@@ -51,6 +52,15 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (bootPlugin != null) {
+            Context context = SpigotBoot.getContext(bootPlugin);
+            if (context != null) {
+                VersionedZombieService versionedZombieService = context.getBean(VersionedZombieService.class);
+                if (versionedZombieService != null) {
+                    versionedZombieService.clearAllDemoZombies();
+                }
+            }
+        }
         SpigotBoot.onDisable(bootPlugin);
     }
 }
