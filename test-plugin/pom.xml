@@ -59,18 +59,12 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <!--                        <configuration>-->
-                        <!--                            <createDependencyReducedPom>false</createDependencyReducedPom>-->
-                        <!--                            &lt;!&ndash;                            <relocations>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                <relocation>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <pattern>tech.guilhermekaua.spigotboot</pattern>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <shadedPattern>tech.guilhermekaua.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <excludes>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                        <exclude>tech.guilhermekaua.spigotboot.testPlugin.**</exclude>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    </excludes>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                </relocation>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                            </relocations>&ndash;&gt;-->
-                        <!--                        </configuration>-->
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -108,14 +102,32 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-runtime</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_8_8</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_21_11</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
             <version>2.0.2</version>
         </dependency>
 
         <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-20230917.004407-174</version>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.8.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -130,7 +142,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.3.232</version>
+            <version>1.4.200</version>
         </dependency>
 
         <dependency>
@@ -155,13 +167,6 @@
             <artifactId>spigot-boot-config-spigot</artifactId>
             <version>2.0.2</version>
             <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.seeseemelk</groupId>
-            <artifactId>MockBukkit-v1.20</artifactId>
-            <version>3.20.2</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>

@@ -1,0 +1,70 @@
+/*
+ * The MIT License
+ * Copyright (c) 2025 Guilherme Kaua da Silva
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package tech.guilhermekaua.spigotboot.entity.api;
+
+import org.bukkit.entity.LivingEntity;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * Read-only context available while preparing a new behavior instance for a spawn.
+ *
+ * @param <T> the Bukkit entity type exposed to plugin code
+ * @since 2.0.2
+ */
+public interface CustomEntitySpawnContext<T extends LivingEntity> {
+
+    /**
+     * Returns the logical custom entity id.
+     *
+     * @return the logical custom entity id
+     */
+    @NotNull CustomEntityId definitionId();
+
+    /**
+     * Returns the logical vanilla base type.
+     *
+     * @return the logical base type
+     */
+    @NotNull CustomEntityBaseType baseType();
+
+    /**
+     * Returns the Bukkit type exposed to plugin code.
+     *
+     * @return the Bukkit entity type
+     */
+    @NotNull Class<T> bukkitType();
+
+    /**
+     * Returns the resolved Minecraft version that will host the entity.
+     *
+     * @return the resolved Minecraft version
+     */
+    @NotNull MinecraftVersion minecraftVersion();
+
+    /**
+     * Returns the immutable spawn request used for this entity instance.
+     *
+     * @return the spawn request
+     */
+    @NotNull CustomEntitySpawnRequest spawnRequest();
+}
