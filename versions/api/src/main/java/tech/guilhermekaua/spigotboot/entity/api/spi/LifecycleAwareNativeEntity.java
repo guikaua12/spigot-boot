@@ -23,6 +23,7 @@
 package tech.guilhermekaua.spigotboot.entity.api.spi;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implemented by generated native subclasses so version adapters can bind runtime lifecycle delegates.
@@ -37,4 +38,20 @@ public interface LifecycleAwareNativeEntity {
      * @param lifecycle the runtime lifecycle delegate
      */
     void spigotBootBindLifecycle(@NotNull NativeEntityLifecycle<?> lifecycle);
+
+    /**
+     * Returns the currently bound runtime lifecycle, or {@code null} when none is bound.
+     *
+     * @return the bound runtime lifecycle, or {@code null}
+     */
+    @Nullable NativeEntityLifecycle<?> spigotBootGetLifecycle();
+
+    /**
+     * Invokes the original vanilla implementation for the supplied logical hook.
+     *
+     * @param hookName the logical hook name
+     * @param arguments the translated native arguments
+     * @return the vanilla result, or {@code null} for void hooks
+     */
+    @Nullable Object spigotBootInvokeBase(@NotNull String hookName, @Nullable Object[] arguments);
 }

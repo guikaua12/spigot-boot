@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 
 import java.util.Objects;
@@ -84,6 +85,19 @@ public interface EntityVersionAdapter {
     <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    );
+
+    /**
+     * Attaches the shared runtime lifecycle to an existing native-backed entity.
+     *
+     * @param entity the Bukkit entity to hook
+     * @param lifecycle the runtime-managed lifecycle bridge
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the live controlled entity
+     */
+    <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+            @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     );
 }

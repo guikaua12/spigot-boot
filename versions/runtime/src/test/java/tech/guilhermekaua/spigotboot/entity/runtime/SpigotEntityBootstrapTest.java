@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
@@ -129,6 +130,14 @@ class SpigotEntityBootstrapTest {
         public <T extends LivingEntity> CustomEntityHandle<T> spawn(
                 CustomEntityDefinition<T> definition,
                 CustomEntitySpawnRequest spawnRequest,
+                NativeEntityLifecycle<T> lifecycle
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T extends LivingEntity> ControlledEntity<T> attach(
+                T entity,
                 NativeEntityLifecycle<T> lifecycle
         ) {
             throw new UnsupportedOperationException();

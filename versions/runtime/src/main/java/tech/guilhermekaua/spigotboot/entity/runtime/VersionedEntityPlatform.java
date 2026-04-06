@@ -23,8 +23,11 @@
 package tech.guilhermekaua.spigotboot.entity.runtime;
 
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Zombie;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledZombie;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -33,9 +36,13 @@ import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.runtime.exception.CustomEntityDefinitionNotFoundException;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AttachedEntityRegistry;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeControlledZombie;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeZombieLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.registry.CustomEntityDefinitionRegistry;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -48,6 +55,7 @@ public final class VersionedEntityPlatform {
     private final MinecraftVersion minecraftVersion;
     private final EntityVersionAdapter adapter;
     private final CustomEntityDefinitionRegistry definitionRegistry;
+    private final AttachedEntityRegistry attachedEntityRegistry;
 
     /**
      * Creates a new resolved platform.
@@ -59,6 +67,7 @@ public final class VersionedEntityPlatform {
         this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
         this.adapter = Objects.requireNonNull(adapter, "adapter cannot be null");
         this.definitionRegistry = new CustomEntityDefinitionRegistry();
+        this.attachedEntityRegistry = new AttachedEntityRegistry();
     }
 
     /**
@@ -139,6 +148,71 @@ public final class VersionedEntityPlatform {
     }
 
     /**
+     * Attaches the shared controller runtime to an existing supported Bukkit entity.
+     *
+     * @param entity the entity to attach
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the controlled entity handle
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends LivingEntity> @NotNull ControlledEntity<T> entity(@NotNull T entity) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+
+        ControlledEntity<?> attachedEntity = attachedEntityRegistry.findByBukkit(entity);
+        if (attachedEntity != null) {
+            return (ControlledEntity<T>) attachedEntity;
+        }
+
+        if (entity instanceof Zombie) {
+            return (ControlledEntity<T>) zombie((Zombie) entity);
+        }
+
+        throw new UnsupportedOperationException(
+                "The active adapter currently supports attaching controllers only to zombies."
+        );
+    }
+
+    /**
+     * Attaches the shared controller runtime to an existing Bukkit zombie, or returns the existing handle.
+     *
+     * @param zombie the zombie to attach
+     * @return the controlled zombie handle
+     */
+    public @NotNull ControlledZombie zombie(@NotNull Zombie zombie) {
+        Objects.requireNonNull(zombie, "zombie cannot be null");
+
+        ControlledEntity<?> cached = attachedEntityRegistry.findByBukkit(zombie);
+        if (cached instanceof ControlledZombie) {
+            return (ControlledZombie) cached;
+        }
+
+        Object previousNativeHandle = resolveNativeHandle(zombie);
+        if (previousNativeHandle != null) {
+            ControlledEntity<?> nativeCached = attachedEntityRegistry.findByNative(previousNativeHandle);
+            if (nativeCached instanceof ControlledZombie) {
+                attachedEntityRegistry.register(zombie, previousNativeHandle, nativeCached);
+                return (ControlledZombie) nativeCached;
+            }
+        }
+
+        RuntimeControlledZombie lifecycle = new RuntimeControlledZombie(minecraftVersion, nullController());
+        ControlledEntity<Zombie> attached = adapter.attach(zombie, lifecycle);
+        Object currentNativeHandle = resolveNativeHandle(zombie);
+        if (currentNativeHandle != null) {
+            if (previousNativeHandle != null && previousNativeHandle != currentNativeHandle) {
+                attachedEntityRegistry.unregister(zombie, previousNativeHandle);
+            }
+            attachedEntityRegistry.register(zombie, currentNativeHandle, attached);
+        }
+        if (!(attached instanceof ControlledZombie)) {
+            throw new IllegalStateException(
+                    "The zombie attach path did not return a ControlledZombie for '" + zombie.getClass().getName() + "'."
+            );
+        }
+        return (ControlledZombie) attached;
+    }
+
+    /**
      * Spawns a registered definition by id.
      *
      * @param id the logical custom entity id
@@ -196,11 +270,47 @@ public final class VersionedEntityPlatform {
             @NotNull CustomEntitySpawnRequest spawnRequest
     ) {
         CustomEntityDefinition<T> typedDefinition = (CustomEntityDefinition<T>) definition;
-        RuntimeNativeEntityLifecycle<T> lifecycle = new RuntimeNativeEntityLifecycle<T>(
-                typedDefinition,
-                spawnRequest,
-                minecraftVersion
-        );
-        return adapter.spawn(typedDefinition, spawnRequest, lifecycle);
+        RuntimeNativeEntityLifecycle<T> lifecycle = createSpawnLifecycle(typedDefinition, spawnRequest);
+        CustomEntityHandle<T> handle = adapter.spawn(typedDefinition, spawnRequest, lifecycle);
+        registerIfHooked(handle);
+        return handle;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends LivingEntity> @NotNull RuntimeNativeEntityLifecycle<T> createSpawnLifecycle(
+            @NotNull CustomEntityDefinition<T> definition,
+            @NotNull CustomEntitySpawnRequest spawnRequest
+    ) {
+        if (definition.baseType() == CustomEntityBaseType.ZOMBIE) {
+            return (RuntimeNativeEntityLifecycle<T>) new RuntimeNativeZombieLifecycle(
+                    (CustomEntityDefinition<Zombie>) definition,
+                    spawnRequest,
+                    minecraftVersion
+            );
+        }
+        return new RuntimeNativeEntityLifecycle<T>(definition, spawnRequest, minecraftVersion);
+    }
+
+    private void registerIfHooked(@NotNull ControlledEntity<?> entity) {
+        Object nativeHandle = resolveNativeHandle(entity.bukkitEntity());
+        if (nativeHandle != null) {
+            attachedEntityRegistry.register(entity.bukkitEntity(), nativeHandle, entity);
+        }
+    }
+
+    private static @Nullable Object resolveNativeHandle(@NotNull LivingEntity entity) {
+        try {
+            Method getHandleMethod = entity.getClass().getMethod("getHandle");
+            getHandleMethod.setAccessible(true);
+            return getHandleMethod.invoke(entity);
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends LivingEntity> tech.guilhermekaua.spigotboot.entity.api.EntityController<T> nullController() {
+        return (tech.guilhermekaua.spigotboot.entity.api.EntityController<T>)
+                tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController.instance();
     }
 }

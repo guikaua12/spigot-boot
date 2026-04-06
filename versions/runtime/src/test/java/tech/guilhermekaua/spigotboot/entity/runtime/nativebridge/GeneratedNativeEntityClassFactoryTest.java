@@ -24,61 +24,170 @@ package tech.guilhermekaua.spigotboot.entity.runtime.nativebridge;
 
 import org.bukkit.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityState;
+import tech.guilhermekaua.spigotboot.entity.api.EntityController;
+import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GeneratedNativeEntityClassFactoryTest {
 
     @Test
-    void shouldInvokeLifecycleCallbacksAroundGeneratedSuperclassMethods() throws Exception {
+    void shouldGenerateAndRouteAllConfiguredHookCategories() throws Exception {
         GeneratedNativeEntityClassFactory factory = new GeneratedNativeEntityClassFactory();
-        Method tickMethod = StubNativeEntity.class.getDeclaredMethod("tick");
-        Method removeMethod = StubNativeEntity.class.getDeclaredMethod("remove");
+        List<GeneratedNativeHookSpec> hookSpecs = Arrays.asList(
+                GeneratedNativeHookSpec.of("tick", StubNativeEntity.class.getDeclaredMethod("tick")),
+                GeneratedNativeHookSpec.of("move", StubNativeEntity.class.getDeclaredMethod("move", double.class, double.class, double.class)),
+                GeneratedNativeHookSpec.of("push", StubNativeEntity.class.getDeclaredMethod("push", double.class, double.class, double.class)),
+                GeneratedNativeHookSpec.of("damage", StubNativeEntity.class.getDeclaredMethod("damage", float.class)),
+                GeneratedNativeHookSpec.of("interact", StubNativeEntity.class.getDeclaredMethod("interact", StubPlayer.class, StubHand.class)),
+                GeneratedNativeHookSpec.of("die", StubNativeEntity.class.getDeclaredMethod("die")),
+                GeneratedNativeHookSpec.of("remove", StubNativeEntity.class.getDeclaredMethod("remove")),
+                GeneratedNativeHookSpec.of("collide", StubNativeEntity.class.getDeclaredMethod("collide", StubOtherEntity.class)),
+                GeneratedNativeHookSpec.of("positionPassenger", StubNativeEntity.class.getDeclaredMethod("positionPassenger", StubOtherEntity.class)),
+                GeneratedNativeHookSpec.of(
+                        "inventoryChange",
+                        StubNativeEntity.class.getDeclaredMethod("inventoryChange", StubSlot.class, StubItem.class, StubItem.class)
+                )
+        );
 
         Class<?> generatedType = factory.createSubclass(
                 StubNativeEntity.class,
                 "tech.guilhermekaua.spigotboot.entity.generated.test.StubNativeEntityProxy",
-                tickMethod,
-                Collections.singletonList(removeMethod)
+                hookSpecs
         );
 
         Object generatedEntity = generatedType.getDeclaredConstructor().newInstance();
-        factory.installInterceptor(generatedEntity, tickMethod, Collections.singletonList(removeMethod));
+        factory.installInterceptor(generatedEntity, hookSpecs);
 
         RecordingLifecycle lifecycle = new RecordingLifecycle();
         factory.bindLifecycle(generatedEntity, lifecycle);
 
+        LifecycleAwareNativeEntity awareEntity = (LifecycleAwareNativeEntity) generatedEntity;
+        assertSame(lifecycle, awareEntity.spigotBootGetLifecycle());
+
         StubNativeEntity nativeEntity = (StubNativeEntity) generatedEntity;
         nativeEntity.tick();
+        nativeEntity.move(1.0D, 2.0D, 3.0D);
+        nativeEntity.push(4.0D, 5.0D, 6.0D);
+        assertTrue(nativeEntity.damage(7.0F));
+        assertSame(StubInteractionResult.SUCCESS, nativeEntity.interact(new StubPlayer(), StubHand.MAIN));
+        nativeEntity.die();
         nativeEntity.remove();
+        nativeEntity.collide(new StubOtherEntity());
+        nativeEntity.positionPassenger(new StubOtherEntity());
+        nativeEntity.inventoryChange(StubSlot.HEAD, new StubItem("old"), new StubItem("new"));
 
-        assertEquals(1, nativeEntity.tickInvocations);
-        assertEquals(1, nativeEntity.removeInvocations);
-        assertEquals(1, lifecycle.tickInvocations);
-        assertEquals(1, lifecycle.removeInvocations);
+        assertEquals(
+                Arrays.asList(
+                        "tick",
+                        "move",
+                        "push",
+                        "damage",
+                        "interact",
+                        "die",
+                        "remove",
+                        "collide",
+                        "positionPassenger",
+                        "inventoryChange"
+                ),
+                lifecycle.hookNames
+        );
+
+        awareEntity.spigotBootInvokeBase("tick", new Object[0]);
+        awareEntity.spigotBootInvokeBase("move", new Object[]{Double.valueOf(9.0D), Double.valueOf(8.0D), Double.valueOf(7.0D)});
+        awareEntity.spigotBootInvokeBase("push", new Object[]{Double.valueOf(6.0D), Double.valueOf(5.0D), Double.valueOf(4.0D)});
+        awareEntity.spigotBootInvokeBase("damage", new Object[]{Float.valueOf(3.0F)});
+        awareEntity.spigotBootInvokeBase("interact", new Object[]{new StubPlayer(), StubHand.OFF});
+        awareEntity.spigotBootInvokeBase("die", new Object[0]);
+        awareEntity.spigotBootInvokeBase("remove", new Object[0]);
+        awareEntity.spigotBootInvokeBase("collide", new Object[]{new StubOtherEntity()});
+        awareEntity.spigotBootInvokeBase("positionPassenger", new Object[]{new StubOtherEntity()});
+        awareEntity.spigotBootInvokeBase(
+                "inventoryChange",
+                new Object[]{StubSlot.CHEST, new StubItem("before"), new StubItem("after")}
+        );
+
+        assertEquals(1, nativeEntity.baseTickInvocations);
+        assertEquals(1, nativeEntity.baseMoveInvocations);
+        assertEquals(1, nativeEntity.basePushInvocations);
+        assertEquals(1, nativeEntity.baseDamageInvocations);
+        assertEquals(1, nativeEntity.baseInteractInvocations);
+        assertEquals(1, nativeEntity.baseDieInvocations);
+        assertEquals(1, nativeEntity.baseRemoveInvocations);
+        assertEquals(1, nativeEntity.baseCollideInvocations);
+        assertEquals(1, nativeEntity.basePositionPassengerInvocations);
+        assertEquals(1, nativeEntity.baseInventoryChangeInvocations);
     }
 
     public static class StubNativeEntity {
-        private int tickInvocations;
-        private int removeInvocations;
+        private int baseTickInvocations;
+        private int baseMoveInvocations;
+        private int basePushInvocations;
+        private int baseDamageInvocations;
+        private int baseInteractInvocations;
+        private int baseDieInvocations;
+        private int baseRemoveInvocations;
+        private int baseCollideInvocations;
+        private int basePositionPassengerInvocations;
+        private int baseInventoryChangeInvocations;
 
         public void tick() {
-            tickInvocations++;
+            baseTickInvocations++;
+        }
+
+        public void move(double x, double y, double z) {
+            baseMoveInvocations++;
+        }
+
+        public void push(double x, double y, double z) {
+            basePushInvocations++;
+        }
+
+        public boolean damage(float amount) {
+            baseDamageInvocations++;
+            return true;
+        }
+
+        public StubInteractionResult interact(StubPlayer player, StubHand hand) {
+            baseInteractInvocations++;
+            return StubInteractionResult.SUCCESS;
+        }
+
+        public void die() {
+            baseDieInvocations++;
         }
 
         public void remove() {
-            removeInvocations++;
+            baseRemoveInvocations++;
+        }
+
+        public void collide(StubOtherEntity entity) {
+            baseCollideInvocations++;
+        }
+
+        public void positionPassenger(StubOtherEntity entity) {
+            basePositionPassengerInvocations++;
+        }
+
+        public void inventoryChange(StubSlot slot, StubItem previousItem, StubItem newItem) {
+            baseInventoryChangeInvocations++;
         }
     }
 
     private static final class RecordingLifecycle implements NativeEntityLifecycle<LivingEntity> {
-        private int tickInvocations;
-        private int removeInvocations;
+        private final List<String> hookNames = new ArrayList<String>();
 
         @Override
         public void bind(LivingEntity bukkitEntity) {
@@ -89,18 +198,98 @@ class GeneratedNativeEntityClassFactoryTest {
         }
 
         @Override
-        public void onNativeTick() {
-            tickInvocations++;
+        public Object onNativeHook(String hookName, LifecycleAwareNativeEntity nativeEntity, Object[] arguments) {
+            hookNames.add(hookName);
+            if ("damage".equals(hookName)) {
+                return Boolean.TRUE;
+            }
+            if ("interact".equals(hookName)) {
+                return StubInteractionResult.SUCCESS;
+            }
+            return null;
         }
 
         @Override
-        public void onNativeRemove() {
-            removeInvocations++;
-        }
+        public ControlledEntity<LivingEntity> handle() {
+            return new ControlledEntity<LivingEntity>() {
+                @Override
+                public LivingEntity bukkitEntity() {
+                    throw new UnsupportedOperationException();
+                }
 
-        @Override
-        public CustomEntityHandle<LivingEntity> handle() {
-            throw new UnsupportedOperationException("The generated subclass test does not expose a public handle.");
+                @Override
+                public CustomEntityState state() {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public boolean isRemoved() {
+                    return false;
+                }
+
+                @Override
+                public CustomEntityBaseType baseType() {
+                    return CustomEntityBaseType.ZOMBIE;
+                }
+
+                @Override
+                public MinecraftVersion minecraftVersion() {
+                    return MinecraftVersion.of(1, 21, 11);
+                }
+
+                @Override
+                public EntityController<LivingEntity> controller() {
+                    return new EntityController<LivingEntity>() {
+                    };
+                }
+
+                @Override
+                public void setController(EntityController<LivingEntity> controller) {
+                }
+
+                @Override
+                public void clearController() {
+                }
+
+                @Override
+                public boolean isHooked() {
+                    return true;
+                }
+            };
+        }
+    }
+
+    public static final class StubPlayer {
+    }
+
+    public static final class StubOtherEntity {
+    }
+
+    public enum StubHand {
+        MAIN,
+        OFF
+    }
+
+    public enum StubInteractionResult {
+        SUCCESS,
+        FAIL
+    }
+
+    public enum StubSlot {
+        HEAD,
+        CHEST
+    }
+
+    public static final class StubItem {
+        private final String name;
+
+        public StubItem(String name) {
+            this.name = name;
         }
     }
 }

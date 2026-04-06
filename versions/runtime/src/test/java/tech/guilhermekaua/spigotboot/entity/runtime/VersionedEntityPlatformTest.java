@@ -28,6 +28,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledZombie;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -43,7 +45,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 class VersionedEntityPlatformTest {
@@ -64,23 +65,39 @@ class VersionedEntityPlatformTest {
 
     @Test
     void shouldSpawnRegisteredDefinitionsThroughSharedLifecycle() {
-        List<String> events = new ArrayList<String>();
         RecordingAdapter adapter = new RecordingAdapter();
         VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
-        ZombieEntityDefinition definition = createDefinition(events);
+        ZombieEntityDefinition definition = createDefinition(new ArrayList<String>());
         CustomEntitySpawnRequest spawnRequest = CustomEntitySpawnRequest.builder(
                 new Location(Mockito.mock(World.class), 10.0D, 64.0D, 12.0D)
-        ).put("trackedPlayerId", "player-1").build();
+        ).build();
 
         platform.registerDefinition(definition);
         CustomEntityHandle<Zombie> handle = platform.spawn(definition, spawnRequest);
 
         assertEquals(definition.id(), handle.definitionId());
         assertEquals(MinecraftVersion.of(1, 21, 11), handle.minecraftVersion());
-        assertEquals("player-1", handle.spawnRequest().data().getRequired("trackedPlayerId", String.class));
-        assertEquals(Integer.valueOf(1), handle.state().get("tick-count", Integer.class));
-        assertEquals("initializer,spawn,tick,remove", String.join(",", events));
-        assertSame(handle, adapter.lastHandle);
+        assertSame(handle, adapter.lastSpawnHandle);
+    }
+
+    @Test
+    void shouldCacheAttachedZombiesByBukkitIdentity() {
+        RecordingAdapter adapter = new RecordingAdapter();
+        VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
+        HandleAwareZombie zombie = Mockito.mock(HandleAwareZombie.class);
+        Object nativeHandle = new Object();
+        ControlledZombie controlledZombie = Mockito.mock(ControlledZombie.class);
+
+        when(zombie.getHandle()).thenReturn(nativeHandle);
+        when(controlledZombie.bukkitEntity()).thenReturn(zombie);
+        adapter.attachedZombie = controlledZombie;
+
+        ControlledZombie first = platform.zombie(zombie);
+        ControlledZombie second = platform.zombie(zombie);
+
+        assertSame(controlledZombie, first);
+        assertSame(first, second);
+        assertEquals(1, adapter.attachInvocations);
     }
 
     private static ZombieEntityDefinition createDefinition(List<String> events) {
@@ -91,23 +108,14 @@ class VersionedEntityPlatformTest {
                     public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
                         events.add("spawn");
                     }
-
-                    @Override
-                    public void onTick(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
-                        events.add("tick");
-                        context.state().put("tick-count", Integer.valueOf(1));
-                    }
-
-                    @Override
-                    public void onRemove(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
-                        events.add("remove");
-                    }
                 })
                 .build();
     }
 
     private static final class RecordingAdapter implements EntityVersionAdapter {
-        private CustomEntityHandle<Zombie> lastHandle;
+        private CustomEntityHandle<Zombie> lastSpawnHandle;
+        private ControlledZombie attachedZombie;
+        private int attachInvocations;
 
         @Override
         public MinecraftVersion minimumVersion() {
@@ -131,17 +139,27 @@ class VersionedEntityPlatformTest {
                 CustomEntitySpawnRequest spawnRequest,
                 NativeEntityLifecycle<T> lifecycle
         ) {
-            Zombie zombie = Mockito.mock(Zombie.class);
+            HandleAwareZombie zombie = Mockito.mock(HandleAwareZombie.class);
             when(zombie.isValid()).thenReturn(true);
             when(zombie.isDead()).thenReturn(false);
+            when(zombie.getHandle()).thenReturn(new Object());
 
             lifecycle.bind((T) zombie);
             lifecycle.onSpawn();
-            lifecycle.onNativeTick();
-            lifecycle.onNativeRemove();
 
-            lastHandle = (CustomEntityHandle<Zombie>) lifecycle.handle();
-            return lifecycle.handle();
+            lastSpawnHandle = (CustomEntityHandle<Zombie>) lifecycle.handle();
+            return (CustomEntityHandle<T>) lifecycle.handle();
         }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T extends LivingEntity> ControlledEntity<T> attach(T entity, NativeEntityLifecycle<T> lifecycle) {
+            attachInvocations++;
+            return (ControlledEntity<T>) attachedZombie;
+        }
+    }
+
+    private interface HandleAwareZombie extends Zombie {
+        Object getHandle();
     }
 }

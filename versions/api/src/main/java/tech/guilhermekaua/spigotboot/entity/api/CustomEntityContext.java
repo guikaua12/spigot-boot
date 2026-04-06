@@ -31,7 +31,8 @@ import org.jetbrains.annotations.NotNull;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public interface CustomEntityContext<T extends LivingEntity> extends CustomEntitySpawnContext<T> {
+public interface CustomEntityContext<T extends LivingEntity>
+        extends CustomEntitySpawnContext<T>, ControlledEntity<T> {
 
     /**
      * Returns the Bukkit entity wrapper backed by the real native custom entity.

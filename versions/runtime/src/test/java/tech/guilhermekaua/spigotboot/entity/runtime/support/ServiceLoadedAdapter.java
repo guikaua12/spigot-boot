@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.entity.runtime.support;
 
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -56,6 +57,14 @@ public final class ServiceLoadedAdapter implements EntityVersionAdapter {
     public <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    ) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+            @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
         throw new UnsupportedOperationException();

@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,6 +96,67 @@ public final class ReflectionSupport {
             current = current.getSuperclass();
         }
         return null;
+    }
+
+    public static @Nullable Method findCompatibleMethod(
+            @NotNull Class<?> type,
+            @NotNull String[] candidateNames,
+            @NotNull Class<?>... argumentTypes
+    ) {
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(candidateNames, "candidateNames cannot be null");
+        Objects.requireNonNull(argumentTypes, "argumentTypes cannot be null");
+
+        Class<?> current = type;
+        while (current != null) {
+            for (Method method : current.getDeclaredMethods()) {
+                boolean matchingName = false;
+                for (String candidateName : candidateNames) {
+                    if (candidateName.equals(method.getName())) {
+                        matchingName = true;
+                        break;
+                    }
+                }
+                if (!matchingName) {
+                    continue;
+                }
+
+                Class<?>[] parameterTypes = method.getParameterTypes();
+                if (parameterTypes.length != argumentTypes.length) {
+                    continue;
+                }
+
+                boolean compatible = true;
+                for (int index = 0; index < parameterTypes.length; index++) {
+                    if (!parameterTypes[index].isAssignableFrom(argumentTypes[index])) {
+                        compatible = false;
+                        break;
+                    }
+                }
+                if (!compatible) {
+                    continue;
+                }
+
+                method.setAccessible(true);
+                return method;
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
+    public static @NotNull Method requireCompatibleMethod(
+            @NotNull Class<?> type,
+            @NotNull String[] candidateNames,
+            @NotNull Class<?>... argumentTypes
+    ) {
+        Method method = findCompatibleMethod(type, candidateNames, argumentTypes);
+        if (method == null) {
+            throw new IllegalStateException(
+                    "Could not resolve a compatible method on " + type.getName() + "."
+            );
+        }
+        return method;
     }
 
     public static @NotNull Method requireMethodBySignature(
@@ -198,6 +260,59 @@ public final class ReflectionSupport {
         throw new IllegalStateException(
                 "Could not resolve a compatible constructor on " + type.getName() + "."
         );
+    }
+
+    public static @Nullable Field findField(@NotNull Class<?> type, @NotNull String... candidateNames) {
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(candidateNames, "candidateNames cannot be null");
+
+        Class<?> current = type;
+        while (current != null) {
+            for (String candidateName : candidateNames) {
+                try {
+                    Field field = current.getDeclaredField(candidateName);
+                    field.setAccessible(true);
+                    return field;
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
+    public static @NotNull Field requireField(@NotNull Class<?> type, @NotNull String... candidateNames) {
+        Field field = findField(type, candidateNames);
+        if (field == null) {
+            throw new IllegalStateException(
+                    "Could not resolve a field on " + type.getName() + "."
+            );
+        }
+        return field;
+    }
+
+    public static @Nullable Object readField(@NotNull Field field, @Nullable Object target) {
+        Objects.requireNonNull(field, "field cannot be null");
+        try {
+            return field.get(target);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(
+                    "Failed to read field '" + field.getName() + "'.",
+                    exception
+            );
+        }
+    }
+
+    public static void writeField(@NotNull Field field, @Nullable Object target, @Nullable Object value) {
+        Objects.requireNonNull(field, "field cannot be null");
+        try {
+            field.set(target, value);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(
+                    "Failed to write field '" + field.getName() + "'.",
+                    exception
+            );
+        }
     }
 
     public static @NotNull Object invoke(

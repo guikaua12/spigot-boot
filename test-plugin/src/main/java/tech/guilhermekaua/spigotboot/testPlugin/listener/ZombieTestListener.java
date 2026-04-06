@@ -46,8 +46,10 @@ import java.util.Objects;
 public class ZombieTestListener implements Listener {
     private static final String WAND_NAME = ChatColor.GREEN + "Orbit Zombie Wand";
     private static final List<String> WAND_LORE = Arrays.asList(
-            ChatColor.GRAY + "Right click to spawn the demo zombie.",
-            ChatColor.GRAY + "Sneak + right click to clear it."
+            ChatColor.GRAY + "Right click to spawn the orbit zombie.",
+            ChatColor.GRAY + "Sneak + right click to clear the spawned demo.",
+            ChatColor.GRAY + "Left click to attach to the nearest zombie.",
+            ChatColor.GRAY + "Sneak + left click to clear the attached demo."
     );
 
     private final VersionedZombieService versionedZombieService;
@@ -69,12 +71,13 @@ public class ZombieTestListener implements Listener {
         }
 
         player.sendMessage(ChatColor.GREEN + "You received the Orbit Zombie Wand.");
-        player.sendMessage(ChatColor.YELLOW + "Right click to spawn the demo zombie. Sneak-right-click to clear it.");
+        player.sendMessage(ChatColor.YELLOW + "Right click spawns the orbit demo.");
+        player.sendMessage(ChatColor.YELLOW + "Left click attaches hooks to the nearest zombie.");
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        if (!isRightClick(event.getAction())) {
+        if (!isSupportedClick(event.getAction())) {
             return;
         }
         if (!isWand(event.getItem())) {
@@ -85,21 +88,12 @@ public class ZombieTestListener implements Listener {
         Player player = event.getPlayer();
 
         try {
-            if (player.isSneaking()) {
-                boolean cleared = versionedZombieService.clearDemoZombie(player);
-                if (cleared) {
-                    player.sendMessage(ChatColor.GREEN + "Cleared your demo zombie.");
-                } else {
-                    player.sendMessage(ChatColor.YELLOW + "You do not have an active demo zombie.");
-                }
+            if (isRightClick(event.getAction())) {
+                handleSpawnClick(player);
                 return;
             }
 
-            Zombie zombie = versionedZombieService.spawnDemoZombie(player);
-            player.sendMessage(ChatColor.GREEN + "Spawned the orbit zombie at "
-                    + zombie.getLocation().getBlockX() + ", "
-                    + zombie.getLocation().getBlockY() + ", "
-                    + zombie.getLocation().getBlockZ() + ".");
+            handleAttachClick(player);
         } catch (IllegalStateException ex) {
             player.sendMessage(ChatColor.RED + ex.getMessage());
             ex.printStackTrace();
@@ -109,6 +103,45 @@ public class ZombieTestListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         versionedZombieService.clearDemoZombie(event.getPlayer());
+        versionedZombieService.clearAttachedZombie(event.getPlayer());
+    }
+
+    private void handleSpawnClick(Player player) {
+        if (player.isSneaking()) {
+            boolean cleared = versionedZombieService.clearDemoZombie(player);
+            if (cleared) {
+                player.sendMessage(ChatColor.GREEN + "Cleared your spawned demo zombie.");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "You do not have an active spawned demo zombie.");
+            }
+            return;
+        }
+
+        Zombie zombie = versionedZombieService.spawnDemoZombie(player);
+        player.sendMessage(ChatColor.GREEN + "Spawned the orbit zombie at "
+                + zombie.getLocation().getBlockX() + ", "
+                + zombie.getLocation().getBlockY() + ", "
+                + zombie.getLocation().getBlockZ() + ".");
+    }
+
+    private void handleAttachClick(Player player) {
+        if (player.isSneaking()) {
+            boolean cleared = versionedZombieService.clearAttachedZombie(player);
+            if (cleared) {
+                player.sendMessage(ChatColor.GREEN + "Cleared your attached zombie controller.");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "You do not have an attached demo zombie.");
+            }
+            return;
+        }
+
+        Zombie zombie = versionedZombieService.attachNearestZombie(player);
+        player.sendMessage(ChatColor.GREEN + "Attached the controller demo to the nearest zombie.");
+        player.sendMessage(ChatColor.YELLOW + "Damage or interact with it, then kill it to trigger the explicit base-on-die demo.");
+        player.sendMessage(ChatColor.GRAY + "Hooked zombie at "
+                + zombie.getLocation().getBlockX() + ", "
+                + zombie.getLocation().getBlockY() + ", "
+                + zombie.getLocation().getBlockZ() + ".");
     }
 
     private boolean hasWand(Player player) {
@@ -151,5 +184,11 @@ public class ZombieTestListener implements Listener {
 
     private static boolean isRightClick(Action action) {
         return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+    }
+
+    private static boolean isSupportedClick(Action action) {
+        return isRightClick(action)
+                || action == Action.LEFT_CLICK_AIR
+                || action == Action.LEFT_CLICK_BLOCK;
     }
 }

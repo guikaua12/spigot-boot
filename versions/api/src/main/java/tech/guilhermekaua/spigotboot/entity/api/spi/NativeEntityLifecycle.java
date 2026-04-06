@@ -24,7 +24,8 @@ package tech.guilhermekaua.spigotboot.entity.api.spi;
 
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 
 /**
  * Internal bridge used by version adapters and generated native subclasses.
@@ -47,19 +48,23 @@ public interface NativeEntityLifecycle<T extends LivingEntity> {
     void onSpawn();
 
     /**
-     * Invokes runtime-managed per-tick lifecycle callbacks.
+     * Invokes a runtime-managed native hook.
+     *
+     * @param hookName the logical hook name
+     * @param nativeEntity the generated native entity instance
+     * @param arguments the raw native arguments
+     * @return the translated hook result, or {@code null} for void hooks
      */
-    void onNativeTick();
-
-    /**
-     * Invokes runtime-managed removal lifecycle callbacks.
-     */
-    void onNativeRemove();
+    @Nullable Object onNativeHook(
+            @NotNull String hookName,
+            @NotNull LifecycleAwareNativeEntity nativeEntity,
+            @Nullable Object[] arguments
+    );
 
     /**
      * Returns the public plugin-facing entity handle.
      *
      * @return the public handle
      */
-    @NotNull CustomEntityHandle<T> handle();
+    @NotNull ControlledEntity<T> handle();
 }

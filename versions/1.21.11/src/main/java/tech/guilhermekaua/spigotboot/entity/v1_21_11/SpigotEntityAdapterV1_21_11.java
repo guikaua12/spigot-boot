@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.entity.v1_21_11;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Zombie;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -44,7 +45,7 @@ import java.util.Objects;
 public final class SpigotEntityAdapterV1_21_11 implements EntityVersionAdapter {
     private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 21, 11);
 
-    private final ZombieFactoryV1_21_11 zombieFactory = new ZombieFactoryV1_21_11();
+    private volatile ZombieFactoryV1_21_11 zombieFactory;
 
     @Override
     public @NotNull MinecraftVersion minimumVersion() {
@@ -79,10 +80,42 @@ public final class SpigotEntityAdapterV1_21_11 implements EntityVersionAdapter {
             );
         }
 
-        return (CustomEntityHandle<T>) zombieFactory.spawn(
+        return (CustomEntityHandle<T>) zombieFactory().spawn(
                 definition,
                 spawnRequest,
                 (NativeEntityLifecycle<Zombie>) lifecycle
         );
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+            @NotNull T entity,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    ) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+
+        if (!(entity instanceof Zombie)) {
+            throw new UnsupportedOperationException(
+                    "Minecraft 1.21.11 controller attachment currently supports only zombies."
+            );
+        }
+
+        return (ControlledEntity<T>) zombieFactory().attach((Zombie) entity, (NativeEntityLifecycle<Zombie>) lifecycle);
+    }
+
+    private @NotNull ZombieFactoryV1_21_11 zombieFactory() {
+        ZombieFactoryV1_21_11 factory = zombieFactory;
+        if (factory != null) {
+            return factory;
+        }
+
+        synchronized (this) {
+            if (zombieFactory == null) {
+                zombieFactory = new ZombieFactoryV1_21_11();
+            }
+            return zombieFactory;
+        }
     }
 }
