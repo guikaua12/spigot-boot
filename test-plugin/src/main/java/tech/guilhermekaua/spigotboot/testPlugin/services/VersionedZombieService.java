@@ -38,8 +38,8 @@ import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.ZombieEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.runtime.VersionedEntityPlatform;
 import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.SpigotEntityBootstrap;
-import tech.guilhermekaua.spigotboot.testPlugin.entity.behavior.OrbitingZombieBehavior;
 import tech.guilhermekaua.spigotboot.testPlugin.entity.controller.AttachedHookDemoController;
+import tech.guilhermekaua.spigotboot.testPlugin.entity.controller.OrbitingZombieController;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class VersionedZombieService {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         this.demoDefinition = ZombieEntityDefinition.builder(DEMO_ENTITY_ID)
                 .initializer(context -> configureZombie(context.bukkitEntity()))
-                .behaviorFactory(context -> new OrbitingZombieBehavior(
+                .controllerFactory(context -> new OrbitingZombieController(
                         context.spawnRequest().data().getRequired("trackedPlayerId", UUID.class)
                 ))
                 .build();

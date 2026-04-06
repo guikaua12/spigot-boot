@@ -26,6 +26,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Zombie;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
@@ -45,6 +46,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 class VersionedEntityPlatformTest {
@@ -100,12 +102,22 @@ class VersionedEntityPlatformTest {
         assertEquals(1, adapter.attachInvocations);
     }
 
+    @Test
+    void shouldRequireControllerFactoryWhenBuildingZombieDefinition() {
+        ZombieEntityDefinition.Builder builder =
+                ZombieEntityDefinition.builder(CustomEntityId.of("test", "missing-controller"));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, builder::build);
+
+        assertEquals("controllerFactory cannot be null", exception.getMessage());
+    }
+
     private static ZombieEntityDefinition createDefinition(List<String> events) {
         return ZombieEntityDefinition.builder(CustomEntityId.of("test", "orbit"))
                 .initializer(context -> events.add("initializer"))
-                .behaviorFactory(context -> new tech.guilhermekaua.spigotboot.entity.api.CustomEntityBehavior<Zombie>() {
+                .controllerFactory(context -> new tech.guilhermekaua.spigotboot.entity.api.EntityController<Zombie>() {
                     @Override
-                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.@NotNull CustomEntityContext<Zombie> context) {
                         events.add("spawn");
                     }
                 })

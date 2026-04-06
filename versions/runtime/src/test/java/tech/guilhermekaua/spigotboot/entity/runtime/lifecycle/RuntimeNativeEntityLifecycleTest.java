@@ -153,24 +153,29 @@ class RuntimeNativeEntityLifecycleTest {
     }
 
     @Test
-    void shouldAdaptLegacyCustomEntityBehaviorThroughControllerPipeline() {
+    void shouldInstallSpawnedControllerAndRunSpawnTickRemoveHooks() {
         List<String> events = new ArrayList<String>();
         ZombieEntityDefinition definition = ZombieEntityDefinition.builder(CustomEntityId.of("test", "behavior"))
                 .initializer(context -> events.add("initializer"))
-                .behaviorFactory(context -> new tech.guilhermekaua.spigotboot.entity.api.CustomEntityBehavior<Zombie>() {
+                .controllerFactory(context -> new EntityController<Zombie>() {
                     @Override
-                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.@NotNull CustomEntityContext<Zombie> context) {
                         events.add("spawn");
                     }
 
                     @Override
-                    public void onTick(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                    public void onTick(@NotNull EntityTickContext<Zombie> context) {
+                        context.base().invoke();
                         events.add("tick");
                     }
 
                     @Override
-                    public void onRemove(tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
-                        events.add("remove");
+                    public void onRemove(@NotNull EntityRemoveContext<Zombie> context) {
+                        try {
+                            context.base().invoke();
+                        } finally {
+                            events.add("remove");
+                        }
                     }
                 })
                 .build();
@@ -196,6 +201,47 @@ class RuntimeNativeEntityLifecycleTest {
         assertEquals(Arrays.asList("initializer", "spawn", "tick", "remove"), events);
         assertEquals(1, nativeEntity.tickBaseInvocations);
         assertEquals(1, nativeEntity.removeBaseInvocations);
+    }
+
+    @Test
+    void shouldUseControllerSetDuringInitializerForSpawnCallback() {
+        List<String> events = new ArrayList<String>();
+        EntityController<Zombie> replacementController = new EntityController<Zombie>() {
+            @Override
+            public void onSpawn(@NotNull tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                events.add("replacement-spawn");
+            }
+        };
+
+        ZombieEntityDefinition definition = ZombieEntityDefinition.builder(CustomEntityId.of("test", "spawn-controller-swap"))
+                .initializer(context -> {
+                    events.add("initializer");
+                    context.setController(replacementController);
+                })
+                .controllerFactory(context -> new EntityController<Zombie>() {
+                    @Override
+                    public void onSpawn(@NotNull tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                        events.add("factory-spawn");
+                    }
+                })
+                .build();
+
+        RuntimeNativeZombieLifecycle lifecycle = new RuntimeNativeZombieLifecycle(
+                definition,
+                CustomEntitySpawnRequest.builder(new Location(Mockito.mock(World.class), 0.0D, 64.0D, 0.0D)).build(),
+                MinecraftVersion.of(1, 21, 11)
+        );
+        lifecycle.bindHookBinder(new TestHookBinder());
+
+        Zombie zombie = Mockito.mock(Zombie.class);
+        when(zombie.isValid()).thenReturn(true);
+        when(zombie.isDead()).thenReturn(false);
+
+        lifecycle.bind(zombie);
+        lifecycle.onSpawn();
+
+        assertEquals(Arrays.asList("initializer", "replacement-spawn"), events);
+        assertSame(replacementController, lifecycle.controller());
     }
 
     private static RuntimeControlledZombie createControlledZombie() {

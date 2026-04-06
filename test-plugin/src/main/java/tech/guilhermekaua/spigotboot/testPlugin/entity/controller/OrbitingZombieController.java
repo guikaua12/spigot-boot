@@ -20,22 +20,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin.entity.behavior;
+package tech.guilhermekaua.spigotboot.testPlugin.entity.controller;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.util.Vector;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBehavior;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext;
+import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.entity.api.EntityController;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTickContext;
 
 import java.util.UUID;
 
 /**
- * Shared demo behavior that visibly orbits a tracked player from inside the native entity tick.
+ * Shared demo controller that visibly orbits a tracked player from inside the native entity tick.
  */
-public final class OrbitingZombieBehavior implements CustomEntityBehavior<Zombie> {
+public final class OrbitingZombieController extends EntityController<Zombie> {
     private static final double MAX_DISTANCE_SQUARED = 32.0D * 32.0D;
 
     private final UUID trackedPlayerId;
@@ -43,13 +44,18 @@ public final class OrbitingZombieBehavior implements CustomEntityBehavior<Zombie
     private double angle;
     private int ticks;
 
-    public OrbitingZombieBehavior(UUID trackedPlayerId) {
+    public OrbitingZombieController(UUID trackedPlayerId) {
         this.trackedPlayerId = trackedPlayerId;
         this.angle = Math.random() * Math.PI * 2.0D;
     }
 
     @Override
-    public void onTick(CustomEntityContext<Zombie> context) {
+    public void onTick(@NotNull EntityTickContext<Zombie> context) {
+        context.base().invoke();
+        if (context.isRemoved()) {
+            return;
+        }
+
         Zombie zombie = context.bukkitEntity();
         Player target = resolveTarget(zombie);
         if (target == null) {

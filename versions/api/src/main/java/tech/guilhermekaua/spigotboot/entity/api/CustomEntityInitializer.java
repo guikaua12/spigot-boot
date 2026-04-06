@@ -26,7 +26,7 @@ import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Initializes a spawned entity before its behavior receives {@link CustomEntityBehavior#onSpawn(CustomEntityContext)}.
+ * Initializes a spawned entity before its controller receives {@link EntityController#onSpawn(CustomEntityContext)}.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 public interface CustomEntityInitializer<T extends LivingEntity> {
 
     /**
-     * Initializes the supplied entity.
+     * Initializes the supplied entity before controller spawn hooks run.
      *
      * @param context the live entity context
      */

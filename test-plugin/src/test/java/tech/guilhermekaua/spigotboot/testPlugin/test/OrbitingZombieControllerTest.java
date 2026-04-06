@@ -10,8 +10,12 @@ import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext;
-import tech.guilhermekaua.spigotboot.testPlugin.entity.behavior.OrbitingZombieBehavior;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
+import tech.guilhermekaua.spigotboot.entity.api.EntityBaseInvoker;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTickContext;
+import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.testPlugin.entity.controller.OrbitingZombieController;
 
 import java.util.UUID;
 
@@ -24,24 +28,29 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class OrbitingZombieBehaviorTest {
+class OrbitingZombieControllerTest {
 
     @Test
     void onTick_orbitsTrackedPlayerAndFacesTheTarget() {
         UUID trackedPlayerId = UUID.randomUUID();
-        OrbitingZombieBehavior behavior = new OrbitingZombieBehavior(trackedPlayerId);
+        OrbitingZombieController controller = new OrbitingZombieController(trackedPlayerId);
 
         World world = mock(World.class);
         Zombie zombie = mock(Zombie.class);
-        Player player = mock(Player.class);
         @SuppressWarnings("unchecked")
-        CustomEntityContext<Zombie> context = mock(CustomEntityContext.class);
+        ControlledEntity<Zombie> entity = mock(ControlledEntity.class);
+        @SuppressWarnings("unchecked")
+        EntityBaseInvoker<Void> base = mock(EntityBaseInvoker.class);
+        Player player = mock(Player.class);
 
         Location zombieLocation = new Location(world, 0.0D, 64.0D, 0.0D);
         Location playerLocation = new Location(world, 10.0D, 64.0D, -4.0D);
         playerLocation.setDirection(new Vector(0.0D, 0.0D, 1.0D));
 
-        when(context.bukkitEntity()).thenReturn(zombie);
+        when(entity.bukkitEntity()).thenReturn(zombie);
+        when(entity.isRemoved()).thenReturn(false);
+        when(entity.baseType()).thenReturn(CustomEntityBaseType.ZOMBIE);
+        when(entity.minecraftVersion()).thenReturn(MinecraftVersion.of(1, 21, 11));
         when(zombie.isValid()).thenReturn(true);
         when(zombie.isDead()).thenReturn(false);
         when(zombie.getWorld()).thenReturn(world);
@@ -52,12 +61,15 @@ class OrbitingZombieBehaviorTest {
         when(player.getWorld()).thenReturn(world);
         when(player.getLocation()).thenAnswer(invocation -> playerLocation.clone());
 
+        EntityTickContext<Zombie> context = new EntityTickContext<Zombie>(entity, base);
+
         try (MockedStatic<Bukkit> mockedBukkit = mockStatic(Bukkit.class)) {
             mockedBukkit.when(() -> Bukkit.getPlayer(trackedPlayerId)).thenReturn(player);
 
-            behavior.onTick(context);
+            controller.onTick(context);
         }
 
+        verify(base).invoke();
         ArgumentCaptor<Location> teleportCaptor = ArgumentCaptor.forClass(Location.class);
         verify(zombie).teleport(teleportCaptor.capture());
         verify(zombie).setTarget(player);
@@ -78,22 +90,30 @@ class OrbitingZombieBehaviorTest {
     @Test
     void onTick_skipsWhenTrackedPlayerCannotBeResolved() {
         UUID trackedPlayerId = UUID.randomUUID();
-        OrbitingZombieBehavior behavior = new OrbitingZombieBehavior(trackedPlayerId);
+        OrbitingZombieController controller = new OrbitingZombieController(trackedPlayerId);
 
         Zombie zombie = mock(Zombie.class);
         @SuppressWarnings("unchecked")
-        CustomEntityContext<Zombie> context = mock(CustomEntityContext.class);
+        ControlledEntity<Zombie> entity = mock(ControlledEntity.class);
+        @SuppressWarnings("unchecked")
+        EntityBaseInvoker<Void> base = mock(EntityBaseInvoker.class);
 
-        when(context.bukkitEntity()).thenReturn(zombie);
+        when(entity.bukkitEntity()).thenReturn(zombie);
+        when(entity.isRemoved()).thenReturn(false);
+        when(entity.baseType()).thenReturn(CustomEntityBaseType.ZOMBIE);
+        when(entity.minecraftVersion()).thenReturn(MinecraftVersion.of(1, 21, 11));
         when(zombie.isValid()).thenReturn(true);
         when(zombie.isDead()).thenReturn(false);
+
+        EntityTickContext<Zombie> context = new EntityTickContext<Zombie>(entity, base);
 
         try (MockedStatic<Bukkit> mockedBukkit = mockStatic(Bukkit.class)) {
             mockedBukkit.when(() -> Bukkit.getPlayer(trackedPlayerId)).thenReturn(null);
 
-            behavior.onTick(context);
+            controller.onTick(context);
         }
 
+        verify(base).invoke();
         verify(zombie, never()).teleport(any(Location.class));
         verify(zombie, never()).setTarget(any(LivingEntity.class));
     }

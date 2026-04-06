@@ -4,7 +4,7 @@ The `versions/` area is now a true multi-version custom-entity framework for nat
 The old scaffold spawned a normal Bukkit entity with `world.spawnEntity(...)` and then wrapped it.
 That approach is gone for the MVP path.
 
-The new flow creates a real native zombie subclass for the active Minecraft version, inserts it through the native world path, and delegates the native tick lifecycle into shared library behavior.
+The new flow creates a real native zombie subclass for the active Minecraft version, inserts it through the native world path, and delegates the native lifecycle into shared library controllers.
 
 ## What changed
 
@@ -22,18 +22,18 @@ Current design:
 - Selects the matching version adapter with `ServiceLoader` discovery or explicit registration.
 - Creates a real native zombie subclass for that version.
 - Spawns it through the native world insertion path.
-- Hooks the real native tick method for that version and delegates into version-agnostic behavior.
+- Hooks the real native entity methods for that version and delegates into version-agnostic controllers.
 - Exposes the normal Bukkit `Zombie` view backed by that native custom entity.
 
 ## Module layout
 
 - `versions/api`
-  - Public plugin-facing contracts such as `CustomEntityId`, `CustomEntityDefinition`, `ZombieEntityDefinition`, `CustomEntityBehavior`, `CustomEntityContext`, `CustomEntityHandle`, and `CustomEntitySpawnRequest`.
+  - Public plugin-facing contracts such as `CustomEntityId`, `CustomEntityDefinition`, `ZombieEntityDefinition`, `EntityController`, `EntityControllerFactory`, `CustomEntityContext`, `CustomEntityHandle`, and `CustomEntitySpawnRequest`.
   - The shared API is version-agnostic and does not expose NMS types.
 - `versions/runtime`
   - Owns version parsing, adapter discovery, adapter selection, definition registration, and shared lifecycle orchestration.
   - `VersionedEntityPlatform` is the single runtime entry point for plugin code.
-  - `RuntimeNativeEntityLifecycle` bridges a live native entity to the shared behavior contract.
+  - `RuntimeNativeEntityLifecycle` bridges a live native entity to the shared controller pipeline.
 - `versions/1.8.8`
   - Contains the 1.8.8 adapter and native zombie factory.
   - Extends the real `net.minecraft.server.v1_8_R3.EntityZombie` type for spawned custom zombies.
@@ -49,7 +49,7 @@ Current design:
 4. The plugin spawns that definition through `VersionedEntityPlatform`.
 5. The selected version module creates a native zombie subclass and inserts it into the native world.
 6. The native subclass binds to `RuntimeNativeEntityLifecycle`.
-7. The version-specific native tick method calls the shared `CustomEntityBehavior#onTick(...)`.
+7. The version-specific native method hooks dispatch into the active shared `EntityController`.
 8. Plugin code interacts with the normal Bukkit `Zombie`.
 
 ## Public API shape
@@ -63,7 +63,7 @@ ZombieEntityDefinition definition = ZombieEntityDefinition.builder(
         CustomEntityId.of("demo", "orbit-zombie")
 )
         .initializer(context -> context.bukkitEntity().setCustomName("Orbit Zombie"))
-        .behaviorFactory(context -> new OrbitingZombieBehavior(
+        .controllerFactory(context -> new OrbitingZombieController(
                 context.spawnRequest().data().getRequired("trackedPlayerId", UUID.class)
         ))
         .build();
@@ -78,11 +78,19 @@ Zombie zombie = platform.spawn(
 ).bukkitEntity();
 ```
 
-The behavior contract is shared across versions:
+The controller contract is shared across versions:
 
 - `onSpawn`
 - `onTick`
+- `onMove`
+- `onPush`
+- `onDamage`
+- `onInteract`
+- `onDie`
 - `onRemove`
+- `onCollide`
+- `onPositionPassenger`
+- `onInventoryChange`
 
 The context gives plugin code:
 
@@ -142,17 +150,17 @@ That lets one plugin jar ship:
 
 The runtime then selects the correct adapter for the current server version without Paper-only selection logic.
 
-## MVP proof behavior
+## MVP proof controller
 
 The sample plugin now registers `test-plugin:orbit-zombie`.
-Its shared `OrbitingZombieBehavior` runs from the native entity tick and continuously moves the zombie around the tracked player.
+Its shared `OrbitingZombieController` runs from the native entity tick and continuously moves the zombie around the tracked player.
 
 Important properties of the proof:
 
-- no Bukkit scheduler drives the behavior
+- no Bukkit scheduler drives the controller
 - the zombie keeps a normal Bukkit `Zombie` surface
-- the behavior runs from native tick delegation
-- the same shared behavior class is used on both supported versions
+- the controller runs from native tick delegation
+- the same shared controller class is used on both supported versions
 
 ## Manual verification
 
@@ -177,7 +185,7 @@ Use the shaded jar from `test-plugin/target/` on each server below.
 ### Paper 1.8.8
 
 Repeat the Spigot 1.8.8 steps and confirm there is no Paper-specific failure.
-The behavior path should be identical because the runtime and shared behavior do not depend on Paper-only APIs.
+The controller path should be identical because the runtime and shared controller do not depend on Paper-only APIs.
 
 ### Spigot 1.21.11
 
@@ -192,14 +200,14 @@ The behavior path should be identical because the runtime and shared behavior do
 ### Paper 1.21.11
 
 Repeat the Spigot 1.21.11 steps and confirm the same jar works unchanged.
-No Paper-only API is required for adapter selection, lifecycle delegation, or the shared behavior path.
+No Paper-only API is required for adapter selection, lifecycle delegation, or the shared controller path.
 
 ## Manual acceptance checklist
 
 - plugin enables successfully
 - the custom zombie spawns successfully
 - the spawned entity is backed by a real native custom subclass
-- the visible orbit behavior runs from native ticking
+- the visible orbit controller runs from native ticking
 - Bukkit code sees a usable `Zombie`
 - Spigot 1.21.11 does not fail due to Paper-only API usage
 - no scheduler-based fake tick is required
@@ -210,10 +218,10 @@ To add a new entity type after the zombie MVP:
 
 1. Add a new logical base type to `versions/api`.
 2. Add a typed definition builder similar to `ZombieEntityDefinition`.
-3. Extend the shared behavior and initializer path only where the Bukkit type changes.
+3. Extend the shared controller and initializer path only where the Bukkit type changes.
 4. Teach each version adapter whether it supports the new base type.
 5. Add a version-specific native factory that chooses the correct native superclass, insertion path, tick hook, and removal hooks.
 6. Return the normal Bukkit wrapper for that native entity.
-7. Add runtime tests for registration and adapter selection, plus a sample behavior proof.
+7. Add runtime tests for registration and adapter selection, plus a sample controller proof.
 
 The important rule is to extend the framework by adding new native factories per version, not by falling back to a Bukkit spawn-and-wrap design.

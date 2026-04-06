@@ -24,7 +24,6 @@ package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBehavior;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -46,7 +45,6 @@ public class RuntimeNativeEntityLifecycle<T extends LivingEntity>
         extends RuntimeAttachedEntityLifecycle<T> implements CustomEntityHandle<T> {
     private final CustomEntityDefinition<T> definition;
     private final CustomEntitySpawnRequest spawnRequest;
-    private final CustomEntityBehavior<T> behavior;
     private final AtomicBoolean spawned;
 
     public RuntimeNativeEntityLifecycle(
@@ -61,9 +59,8 @@ public class RuntimeNativeEntityLifecycle<T extends LivingEntity>
         );
         this.definition = Objects.requireNonNull(definition, "definition cannot be null");
         this.spawnRequest = Objects.requireNonNull(spawnRequest, "spawnRequest cannot be null");
-        this.behavior = definition.behaviorFactory().create(this);
         this.spawned = new AtomicBoolean(false);
-        setController(new BehaviorBackedController<T>(this, behavior));
+        setController(definition.controllerFactory().create(this));
     }
 
     @Override
@@ -73,7 +70,7 @@ public class RuntimeNativeEntityLifecycle<T extends LivingEntity>
         }
         definition.initializer().initialize(this);
         if (!isRemoved()) {
-            behavior.onSpawn(this);
+            controller().onSpawn(this);
         }
     }
 

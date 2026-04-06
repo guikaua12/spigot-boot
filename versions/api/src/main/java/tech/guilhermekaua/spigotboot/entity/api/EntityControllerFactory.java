@@ -26,34 +26,19 @@ import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Defines version-agnostic behavior that runs inside the native entity lifecycle.
+ * Creates the initial controller instance for a single spawn.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public interface CustomEntityBehavior<T extends LivingEntity> {
+@FunctionalInterface
+public interface EntityControllerFactory<T extends LivingEntity> {
 
     /**
-     * Called after the native entity has been added to the world and bound to its Bukkit view.
+     * Creates the initial controller for the supplied spawn request.
      *
-     * @param context the spawned entity context
+     * @param context the spawn context
+     * @return the controller instance
      */
-    default void onSpawn(@NotNull CustomEntityContext<T> context) {
-    }
-
-    /**
-     * Called from the real version-specific native tick method.
-     *
-     * @param context the active entity context
-     */
-    default void onTick(@NotNull CustomEntityContext<T> context) {
-    }
-
-    /**
-     * Called when the entity is removed, despawned, or explicitly discarded.
-     *
-     * @param context the entity context being removed
-     */
-    default void onRemove(@NotNull CustomEntityContext<T> context) {
-    }
+    @NotNull EntityController<T> create(@NotNull CustomEntitySpawnContext<T> context);
 }

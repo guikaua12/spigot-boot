@@ -38,6 +38,21 @@ import org.jetbrains.annotations.Nullable;
 public abstract class EntityController<T extends LivingEntity> {
 
     /**
+     * Invoked after the entity has been spawned and initialized.
+     */
+    public void onSpawn() {
+    }
+
+    /**
+     * Invoked after the entity has been spawned and initialized.
+     *
+     * @param context the live entity context
+     */
+    public void onSpawn(@NotNull CustomEntityContext<T> context) {
+        onSpawn();
+    }
+
+    /**
      * Invoked when the native entity ticks.
      */
     public void onTick() {

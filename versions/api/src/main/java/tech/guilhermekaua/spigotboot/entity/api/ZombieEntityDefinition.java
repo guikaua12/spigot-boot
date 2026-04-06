@@ -36,10 +36,10 @@ public final class ZombieEntityDefinition extends CustomEntityDefinition<Zombie>
 
     private ZombieEntityDefinition(
             @NotNull CustomEntityId id,
-            @NotNull CustomEntityBehaviorFactory<Zombie> behaviorFactory,
+            @NotNull EntityControllerFactory<Zombie> controllerFactory,
             @NotNull CustomEntityInitializer<Zombie> initializer
     ) {
-        super(id, CustomEntityBaseType.ZOMBIE, Zombie.class, behaviorFactory, initializer);
+        super(id, CustomEntityBaseType.ZOMBIE, Zombie.class, controllerFactory, initializer);
     }
 
     /**
@@ -57,7 +57,7 @@ public final class ZombieEntityDefinition extends CustomEntityDefinition<Zombie>
      */
     public static final class Builder {
         private final CustomEntityId id;
-        private CustomEntityBehaviorFactory<Zombie> behaviorFactory;
+        private EntityControllerFactory<Zombie> controllerFactory;
         private CustomEntityInitializer<Zombie> initializer = CustomEntityInitializer.noop();
 
         private Builder(CustomEntityId id) {
@@ -65,13 +65,13 @@ public final class ZombieEntityDefinition extends CustomEntityDefinition<Zombie>
         }
 
         /**
-         * Sets the behavior factory used to create one behavior instance per spawn.
+         * Sets the controller factory used to create one controller instance per spawn.
          *
-         * @param behaviorFactory the behavior factory
+         * @param controllerFactory the controller factory
          * @return the builder
          */
-        public @NotNull Builder behaviorFactory(@NotNull CustomEntityBehaviorFactory<Zombie> behaviorFactory) {
-            this.behaviorFactory = Objects.requireNonNull(behaviorFactory, "behaviorFactory cannot be null");
+        public @NotNull Builder controllerFactory(@NotNull EntityControllerFactory<Zombie> controllerFactory) {
+            this.controllerFactory = Objects.requireNonNull(controllerFactory, "controllerFactory cannot be null");
             return this;
         }
 
@@ -92,10 +92,10 @@ public final class ZombieEntityDefinition extends CustomEntityDefinition<Zombie>
          * @return the immutable definition
          */
         public @NotNull ZombieEntityDefinition build() {
-            if (behaviorFactory == null) {
-                throw new IllegalStateException("behaviorFactory cannot be null");
+            if (controllerFactory == null) {
+                throw new IllegalStateException("controllerFactory cannot be null");
             }
-            return new ZombieEntityDefinition(id, behaviorFactory, initializer);
+            return new ZombieEntityDefinition(id, controllerFactory, initializer);
         }
     }
 }

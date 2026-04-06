@@ -26,7 +26,7 @@ import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Read-only context available while preparing a new behavior instance for a spawn.
+ * Read-only context available while preparing a new controller instance for a spawn.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2

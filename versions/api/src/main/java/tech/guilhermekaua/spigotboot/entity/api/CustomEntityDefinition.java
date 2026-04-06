@@ -37,20 +37,20 @@ public abstract class CustomEntityDefinition<T extends LivingEntity> {
     private final CustomEntityId id;
     private final CustomEntityBaseType baseType;
     private final Class<T> bukkitType;
-    private final CustomEntityBehaviorFactory<T> behaviorFactory;
+    private final EntityControllerFactory<T> controllerFactory;
     private final CustomEntityInitializer<T> initializer;
 
     protected CustomEntityDefinition(
             @NotNull CustomEntityId id,
             @NotNull CustomEntityBaseType baseType,
             @NotNull Class<T> bukkitType,
-            @NotNull CustomEntityBehaviorFactory<T> behaviorFactory,
+            @NotNull EntityControllerFactory<T> controllerFactory,
             @NotNull CustomEntityInitializer<T> initializer
     ) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
         this.bukkitType = Objects.requireNonNull(bukkitType, "bukkitType cannot be null");
-        this.behaviorFactory = Objects.requireNonNull(behaviorFactory, "behaviorFactory cannot be null");
+        this.controllerFactory = Objects.requireNonNull(controllerFactory, "controllerFactory cannot be null");
         this.initializer = Objects.requireNonNull(initializer, "initializer cannot be null");
     }
 
@@ -82,16 +82,16 @@ public abstract class CustomEntityDefinition<T extends LivingEntity> {
     }
 
     /**
-     * Returns the behavior factory used to create one behavior instance per spawn.
+     * Returns the controller factory used to create one controller instance per spawn.
      *
-     * @return the behavior factory
+     * @return the controller factory
      */
-    public @NotNull CustomEntityBehaviorFactory<T> behaviorFactory() {
-        return behaviorFactory;
+    public @NotNull EntityControllerFactory<T> controllerFactory() {
+        return controllerFactory;
     }
 
     /**
-     * Returns the initializer invoked before {@link CustomEntityBehavior#onSpawn(CustomEntityContext)}.
+     * Returns the initializer invoked before {@link EntityController#onSpawn(CustomEntityContext)}.
      *
      * @return the initializer
      */
