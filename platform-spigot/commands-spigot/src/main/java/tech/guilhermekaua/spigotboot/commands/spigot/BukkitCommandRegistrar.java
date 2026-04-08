@@ -8,7 +8,13 @@ import tech.guilhermekaua.spigotboot.commands.internal.CommandSupport;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class BukkitCommandRegistrar {
     private final BukkitCommandMapAccessor commandMapAccessor;
@@ -37,7 +43,7 @@ public class BukkitCommandRegistrar {
 
         for (Command existing : toRemove) {
             existing.unregister(commandMap);
-            knownCommands.entrySet().removeIf(entry -> entry.getValue() == existing);
+            removeKnownCommandEntries(knownCommands, existing);
         }
 
         String prefix = context.getPlugin().getName().toLowerCase(Locale.ROOT);
@@ -53,13 +59,26 @@ public class BukkitCommandRegistrar {
         Map<String, Command> knownCommands = commandMapAccessor.getKnownCommands(commandMap);
         for (SpigotBootCommand command : registeredCommandSet.getCommands()) {
             command.unregister(commandMap);
-            knownCommands.entrySet().removeIf(entry -> entry.getValue() == command);
+            removeKnownCommandEntries(knownCommands, command);
+        }
+    }
+
+    private void removeKnownCommandEntries(Map<String, Command> knownCommands, Command command) {
+        List<String> labelsToRemove = new ArrayList<>();
+        for (Map.Entry<String, Command> entry : knownCommands.entrySet()) {
+            if (entry.getValue() == command) {
+                labelsToRemove.add(entry.getKey());
+            }
+        }
+
+        for (String label : labelsToRemove) {
+            knownCommands.remove(label, command);
         }
     }
 
     private void collectCollisions(Context context,
-                                    CompiledRootCommand root,
-                                    Map<String, Command> knownCommands,
+                                   CompiledRootCommand root,
+                                   Map<String, Command> knownCommands,
                                     Set<Command> toRemove) {
         for (String label : root.getAliases().allValues()) {
             Command existing = knownCommands.get(CommandSupport.normalizeLabel(label));

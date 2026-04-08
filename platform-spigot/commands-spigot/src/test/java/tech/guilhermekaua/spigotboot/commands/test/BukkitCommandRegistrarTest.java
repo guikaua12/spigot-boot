@@ -38,8 +38,12 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
 
+import java.util.AbstractMap;
+import java.util.AbstractSet;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -85,6 +89,31 @@ class BukkitCommandRegistrarTest {
         assertFalse(knownCommands.containsKey("adm"));
     }
 
+    @Test
+    void unregisterRemovesCommandsWhenKnownCommandsIteratorDoesNotSupportRemoval() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Context context = mock(Context.class);
+        when(context.getPlugin()).thenReturn(new SpigotBootPlugin(plugin));
+        when(context.getDependencyManager()).thenReturn(new DependencyManager());
+
+        CompiledRootCommand root = compileRoot(new RootCommands());
+        CommandDispatcher dispatcher = newDispatcher();
+        BukkitCommandMapAccessor accessor = new UnsupportedIteratorRemoveAccessor();
+        BukkitCommandRegistrar registrar = new BukkitCommandRegistrar(accessor, dispatcher, platformSupport);
+
+        RegisteredCommandSet set = registrar.register(context, Collections.singletonList(root));
+        CommandMap commandMap = accessor.getCommandMap();
+        Map<String, Command> knownCommands = accessor.getKnownCommands(commandMap);
+
+        assertTrue(knownCommands.containsKey("admin"));
+        assertTrue(knownCommands.containsKey("adm"));
+
+        registrar.unregister(set);
+
+        assertFalse(knownCommands.containsKey("admin"));
+        assertFalse(knownCommands.containsKey("adm"));
+    }
+
     private CompiledRootCommand compileRoot(Object handler) {
         CommandReplacementRegistry replacementRegistry = new DefaultCommandReplacementRegistry(Collections.emptyList());
         CommandRouteFactory factory = new CommandRouteFactory(
@@ -113,6 +142,69 @@ class BukkitCommandRegistrarTest {
     static class RootCommands {
         @DefaultCommand
         public void root() {
+        }
+    }
+
+    private static final class UnsupportedIteratorRemoveAccessor extends BukkitCommandMapAccessor {
+        private final BukkitCommandMapAccessor delegate = new BukkitCommandMapAccessor();
+        private Map<String, Command> knownCommands;
+
+        @Override
+        public CommandMap getCommandMap() {
+            return delegate.getCommandMap();
+        }
+
+        @Override
+        public Map<String, Command> getKnownCommands(CommandMap commandMap) {
+            if (knownCommands == null) {
+                knownCommands = new UnsupportedIteratorRemoveMap(delegate.getKnownCommands(commandMap));
+            }
+
+            return knownCommands;
+        }
+    }
+
+    private static final class UnsupportedIteratorRemoveMap extends AbstractMap<String, Command> {
+        private final Map<String, Command> delegate;
+
+        private UnsupportedIteratorRemoveMap(Map<String, Command> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Set<Map.Entry<String, Command>> entrySet() {
+            return new AbstractSet<Map.Entry<String, Command>>() {
+                @Override
+                public Iterator<Map.Entry<String, Command>> iterator() {
+                    Iterator<Map.Entry<String, Command>> iterator = delegate.entrySet().iterator();
+                    return new Iterator<Map.Entry<String, Command>>() {
+                        @Override
+                        public boolean hasNext() {
+                            return iterator.hasNext();
+                        }
+
+                        @Override
+                        public Map.Entry<String, Command> next() {
+                            return iterator.next();
+                        }
+                    };
+                }
+
+                @Override
+                public int size() {
+                    return delegate.size();
+                }
+            };
+        }
+
+        @Override
+        public Command get(Object key) {
+            return delegate.get(key);
+        }
+
+        @Override
+        public Command remove(Object key) {
+            return delegate.remove(key);
         }
     }
 }
