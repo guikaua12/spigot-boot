@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.EntityController;
@@ -34,7 +34,7 @@ import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public class RuntimeAttachedEntityLifecycle<T extends LivingEntity> extends AbstractRuntimeControlledEntity<T> {
+public class RuntimeAttachedEntityLifecycle<T extends Entity> extends AbstractRuntimeControlledEntity<T> {
 
     public RuntimeAttachedEntityLifecycle(
             @NotNull CustomEntityBaseType baseType,

@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public final class EntityDamageContext<T extends LivingEntity> extends AbstractEntityHookContext<T, Boolean> {
+public final class EntityDamageContext<T extends Entity> extends AbstractEntityHookContext<T, Boolean> {
     private float amount;
 
     /**

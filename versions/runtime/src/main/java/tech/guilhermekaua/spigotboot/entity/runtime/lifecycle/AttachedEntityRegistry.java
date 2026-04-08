@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
@@ -37,10 +37,10 @@ import java.util.Objects;
  * @since 2.0.2
  */
 public final class AttachedEntityRegistry {
-    private final Map<LivingEntity, ControlledEntity<?>> byBukkit = new IdentityHashMap<LivingEntity, ControlledEntity<?>>();
-    private final Map<Object, ControlledEntity<?>> byNative = new IdentityHashMap<Object, ControlledEntity<?>>();
+    private final Map<Entity, ControlledEntity<?>> byBukkit = new IdentityHashMap<>();
+    private final Map<Object, ControlledEntity<?>> byNative = new IdentityHashMap<>();
 
-    public synchronized @Nullable ControlledEntity<?> findByBukkit(@NotNull LivingEntity entity) {
+    public synchronized @Nullable ControlledEntity<?> findByBukkit(@NotNull Entity entity) {
         Objects.requireNonNull(entity, "entity cannot be null");
         return byBukkit.get(entity);
     }
@@ -51,7 +51,7 @@ public final class AttachedEntityRegistry {
     }
 
     public synchronized void register(
-            @NotNull LivingEntity bukkitEntity,
+            @NotNull Entity bukkitEntity,
             @NotNull Object nativeEntity,
             @NotNull ControlledEntity<?> controlledEntity
     ) {
@@ -63,7 +63,7 @@ public final class AttachedEntityRegistry {
         byNative.put(nativeEntity, controlledEntity);
     }
 
-    public synchronized void unregister(@NotNull LivingEntity bukkitEntity, @Nullable Object nativeEntity) {
+    public synchronized void unregister(@NotNull Entity bukkitEntity, @Nullable Object nativeEntity) {
         Objects.requireNonNull(bukkitEntity, "bukkitEntity cannot be null");
         byBukkit.remove(bukkitEntity);
         if (nativeEntity != null) {
@@ -72,7 +72,7 @@ public final class AttachedEntityRegistry {
     }
 
     private void pruneEntriesFor(
-            @NotNull LivingEntity bukkitEntity,
+            @NotNull Entity bukkitEntity,
             @NotNull ControlledEntity<?> controlledEntity
     ) {
         ControlledEntity<?> previousBukkitEntry = byBukkit.get(bukkitEntity);

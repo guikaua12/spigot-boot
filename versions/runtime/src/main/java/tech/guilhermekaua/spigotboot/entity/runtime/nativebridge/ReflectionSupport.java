@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.entity.runtime.nativebridge;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import sun.misc.Unsafe;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -40,6 +41,7 @@ import java.util.Objects;
  * @since 2.0.2
  */
 public final class ReflectionSupport {
+    private static final Unsafe UNSAFE = resolveUnsafe();
 
     private ReflectionSupport() {
     }
@@ -346,6 +348,18 @@ public final class ReflectionSupport {
         }
     }
 
+    public static @NotNull Object allocateInstance(@NotNull Class<?> type) {
+        Objects.requireNonNull(type, "type cannot be null");
+        try {
+            return UNSAFE.allocateInstance(type);
+        } catch (InstantiationException exception) {
+            throw new IllegalStateException(
+                    "Could not allocate an instance of '" + type.getName() + "' without invoking constructors.",
+                    exception
+            );
+        }
+    }
+
     private static @NotNull List<ClassLoader> candidateClassLoaders() {
         List<ClassLoader> classLoaders = new ArrayList<ClassLoader>();
 
@@ -362,6 +376,16 @@ public final class ReflectionSupport {
     private static void addIfPresent(@NotNull List<ClassLoader> classLoaders, @Nullable ClassLoader classLoader) {
         if (classLoader != null && !classLoaders.contains(classLoader)) {
             classLoaders.add(classLoader);
+        }
+    }
+
+    private static @NotNull Unsafe resolveUnsafe() {
+        try {
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            return (Unsafe) unsafeField.get(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Could not resolve sun.misc.Unsafe.", exception);
         }
     }
 }

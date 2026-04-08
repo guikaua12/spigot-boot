@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * @since 2.0.2
  */
 @FunctionalInterface
-public interface EntityControllerFactory<T extends LivingEntity> {
+public interface EntityControllerFactory<T extends Entity> {
 
     /**
      * Creates the initial controller for the supplied spawn request.

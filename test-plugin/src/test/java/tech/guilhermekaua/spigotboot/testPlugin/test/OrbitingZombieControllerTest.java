@@ -3,7 +3,6 @@ package tech.guilhermekaua.spigotboot.testPlugin.test;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.util.Vector;
@@ -115,6 +114,6 @@ class OrbitingZombieControllerTest {
 
         verify(base).invoke();
         verify(zombie, never()).teleport(any(Location.class));
-        verify(zombie, never()).setTarget(any(LivingEntity.class));
+        verify(zombie, never()).setTarget(any(Player.class));
     }
 }

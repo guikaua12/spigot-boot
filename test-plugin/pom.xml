@@ -102,6 +102,12 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-commands-spigot</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-entity-runtime</artifactId>
             <version>2.0.2</version>
         </dependency>

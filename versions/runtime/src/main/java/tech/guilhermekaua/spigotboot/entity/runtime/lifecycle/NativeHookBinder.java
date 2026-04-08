@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
@@ -36,7 +36,7 @@ import java.util.Collection;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public interface NativeHookBinder<T extends LivingEntity> {
+public interface NativeHookBinder<T extends Entity> {
 
     /**
      * Resolves the native methods that should be overridden for the supplied native type.

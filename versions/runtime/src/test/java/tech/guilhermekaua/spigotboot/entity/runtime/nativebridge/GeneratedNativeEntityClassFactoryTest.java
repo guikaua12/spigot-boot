@@ -22,24 +22,32 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.nativebridge;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityState;
 import tech.guilhermekaua.spigotboot.entity.api.EntityController;
+import tech.guilhermekaua.spigotboot.entity.api.EntityRemoveContext;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.ContextualBaseInvoker;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.NativeHookBinder;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 class GeneratedNativeEntityClassFactoryTest {
 
@@ -131,6 +139,61 @@ class GeneratedNativeEntityClassFactoryTest {
         assertEquals(1, nativeEntity.baseInventoryChangeInvocations);
     }
 
+    @Test
+    void shouldAllowNestedRemoveOverloadsToReachBaseWhileDispatchingControllerOnce() throws Exception {
+        GeneratedNativeEntityClassFactory factory = new GeneratedNativeEntityClassFactory();
+        List<GeneratedNativeHookSpec> hookSpecs = Arrays.asList(
+                GeneratedNativeHookSpec.of(
+                        "remove",
+                        StubPatchedRemoveNativeEntity.class.getDeclaredMethod("remove", StubRemovalReason.class)
+                ),
+                GeneratedNativeHookSpec.of(
+                        "removeWithCause",
+                        StubPatchedRemoveNativeEntity.class.getDeclaredMethod(
+                                "remove",
+                                StubRemovalReason.class,
+                                StubRemoveCause.class
+                        )
+                )
+        );
+
+        Class<?> generatedType = factory.createSubclass(
+                StubPatchedRemoveNativeEntity.class,
+                "tech.guilhermekaua.spigotboot.entity.generated.test.StubPatchedRemoveNativeEntityProxy",
+                hookSpecs
+        );
+
+        Object generatedEntity = generatedType.getDeclaredConstructor().newInstance();
+        factory.installInterceptor(generatedEntity, hookSpecs);
+
+        Entity bukkitEntity = Mockito.mock(Entity.class);
+        when(bukkitEntity.isValid()).thenReturn(true);
+
+        int[] removeHookInvocations = new int[1];
+        RuntimeAttachedEntityLifecycle<Entity> lifecycle = new RuntimeAttachedEntityLifecycle<Entity>(
+                CustomEntityBaseType.ZOMBIE,
+                MinecraftVersion.of(1, 21, 11),
+                new EntityController<Entity>() {
+                    @Override
+                    public void onRemove(EntityRemoveContext<Entity> context) {
+                        removeHookInvocations[0]++;
+                        context.base().invoke();
+                    }
+                }
+        );
+        lifecycle.bindHookBinder(new RemoveAwareHookBinder());
+        lifecycle.bind(bukkitEntity);
+        factory.bindLifecycle(generatedEntity, lifecycle);
+
+        StubPatchedRemoveNativeEntity nativeEntity = (StubPatchedRemoveNativeEntity) generatedEntity;
+        nativeEntity.remove(StubRemovalReason.KILLED);
+
+        assertEquals(1, removeHookInvocations[0]);
+        assertEquals(1, nativeEntity.baseRemoveDelegatingInvocations);
+        assertEquals(1, nativeEntity.baseRemoveWithCauseInvocations);
+        assertTrue(lifecycle.isRemoved());
+    }
+
     public static class StubNativeEntity {
         private int baseTickInvocations;
         private int baseMoveInvocations;
@@ -186,11 +249,25 @@ class GeneratedNativeEntityClassFactoryTest {
         }
     }
 
-    private static final class RecordingLifecycle implements NativeEntityLifecycle<LivingEntity> {
+    public static class StubPatchedRemoveNativeEntity {
+        private int baseRemoveDelegatingInvocations;
+        private int baseRemoveWithCauseInvocations;
+
+        public void remove(StubRemovalReason reason) {
+            baseRemoveDelegatingInvocations++;
+            this.remove(reason, null);
+        }
+
+        public void remove(StubRemovalReason reason, StubRemoveCause cause) {
+            baseRemoveWithCauseInvocations++;
+        }
+    }
+
+    private static final class RecordingLifecycle implements NativeEntityLifecycle<Entity> {
         private final List<String> hookNames = new ArrayList<String>();
 
         @Override
-        public void bind(LivingEntity bukkitEntity) {
+        public void bind(Entity bukkitEntity) {
         }
 
         @Override
@@ -210,10 +287,10 @@ class GeneratedNativeEntityClassFactoryTest {
         }
 
         @Override
-        public ControlledEntity<LivingEntity> handle() {
-            return new ControlledEntity<LivingEntity>() {
+        public ControlledEntity<Entity> handle() {
+            return new ControlledEntity<Entity>() {
                 @Override
-                public LivingEntity bukkitEntity() {
+                public Entity bukkitEntity() {
                     throw new UnsupportedOperationException();
                 }
 
@@ -243,13 +320,13 @@ class GeneratedNativeEntityClassFactoryTest {
                 }
 
                 @Override
-                public EntityController<LivingEntity> controller() {
-                    return new EntityController<LivingEntity>() {
+                public EntityController<Entity> controller() {
+                    return new EntityController<Entity>() {
                     };
                 }
 
                 @Override
-                public void setController(EntityController<LivingEntity> controller) {
+                public void setController(EntityController<Entity> controller) {
                 }
 
                 @Override
@@ -264,6 +341,35 @@ class GeneratedNativeEntityClassFactoryTest {
         }
     }
 
+    private static final class RemoveAwareHookBinder implements NativeHookBinder<Entity> {
+        @Override
+        public Collection<GeneratedNativeHookSpec> hookSpecs(Class<?> nativeType) {
+            return java.util.Collections.emptyList();
+        }
+
+        @Override
+        public Object dispatch(
+                AbstractRuntimeControlledEntity<Entity> controlledEntity,
+                LifecycleAwareNativeEntity nativeEntity,
+                String hookName,
+                Object[] arguments
+        ) {
+            if (!"remove".equals(hookName) && !"removeWithCause".equals(hookName)) {
+                throw new IllegalArgumentException("Unexpected hook " + hookName);
+            }
+
+            final Object[] baseArguments = arguments != null ? arguments : new Object[0];
+            controlledEntity.dispatchRemove(new ContextualBaseInvoker<EntityRemoveContext<Entity>, Void>() {
+                @Override
+                public Void invoke(EntityRemoveContext<Entity> context) {
+                    nativeEntity.spigotBootInvokeBase(hookName, baseArguments);
+                    return null;
+                }
+            });
+            return null;
+        }
+    }
+
     public static final class StubPlayer {
     }
 
@@ -273,6 +379,14 @@ class GeneratedNativeEntityClassFactoryTest {
     public enum StubHand {
         MAIN,
         OFF
+    }
+
+    public enum StubRemovalReason {
+        KILLED
+    }
+
+    public enum StubRemoveCause {
+        DEATH
     }
 
     public enum StubInteractionResult {

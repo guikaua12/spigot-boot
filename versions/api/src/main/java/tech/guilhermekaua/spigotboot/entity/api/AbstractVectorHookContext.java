@@ -22,10 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
-abstract class AbstractVectorHookContext<T extends LivingEntity> extends AbstractEntityHookContext<T, Void> {
+abstract class AbstractVectorHookContext<T extends Entity> extends AbstractEntityHookContext<T, Void> {
     private double x;
     private double y;
     private double z;

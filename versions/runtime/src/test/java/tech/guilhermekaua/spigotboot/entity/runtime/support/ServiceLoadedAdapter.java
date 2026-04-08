@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.support;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
@@ -54,7 +54,7 @@ public final class ServiceLoadedAdapter implements EntityVersionAdapter {
     }
 
     @Override
-    public <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
+    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
             @NotNull NativeEntityLifecycle<T> lifecycle
@@ -63,7 +63,7 @@ public final class ServiceLoadedAdapter implements EntityVersionAdapter {
     }
 
     @Override
-    public <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+    public <T extends Entity> @NotNull ControlledEntity<T> attach(
             @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {

@@ -22,12 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime;
 
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Zombie;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
-import tech.guilhermekaua.spigotboot.entity.api.ControlledZombie;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
@@ -37,9 +35,8 @@ import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.runtime.exception.CustomEntityDefinitionNotFoundException;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AttachedEntityRegistry;
-import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeControlledZombie;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
-import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeZombieLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.registry.CustomEntityDefinitionRegistry;
 
 import java.lang.reflect.Method;
@@ -105,7 +102,7 @@ public final class VersionedEntityPlatform {
      * @param definition the definition to register
      * @param <T> the Bukkit entity type exposed to plugin code
      */
-    public <T extends LivingEntity> void registerDefinition(@NotNull CustomEntityDefinition<T> definition) {
+    public <T extends Entity> void registerDefinition(@NotNull CustomEntityDefinition<T> definition) {
         Objects.requireNonNull(definition, "definition cannot be null");
         if (!supports(definition.baseType())) {
             throw new IllegalArgumentException(
@@ -155,7 +152,7 @@ public final class VersionedEntityPlatform {
      * @return the controlled entity handle
      */
     @SuppressWarnings("unchecked")
-    public <T extends LivingEntity> @NotNull ControlledEntity<T> entity(@NotNull T entity) {
+    public <T extends Entity> @NotNull ControlledEntity<T> entity(@NotNull T entity) {
         Objects.requireNonNull(entity, "entity cannot be null");
 
         ControlledEntity<?> attachedEntity = attachedEntityRegistry.findByBukkit(entity);
@@ -163,53 +160,26 @@ public final class VersionedEntityPlatform {
             return (ControlledEntity<T>) attachedEntity;
         }
 
-        if (entity instanceof Zombie) {
-            return (ControlledEntity<T>) zombie((Zombie) entity);
-        }
-
-        throw new UnsupportedOperationException(
-                "The active adapter currently supports attaching controllers only to zombies."
-        );
-    }
-
-    /**
-     * Attaches the shared controller runtime to an existing Bukkit zombie, or returns the existing handle.
-     *
-     * @param zombie the zombie to attach
-     * @return the controlled zombie handle
-     */
-    public @NotNull ControlledZombie zombie(@NotNull Zombie zombie) {
-        Objects.requireNonNull(zombie, "zombie cannot be null");
-
-        ControlledEntity<?> cached = attachedEntityRegistry.findByBukkit(zombie);
-        if (cached instanceof ControlledZombie) {
-            return (ControlledZombie) cached;
-        }
-
-        Object previousNativeHandle = resolveNativeHandle(zombie);
+        Object previousNativeHandle = resolveNativeHandle(entity);
         if (previousNativeHandle != null) {
             ControlledEntity<?> nativeCached = attachedEntityRegistry.findByNative(previousNativeHandle);
-            if (nativeCached instanceof ControlledZombie) {
-                attachedEntityRegistry.register(zombie, previousNativeHandle, nativeCached);
-                return (ControlledZombie) nativeCached;
+            if (nativeCached != null) {
+                attachedEntityRegistry.register(entity, previousNativeHandle, nativeCached);
+                return (ControlledEntity<T>) nativeCached;
             }
         }
 
-        RuntimeControlledZombie lifecycle = new RuntimeControlledZombie(minecraftVersion, nullController());
-        ControlledEntity<Zombie> attached = adapter.attach(zombie, lifecycle);
-        Object currentNativeHandle = resolveNativeHandle(zombie);
+        RuntimeAttachedEntityLifecycle<T> lifecycle =
+                new RuntimeAttachedEntityLifecycle<T>(resolveBaseType(entity), minecraftVersion, nullController());
+        ControlledEntity<T> attached = adapter.attach(entity, lifecycle);
+        Object currentNativeHandle = resolveNativeHandle(entity);
         if (currentNativeHandle != null) {
             if (previousNativeHandle != null && previousNativeHandle != currentNativeHandle) {
-                attachedEntityRegistry.unregister(zombie, previousNativeHandle);
+                attachedEntityRegistry.unregister(entity, previousNativeHandle);
             }
-            attachedEntityRegistry.register(zombie, currentNativeHandle, attached);
+            attachedEntityRegistry.register(entity, currentNativeHandle, attached);
         }
-        if (!(attached instanceof ControlledZombie)) {
-            throw new IllegalStateException(
-                    "The zombie attach path did not return a ControlledZombie for '" + zombie.getClass().getName() + "'."
-            );
-        }
-        return (ControlledZombie) attached;
+        return attached;
     }
 
     /**
@@ -243,7 +213,7 @@ public final class VersionedEntityPlatform {
      * @param <T> the Bukkit entity type exposed to plugin code
      * @return the spawned entity handle
      */
-    public <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
+    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest
     ) {
@@ -265,7 +235,7 @@ public final class VersionedEntityPlatform {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawnUnchecked(
+    private <T extends Entity> @NotNull CustomEntityHandle<T> spawnUnchecked(
             @NotNull CustomEntityDefinition<?> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest
     ) {
@@ -276,18 +246,10 @@ public final class VersionedEntityPlatform {
         return handle;
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends LivingEntity> @NotNull RuntimeNativeEntityLifecycle<T> createSpawnLifecycle(
+    private <T extends Entity> @NotNull RuntimeNativeEntityLifecycle<T> createSpawnLifecycle(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest
     ) {
-        if (definition.baseType() == CustomEntityBaseType.ZOMBIE) {
-            return (RuntimeNativeEntityLifecycle<T>) new RuntimeNativeZombieLifecycle(
-                    (CustomEntityDefinition<Zombie>) definition,
-                    spawnRequest,
-                    minecraftVersion
-            );
-        }
         return new RuntimeNativeEntityLifecycle<T>(definition, spawnRequest, minecraftVersion);
     }
 
@@ -298,7 +260,7 @@ public final class VersionedEntityPlatform {
         }
     }
 
-    private static @Nullable Object resolveNativeHandle(@NotNull LivingEntity entity) {
+    private static @Nullable Object resolveNativeHandle(@NotNull Entity entity) {
         try {
             Method getHandleMethod = entity.getClass().getMethod("getHandle");
             getHandleMethod.setAccessible(true);
@@ -309,8 +271,18 @@ public final class VersionedEntityPlatform {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends LivingEntity> tech.guilhermekaua.spigotboot.entity.api.EntityController<T> nullController() {
+    private static <T extends Entity> tech.guilhermekaua.spigotboot.entity.api.EntityController<T> nullController() {
         return (tech.guilhermekaua.spigotboot.entity.api.EntityController<T>)
                 tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController.instance();
+    }
+
+    private static @NotNull CustomEntityBaseType resolveBaseType(@NotNull Entity entity) {
+        CustomEntityBaseType baseType = CustomEntityBaseType.fromEntityType(entity.getType());
+        if (baseType == null) {
+            throw new UnsupportedOperationException(
+                    "The active adapter does not expose a logical base type for Bukkit type '" + entity.getType().name() + "'."
+            );
+        }
+        return baseType;
     }
 }

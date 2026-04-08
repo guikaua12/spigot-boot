@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api.spi;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
@@ -33,7 +33,7 @@ import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public interface NativeEntityLifecycle<T extends LivingEntity> {
+public interface NativeEntityLifecycle<T extends Entity> {
 
     /**
      * Binds the Bukkit entity wrapper after the native entity has been inserted into the world.

@@ -23,7 +23,6 @@
 package tech.guilhermekaua.spigotboot.entity.api;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public abstract class EntityController<T extends LivingEntity> {
+public abstract class EntityController<T extends Entity> {
 
     /**
      * Invoked after the entity has been spawned and initialized.

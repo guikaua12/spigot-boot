@@ -24,20 +24,19 @@ package tech.guilhermekaua.spigotboot.entity.runtime;
 
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Zombie;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
-import tech.guilhermekaua.spigotboot.entity.api.ControlledZombie;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
-import tech.guilhermekaua.spigotboot.entity.api.ZombieEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 
@@ -57,7 +56,7 @@ class VersionedEntityPlatformTest {
                 MinecraftVersion.of(1, 21, 11),
                 new RecordingAdapter()
         );
-        ZombieEntityDefinition definition = createDefinition(new ArrayList<String>());
+        CustomEntityDefinition<Zombie> definition = createDefinition(new ArrayList<String>());
 
         platform.registerDefinition(definition);
 
@@ -69,7 +68,7 @@ class VersionedEntityPlatformTest {
     void shouldSpawnRegisteredDefinitionsThroughSharedLifecycle() {
         RecordingAdapter adapter = new RecordingAdapter();
         VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
-        ZombieEntityDefinition definition = createDefinition(new ArrayList<String>());
+        CustomEntityDefinition<Zombie> definition = createDefinition(new ArrayList<String>());
         CustomEntitySpawnRequest spawnRequest = CustomEntitySpawnRequest.builder(
                 new Location(Mockito.mock(World.class), 10.0D, 64.0D, 12.0D)
         ).build();
@@ -83,37 +82,45 @@ class VersionedEntityPlatformTest {
     }
 
     @Test
-    void shouldCacheAttachedZombiesByBukkitIdentity() {
+    void shouldCacheAttachedEntitiesByBukkitIdentity() {
         RecordingAdapter adapter = new RecordingAdapter();
         VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
-        HandleAwareZombie zombie = Mockito.mock(HandleAwareZombie.class);
+        HandleAwareEntity entity = Mockito.mock(HandleAwareEntity.class);
         Object nativeHandle = new Object();
-        ControlledZombie controlledZombie = Mockito.mock(ControlledZombie.class);
+        @SuppressWarnings("unchecked")
+        ControlledEntity<Entity> controlledEntity = Mockito.mock(ControlledEntity.class);
 
-        when(zombie.getHandle()).thenReturn(nativeHandle);
-        when(controlledZombie.bukkitEntity()).thenReturn(zombie);
-        adapter.attachedZombie = controlledZombie;
+        when(entity.getHandle()).thenReturn(nativeHandle);
+        when(entity.getType()).thenReturn(EntityType.ARMOR_STAND);
+        when(controlledEntity.bukkitEntity()).thenReturn(entity);
+        adapter.attachedEntity = controlledEntity;
 
-        ControlledZombie first = platform.zombie(zombie);
-        ControlledZombie second = platform.zombie(zombie);
+        ControlledEntity<Entity> first = platform.entity(entity);
+        ControlledEntity<Entity> second = platform.entity(entity);
 
-        assertSame(controlledZombie, first);
+        assertSame(controlledEntity, first);
         assertSame(first, second);
         assertEquals(1, adapter.attachInvocations);
     }
 
     @Test
-    void shouldRequireControllerFactoryWhenBuildingZombieDefinition() {
-        ZombieEntityDefinition.Builder builder =
-                ZombieEntityDefinition.builder(CustomEntityId.of("test", "missing-controller"));
+    void shouldRequireControllerFactoryWhenBuildingDefinition() {
+        CustomEntityDefinition.Builder<Zombie> builder =
+                CustomEntityDefinition.builder(
+                        CustomEntityId.of("test", "missing-controller"),
+                        CustomEntityBaseType.ZOMBIE
+                );
 
         IllegalStateException exception = assertThrows(IllegalStateException.class, builder::build);
 
         assertEquals("controllerFactory cannot be null", exception.getMessage());
     }
 
-    private static ZombieEntityDefinition createDefinition(List<String> events) {
-        return ZombieEntityDefinition.builder(CustomEntityId.of("test", "orbit"))
+    private static CustomEntityDefinition<Zombie> createDefinition(List<String> events) {
+        return CustomEntityDefinition.<Zombie>builder(
+                        CustomEntityId.of("test", "orbit"),
+                        CustomEntityBaseType.ZOMBIE
+                )
                 .initializer(context -> events.add("initializer"))
                 .controllerFactory(context -> new tech.guilhermekaua.spigotboot.entity.api.EntityController<Zombie>() {
                     @Override
@@ -126,7 +133,7 @@ class VersionedEntityPlatformTest {
 
     private static final class RecordingAdapter implements EntityVersionAdapter {
         private CustomEntityHandle<Zombie> lastSpawnHandle;
-        private ControlledZombie attachedZombie;
+        private ControlledEntity<?> attachedEntity;
         private int attachInvocations;
 
         @Override
@@ -146,14 +153,13 @@ class VersionedEntityPlatformTest {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <T extends LivingEntity> CustomEntityHandle<T> spawn(
+        public <T extends Entity> CustomEntityHandle<T> spawn(
                 CustomEntityDefinition<T> definition,
                 CustomEntitySpawnRequest spawnRequest,
                 NativeEntityLifecycle<T> lifecycle
         ) {
             HandleAwareZombie zombie = Mockito.mock(HandleAwareZombie.class);
             when(zombie.isValid()).thenReturn(true);
-            when(zombie.isDead()).thenReturn(false);
             when(zombie.getHandle()).thenReturn(new Object());
 
             lifecycle.bind((T) zombie);
@@ -165,13 +171,17 @@ class VersionedEntityPlatformTest {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <T extends LivingEntity> ControlledEntity<T> attach(T entity, NativeEntityLifecycle<T> lifecycle) {
+        public <T extends Entity> ControlledEntity<T> attach(T entity, NativeEntityLifecycle<T> lifecycle) {
             attachInvocations++;
-            return (ControlledEntity<T>) attachedZombie;
+            return (ControlledEntity<T>) attachedEntity;
         }
     }
 
     private interface HandleAwareZombie extends Zombie {
+        Object getHandle();
+    }
+
+    private interface HandleAwareEntity extends Entity {
         Object getHandle();
     }
 }

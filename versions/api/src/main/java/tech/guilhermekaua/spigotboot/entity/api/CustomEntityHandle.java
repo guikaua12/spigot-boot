@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 
 /**
  * Stable plugin-facing handle to a spawned custom entity.
@@ -30,5 +30,5 @@ import org.bukkit.entity.LivingEntity;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public interface CustomEntityHandle<T extends LivingEntity> extends CustomEntityContext<T> {
+public interface CustomEntityHandle<T extends Entity> extends CustomEntityContext<T> {
 }

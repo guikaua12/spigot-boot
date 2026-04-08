@@ -20,26 +20,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
+package tech.guilhermekaua.spigotboot.testPlugin.listener;
 
-import org.bukkit.entity.Zombie;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.entity.api.ControlledZombie;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.EntityController;
-import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
-/**
- * Attached runtime bridge for controlled Bukkit zombies.
- *
- * @since 2.0.2
- */
-public final class RuntimeControlledZombie extends RuntimeAttachedEntityLifecycle<Zombie> implements ControlledZombie {
+import java.util.Objects;
 
-    public RuntimeControlledZombie(
-            @NotNull MinecraftVersion minecraftVersion,
-            @NotNull EntityController<Zombie> initialController
-    ) {
-        super(CustomEntityBaseType.ZOMBIE, minecraftVersion, initialController);
+@Component
+public class ZombieTestCleanupListener implements Listener {
+    private final VersionedZombieService versionedZombieService;
+
+    public ZombieTestCleanupListener(VersionedZombieService versionedZombieService) {
+        this.versionedZombieService = Objects.requireNonNull(versionedZombieService, "versionedZombieService cannot be null");
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        versionedZombieService.clearDemoZombie(event.getPlayer());
+        versionedZombieService.clearAttachedZombie(event.getPlayer());
     }
 }

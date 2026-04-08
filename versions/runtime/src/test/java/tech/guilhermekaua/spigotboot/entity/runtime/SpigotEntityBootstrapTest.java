@@ -22,12 +22,12 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
@@ -127,7 +127,7 @@ class SpigotEntityBootstrapTest {
         }
 
         @Override
-        public <T extends LivingEntity> CustomEntityHandle<T> spawn(
+        public <T extends Entity> CustomEntityHandle<T> spawn(
                 CustomEntityDefinition<T> definition,
                 CustomEntitySpawnRequest spawnRequest,
                 NativeEntityLifecycle<T> lifecycle
@@ -136,7 +136,7 @@ class SpigotEntityBootstrapTest {
         }
 
         @Override
-        public <T extends LivingEntity> ControlledEntity<T> attach(
+        public <T extends Entity> ControlledEntity<T> attach(
                 T entity,
                 NativeEntityLifecycle<T> lifecycle
         ) {

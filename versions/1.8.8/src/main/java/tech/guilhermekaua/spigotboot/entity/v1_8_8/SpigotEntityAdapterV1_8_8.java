@@ -22,8 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.v1_8_8;
 
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Zombie;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
@@ -33,7 +32,6 @@ import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
-import tech.guilhermekaua.spigotboot.entity.v1_8_8.zombie.ZombieFactoryV1_8_8;
 
 import java.util.Objects;
 
@@ -45,7 +43,7 @@ import java.util.Objects;
 public final class SpigotEntityAdapterV1_8_8 implements EntityVersionAdapter {
     private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 8, 8);
 
-    private volatile ZombieFactoryV1_8_8 zombieFactory;
+    private volatile EntityFactoryV1_8_8 entityFactory;
 
     @Override
     public @NotNull MinecraftVersion minimumVersion() {
@@ -60,12 +58,11 @@ public final class SpigotEntityAdapterV1_8_8 implements EntityVersionAdapter {
     @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return baseType == CustomEntityBaseType.ZOMBIE;
+        return entityFactory().supports(baseType);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
+    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
             @NotNull NativeEntityLifecycle<T> lifecycle
@@ -73,49 +70,30 @@ public final class SpigotEntityAdapterV1_8_8 implements EntityVersionAdapter {
         Objects.requireNonNull(definition, "definition cannot be null");
         Objects.requireNonNull(spawnRequest, "spawnRequest cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-
-        if (definition.baseType() != CustomEntityBaseType.ZOMBIE) {
-            throw new UnsupportedOperationException(
-                    "Minecraft 1.8.8 custom entities currently support only zombies."
-            );
-        }
-
-        return (CustomEntityHandle<T>) zombieFactory().spawn(
-                definition,
-                spawnRequest,
-                (NativeEntityLifecycle<Zombie>) lifecycle
-        );
+        return entityFactory().spawn(definition, spawnRequest, lifecycle);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+    public <T extends Entity> @NotNull ControlledEntity<T> attach(
             @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-
-        if (!(entity instanceof Zombie)) {
-            throw new UnsupportedOperationException(
-                    "Minecraft 1.8.8 controller attachment currently supports only zombies."
-            );
-        }
-
-        return (ControlledEntity<T>) zombieFactory().attach((Zombie) entity, (NativeEntityLifecycle<Zombie>) lifecycle);
+        return entityFactory().attach(entity, lifecycle);
     }
 
-    private @NotNull ZombieFactoryV1_8_8 zombieFactory() {
-        ZombieFactoryV1_8_8 factory = zombieFactory;
+    private @NotNull EntityFactoryV1_8_8 entityFactory() {
+        EntityFactoryV1_8_8 factory = entityFactory;
         if (factory != null) {
             return factory;
         }
 
         synchronized (this) {
-            if (zombieFactory == null) {
-                zombieFactory = new ZombieFactoryV1_8_8();
+            if (entityFactory == null) {
+                entityFactory = new EntityFactoryV1_8_8();
             }
-            return zombieFactory;
+            return entityFactory;
         }
     }
 }

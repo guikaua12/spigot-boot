@@ -23,7 +23,6 @@
 package tech.guilhermekaua.spigotboot.entity.api;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -34,7 +33,7 @@ import java.util.Objects;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public final class EntityCollideContext<T extends LivingEntity> extends AbstractEntityHookContext<T, Void> {
+public final class EntityCollideContext<T extends Entity> extends AbstractEntityHookContext<T, Void> {
     private final Entity collidingEntity;
 
     /**

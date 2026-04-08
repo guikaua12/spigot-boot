@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,7 +34,7 @@ import java.util.Objects;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public final class EntityInteractContext<T extends LivingEntity>
+public final class EntityInteractContext<T extends Entity>
         extends AbstractEntityHookContext<T, EntityInteractionResult> {
     private final Player player;
     private final EntityInteractionHand hand;

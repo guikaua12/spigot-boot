@@ -23,7 +23,6 @@
 package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
+public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         implements ControlledEntity<T>, NativeEntityLifecycle<T> {
     private static final ControllerMethodResolver CONTROLLER_METHOD_RESOLVER = new ControllerMethodResolver();
 
@@ -53,6 +52,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
     private final MinecraftVersion minecraftVersion;
     private final SimpleCustomEntityState state;
     private final AtomicBoolean removed;
+    private final AtomicBoolean removeDispatchInProgress;
     private final AtomicBoolean repairPending;
 
     private volatile NativeHookBinder<T> hookBinder;
@@ -69,6 +69,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
         this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
         this.state = new SimpleCustomEntityState();
         this.removed = new AtomicBoolean(false);
+        this.removeDispatchInProgress = new AtomicBoolean(false);
         this.repairPending = new AtomicBoolean(false);
         this.controller = Objects.requireNonNull(initialController, "initialController cannot be null");
     }
@@ -128,7 +129,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
             return true;
         }
         T entity = bukkitEntity;
-        return entity != null && (!entity.isValid() || entity.isDead());
+        return entity != null && !entity.isValid();
     }
 
     @Override
@@ -167,7 +168,6 @@ public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
     }
 
     public final void dispatchTick(@NotNull ContextualBaseInvoker<EntityTickContext<T>, Void> base) {
-        // dead living entities still need native ticks so Minecraft can advance death cleanup and removal.
         if (removed.get()) {
             return;
         }
@@ -227,12 +227,27 @@ public abstract class AbstractRuntimeControlledEntity<T extends LivingEntity>
     }
 
     public final void dispatchRemove(@NotNull ContextualBaseInvoker<EntityRemoveContext<T>, Void> base) {
+        if (removeDispatchInProgress.get()) {
+            EntityRemoveContext<T> nestedContext = new EntityRemoveContext<T>(this, new EntityBaseInvoker<Void>() {
+                @Override
+                public Void invoke() {
+                    return null;
+                }
+            });
+            base.invoke(nestedContext);
+            return;
+        }
         if (!removed.compareAndSet(false, true)) {
             return;
         }
-        EntityRemoveContext<T>[] holder = new EntityRemoveContext[1];
-        holder[0] = new EntityRemoveContext<>(this, () -> base.invoke(holder[0]));
-        dispatchHook(LogicalEntityHook.REMOVE, holder[0], null);
+        removeDispatchInProgress.set(true);
+        try {
+            EntityRemoveContext<T>[] holder = new EntityRemoveContext[1];
+            holder[0] = new EntityRemoveContext<>(this, () -> base.invoke(holder[0]));
+            dispatchHook(LogicalEntityHook.REMOVE, holder[0], null);
+        } finally {
+            removeDispatchInProgress.set(false);
+        }
     }
 
     public final void dispatchCollide(

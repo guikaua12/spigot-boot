@@ -20,17 +20,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.entity.v1_21_11.zombie;
+package tech.guilhermekaua.spigotboot.entity.v1_21_11;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
@@ -52,6 +53,7 @@ import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.ContextualBaseInvoker;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.NativeHookBinder;
+import tech.guilhermekaua.spigotboot.entity.runtime.controller.LogicalEntityHook;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.FieldCopySupport;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
@@ -62,18 +64,19 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
- * Spawns and attaches real 1.21.11 native zombie subclasses and binds them to the shared runtime lifecycle.
+ * Spawns and attaches real 1.21.11 native Entity subclasses and binds them to the shared runtime lifecycle.
  *
  * @since 2.0.2
  */
-public final class ZombieFactoryV1_21_11 {
-    private static final String GENERATED_CLASS_NAME =
-            "tech.guilhermekaua.spigotboot.entity.generated.v1_21_11.SpigotBootZombieV1_21_11";
+public final class EntityFactoryV1_21_11 {
     private static final String HOOK_TICK = "tick";
     private static final String HOOK_MOVE = "move";
     private static final String HOOK_PUSH = "push";
@@ -89,128 +92,135 @@ public final class ZombieFactoryV1_21_11 {
     private static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     private final GeneratedNativeEntityClassFactory classFactory = new GeneratedNativeEntityClassFactory();
-    private final ZombieHookBinderV1_21_11 hookBinder = new ZombieHookBinderV1_21_11();
+    private final EntityHookBinderV1_21_11 hookBinder = new EntityHookBinderV1_21_11();
+    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
+    private final Map<Class<?>, ResolvedEntityTypeMetadata> generatedTypes =
+            new LinkedHashMap<Class<?>, ResolvedEntityTypeMetadata>();
 
-    private volatile Class<?> generatedZombieClass;
+    public boolean supports(@NotNull CustomEntityBaseType baseType) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        return metadataRegistry.containsKey(baseType);
+    }
 
-    public @NotNull CustomEntityHandle<Zombie> spawn(
-            @NotNull CustomEntityDefinition<?> definition,
+    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
+            @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
-            @NotNull NativeEntityLifecycle<Zombie> lifecycle
+            @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
         Objects.requireNonNull(definition, "definition cannot be null");
         Objects.requireNonNull(spawnRequest, "spawnRequest cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
 
-        Location location = spawnRequest.location();
-        World bukkitWorld = Objects.requireNonNull(location.getWorld(), "location world cannot be null");
-        Object worldHandle = resolveWorldHandle(bukkitWorld);
-
-        Class<?> zombieSuperclass = resolveZombieSuperclass();
-        Class<?> zombieClass = generatedZombieClass(zombieSuperclass);
-        Object nmsZombie = instantiateZombie(zombieClass, worldHandle);
-        bindRuntimeLifecycle(nmsZombie, zombieSuperclass, lifecycle);
-
-        Method moveToMethod = ReflectionSupport.requireMethodBySignature(
-                zombieSuperclass,
-                void.class,
-                double.class,
-                double.class,
-                double.class,
-                float.class,
-                float.class
-        );
-        ReflectionSupport.invoke(
-                moveToMethod,
-                nmsZombie,
-                location.getX(),
-                location.getY(),
-                location.getZ(),
-                location.getYaw(),
-                location.getPitch()
-        );
-
-        ReflectionSupport.invoke(resolveAddEntityMethod(worldHandle.getClass(), zombieSuperclass), worldHandle, nmsZombie);
-
-        Zombie zombie = (Zombie) resolveBukkitEntity(nmsZombie);
-        lifecycle.bind(zombie);
-        lifecycle.onSpawn();
-        return (CustomEntityHandle<Zombie>) lifecycle.handle();
+        EntityMetadata metadata = requireMetadata(definition.baseType());
+        T entity = definition.bukkitType().cast(spawnVanillaEntity(spawnRequest.location(), metadata));
+        try {
+            ControlledEntity<T> attached = attachInternal(entity, lifecycle, metadata);
+            lifecycle.onSpawn();
+            if (!(attached instanceof CustomEntityHandle)) {
+                throw new IllegalStateException(
+                        "Spawn lifecycle did not return a CustomEntityHandle for base type '" + definition.baseType() + "'."
+                );
+            }
+            return (CustomEntityHandle<T>) attached;
+        } catch (RuntimeException exception) {
+            entity.remove();
+            throw exception;
+        }
     }
 
-    public @NotNull ControlledEntity<Zombie> attach(
-            @NotNull Zombie zombie,
-            @NotNull NativeEntityLifecycle<Zombie> lifecycle
+    public <T extends Entity> @NotNull ControlledEntity<T> attach(
+            @NotNull T entity,
+            @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
-        Objects.requireNonNull(zombie, "zombie cannot be null");
+        Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        return attachInternal(entity, lifecycle, requireMetadata(resolveBaseType(entity)));
+    }
 
-        Object currentHandle = resolveNativeHandle(zombie);
-        ControlledEntity<Zombie> existing = resolveExistingControlledEntity(currentHandle);
+    @SuppressWarnings("unchecked")
+    private <T extends Entity> @NotNull ControlledEntity<T> attachInternal(
+            @NotNull T entity,
+            @NotNull NativeEntityLifecycle<T> lifecycle,
+            @NotNull EntityMetadata metadata
+    ) {
+        Object currentHandle = resolveNativeHandle(entity);
+        ControlledEntity<?> existing = resolveExistingControlledEntity(currentHandle);
         if (existing != null) {
-            return existing;
+            return (ControlledEntity<T>) existing;
         }
 
-        Class<?> zombieSuperclass = resolveZombieSuperclass();
-        if (currentHandle.getClass() != zombieSuperclass) {
-            throw new IllegalArgumentException(
-                    "Minecraft 1.21.11 controller attachment currently supports only vanilla zombies and already-hooked Spigot Boot zombies."
-            );
-        }
-
-        Object worldHandle = resolveWorldHandle(Objects.requireNonNull(zombie.getWorld(), "zombie world cannot be null"));
-        Class<?> zombieClass = generatedZombieClass(zombieSuperclass);
-        Object replacementHandle = instantiateZombie(zombieClass, worldHandle);
-
+        ResolvedEntityTypeMetadata resolvedMetadata = resolveGeneratedTypeMetadata(metadata, currentHandle.getClass());
+        Object replacementHandle = ReflectionSupport.allocateInstance(resolvedMetadata.generatedType());
         FieldCopySupport.copyInstanceFields(currentHandle, replacementHandle);
-        bindRuntimeLifecycle(replacementHandle, zombieSuperclass, lifecycle);
-        rebindBukkitZombie(zombie, replacementHandle);
+        bindRuntimeLifecycle(replacementHandle, resolvedMetadata, lifecycle);
+        rebindBukkitZombie(entity, replacementHandle);
         replaceModernWorldReferences(currentHandle, replacementHandle);
         rewireModernVehicleAndPassengerReferences(currentHandle, replacementHandle);
-        refreshModernBukkitWrappers(zombie);
+        refreshModernBukkitWrappers(entity);
         markModernEntityRemoved(currentHandle);
-        lifecycle.bind((Zombie) resolveBukkitEntity(replacementHandle));
-        scheduleRepairPass(lifecycle, zombie, currentHandle, replacementHandle);
+        lifecycle.bind((T) resolveBukkitEntity(replacementHandle));
+        scheduleRepairPass((NativeEntityLifecycle<Entity>) lifecycle, entity, currentHandle, replacementHandle);
         return lifecycle.handle();
     }
 
-    private synchronized @NotNull Class<?> generatedZombieClass(@NotNull Class<?> zombieSuperclass) {
-        if (generatedZombieClass != null) {
-            return generatedZombieClass;
+    private synchronized @NotNull ResolvedEntityTypeMetadata resolveGeneratedTypeMetadata(
+            @NotNull EntityMetadata metadata,
+            @NotNull Class<?> nativeType
+    ) {
+        ResolvedEntityTypeMetadata resolvedMetadata = generatedTypes.get(nativeType);
+        if (resolvedMetadata != null) {
+            return resolvedMetadata;
         }
 
-        generatedZombieClass = classFactory.createSubclass(
-                zombieSuperclass,
-                GENERATED_CLASS_NAME,
-                hookBinder.hookSpecs(zombieSuperclass)
-        );
-        return generatedZombieClass;
-    }
-
-    private void bindRuntimeLifecycle(
-            @NotNull Object nativeZombie,
-            @NotNull Class<?> zombieSuperclass,
-            @NotNull NativeEntityLifecycle<Zombie> lifecycle
-    ) {
-        AbstractRuntimeControlledEntity<Zombie> controlledEntity = requireRuntimeLifecycle(lifecycle);
-        controlledEntity.bindHookBinder(hookBinder);
-        classFactory.installInterceptor(nativeZombie, hookBinder.hookSpecs(zombieSuperclass));
-        classFactory.bindLifecycle(nativeZombie, lifecycle);
-    }
-
-    private static @NotNull AbstractRuntimeControlledEntity<Zombie> requireRuntimeLifecycle(
-            @NotNull NativeEntityLifecycle<Zombie> lifecycle
-    ) {
-        ControlledEntity<Zombie> handle = lifecycle.handle();
-        if (!(handle instanceof AbstractRuntimeControlledEntity)) {
-            throw new IllegalStateException(
-                    "The runtime lifecycle handle must extend AbstractRuntimeControlledEntity for zombie attachment."
+        Collection<GeneratedNativeHookSpec> hookSpecs = hookBinder.hookSpecs(nativeType);
+        if (hookSpecs.isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "Minecraft 1.21.11 does not expose any supported hooks for base type '" + metadata.baseType() + "'."
             );
         }
-        return (AbstractRuntimeControlledEntity<Zombie>) handle;
+
+        Class<?> generatedType = classFactory.createSubclass(
+                nativeType,
+                generatedClassName(metadata, nativeType),
+                hookSpecs
+        );
+
+        resolvedMetadata = new ResolvedEntityTypeMetadata(
+                metadata,
+                nativeType,
+                generatedType,
+                hookSpecs,
+                hookBinder.supportedHooks(nativeType)
+        );
+        generatedTypes.put(nativeType, resolvedMetadata);
+        return resolvedMetadata;
     }
 
-    private static @Nullable ControlledEntity<Zombie> resolveExistingControlledEntity(@NotNull Object nativeHandle) {
+    @SuppressWarnings("unchecked")
+    private void bindRuntimeLifecycle(
+            @NotNull Object nativeEntity,
+            @NotNull ResolvedEntityTypeMetadata resolvedMetadata,
+            @NotNull NativeEntityLifecycle<?> lifecycle
+    ) {
+        AbstractRuntimeControlledEntity<?> controlledEntity = requireRuntimeLifecycle(lifecycle);
+        controlledEntity.bindHookBinder((NativeHookBinder) hookBinder);
+        classFactory.installInterceptor(nativeEntity, resolvedMetadata.hookSpecs());
+        classFactory.bindLifecycle(nativeEntity, lifecycle);
+    }
+
+    private static @NotNull AbstractRuntimeControlledEntity<?> requireRuntimeLifecycle(
+            @NotNull NativeEntityLifecycle<?> lifecycle
+    ) {
+        ControlledEntity<?> handle = lifecycle.handle();
+        if (!(handle instanceof AbstractRuntimeControlledEntity)) {
+            throw new IllegalStateException(
+                    "The runtime lifecycle handle must extend AbstractRuntimeControlledEntity for entity attachment."
+            );
+        }
+        return (AbstractRuntimeControlledEntity<?>) handle;
+    }
+
+    private static @Nullable ControlledEntity<?> resolveExistingControlledEntity(@NotNull Object nativeHandle) {
         if (!(nativeHandle instanceof LifecycleAwareNativeEntity)) {
             return null;
         }
@@ -218,54 +228,82 @@ public final class ZombieFactoryV1_21_11 {
         if (lifecycle == null || !(lifecycle.handle() instanceof ControlledEntity)) {
             return null;
         }
-        @SuppressWarnings("unchecked")
-        ControlledEntity<Zombie> controlledEntity = (ControlledEntity<Zombie>) lifecycle.handle();
-        return controlledEntity;
+        return (ControlledEntity<?>) lifecycle.handle();
     }
 
-    private static @NotNull Object resolveWorldHandle(@NotNull World bukkitWorld) {
-        Method getHandleMethod = ReflectionSupport.requireNamedMethod(
-                bukkitWorld.getClass(),
-                new String[]{"getHandle"}
-        );
-        return ReflectionSupport.invoke(getHandleMethod, bukkitWorld);
+    private static @NotNull Entity spawnVanillaEntity(
+            @NotNull Location location,
+            @NotNull EntityMetadata metadata
+    ) {
+        World world = Objects.requireNonNull(location.getWorld(), "location world cannot be null");
+        return world.spawnEntity(location.clone(), metadata.entityType());
     }
 
-    private static @NotNull Class<?> resolveZombieSuperclass() {
-        return ReflectionSupport.requireClass(
-                "net.minecraft.world.entity.monster.zombie.Zombie",
-                "net.minecraft.world.entity.monster.Zombie",
-                "net.minecraft.world.entity.monster.EntityZombie"
-        );
-    }
-
-    private static @NotNull Object instantiateZombie(@NotNull Class<?> zombieType, @NotNull Object worldHandle) {
-        try {
-            Constructor<?> constructor = ReflectionSupport.requireCompatibleConstructor(zombieType, worldHandle.getClass());
-            return ReflectionSupport.instantiate(constructor, worldHandle);
-        } catch (IllegalStateException ignored) {
-            Class<?> entityTypeClass = ReflectionSupport.requireClass("net.minecraft.world.entity.EntityType");
-            Constructor<?> constructor = ReflectionSupport.requireCompatibleConstructor(
-                    zombieType,
-                    entityTypeClass,
-                    worldHandle.getClass()
+    private @NotNull EntityMetadata requireMetadata(@NotNull CustomEntityBaseType baseType) {
+        EntityMetadata metadata = metadataRegistry.get(baseType);
+        if (metadata == null) {
+            throw new UnsupportedOperationException(
+                    "Minecraft 1.21.11 does not support spawn and attach for base type '" + baseType + "'."
             );
-            return ReflectionSupport.instantiate(constructor, resolveZombieEntityType(entityTypeClass), worldHandle);
         }
+        return metadata;
     }
 
-    private static @NotNull Object resolveZombieEntityType(@NotNull Class<?> entityTypeClass) {
-        try {
-            Field field = entityTypeClass.getField("ZOMBIE");
-            return field.get(null);
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Could not resolve EntityType.ZOMBIE for 1.21.11.", exception);
+    private static @NotNull CustomEntityBaseType resolveBaseType(@NotNull Entity entity) {
+        CustomEntityBaseType baseType = CustomEntityBaseType.fromEntityType(entity.getType());
+        if (baseType == null) {
+            throw new UnsupportedOperationException(
+                    "Could not resolve a logical base type for Bukkit entity type '" + entity.getType().name() + "'."
+            );
         }
+        return baseType;
     }
 
-    private static @NotNull Object resolveNativeHandle(@NotNull Zombie zombie) {
-        Method getHandleMethod = ReflectionSupport.requireNamedMethod(zombie.getClass(), new String[]{"getHandle"});
-        return ReflectionSupport.invoke(getHandleMethod, zombie);
+    private static @NotNull Map<CustomEntityBaseType, EntityMetadata> createMetadataRegistry() {
+        Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            EntityType entityType = baseType.entityTypeOrNull();
+            if (entityType == null || entityType.getEntityClass() == null) {
+                continue;
+            }
+            if (baseType == CustomEntityBaseType.UNKNOWN
+                    || baseType == CustomEntityBaseType.PLAYER
+                    || baseType == CustomEntityBaseType.WEATHER
+                    || baseType == CustomEntityBaseType.COMPLEX_PART) {
+                continue;
+            }
+            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+        }
+        return metadata;
+    }
+
+    private static @NotNull String generatedClassName(
+            @NotNull EntityMetadata metadata,
+            @NotNull Class<?> nativeType
+    ) {
+        return "tech.guilhermekaua.spigotboot.entity.generated.v1_21_11.SpigotBoot"
+                + toGeneratedSuffix(metadata.baseType())
+                + "V1_21_11_"
+                + Integer.toHexString(nativeType.getName().hashCode()).replace('-', '0');
+    }
+
+    private static @NotNull String toGeneratedSuffix(@NotNull CustomEntityBaseType baseType) {
+        StringBuilder suffix = new StringBuilder();
+        for (String token : baseType.name().toLowerCase().split("_")) {
+            if (token.isEmpty()) {
+                continue;
+            }
+            suffix.append(Character.toUpperCase(token.charAt(0)));
+            if (token.length() > 1) {
+                suffix.append(token.substring(1));
+            }
+        }
+        return suffix.toString();
+    }
+
+    private static @NotNull Object resolveNativeHandle(@NotNull Entity entity) {
+        Method getHandleMethod = ReflectionSupport.requireNamedMethod(entity.getClass(), new String[]{"getHandle"});
+        return ReflectionSupport.invoke(getHandleMethod, entity);
     }
 
     private static @NotNull Entity resolveBukkitEntity(@NotNull Object nmsEntity) {
@@ -276,36 +314,13 @@ public final class ZombieFactoryV1_21_11 {
         return (Entity) ReflectionSupport.invoke(getBukkitEntityMethod, nmsEntity);
     }
 
-    private static @NotNull Method resolveAddEntityMethod(@NotNull Class<?> worldType, @NotNull Class<?> entityType) {
-        List<String> candidateNames = new ArrayList<String>();
-        candidateNames.add("addFreshEntity");
-        candidateNames.add("addEntity");
-
-        Class<?> current = worldType;
-        while (current != null) {
-            for (Method method : current.getDeclaredMethods()) {
-                if (!candidateNames.contains(method.getName())) {
-                    continue;
-                }
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                if (parameterTypes.length != 1 || !parameterTypes[0].isAssignableFrom(entityType)) {
-                    continue;
-                }
-                method.setAccessible(true);
-                return method;
-            }
-            current = current.getSuperclass();
-        }
-        throw new IllegalStateException("Could not resolve ServerLevel#addFreshEntity(Entity) for 1.21.11.");
-    }
-
-    private static void rebindBukkitZombie(@NotNull Zombie zombie, @NotNull Object replacementHandle) {
+    private static void rebindBukkitZombie(@NotNull Entity Entity, @NotNull Object replacementHandle) {
         Method setHandleMethod = ReflectionSupport.requireCompatibleMethod(
-                zombie.getClass(),
+                Entity.getClass(),
                 new String[]{"setHandle"},
                 replacementHandle.getClass()
         );
-        ReflectionSupport.invoke(setHandleMethod, zombie, replacementHandle);
+        ReflectionSupport.invoke(setHandleMethod, Entity, replacementHandle);
     }
 
     private static void replaceModernWorldReferences(@NotNull Object oldHandle, @NotNull Object replacementHandle) {
@@ -413,6 +428,8 @@ public final class ZombieFactoryV1_21_11 {
         }
 
         updateTrackedEntity(level, oldHandle, replacementHandle, entityId);
+        rebindModernLevelCallback(oldHandle, replacementHandle);
+        replaceModernLifecycleCollections(level, oldHandle, replacementHandle);
     }
 
     private static void updateTrackedEntity(
@@ -455,6 +472,295 @@ public final class ZombieFactoryV1_21_11 {
         ReflectionSupport.invoke(setTrackedEntityMethod, oldHandle, (Object) null);
     }
 
+    private static void rebindModernLevelCallback(@NotNull Object oldHandle, @NotNull Object replacementHandle) {
+        Field levelCallbackField = ReflectionSupport.findField(oldHandle.getClass(), "levelCallback");
+        if (levelCallbackField == null) {
+            return;
+        }
+
+        Object oldLevelCallback = ReflectionSupport.readField(levelCallbackField, oldHandle);
+        if (oldLevelCallback == null) {
+            return;
+        }
+
+        migrateModernSectionMembership(oldLevelCallback, oldHandle, replacementHandle);
+
+        Object replacementLevelCallback = retargetModernSectionCallback(
+                oldLevelCallback,
+                oldHandle,
+                replacementHandle
+        );
+        if (replacementLevelCallback == null) {
+            replacementLevelCallback = recreateModernSectionCallback(oldLevelCallback, replacementHandle);
+        }
+        if (replacementLevelCallback == null) {
+            return;
+        }
+
+        Method setReplacementLevelCallbackMethod = ReflectionSupport.requireCompatibleMethod(
+                replacementHandle.getClass(),
+                new String[]{"setLevelCallback"},
+                replacementLevelCallback.getClass()
+        );
+        ReflectionSupport.invoke(setReplacementLevelCallbackMethod, replacementHandle, replacementLevelCallback);
+
+        Class<?> entityInLevelCallbackType = ReflectionSupport.requireClass(
+                "net.minecraft.world.level.entity.EntityInLevelCallback"
+        );
+        Object nullLevelCallback = ReflectionSupport.readField(
+                ReflectionSupport.requireField(entityInLevelCallbackType, "NULL"),
+                null
+        );
+        Method clearOldLevelCallbackMethod = ReflectionSupport.requireCompatibleMethod(
+                oldHandle.getClass(),
+                new String[]{"setLevelCallback"},
+                nullLevelCallback.getClass()
+        );
+        ReflectionSupport.invoke(clearOldLevelCallbackMethod, oldHandle, nullLevelCallback);
+    }
+
+    static @Nullable Object retargetModernSectionCallback(
+            @Nullable Object oldLevelCallback,
+            @NotNull Object oldHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(oldHandle, "oldHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        if (oldLevelCallback == null) {
+            return null;
+        }
+
+        Field entityField = ReflectionSupport.findField(oldLevelCallback.getClass(), "entity");
+        if (entityField == null) {
+            return null;
+        }
+
+        Object callbackEntity = ReflectionSupport.readField(entityField, oldLevelCallback);
+        if (callbackEntity != oldHandle) {
+            return null;
+        }
+        if (!entityField.getType().isAssignableFrom(replacementHandle.getClass())) {
+            return null;
+        }
+
+        ReflectionSupport.writeField(entityField, oldLevelCallback, replacementHandle);
+        return oldLevelCallback;
+    }
+
+    static @Nullable Object recreateModernSectionCallback(
+            @Nullable Object oldLevelCallback,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        if (oldLevelCallback == null) {
+            return null;
+        }
+
+        Field entityField = ReflectionSupport.findField(oldLevelCallback.getClass(), "entity");
+        Field managerField = ReflectionSupport.findField(oldLevelCallback.getClass(), "this$0");
+        Field currentSectionKeyField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSectionKey");
+        Field currentSectionField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSection");
+        if (entityField == null || managerField == null || currentSectionKeyField == null || currentSectionField == null) {
+            return null;
+        }
+
+        Object manager = ReflectionSupport.readField(managerField, oldLevelCallback);
+        Object currentSectionKey = ReflectionSupport.readField(currentSectionKeyField, oldLevelCallback);
+        Object currentSection = ReflectionSupport.readField(currentSectionField, oldLevelCallback);
+        if (!(currentSectionKey instanceof Long)) {
+            return null;
+        }
+
+        Constructor<?> callbackConstructor = findModernSectionCallbackConstructor(
+                oldLevelCallback.getClass(),
+                manager,
+                replacementHandle,
+                currentSection
+        );
+        if (callbackConstructor == null) {
+            return null;
+        }
+
+        return ReflectionSupport.instantiate(
+                callbackConstructor,
+                manager,
+                replacementHandle,
+                Long.valueOf(((Long) currentSectionKey).longValue()),
+                currentSection
+        );
+    }
+
+    private static @Nullable Constructor<?> findModernSectionCallbackConstructor(
+            @NotNull Class<?> callbackType,
+            @Nullable Object manager,
+            @NotNull Object replacementHandle,
+            @Nullable Object currentSection
+    ) {
+        for (Constructor<?> constructor : callbackType.getDeclaredConstructors()) {
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            if (parameterTypes.length != 4) {
+                continue;
+            }
+            if (manager == null || !parameterTypes[0].isAssignableFrom(manager.getClass())) {
+                continue;
+            }
+            if (!parameterTypes[1].isAssignableFrom(replacementHandle.getClass())) {
+                continue;
+            }
+            if (!(parameterTypes[2] == long.class || parameterTypes[2] == Long.class)) {
+                continue;
+            }
+            if (currentSection != null && !parameterTypes[3].isAssignableFrom(currentSection.getClass())) {
+                continue;
+            }
+            constructor.setAccessible(true);
+            return constructor;
+        }
+        return null;
+    }
+
+    static void migrateModernSectionMembership(
+            @Nullable Object oldLevelCallback,
+            @NotNull Object oldHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(oldHandle, "oldHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        if (oldLevelCallback == null) {
+            return;
+        }
+
+        Field currentSectionField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSection");
+        if (currentSectionField == null) {
+            return;
+        }
+
+        Object currentSection = ReflectionSupport.readField(currentSectionField, oldLevelCallback);
+        if (currentSection == null) {
+            return;
+        }
+
+        Method removeMethod = ReflectionSupport.findCompatibleMethod(
+                currentSection.getClass(),
+                new String[]{"remove"},
+                oldHandle.getClass()
+        );
+        Method addMethod = ReflectionSupport.findCompatibleMethod(
+                currentSection.getClass(),
+                new String[]{"add"},
+                replacementHandle.getClass()
+        );
+        if (removeMethod == null || addMethod == null) {
+            return;
+        }
+
+        boolean removed = Boolean.TRUE.equals(ReflectionSupport.invoke(removeMethod, currentSection, oldHandle));
+        if (removed || !containsManagedEntry(currentSection, replacementHandle)) {
+            ReflectionSupport.invoke(addMethod, currentSection, replacementHandle);
+        }
+    }
+
+    private static void replaceModernLifecycleCollections(
+            @NotNull Object level,
+            @NotNull Object oldHandle,
+            @NotNull Object replacementHandle
+    ) {
+        replaceManagedCollectionField(level, "entityTickList", oldHandle, replacementHandle);
+        replaceManagedCollectionField(level, "navigatingMobs", oldHandle, replacementHandle);
+    }
+
+    private static void replaceManagedCollectionField(
+            @NotNull Object owner,
+            @NotNull String fieldName,
+            @NotNull Object oldValue,
+            @NotNull Object newValue
+    ) {
+        Field field = ReflectionSupport.findField(owner.getClass(), fieldName);
+        if (field == null) {
+            return;
+        }
+
+        Object collection = ReflectionSupport.readField(field, owner);
+        replaceManagedCollectionEntry(collection, oldValue, newValue);
+    }
+
+    static void replaceManagedCollectionEntry(
+            @Nullable Object collection,
+            @NotNull Object oldValue,
+            @NotNull Object newValue
+    ) {
+        Objects.requireNonNull(oldValue, "oldValue cannot be null");
+        Objects.requireNonNull(newValue, "newValue cannot be null");
+        if (collection == null || !containsManagedEntry(collection, oldValue)) {
+            return;
+        }
+
+        Method removeMethod = ReflectionSupport.findCompatibleMethod(
+                collection.getClass(),
+                new String[]{"remove"},
+                oldValue.getClass()
+        );
+        Method addMethod = ReflectionSupport.findCompatibleMethod(
+                collection.getClass(),
+                new String[]{"add"},
+                newValue.getClass()
+        );
+        if (removeMethod != null && addMethod != null) {
+            ReflectionSupport.invoke(removeMethod, collection, oldValue);
+            ReflectionSupport.invoke(addMethod, collection, newValue);
+            return;
+        }
+
+        if (collection instanceof Collection) {
+            @SuppressWarnings("unchecked")
+            Collection<Object> values = (Collection<Object>) collection;
+            if (values.remove(oldValue)) {
+                values.add(newValue);
+            }
+        }
+    }
+
+    private static boolean containsManagedEntry(@Nullable Object collection, @NotNull Object value) {
+        Objects.requireNonNull(value, "value cannot be null");
+        if (collection == null) {
+            return false;
+        }
+
+        Method containsMethod = ReflectionSupport.findCompatibleMethod(
+                collection.getClass(),
+                new String[]{"contains"},
+                value.getClass()
+        );
+        if (containsMethod != null) {
+            Object result = ReflectionSupport.invoke(containsMethod, collection, value);
+            return result instanceof Boolean && ((Boolean) result).booleanValue();
+        }
+
+        if (collection instanceof Collection) {
+            return ((Collection<?>) collection).contains(value);
+        }
+
+        Method getEntitiesMethod = ReflectionSupport.findNamedMethod(collection.getClass(), new String[]{"getEntities"});
+        if (getEntitiesMethod == null) {
+            return false;
+        }
+
+        Object entities = ReflectionSupport.invoke(getEntitiesMethod, collection);
+        if (entities instanceof Stream) {
+            try (Stream<?> stream = (Stream<?>) entities) {
+                return stream.anyMatch(candidate -> candidate == value);
+            }
+        }
+        if (entities instanceof Iterable) {
+            for (Object candidate : (Iterable<?>) entities) {
+                if (candidate == value) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static void rewireModernVehicleAndPassengerReferences(
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
@@ -494,10 +800,10 @@ public final class ZombieFactoryV1_21_11 {
         return ReflectionSupport.invoke(copyOfMethod, null, passengers);
     }
 
-    private static void refreshModernBukkitWrappers(@NotNull Zombie zombie) {
-        Field equipmentField = ReflectionSupport.findField(zombie.getClass(), "equipment");
+    private static void refreshModernBukkitWrappers(@NotNull Entity Entity) {
+        Field equipmentField = ReflectionSupport.findField(Entity.getClass(), "equipment");
         if (equipmentField != null) {
-            ReflectionSupport.writeField(equipmentField, zombie, null);
+            ReflectionSupport.writeField(equipmentField, Entity, null);
         }
     }
 
@@ -513,23 +819,83 @@ public final class ZombieFactoryV1_21_11 {
     }
 
     private void scheduleRepairPass(
-            @NotNull NativeEntityLifecycle<Zombie> lifecycle,
-            @NotNull Zombie zombie,
+            @NotNull NativeEntityLifecycle<Entity> lifecycle,
+            @NotNull Entity entity,
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
         requireRuntimeLifecycle(lifecycle).scheduleNextTickRepair(new Runnable() {
             @Override
             public void run() {
-                rebindBukkitZombie(zombie, replacementHandle);
+                rebindBukkitZombie(entity, replacementHandle);
                 replaceModernWorldReferences(oldHandle, replacementHandle);
                 rewireModernVehicleAndPassengerReferences(oldHandle, replacementHandle);
-                refreshModernBukkitWrappers(zombie);
+                refreshModernBukkitWrappers(entity);
             }
         });
     }
 
-    private final class ZombieHookBinderV1_21_11 implements NativeHookBinder<Zombie> {
+    private static final class EntityMetadata {
+        private final CustomEntityBaseType baseType;
+        private final EntityType entityType;
+
+        private EntityMetadata(@NotNull CustomEntityBaseType baseType, @NotNull EntityType entityType) {
+            this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
+            this.entityType = Objects.requireNonNull(entityType, "entityType cannot be null");
+        }
+
+        public @NotNull CustomEntityBaseType baseType() {
+            return baseType;
+        }
+
+        public @NotNull EntityType entityType() {
+            return entityType;
+        }
+    }
+
+    private static final class ResolvedEntityTypeMetadata {
+        private final EntityMetadata metadata;
+        private final Class<?> nativeType;
+        private final Class<?> generatedType;
+        private final Collection<GeneratedNativeHookSpec> hookSpecs;
+        private final EnumSet<LogicalEntityHook> supportedHooks;
+
+        private ResolvedEntityTypeMetadata(
+                @NotNull EntityMetadata metadata,
+                @NotNull Class<?> nativeType,
+                @NotNull Class<?> generatedType,
+                @NotNull Collection<GeneratedNativeHookSpec> hookSpecs,
+                @NotNull EnumSet<LogicalEntityHook> supportedHooks
+        ) {
+            this.metadata = Objects.requireNonNull(metadata, "metadata cannot be null");
+            this.nativeType = Objects.requireNonNull(nativeType, "nativeType cannot be null");
+            this.generatedType = Objects.requireNonNull(generatedType, "generatedType cannot be null");
+            this.hookSpecs = Objects.requireNonNull(hookSpecs, "hookSpecs cannot be null");
+            this.supportedHooks = Objects.requireNonNull(supportedHooks, "supportedHooks cannot be null");
+        }
+
+        public @NotNull EntityMetadata metadata() {
+            return metadata;
+        }
+
+        public @NotNull Class<?> nativeType() {
+            return nativeType;
+        }
+
+        public @NotNull Class<?> generatedType() {
+            return generatedType;
+        }
+
+        public @NotNull Collection<GeneratedNativeHookSpec> hookSpecs() {
+            return hookSpecs;
+        }
+
+        public @NotNull EnumSet<LogicalEntityHook> supportedHooks() {
+            return supportedHooks.clone();
+        }
+    }
+
+    private final class EntityHookBinderV1_21_11 implements NativeHookBinder<Entity> {
         private final Class<?> entityType = ReflectionSupport.requireClass("net.minecraft.world.entity.Entity");
         private final Class<?> moverType = ReflectionSupport.requireClass("net.minecraft.world.entity.MoverType");
         private final Class<?> vec3Type = ReflectionSupport.requireClass("net.minecraft.world.phys.Vec3");
@@ -553,68 +919,26 @@ public final class ZombieFactoryV1_21_11 {
         private final Method interactionResultSuccessSwingSourceMethod =
                 ReflectionSupport.requireNamedMethod(interactionResultSuccessType, new String[]{"swingSource"});
 
+        public @NotNull EnumSet<LogicalEntityHook> supportedHooks(@NotNull Class<?> nativeType) {
+            return resolveHookCatalog(nativeType).supportedHooks();
+        }
+
         @Override
         public @NotNull Collection<GeneratedNativeHookSpec> hookSpecs(@NotNull Class<?> nativeType) {
-            List<GeneratedNativeHookSpec> hookSpecs = new ArrayList<GeneratedNativeHookSpec>();
-            hookSpecs.add(GeneratedNativeHookSpec.of(HOOK_TICK, ReflectionSupport.requireNamedMethod(nativeType, new String[]{"tick"})));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_MOVE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"move"}, moverType, vec3Type)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_PUSH,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"push"}, double.class, double.class, double.class)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_DAMAGE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"hurtServer"}, serverLevelType, damageSourceType, float.class)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_INTERACT,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"interact"}, playerType, interactionHandType)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_DIE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"die"}, damageSourceType)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_REMOVE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"remove"}, removalReasonType)
-            ));
-            Method removeWithCauseMethod = requireMethodByNameAndCount(nativeType, "remove", 2);
-            if (removeWithCauseMethod != null) {
-                hookSpecs.add(GeneratedNativeHookSpec.of(HOOK_REMOVE_WITH_CAUSE, removeWithCauseMethod));
-            }
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_COLLIDE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"push"}, entityType)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_POSITION_PASSENGER,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"positionRider"}, entityType, moveFunctionType)
-            ));
-            hookSpecs.add(GeneratedNativeHookSpec.of(
-                    HOOK_INVENTORY_CHANGE,
-                    ReflectionSupport.requireNamedMethod(nativeType, new String[]{"onEquipItem"}, equipmentSlotType, itemStackType, itemStackType)
-            ));
-            Method inventoryChangeSilentMethod = requireMethodByNameAndCount(nativeType, "onEquipItem", 4);
-            if (inventoryChangeSilentMethod != null) {
-                hookSpecs.add(GeneratedNativeHookSpec.of(HOOK_INVENTORY_CHANGE_SILENT, inventoryChangeSilentMethod));
-            }
-            return hookSpecs;
+            return resolveHookCatalog(nativeType).hookSpecs();
         }
 
         @Override
         public @Nullable Object dispatch(
-                @NotNull AbstractRuntimeControlledEntity<Zombie> controlledEntity,
+                @NotNull AbstractRuntimeControlledEntity<Entity> controlledEntity,
                 @NotNull LifecycleAwareNativeEntity nativeEntity,
                 @NotNull String hookName,
                 @Nullable Object[] arguments
         ) {
             if (HOOK_TICK.equals(hookName)) {
-                controlledEntity.dispatchTick(new ContextualBaseInvoker<EntityTickContext<Zombie>, Void>() {
+                controlledEntity.dispatchTick(new ContextualBaseInvoker<EntityTickContext<Entity>, Void>() {
                     @Override
-                    public Void invoke(@NotNull EntityTickContext<Zombie> context) {
+                    public Void invoke(@NotNull EntityTickContext<Entity> context) {
                         nativeEntity.spigotBootInvokeBase(HOOK_TICK, EMPTY_ARGUMENTS);
                         return null;
                     }
@@ -628,9 +952,9 @@ public final class ZombieFactoryV1_21_11 {
                         resolveVecX(rawArguments[1]),
                         resolveVecY(rawArguments[1]),
                         resolveVecZ(rawArguments[1]),
-                        new ContextualBaseInvoker<EntityMoveContext<Zombie>, Void>() {
+                        new ContextualBaseInvoker<EntityMoveContext<Entity>, Void>() {
                             @Override
-                            public Void invoke(@NotNull EntityMoveContext<Zombie> context) {
+                            public Void invoke(@NotNull EntityMoveContext<Entity> context) {
                                 nativeEntity.spigotBootInvokeBase(
                                         HOOK_MOVE,
                                         new Object[]{rawArguments[0], createVec3(context.x(), context.y(), context.z())}
@@ -648,9 +972,9 @@ public final class ZombieFactoryV1_21_11 {
                         ((Double) rawArguments[0]).doubleValue(),
                         ((Double) rawArguments[1]).doubleValue(),
                         ((Double) rawArguments[2]).doubleValue(),
-                        new ContextualBaseInvoker<EntityPushContext<Zombie>, Void>() {
+                        new ContextualBaseInvoker<EntityPushContext<Entity>, Void>() {
                             @Override
-                            public Void invoke(@NotNull EntityPushContext<Zombie> context) {
+                            public Void invoke(@NotNull EntityPushContext<Entity> context) {
                                 nativeEntity.spigotBootInvokeBase(
                                         HOOK_PUSH,
                                         new Object[]{
@@ -670,9 +994,9 @@ public final class ZombieFactoryV1_21_11 {
                 Object[] rawArguments = requireArguments(arguments, 3);
                 return Boolean.valueOf(controlledEntity.dispatchDamage(
                         ((Float) rawArguments[2]).floatValue(),
-                        new ContextualBaseInvoker<EntityDamageContext<Zombie>, Boolean>() {
+                        new ContextualBaseInvoker<EntityDamageContext<Entity>, Boolean>() {
                             @Override
-                            public Boolean invoke(@NotNull EntityDamageContext<Zombie> context) {
+                            public Boolean invoke(@NotNull EntityDamageContext<Entity> context) {
                                 Object result = nativeEntity.spigotBootInvokeBase(
                                         HOOK_DAMAGE,
                                         new Object[]{rawArguments[0], rawArguments[1], Float.valueOf(context.amount())}
@@ -690,9 +1014,9 @@ public final class ZombieFactoryV1_21_11 {
                 EntityInteractionResult result = controlledEntity.dispatchInteract(
                         player,
                         toApiHand(rawArguments[1]),
-                        new ContextualBaseInvoker<EntityInteractContext<Zombie>, EntityInteractionResult>() {
+                        new ContextualBaseInvoker<EntityInteractContext<Entity>, EntityInteractionResult>() {
                             @Override
-                            public EntityInteractionResult invoke(@NotNull EntityInteractContext<Zombie> context) {
+                            public EntityInteractionResult invoke(@NotNull EntityInteractContext<Entity> context) {
                                 Object baseResult = nativeEntity.spigotBootInvokeBase(
                                         HOOK_INTERACT,
                                         new Object[]{rawArguments[0], rawArguments[1]}
@@ -707,9 +1031,9 @@ public final class ZombieFactoryV1_21_11 {
 
             if (HOOK_DIE.equals(hookName)) {
                 Object[] rawArguments = requireArguments(arguments, 1);
-                controlledEntity.dispatchDie(new ContextualBaseInvoker<EntityDieContext<Zombie>, Void>() {
+                controlledEntity.dispatchDie(new ContextualBaseInvoker<EntityDieContext<Entity>, Void>() {
                     @Override
-                    public Void invoke(@NotNull EntityDieContext<Zombie> context) {
+                    public Void invoke(@NotNull EntityDieContext<Entity> context) {
                         nativeEntity.spigotBootInvokeBase(HOOK_DIE, new Object[]{rawArguments[0]});
                         return null;
                     }
@@ -719,9 +1043,9 @@ public final class ZombieFactoryV1_21_11 {
 
             if (HOOK_REMOVE.equals(hookName) || HOOK_REMOVE_WITH_CAUSE.equals(hookName)) {
                 Object[] rawArguments = requireArguments(arguments, HOOK_REMOVE.equals(hookName) ? 1 : 2);
-                controlledEntity.dispatchRemove(new ContextualBaseInvoker<EntityRemoveContext<Zombie>, Void>() {
+                controlledEntity.dispatchRemove(new ContextualBaseInvoker<EntityRemoveContext<Entity>, Void>() {
                     @Override
-                    public Void invoke(@NotNull EntityRemoveContext<Zombie> context) {
+                    public Void invoke(@NotNull EntityRemoveContext<Entity> context) {
                         nativeEntity.spigotBootInvokeBase(hookName, rawArguments);
                         return null;
                     }
@@ -733,9 +1057,9 @@ public final class ZombieFactoryV1_21_11 {
                 Object[] rawArguments = requireArguments(arguments, 1);
                 controlledEntity.dispatchCollide(
                         resolveBukkitEntity(rawArguments[0]),
-                        new ContextualBaseInvoker<EntityCollideContext<Zombie>, Void>() {
+                        new ContextualBaseInvoker<EntityCollideContext<Entity>, Void>() {
                             @Override
-                            public Void invoke(@NotNull EntityCollideContext<Zombie> context) {
+                            public Void invoke(@NotNull EntityCollideContext<Entity> context) {
                                 nativeEntity.spigotBootInvokeBase(HOOK_COLLIDE, new Object[]{rawArguments[0]});
                                 return null;
                             }
@@ -748,9 +1072,9 @@ public final class ZombieFactoryV1_21_11 {
                 Object[] rawArguments = requireArguments(arguments, 2);
                 controlledEntity.dispatchPositionPassenger(
                         resolveBukkitEntity(rawArguments[0]),
-                        new ContextualBaseInvoker<EntityPositionPassengerContext<Zombie>, Void>() {
+                        new ContextualBaseInvoker<EntityPositionPassengerContext<Entity>, Void>() {
                             @Override
-                            public Void invoke(@NotNull EntityPositionPassengerContext<Zombie> context) {
+                            public Void invoke(@NotNull EntityPositionPassengerContext<Entity> context) {
                                 nativeEntity.spigotBootInvokeBase(HOOK_POSITION_PASSENGER, rawArguments);
                                 return null;
                             }
@@ -765,9 +1089,9 @@ public final class ZombieFactoryV1_21_11 {
                         toApiEquipmentSlot(rawArguments[0]),
                         toBukkitItem(rawArguments[1]),
                         toBukkitItem(rawArguments[2]),
-                        new ContextualBaseInvoker<EntityInventoryChangeContext<Zombie>, Void>() {
+                        new ContextualBaseInvoker<EntityInventoryChangeContext<Entity>, Void>() {
                             @Override
-                            public Void invoke(@NotNull EntityInventoryChangeContext<Zombie> context) {
+                            public Void invoke(@NotNull EntityInventoryChangeContext<Entity> context) {
                                 if (HOOK_INVENTORY_CHANGE_SILENT.equals(hookName)) {
                                     nativeEntity.spigotBootInvokeBase(
                                             HOOK_INVENTORY_CHANGE_SILENT,
@@ -795,7 +1119,7 @@ public final class ZombieFactoryV1_21_11 {
                 return null;
             }
 
-            throw new IllegalArgumentException("Unknown 1.21.11 zombie hook: " + hookName);
+            throw new IllegalArgumentException("Unknown 1.21.11 Entity hook: " + hookName);
         }
 
         private @Nullable Method requireMethodByNameAndCount(
@@ -814,6 +1138,133 @@ public final class ZombieFactoryV1_21_11 {
                 current = current.getSuperclass();
             }
             return null;
+        }
+
+        private @NotNull ResolvedHookCatalog resolveHookCatalog(@NotNull Class<?> nativeType) {
+            List<GeneratedNativeHookSpec> hookSpecs = new ArrayList<GeneratedNativeHookSpec>();
+            EnumSet<LogicalEntityHook> supportedHooks = EnumSet.noneOf(LogicalEntityHook.class);
+
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.TICK,
+                    HOOK_TICK,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"tick"})
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.MOVE,
+                    HOOK_MOVE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"move"}, moverType, vec3Type)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.PUSH,
+                    HOOK_PUSH,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"push"}, double.class, double.class, double.class)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.DAMAGE,
+                    HOOK_DAMAGE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"hurtServer"}, serverLevelType, damageSourceType, float.class)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.INTERACT,
+                    HOOK_INTERACT,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"interact"}, playerType, interactionHandType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.DIE,
+                    HOOK_DIE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"die"}, damageSourceType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.REMOVE,
+                    HOOK_REMOVE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"remove"}, removalReasonType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.REMOVE,
+                    HOOK_REMOVE_WITH_CAUSE,
+                    requireMethodByNameAndCount(nativeType, "remove", 2)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.COLLIDE,
+                    HOOK_COLLIDE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"push"}, entityType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.POSITION_PASSENGER,
+                    HOOK_POSITION_PASSENGER,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"positionRider"}, entityType, moveFunctionType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.INVENTORY_CHANGE,
+                    HOOK_INVENTORY_CHANGE,
+                    ReflectionSupport.findNamedMethod(nativeType, new String[]{"onEquipItem"}, equipmentSlotType, itemStackType, itemStackType)
+            );
+            addHookSpec(
+                    hookSpecs,
+                    supportedHooks,
+                    LogicalEntityHook.INVENTORY_CHANGE,
+                    HOOK_INVENTORY_CHANGE_SILENT,
+                    requireMethodByNameAndCount(nativeType, "onEquipItem", 4)
+            );
+
+            return new ResolvedHookCatalog(hookSpecs, supportedHooks);
+        }
+
+        private void addHookSpec(
+                @NotNull List<GeneratedNativeHookSpec> hookSpecs,
+                @NotNull EnumSet<LogicalEntityHook> supportedHooks,
+                @NotNull LogicalEntityHook logicalHook,
+                @NotNull String hookName,
+                @Nullable Method method
+        ) {
+            if (method == null) {
+                return;
+            }
+            hookSpecs.add(GeneratedNativeHookSpec.of(hookName, method));
+            supportedHooks.add(logicalHook);
+        }
+
+        private final class ResolvedHookCatalog {
+            private final Collection<GeneratedNativeHookSpec> hookSpecs;
+            private final EnumSet<LogicalEntityHook> supportedHooks;
+
+            private ResolvedHookCatalog(
+                    @NotNull Collection<GeneratedNativeHookSpec> hookSpecs,
+                    @NotNull EnumSet<LogicalEntityHook> supportedHooks
+            ) {
+                this.hookSpecs = Objects.requireNonNull(hookSpecs, "hookSpecs cannot be null");
+                this.supportedHooks = Objects.requireNonNull(supportedHooks, "supportedHooks cannot be null");
+            }
+
+            public @NotNull Collection<GeneratedNativeHookSpec> hookSpecs() {
+                return hookSpecs;
+            }
+
+            public @NotNull EnumSet<LogicalEntityHook> supportedHooks() {
+                return supportedHooks.clone();
+            }
         }
 
         private @NotNull Object[] requireArguments(@Nullable Object[] arguments, int expectedLength) {

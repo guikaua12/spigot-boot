@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public class RuntimeNativeEntityLifecycle<T extends LivingEntity>
+public class RuntimeNativeEntityLifecycle<T extends Entity>
         extends RuntimeAttachedEntityLifecycle<T> implements CustomEntityHandle<T> {
     private final CustomEntityDefinition<T> definition;
     private final CustomEntitySpawnRequest spawnRequest;

@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * @since 2.0.2
  */
 @FunctionalInterface
-public interface CustomEntityInitializer<T extends LivingEntity> {
+public interface CustomEntityInitializer<T extends Entity> {
 
     /**
      * Initializes the supplied entity before controller spawn hooks run.
@@ -47,7 +47,7 @@ public interface CustomEntityInitializer<T extends LivingEntity> {
      * @param <T> the Bukkit entity type
      * @return a no-op initializer
      */
-    static <T extends LivingEntity> @NotNull CustomEntityInitializer<T> noop() {
+    static <T extends Entity> @NotNull CustomEntityInitializer<T> noop() {
         return new CustomEntityInitializer<T>() {
             @Override
             public void initialize(@NotNull CustomEntityContext<T> context) {

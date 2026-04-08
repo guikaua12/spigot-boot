@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.controller;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import tech.guilhermekaua.spigotboot.entity.api.EntityController;
 
 /**
@@ -30,14 +30,14 @@ import tech.guilhermekaua.spigotboot.entity.api.EntityController;
  *
  * @since 2.0.2
  */
-public final class PassThroughEntityController extends EntityController<LivingEntity> {
+public final class PassThroughEntityController extends EntityController<Entity> {
     private static final PassThroughEntityController INSTANCE = new PassThroughEntityController();
 
     private PassThroughEntityController() {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends LivingEntity> EntityController<T> instance() {
+    public static <T extends Entity> EntityController<T> instance() {
         return (EntityController<T>) INSTANCE;
     }
 }

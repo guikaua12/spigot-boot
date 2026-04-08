@@ -23,7 +23,6 @@
 package tech.guilhermekaua.spigotboot.entity.api;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public final class EntityPositionPassengerContext<T extends LivingEntity> extends AbstractEntityHookContext<T, Void> {
+public final class EntityPositionPassengerContext<T extends Entity> extends AbstractEntityHookContext<T, Void> {
     private final Entity passenger;
 
     /**

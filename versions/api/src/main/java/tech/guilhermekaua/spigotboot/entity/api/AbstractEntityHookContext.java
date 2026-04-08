@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +35,7 @@ import java.util.Objects;
  * @param <R> the hook return type
  * @since 2.0.2
  */
-public abstract class AbstractEntityHookContext<T extends LivingEntity, R> implements ControlledEntity<T> {
+public abstract class AbstractEntityHookContext<T extends Entity, R> implements ControlledEntity<T> {
     private final ControlledEntity<T> entity;
     private final EntityBaseInvoker<R> base;
 

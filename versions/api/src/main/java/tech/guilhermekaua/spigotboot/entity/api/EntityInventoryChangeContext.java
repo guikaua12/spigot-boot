@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +35,7 @@ import java.util.Objects;
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
  */
-public final class EntityInventoryChangeContext<T extends LivingEntity> extends AbstractEntityHookContext<T, Void> {
+public final class EntityInventoryChangeContext<T extends Entity> extends AbstractEntityHookContext<T, Void> {
     private final EntityEquipmentSlot slot;
     private ItemStack previousItem;
     private ItemStack newItem;

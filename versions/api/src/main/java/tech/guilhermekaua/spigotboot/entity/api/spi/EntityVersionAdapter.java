@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api.spi;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
@@ -82,7 +82,7 @@ public interface EntityVersionAdapter {
      * @param <T> the Bukkit entity type exposed to plugin code
      * @return the live entity handle
      */
-    <T extends LivingEntity> @NotNull CustomEntityHandle<T> spawn(
+    <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
             @NotNull CustomEntityDefinition<T> definition,
             @NotNull CustomEntitySpawnRequest spawnRequest,
             @NotNull NativeEntityLifecycle<T> lifecycle
@@ -96,7 +96,7 @@ public interface EntityVersionAdapter {
      * @param <T> the Bukkit entity type exposed to plugin code
      * @return the live controlled entity
      */
-    <T extends LivingEntity> @NotNull ControlledEntity<T> attach(
+    <T extends Entity> @NotNull ControlledEntity<T> attach(
             @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     );
