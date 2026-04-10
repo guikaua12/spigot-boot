@@ -24,62 +24,53 @@ package tech.guilhermekaua.spigotboot.entity.runtime.lifecycle;
 
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnContext;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
-import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
-import tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Runtime bridge shared between spawned custom entities and the shared controller pipeline.
+ * Immutable spawn-time context used to create the controller for one spawn.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
- * @since 2.0.2
  */
-public class RuntimeNativeEntityLifecycle<T extends Entity>
-        extends AbstractRuntimeControlledEntity<T>
-        implements SpawnedEntity<T>, CustomEntityContext<T>, CustomEntityHandle<T> {
+final class RuntimeSpawnContext<T extends Entity> implements SpawnContext<T>, CustomEntitySpawnContext<T> {
     private final EntityTemplate<T> template;
     private final SpawnOptions spawnOptions;
-    private final RuntimeSpawnContext<T> spawnContext;
-    private final AtomicBoolean spawned;
+    private final MinecraftVersion minecraftVersion;
 
-    public RuntimeNativeEntityLifecycle(
+    RuntimeSpawnContext(
             @NotNull EntityTemplate<T> template,
             @NotNull SpawnOptions spawnOptions,
             @NotNull MinecraftVersion minecraftVersion
     ) {
-        super(
-                template.baseType(),
-                minecraftVersion,
-                PassThroughEntityController.instance()
-        );
         this.template = Objects.requireNonNull(template, "template cannot be null");
         this.spawnOptions = Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
-        this.spawnContext = new RuntimeSpawnContext<T>(template, spawnOptions, minecraftVersion);
-        this.spawned = new AtomicBoolean(false);
-        setController(template.controllerFactory().create(spawnContext));
-    }
-
-    @Override
-    public void onSpawn() {
-        if (!spawned.compareAndSet(false, true)) {
-            return;
-        }
-        template.initializer().initialize(this);
-        if (!isRemoved()) {
-            controller().onSpawn((CustomEntityContext<T>) this);
-        }
+        this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
     }
 
     @Override
     public @NotNull EntityTemplate<T> template() {
         return template;
+    }
+
+    @Override
+    public @NotNull CustomEntityBaseType baseType() {
+        return template.baseType();
+    }
+
+    @Override
+    public @NotNull Class<T> bukkitType() {
+        return template.bukkitType();
+    }
+
+    @Override
+    public @NotNull MinecraftVersion minecraftVersion() {
+        return minecraftVersion;
     }
 
     @Override

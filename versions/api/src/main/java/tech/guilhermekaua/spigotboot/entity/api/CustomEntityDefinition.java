@@ -29,30 +29,21 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 /**
- * Immutable logical definition for a native custom entity.
+ * Legacy definition wrapper kept for migration from the old custom-entity API.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
+ * @deprecated use {@link EntityTemplate}
  */
+@Deprecated
 public final class CustomEntityDefinition<T extends Entity> {
-    private final CustomEntityId id;
-    private final CustomEntityBaseType baseType;
-    private final Class<T> bukkitType;
-    private final EntityControllerFactory<T> controllerFactory;
-    private final CustomEntityInitializer<T> initializer;
+    private final EntityTemplate<T> template;
 
-    private CustomEntityDefinition(
-            @NotNull CustomEntityId id,
-            @NotNull CustomEntityBaseType baseType,
-            @NotNull Class<T> bukkitType,
-            @NotNull EntityControllerFactory<T> controllerFactory,
-            @NotNull CustomEntityInitializer<T> initializer
-    ) {
-        this.id = Objects.requireNonNull(id, "id cannot be null");
-        this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
-        this.bukkitType = Objects.requireNonNull(bukkitType, "bukkitType cannot be null");
-        this.controllerFactory = Objects.requireNonNull(controllerFactory, "controllerFactory cannot be null");
-        this.initializer = Objects.requireNonNull(initializer, "initializer cannot be null");
+    private CustomEntityDefinition(@NotNull EntityTemplate<T> template) {
+        this.template = Objects.requireNonNull(template, "template cannot be null");
+        if (template.id() == null) {
+            throw new IllegalArgumentException("Legacy custom entity definitions require a non-null id.");
+        }
     }
 
     /**
@@ -61,7 +52,11 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the logical id
      */
     public @NotNull CustomEntityId id() {
-        return id;
+        CustomEntityId templateId = template.id();
+        if (templateId == null) {
+            throw new IllegalStateException("This legacy definition does not have an id.");
+        }
+        return templateId;
     }
 
     /**
@@ -70,7 +65,7 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the logical base type
      */
     public @NotNull CustomEntityBaseType baseType() {
-        return baseType;
+        return template.baseType();
     }
 
     /**
@@ -79,7 +74,7 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the Bukkit entity type
      */
     public @NotNull Class<T> bukkitType() {
-        return bukkitType;
+        return template.bukkitType();
     }
 
     /**
@@ -88,7 +83,12 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the controller factory
      */
     public @NotNull EntityControllerFactory<T> controllerFactory() {
-        return controllerFactory;
+        return new EntityControllerFactory<T>() {
+            @Override
+            public @NotNull EntityController<T> create(@NotNull CustomEntitySpawnContext<T> context) {
+                return template.controllerFactory().create(context);
+            }
+        };
     }
 
     /**
@@ -97,7 +97,21 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the initializer
      */
     public @NotNull CustomEntityInitializer<T> initializer() {
-        return initializer;
+        return new CustomEntityInitializer<T>() {
+            @Override
+            public void initialize(@NotNull CustomEntityContext<T> context) {
+                template.initializer().initialize(context);
+            }
+        };
+    }
+
+    /**
+     * Returns the new template view for this legacy definition.
+     *
+     * @return the template
+     */
+    public @NotNull EntityTemplate<T> toTemplate() {
+        return template;
     }
 
     /**
@@ -114,7 +128,7 @@ public final class CustomEntityDefinition<T extends Entity> {
     ) {
         Objects.requireNonNull(id, "id cannot be null");
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return new Builder<T>(id, baseType, resolveBukkitType(baseType));
+        return new Builder<T>(EntityTemplate.builder(id, baseType));
     }
 
     /**
@@ -131,33 +145,11 @@ public final class CustomEntityDefinition<T extends Entity> {
     ) {
         Objects.requireNonNull(id, "id cannot be null");
         Objects.requireNonNull(entityType, "entityType cannot be null");
-
-        CustomEntityBaseType baseType = CustomEntityBaseType.fromEntityType(entityType);
-        if (baseType == null) {
-            throw new IllegalArgumentException("Unsupported Bukkit entity type '" + entityType.name() + "'.");
-        }
-
-        return new Builder<T>(id, baseType, resolveBukkitType(baseType, entityType));
+        return new Builder<T>(EntityTemplate.builder(id, entityType));
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends Entity> @NotNull Class<T> resolveBukkitType(@NotNull CustomEntityBaseType baseType) {
-        Class<? extends Entity> bukkitType = baseType.bukkitTypeOrNull();
-        if (bukkitType == null) {
-            return (Class<T>) Entity.class;
-        }
-        return (Class<T>) bukkitType;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends Entity> @NotNull Class<T> resolveBukkitType(
-            @NotNull CustomEntityBaseType baseType,
-            @NotNull EntityType entityType
-    ) {
-        if (entityType.getEntityClass() != null) {
-            return (Class<T>) entityType.getEntityClass();
-        }
-        return resolveBukkitType(baseType);
+    public static <T extends Entity> @NotNull CustomEntityDefinition<T> fromTemplate(@NotNull EntityTemplate<T> template) {
+        return new CustomEntityDefinition<T>(template);
     }
 
     /**
@@ -166,20 +158,11 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @param <T> the Bukkit entity type exposed to plugin code
      */
     public static final class Builder<T extends Entity> {
-        private final CustomEntityId id;
-        private final CustomEntityBaseType baseType;
-        private final Class<T> bukkitType;
-        private EntityControllerFactory<T> controllerFactory;
-        private CustomEntityInitializer<T> initializer = CustomEntityInitializer.noop();
+        private final EntityTemplate.Builder<T> delegate;
+        private boolean controllerFactorySet;
 
-        private Builder(
-                @NotNull CustomEntityId id,
-                @NotNull CustomEntityBaseType baseType,
-                @NotNull Class<T> bukkitType
-        ) {
-            this.id = Objects.requireNonNull(id, "id cannot be null");
-            this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
-            this.bukkitType = Objects.requireNonNull(bukkitType, "bukkitType cannot be null");
+        private Builder(@NotNull EntityTemplate.Builder<T> delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate cannot be null");
         }
 
         /**
@@ -189,7 +172,8 @@ public final class CustomEntityDefinition<T extends Entity> {
          * @return the builder
          */
         public @NotNull Builder<T> controllerFactory(@NotNull EntityControllerFactory<T> controllerFactory) {
-            this.controllerFactory = Objects.requireNonNull(controllerFactory, "controllerFactory cannot be null");
+            delegate.controller(Objects.requireNonNull(controllerFactory, "controllerFactory cannot be null"));
+            controllerFactorySet = true;
             return this;
         }
 
@@ -200,7 +184,7 @@ public final class CustomEntityDefinition<T extends Entity> {
          * @return the builder
          */
         public @NotNull Builder<T> initializer(@NotNull CustomEntityInitializer<T> initializer) {
-            this.initializer = Objects.requireNonNull(initializer, "initializer cannot be null");
+            delegate.initialize(Objects.requireNonNull(initializer, "initializer cannot be null"));
             return this;
         }
 
@@ -210,10 +194,10 @@ public final class CustomEntityDefinition<T extends Entity> {
          * @return the immutable definition
          */
         public @NotNull CustomEntityDefinition<T> build() {
-            if (controllerFactory == null) {
+            if (!controllerFactorySet) {
                 throw new IllegalStateException("controllerFactory cannot be null");
             }
-            return new CustomEntityDefinition<T>(id, baseType, bukkitType, controllerFactory, initializer);
+            return new CustomEntityDefinition<T>(delegate.build());
         }
     }
 }

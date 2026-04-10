@@ -32,9 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.EntityCollideContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityDamageContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityDieContext;
@@ -48,6 +46,8 @@ import tech.guilhermekaua.spigotboot.entity.api.EntityPositionPassengerContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityPushContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityRemoveContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityTickContext;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
@@ -102,26 +102,26 @@ public final class EntityFactoryV1_21_11 {
         return metadataRegistry.containsKey(baseType);
     }
 
-    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
-            @NotNull CustomEntityDefinition<T> definition,
-            @NotNull CustomEntitySpawnRequest spawnRequest,
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
-        Objects.requireNonNull(definition, "definition cannot be null");
-        Objects.requireNonNull(spawnRequest, "spawnRequest cannot be null");
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
 
-        EntityMetadata metadata = requireMetadata(definition.baseType());
-        T entity = definition.bukkitType().cast(spawnVanillaEntity(spawnRequest.location(), metadata));
+        EntityMetadata metadata = requireMetadata(template.baseType());
+        T entity = template.bukkitType().cast(spawnVanillaEntity(spawnOptions.location(), metadata));
         try {
             ControlledEntity<T> attached = attachInternal(entity, lifecycle, metadata);
             lifecycle.onSpawn();
-            if (!(attached instanceof CustomEntityHandle)) {
+            if (!(attached instanceof SpawnedEntity)) {
                 throw new IllegalStateException(
-                        "Spawn lifecycle did not return a CustomEntityHandle for base type '" + definition.baseType() + "'."
+                        "Spawn lifecycle did not return a SpawnedEntity for base type '" + template.baseType() + "'."
                 );
             }
-            return (CustomEntityHandle<T>) attached;
+            return (SpawnedEntity<T>) attached;
         } catch (RuntimeException exception) {
             entity.remove();
             throw exception;

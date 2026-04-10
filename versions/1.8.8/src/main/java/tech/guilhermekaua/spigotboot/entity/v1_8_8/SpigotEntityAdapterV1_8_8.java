@@ -26,10 +26,10 @@ import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 
@@ -62,15 +62,15 @@ public final class SpigotEntityAdapterV1_8_8 implements EntityVersionAdapter {
     }
 
     @Override
-    public <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
-            @NotNull CustomEntityDefinition<T> definition,
-            @NotNull CustomEntitySpawnRequest spawnRequest,
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
-        Objects.requireNonNull(definition, "definition cannot be null");
-        Objects.requireNonNull(spawnRequest, "spawnRequest cannot be null");
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-        return entityFactory().spawn(definition, spawnRequest, lifecycle);
+        return entityFactory().spawn(template, spawnOptions, lifecycle);
     }
 
     @Override

@@ -34,11 +34,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Service;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.EntityController;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.VersionedEntityPlatform;
 import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.SpigotEntityBootstrap;
 import tech.guilhermekaua.spigotboot.testPlugin.entity.controller.AttachedHookDemoController;
@@ -55,19 +53,18 @@ public class VersionedZombieService {
     private static final CustomEntityId DEMO_ENTITY_ID = CustomEntityId.of("test-plugin", "orbit-zombie");
     private static final double ATTACH_SEARCH_RADIUS = 12.0D;
 
-    private final Map<UUID, SpawnedDemoEntity> activeDemoEntities = new HashMap<>();
-    private final Map<UUID, ControlledEntity<Zombie>> attachedZombies = new HashMap<>();
-    private final JavaPlugin plugin;
-    private final CustomEntityDefinition<Zombie> demoDefinition;
+    private final Map<UUID, SpawnedDemoEntity> activeDemoEntities = new HashMap<UUID, SpawnedDemoEntity>();
+    private final Map<UUID, ControlledEntity<Zombie>> attachedZombies = new HashMap<UUID, ControlledEntity<Zombie>>();
+    private final EntityTemplate<Zombie> demoTemplate;
 
     private VersionedEntityPlatform entityPlatform;
 
     public VersionedZombieService(JavaPlugin plugin) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
-        this.demoDefinition = CustomEntityDefinition.<Zombie>builder(DEMO_ENTITY_ID, CustomEntityBaseType.ZOMBIE)
-                .initializer(context -> configureZombie(context.bukkitEntity()))
-                .controllerFactory(context -> new OrbitingZombieController(
-                        context.spawnRequest().data().getRequired("trackedPlayerId", UUID.class)
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+        this.demoTemplate = EntityTemplate.<Zombie>builder(DEMO_ENTITY_ID, CustomEntityBaseType.ZOMBIE)
+                .initialize(entity -> configureZombie(entity.bukkitEntity()))
+                .controller(context -> new OrbitingZombieController(
+                        context.data().getRequired("trackedPlayerId", UUID.class)
                 ))
                 .build();
     }
@@ -77,48 +74,39 @@ public class VersionedZombieService {
         clearDemoZombie(owner);
 
         VersionedEntityPlatform platform = resolvePlatform();
-        ensureDemoDefinitionRegistered(platform);
+        ensureDemoTemplateRegistered(platform);
 
-        CustomEntityHandle<Zombie> handle = platform.spawn(
-                demoDefinition,
-                CustomEntitySpawnRequest.builder(resolveSpawnLocation(owner))
-                        .put("trackedPlayerId", owner.getUniqueId())
-                        .build()
+        SpawnedEntity<Zombie> entity = platform.spawn(
+                demoTemplate,
+                resolveSpawnLocation(owner),
+                spawn -> spawn.data("trackedPlayerId", owner.getUniqueId())
         );
 
-        Zombie zombie = handle.bukkitEntity();
-        activeDemoEntities.put(owner.getUniqueId(), new SpawnedDemoEntity(handle));
+        Zombie zombie = entity.bukkitEntity();
+        activeDemoEntities.put(owner.getUniqueId(), new SpawnedDemoEntity(entity));
         return zombie;
     }
 
-    public CustomEntityDefinition<?> buildDynamicDemoDefinition(CustomEntityBaseType baseType) {
-        Objects.requireNonNull(baseType, "baseType cannot be null");
-        CustomEntityId definitionId = CustomEntityId.of("test-plugin", "dynamic-" + baseType.logicalId());
-        return createDynamicDemoDefinition(definitionId, baseType);
-    }
-
-    public Entity spawnDynamicDemoEntity(Player owner, CustomEntityDefinition<?> definition) {
+    public Entity spawnDynamicDemoEntity(Player owner, CustomEntityBaseType baseType) {
         Objects.requireNonNull(owner, "owner cannot be null");
-        Objects.requireNonNull(definition, "definition cannot be null");
+        Objects.requireNonNull(baseType, "baseType cannot be null");
         clearDemoZombie(owner);
 
         VersionedEntityPlatform platform = resolvePlatform();
-        if (!platform.supports(definition.baseType())) {
+        if (!platform.supports(baseType)) {
             throw new IllegalStateException(
-                    "The active server version does not support base type '" + definition.baseType().name().toLowerCase(Locale.ROOT) + "'."
+                    "The active server version does not support base type '" + baseType.name().toLowerCase(Locale.ROOT) + "'."
             );
         }
 
-        ensureDefinitionRegistered(platform, definition);
-
-        CustomEntityHandle<?> handle = platform.spawn(
-                definition.id(),
-                CustomEntitySpawnRequest.builder(resolveSpawnLocation(owner)).build()
+        SpawnedEntity<?> entity = platform.spawn(
+                baseType,
+                resolveSpawnLocation(owner),
+                spawn -> spawn.initialize(spawned -> configureDynamicEntity(spawned.bukkitEntity(), baseType))
         );
 
-        Entity entity = handle.bukkitEntity();
-        activeDemoEntities.put(owner.getUniqueId(), new SpawnedDemoEntity(handle));
-        return entity;
+        activeDemoEntities.put(owner.getUniqueId(), new SpawnedDemoEntity(entity));
+        return entity.bukkitEntity();
     }
 
     public Zombie attachNearestZombie(Player owner) {
@@ -130,7 +118,7 @@ public class VersionedZombieService {
             throw new IllegalStateException("No nearby vanilla zombie was found to attach.");
         }
 
-        ControlledEntity<Zombie> attachedEntity = resolvePlatform().entity(target);
+        ControlledEntity<Zombie> attachedEntity = resolvePlatform().get(target);
         attachedEntity.setController(new AttachedHookDemoController());
         attachedZombies.put(owner.getUniqueId(), attachedEntity);
         return attachedEntity.bukkitEntity();
@@ -170,7 +158,7 @@ public class VersionedZombieService {
             return false;
         }
 
-        spawnedDemoEntity.handle.remove();
+        spawnedDemoEntity.entity.remove();
         return true;
     }
 
@@ -190,19 +178,10 @@ public class VersionedZombieService {
         }
     }
 
-    private void ensureDemoDefinitionRegistered(VersionedEntityPlatform platform) {
-        if (platform.definition(DEMO_ENTITY_ID) == null) {
-            platform.registerDefinition(demoDefinition);
+    private void ensureDemoTemplateRegistered(VersionedEntityPlatform platform) {
+        if (platform.template(DEMO_ENTITY_ID) == null) {
+            platform.register(demoTemplate);
         }
-    }
-
-    private void ensureDefinitionRegistered(VersionedEntityPlatform platform, CustomEntityDefinition<?> definition) {
-        CustomEntityDefinition<?> registeredDefinition = platform.definition(definition.id());
-        if (registeredDefinition != null) {
-            return;
-        }
-
-        registerDefinition(platform, definition);
     }
 
     private Location resolveSpawnLocation(Player owner) {
@@ -249,25 +228,6 @@ public class VersionedZombieService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends Entity> CustomEntityDefinition<T> createDynamicDemoDefinition(
-            CustomEntityId definitionId,
-            CustomEntityBaseType baseType
-    ) {
-        return CustomEntityDefinition.<T>builder(definitionId, baseType)
-                .initializer(context -> configureDynamicEntity(context.bukkitEntity(), baseType))
-                .controllerFactory(context -> new EntityController<T>() {
-                })
-                .build();
-    }
-
-    private <T extends Entity> void registerDefinition(
-            VersionedEntityPlatform platform,
-            CustomEntityDefinition<T> definition
-    ) {
-        platform.registerDefinition(definition);
-    }
-
     private void configureDynamicEntity(Entity entity, CustomEntityBaseType baseType) {
         entity.setCustomName("Dynamic " + baseType.logicalId());
         entity.setCustomNameVisible(true);
@@ -278,10 +238,10 @@ public class VersionedZombieService {
     }
 
     private static final class SpawnedDemoEntity {
-        private final CustomEntityHandle<?> handle;
+        private final SpawnedEntity<?> entity;
 
-        private SpawnedDemoEntity(CustomEntityHandle<?> handle) {
-            this.handle = handle;
+        private SpawnedDemoEntity(SpawnedEntity<?> entity) {
+            this.entity = entity;
         }
     }
 }

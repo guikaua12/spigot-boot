@@ -25,20 +25,22 @@ package tech.guilhermekaua.spigotboot.entity.api;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
- * Legacy spawn request wrapper kept for migration from the old custom-entity API.
+ * Immutable version-agnostic options for a single spawn.
  *
  * @since 2.0.2
- * @deprecated use {@link SpawnOptions}
  */
-@Deprecated
-public final class CustomEntitySpawnRequest {
-    private final SpawnOptions spawnOptions;
+public final class SpawnOptions {
+    private final Location location;
+    private final CustomEntityDataView data;
 
-    private CustomEntitySpawnRequest(@NotNull SpawnOptions spawnOptions) {
-        this.spawnOptions = Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+    private SpawnOptions(@NotNull Location location, @NotNull CustomEntityDataView data) {
+        this.location = location;
+        this.data = data;
     }
 
     /**
@@ -52,13 +54,13 @@ public final class CustomEntitySpawnRequest {
     }
 
     /**
-     * Creates a legacy wrapper for the supplied spawn options.
+     * Creates empty spawn options for the supplied location.
      *
-     * @param spawnOptions the spawn options
-     * @return the wrapped request
+     * @param location the spawn location
+     * @return the spawn options
      */
-    public static @NotNull CustomEntitySpawnRequest fromOptions(@NotNull SpawnOptions spawnOptions) {
-        return new CustomEntitySpawnRequest(spawnOptions);
+    public static @NotNull SpawnOptions at(@NotNull Location location) {
+        return builder(location).build();
     }
 
     /**
@@ -67,35 +69,30 @@ public final class CustomEntitySpawnRequest {
      * @return the spawn location
      */
     public @NotNull Location location() {
-        return spawnOptions.location();
+        return location.clone();
     }
 
     /**
-     * Returns the immutable data associated with the spawn request.
+     * Returns the immutable spawn data.
      *
      * @return the spawn data
      */
     public @NotNull CustomEntityDataView data() {
-        return spawnOptions.data();
+        return data;
     }
 
     /**
-     * Returns the new spawn-options view for this legacy request.
-     *
-     * @return the spawn options
-     */
-    public @NotNull SpawnOptions toSpawnOptions() {
-        return spawnOptions;
-    }
-
-    /**
-     * Builds immutable spawn requests.
+     * Builds immutable spawn options.
      */
     public static final class Builder {
-        private final SpawnOptions.Builder delegate;
+        private final Location location;
+        private final Map<String, Object> data = new LinkedHashMap<String, Object>();
 
-        private Builder(Location location) {
-            this.delegate = SpawnOptions.builder(Objects.requireNonNull(location, "location cannot be null"));
+        private Builder(@NotNull Location location) {
+            this.location = Objects.requireNonNull(location, "location cannot be null").clone();
+            if (this.location.getWorld() == null) {
+                throw new IllegalArgumentException("location world cannot be null");
+            }
         }
 
         /**
@@ -105,18 +102,33 @@ public final class CustomEntitySpawnRequest {
          * @param value the value to store
          * @return the builder
          */
-        public @NotNull Builder put(@NotNull String key, @NotNull Object value) {
-            delegate.data(key, value);
+        public @NotNull Builder data(@NotNull String key, @NotNull Object value) {
+            Objects.requireNonNull(key, "key cannot be null");
+            Objects.requireNonNull(value, "value cannot be null");
+            data.put(key, value);
             return this;
         }
 
         /**
-         * Creates the immutable request.
+         * Stores arbitrary spawn metadata.
          *
-         * @return the immutable request
+         * @param key the key to store
+         * @param value the value to store
+         * @return the builder
+         * @deprecated use {@link #data(String, Object)}
          */
-        public @NotNull CustomEntitySpawnRequest build() {
-            return new CustomEntitySpawnRequest(delegate.build());
+        @Deprecated
+        public @NotNull Builder put(@NotNull String key, @NotNull Object value) {
+            return data(key, value);
+        }
+
+        /**
+         * Creates the immutable spawn options.
+         *
+         * @return the immutable spawn options
+         */
+        public @NotNull SpawnOptions build() {
+            return new SpawnOptions(location.clone(), CustomEntityDataView.of(data));
         }
     }
 }

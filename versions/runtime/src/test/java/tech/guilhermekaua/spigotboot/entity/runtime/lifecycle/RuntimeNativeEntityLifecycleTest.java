@@ -30,14 +30,15 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.EntityController;
 import tech.guilhermekaua.spigotboot.entity.api.EntityDamageContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityRemoveContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityTickContext;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
@@ -168,14 +169,14 @@ class RuntimeNativeEntityLifecycleTest {
     @Test
     void shouldInstallSpawnedControllerAndRunSpawnTickRemoveHooks() {
         List<String> events = new ArrayList<String>();
-        CustomEntityDefinition<Zombie> definition = CustomEntityDefinition.<Zombie>builder(
+        EntityTemplate<Zombie> definition = EntityTemplate.<Zombie>builder(
                         CustomEntityId.of("test", "behavior"),
                         CustomEntityBaseType.ZOMBIE
                 )
-                .initializer(context -> events.add("initializer"))
-                .controllerFactory(context -> new EntityController<Zombie>() {
+                .initialize(entity -> events.add("initializer"))
+                .controller(context -> new EntityController<Zombie>() {
                     @Override
-                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.@NotNull CustomEntityContext<Zombie> context) {
+                    public void onSpawn(@NotNull SpawnedEntity<Zombie> entity) {
                         events.add("spawn");
                     }
 
@@ -198,7 +199,7 @@ class RuntimeNativeEntityLifecycleTest {
 
         RuntimeNativeEntityLifecycle<Zombie> lifecycle = new RuntimeNativeEntityLifecycle<Zombie>(
                 definition,
-                CustomEntitySpawnRequest.builder(new Location(Mockito.mock(World.class), 0.0D, 64.0D, 0.0D)).build(),
+                SpawnOptions.at(new Location(Mockito.mock(World.class), 0.0D, 64.0D, 0.0D)),
                 MinecraftVersion.of(1, 21, 11)
         );
         lifecycle.bindHookBinder(new TestHookBinder<Zombie>());
@@ -223,22 +224,22 @@ class RuntimeNativeEntityLifecycleTest {
         List<String> events = new ArrayList<String>();
         EntityController<Zombie> replacementController = new EntityController<Zombie>() {
             @Override
-            public void onSpawn(@NotNull tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+            public void onSpawn(@NotNull SpawnedEntity<Zombie> entity) {
                 events.add("replacement-spawn");
             }
         };
 
-        CustomEntityDefinition<Zombie> definition = CustomEntityDefinition.<Zombie>builder(
+        EntityTemplate<Zombie> definition = EntityTemplate.<Zombie>builder(
                         CustomEntityId.of("test", "spawn-controller-swap"),
                         CustomEntityBaseType.ZOMBIE
                 )
-                .initializer(context -> {
+                .initialize(entity -> {
                     events.add("initializer");
-                    context.setController(replacementController);
+                    entity.setController(replacementController);
                 })
-                .controllerFactory(context -> new EntityController<Zombie>() {
+                .controller(context -> new EntityController<Zombie>() {
                     @Override
-                    public void onSpawn(@NotNull tech.guilhermekaua.spigotboot.entity.api.CustomEntityContext<Zombie> context) {
+                    public void onSpawn(@NotNull SpawnedEntity<Zombie> entity) {
                         events.add("factory-spawn");
                     }
                 })
@@ -246,7 +247,7 @@ class RuntimeNativeEntityLifecycleTest {
 
         RuntimeNativeEntityLifecycle<Zombie> lifecycle = new RuntimeNativeEntityLifecycle<Zombie>(
                 definition,
-                CustomEntitySpawnRequest.builder(new Location(Mockito.mock(World.class), 0.0D, 64.0D, 0.0D)).build(),
+                SpawnOptions.at(new Location(Mockito.mock(World.class), 0.0D, 64.0D, 0.0D)),
                 MinecraftVersion.of(1, 21, 11)
         );
         lifecycle.bindHookBinder(new TestHookBinder<Zombie>());

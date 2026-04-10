@@ -45,10 +45,21 @@ public abstract class EntityController<T extends Entity> {
     /**
      * Invoked after the entity has been spawned and initialized.
      *
-     * @param context the live entity context
+     * @param entity the live spawned entity
      */
-    public void onSpawn(@NotNull CustomEntityContext<T> context) {
+    public void onSpawn(@NotNull SpawnedEntity<T> entity) {
         onSpawn();
+    }
+
+    /**
+     * Invoked after the entity has been spawned and initialized.
+     *
+     * @param context the legacy live entity context
+     * @deprecated override {@link #onSpawn(SpawnedEntity)}
+     */
+    @Deprecated
+    public void onSpawn(@NotNull CustomEntityContext<T> context) {
+        onSpawn((SpawnedEntity<T>) context);
     }
 
     /**

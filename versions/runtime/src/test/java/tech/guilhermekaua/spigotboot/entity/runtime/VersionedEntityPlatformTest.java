@@ -32,11 +32,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 
@@ -44,41 +44,58 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 class VersionedEntityPlatformTest {
 
     @Test
-    void shouldRegisterDefinitionsAndLookupById() {
+    void shouldRegisterTemplatesAndLookupById() {
         VersionedEntityPlatform platform = new VersionedEntityPlatform(
                 MinecraftVersion.of(1, 21, 11),
                 new RecordingAdapter()
         );
-        CustomEntityDefinition<Zombie> definition = createDefinition(new ArrayList<String>());
+        EntityTemplate<Zombie> template = createTemplate(new ArrayList<String>());
 
-        platform.registerDefinition(definition);
+        platform.register(template);
 
-        assertSame(definition, platform.definition(definition.id()));
-        assertEquals(1, platform.definitions().size());
+        assertSame(template, platform.template(template.id()));
+        assertEquals(1, platform.templates().size());
     }
 
     @Test
-    void shouldSpawnRegisteredDefinitionsThroughSharedLifecycle() {
+    void shouldSpawnTemplatesThroughSharedLifecycleWithoutMandatoryRegistration() {
         RecordingAdapter adapter = new RecordingAdapter();
         VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
-        CustomEntityDefinition<Zombie> definition = createDefinition(new ArrayList<String>());
-        CustomEntitySpawnRequest spawnRequest = CustomEntitySpawnRequest.builder(
-                new Location(Mockito.mock(World.class), 10.0D, 64.0D, 12.0D)
-        ).build();
+        EntityTemplate<Zombie> template = createTemplate(new ArrayList<String>());
+        SpawnOptions spawnOptions = SpawnOptions.at(new Location(Mockito.mock(World.class), 10.0D, 64.0D, 12.0D));
 
-        platform.registerDefinition(definition);
-        CustomEntityHandle<Zombie> handle = platform.spawn(definition, spawnRequest);
+        SpawnedEntity<Zombie> entity = platform.spawn(template, spawnOptions);
 
-        assertEquals(definition.id(), handle.definitionId());
-        assertEquals(MinecraftVersion.of(1, 21, 11), handle.minecraftVersion());
-        assertSame(handle, adapter.lastSpawnHandle);
+        assertEquals(template.id(), entity.templateId());
+        assertEquals(MinecraftVersion.of(1, 21, 11), entity.minecraftVersion());
+        assertSame(entity, adapter.lastSpawnHandle);
+        assertSame(template, adapter.lastSpawnTemplate);
+    }
+
+    @Test
+    void shouldSpawnOneOffEntitiesWithoutRegistrationCeremony() {
+        RecordingAdapter adapter = new RecordingAdapter();
+        VersionedEntityPlatform platform = new VersionedEntityPlatform(MinecraftVersion.of(1, 21, 11), adapter);
+        Location location = new Location(Mockito.mock(World.class), 1.0D, 65.0D, -3.0D);
+
+        SpawnedEntity<Zombie> entity = platform.spawn(
+                CustomEntityBaseType.ZOMBIE,
+                Zombie.class,
+                location,
+                spawn -> spawn.data("trackedPlayerId", "demo-player")
+        );
+
+        assertNull(entity.templateId());
+        assertSame(CustomEntityBaseType.ZOMBIE, entity.baseType());
+        assertEquals("demo-player", adapter.lastSpawnOptions.data().getRequired("trackedPlayerId", String.class));
+        assertNull(adapter.lastSpawnTemplate.id());
     }
 
     @Test
@@ -95,36 +112,23 @@ class VersionedEntityPlatformTest {
         when(controlledEntity.bukkitEntity()).thenReturn(entity);
         adapter.attachedEntity = controlledEntity;
 
-        ControlledEntity<Entity> first = platform.entity(entity);
-        ControlledEntity<Entity> second = platform.entity(entity);
+        ControlledEntity<Entity> first = platform.get(entity);
+        ControlledEntity<Entity> second = platform.get(entity);
 
         assertSame(controlledEntity, first);
         assertSame(first, second);
         assertEquals(1, adapter.attachInvocations);
     }
 
-    @Test
-    void shouldRequireControllerFactoryWhenBuildingDefinition() {
-        CustomEntityDefinition.Builder<Zombie> builder =
-                CustomEntityDefinition.builder(
-                        CustomEntityId.of("test", "missing-controller"),
-                        CustomEntityBaseType.ZOMBIE
-                );
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class, builder::build);
-
-        assertEquals("controllerFactory cannot be null", exception.getMessage());
-    }
-
-    private static CustomEntityDefinition<Zombie> createDefinition(List<String> events) {
-        return CustomEntityDefinition.<Zombie>builder(
+    private static EntityTemplate<Zombie> createTemplate(List<String> events) {
+        return EntityTemplate.<Zombie>builder(
                         CustomEntityId.of("test", "orbit"),
                         CustomEntityBaseType.ZOMBIE
                 )
-                .initializer(context -> events.add("initializer"))
-                .controllerFactory(context -> new tech.guilhermekaua.spigotboot.entity.api.EntityController<Zombie>() {
+                .initialize(entity -> events.add("initializer"))
+                .controller(context -> new tech.guilhermekaua.spigotboot.entity.api.EntityController<Zombie>() {
                     @Override
-                    public void onSpawn(tech.guilhermekaua.spigotboot.entity.api.@NotNull CustomEntityContext<Zombie> context) {
+                    public void onSpawn(@NotNull tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity<Zombie> entity) {
                         events.add("spawn");
                     }
                 })
@@ -132,7 +136,9 @@ class VersionedEntityPlatformTest {
     }
 
     private static final class RecordingAdapter implements EntityVersionAdapter {
-        private CustomEntityHandle<Zombie> lastSpawnHandle;
+        private SpawnedEntity<Zombie> lastSpawnHandle;
+        private EntityTemplate<?> lastSpawnTemplate;
+        private SpawnOptions lastSpawnOptions;
         private ControlledEntity<?> attachedEntity;
         private int attachInvocations;
 
@@ -153,9 +159,9 @@ class VersionedEntityPlatformTest {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <T extends Entity> CustomEntityHandle<T> spawn(
-                CustomEntityDefinition<T> definition,
-                CustomEntitySpawnRequest spawnRequest,
+        public <T extends Entity> SpawnedEntity<T> spawn(
+                EntityTemplate<T> template,
+                SpawnOptions spawnOptions,
                 NativeEntityLifecycle<T> lifecycle
         ) {
             HandleAwareZombie zombie = Mockito.mock(HandleAwareZombie.class);
@@ -165,8 +171,10 @@ class VersionedEntityPlatformTest {
             lifecycle.bind((T) zombie);
             lifecycle.onSpawn();
 
-            lastSpawnHandle = (CustomEntityHandle<Zombie>) lifecycle.handle();
-            return (CustomEntityHandle<T>) lifecycle.handle();
+            lastSpawnTemplate = template;
+            lastSpawnOptions = spawnOptions;
+            lastSpawnHandle = (SpawnedEntity<Zombie>) lifecycle.handle();
+            return (SpawnedEntity<T>) lifecycle.handle();
         }
 
         @Override

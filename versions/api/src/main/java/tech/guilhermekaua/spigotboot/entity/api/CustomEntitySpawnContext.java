@@ -25,46 +25,70 @@ package tech.guilhermekaua.spigotboot.entity.api;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 /**
- * Read-only context available while preparing a new controller instance for a spawn.
+ * Legacy spawn context kept for migration from the old custom-entity API.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
+ * @deprecated use {@link SpawnContext}
  */
-public interface CustomEntitySpawnContext<T extends Entity> {
+@Deprecated
+public interface CustomEntitySpawnContext<T extends Entity> extends SpawnContext<T> {
 
     /**
      * Returns the logical custom entity id.
      *
      * @return the logical custom entity id
      */
-    @NotNull CustomEntityId definitionId();
-
-    /**
-     * Returns the logical vanilla base type.
-     *
-     * @return the logical base type
-     */
-    @NotNull CustomEntityBaseType baseType();
-
-    /**
-     * Returns the Bukkit type exposed to plugin code.
-     *
-     * @return the Bukkit entity type
-     */
-    @NotNull Class<T> bukkitType();
-
-    /**
-     * Returns the resolved Minecraft version that will host the entity.
-     *
-     * @return the resolved Minecraft version
-     */
-    @NotNull MinecraftVersion minecraftVersion();
+    default @NotNull CustomEntityId definitionId() {
+        CustomEntityId templateId = templateId();
+        if (templateId == null) {
+            throw new IllegalStateException("This spawn was created without a registered definition id.");
+        }
+        return templateId;
+    }
 
     /**
      * Returns the immutable spawn request used for this entity instance.
      *
      * @return the spawn request
      */
-    @NotNull CustomEntitySpawnRequest spawnRequest();
+    default @NotNull CustomEntitySpawnRequest spawnRequest() {
+        return CustomEntitySpawnRequest.fromOptions(spawnOptions());
+    }
+
+    static <T extends Entity> @NotNull CustomEntitySpawnContext<T> adapt(@NotNull SpawnContext<T> context) {
+        Objects.requireNonNull(context, "context cannot be null");
+        if (context instanceof CustomEntitySpawnContext) {
+            return (CustomEntitySpawnContext<T>) context;
+        }
+        return new CustomEntitySpawnContext<T>() {
+            @Override
+            public @NotNull EntityTemplate<T> template() {
+                return context.template();
+            }
+
+            @Override
+            public @NotNull CustomEntityBaseType baseType() {
+                return context.baseType();
+            }
+
+            @Override
+            public @NotNull Class<T> bukkitType() {
+                return context.bukkitType();
+            }
+
+            @Override
+            public @NotNull MinecraftVersion minecraftVersion() {
+                return context.minecraftVersion();
+            }
+
+            @Override
+            public @NotNull SpawnOptions spawnOptions() {
+                return context.spawnOptions();
+            }
+        };
+    }
 }

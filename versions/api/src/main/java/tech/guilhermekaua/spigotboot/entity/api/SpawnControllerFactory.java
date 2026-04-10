@@ -26,38 +26,34 @@ import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Legacy initializer kept for migration from the old custom-entity API.
+ * Creates the controller used for a single spawn.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
- * @deprecated use {@link EntityInitializer}
  */
-@Deprecated
 @FunctionalInterface
-public interface CustomEntityInitializer<T extends Entity> extends EntityInitializer<T> {
+public interface SpawnControllerFactory<T extends Entity> {
 
     /**
-     * Initializes the supplied entity before controller spawn hooks run.
+     * Creates the controller for the supplied spawn context.
      *
-     * @param context the live entity context
+     * @param context the spawn-time context
+     * @return the controller instance
      */
-    void initialize(@NotNull CustomEntityContext<T> context);
-
-    @Override
-    default void initialize(@NotNull SpawnedEntity<T> entity) {
-        initialize(CustomEntityContext.adapt(entity));
-    }
+    @NotNull EntityController<T> create(@NotNull SpawnContext<T> context);
 
     /**
-     * Returns a no-op initializer.
+     * Returns a pass-through controller factory.
      *
      * @param <T> the Bukkit entity type
-     * @return a no-op initializer
+     * @return a pass-through controller factory
      */
-    static <T extends Entity> @NotNull CustomEntityInitializer<T> noop() {
-        return new CustomEntityInitializer<T>() {
+    static <T extends Entity> @NotNull SpawnControllerFactory<T> passThrough() {
+        return new SpawnControllerFactory<T>() {
             @Override
-            public void initialize(@NotNull CustomEntityContext<T> context) {
+            public @NotNull EntityController<T> create(@NotNull SpawnContext<T> context) {
+                return new EntityController<T>() {
+                };
             }
         };
     }

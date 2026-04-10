@@ -25,11 +25,11 @@ package tech.guilhermekaua.spigotboot.entity.api.spi;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 
 import java.util.Objects;
 
@@ -74,17 +74,17 @@ public interface EntityVersionAdapter {
     boolean supports(@NotNull CustomEntityBaseType baseType);
 
     /**
-     * Spawns a real native custom entity for the supplied definition.
+     * Spawns a real native custom entity for the supplied template.
      *
-     * @param definition the logical definition to spawn
-     * @param spawnRequest the spawn request
+     * @param template the logical template to spawn
+     * @param spawnOptions the spawn options
      * @param lifecycle the runtime-managed lifecycle bridge
      * @param <T> the Bukkit entity type exposed to plugin code
      * @return the live entity handle
      */
-    <T extends Entity> @NotNull CustomEntityHandle<T> spawn(
-            @NotNull CustomEntityDefinition<T> definition,
-            @NotNull CustomEntitySpawnRequest spawnRequest,
+    <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
             @NotNull NativeEntityLifecycle<T> lifecycle
     );
 

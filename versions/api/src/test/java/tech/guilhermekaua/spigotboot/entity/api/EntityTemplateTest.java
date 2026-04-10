@@ -22,43 +22,35 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
-import org.bukkit.entity.Entity;
-import org.jetbrains.annotations.NotNull;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Zombie;
+import org.junit.jupiter.api.Test;
 
-/**
- * Legacy initializer kept for migration from the old custom-entity API.
- *
- * @param <T> the Bukkit entity type exposed to plugin code
- * @since 2.0.2
- * @deprecated use {@link EntityInitializer}
- */
-@Deprecated
-@FunctionalInterface
-public interface CustomEntityInitializer<T extends Entity> extends EntityInitializer<T> {
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-    /**
-     * Initializes the supplied entity before controller spawn hooks run.
-     *
-     * @param context the live entity context
-     */
-    void initialize(@NotNull CustomEntityContext<T> context);
+class EntityTemplateTest {
 
-    @Override
-    default void initialize(@NotNull SpawnedEntity<T> entity) {
-        initialize(CustomEntityContext.adapt(entity));
+    @Test
+    void shouldBuildLogicalTemplatesWithoutMandatoryRegistrationOrControllerFactory() {
+        EntityTemplate<Zombie> template = EntityTemplate.<Zombie>builder(CustomEntityBaseType.ZOMBIE).build();
+
+        assertNull(template.id());
+        assertSame(CustomEntityBaseType.ZOMBIE, template.baseType());
+        assertSame(Zombie.class, template.bukkitType());
     }
 
-    /**
-     * Returns a no-op initializer.
-     *
-     * @param <T> the Bukkit entity type
-     * @return a no-op initializer
-     */
-    static <T extends Entity> @NotNull CustomEntityInitializer<T> noop() {
-        return new CustomEntityInitializer<T>() {
-            @Override
-            public void initialize(@NotNull CustomEntityContext<T> context) {
-            }
-        };
+    @Test
+    void shouldBuildRegisteredTemplatesFromBukkitEntityType() {
+        CustomEntityId templateId = CustomEntityId.of("test", "entity-type");
+        EntityTemplate<Zombie> template = EntityTemplate.<Zombie>builder(
+                        templateId,
+                        EntityType.ZOMBIE
+                )
+                .build();
+
+        assertSame(templateId, template.id());
+        assertSame(CustomEntityBaseType.ZOMBIE, template.baseType());
+        assertSame(Zombie.class, template.bukkitType());
     }
 }

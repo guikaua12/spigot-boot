@@ -22,43 +22,57 @@
  */
 package tech.guilhermekaua.spigotboot.entity.api;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Legacy initializer kept for migration from the old custom-entity API.
+ * Represents a live controlled entity that was created through the spawn pipeline.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
- * @deprecated use {@link EntityInitializer}
  */
-@Deprecated
-@FunctionalInterface
-public interface CustomEntityInitializer<T extends Entity> extends EntityInitializer<T> {
+public interface SpawnedEntity<T extends Entity> extends ControlledEntity<T> {
 
     /**
-     * Initializes the supplied entity before controller spawn hooks run.
+     * Returns the effective template used for this spawn.
      *
-     * @param context the live entity context
+     * @return the effective template
      */
-    void initialize(@NotNull CustomEntityContext<T> context);
+    @NotNull EntityTemplate<T> template();
 
-    @Override
-    default void initialize(@NotNull SpawnedEntity<T> entity) {
-        initialize(CustomEntityContext.adapt(entity));
+    /**
+     * Returns the registered template id, or {@code null} for one-off spawns.
+     *
+     * @return the template id, or {@code null}
+     */
+    default @Nullable CustomEntityId templateId() {
+        return template().id();
     }
 
     /**
-     * Returns a no-op initializer.
+     * Returns the immutable spawn options used for this entity.
      *
-     * @param <T> the Bukkit entity type
-     * @return a no-op initializer
+     * @return the spawn options
      */
-    static <T extends Entity> @NotNull CustomEntityInitializer<T> noop() {
-        return new CustomEntityInitializer<T>() {
-            @Override
-            public void initialize(@NotNull CustomEntityContext<T> context) {
-            }
-        };
+    @NotNull SpawnOptions spawnOptions();
+
+    /**
+     * Returns the spawn location for this entity.
+     *
+     * @return the spawn location
+     */
+    default @NotNull Location location() {
+        return spawnOptions().location();
+    }
+
+    /**
+     * Returns the immutable spawn data for this entity.
+     *
+     * @return the spawn data
+     */
+    default @NotNull CustomEntityDataView data() {
+        return spawnOptions().data();
     }
 }

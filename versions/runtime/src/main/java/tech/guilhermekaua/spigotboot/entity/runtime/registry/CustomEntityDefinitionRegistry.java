@@ -24,8 +24,8 @@ package tech.guilhermekaua.spigotboot.entity.runtime.registry;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,20 +40,21 @@ import java.util.Objects;
  * @since 2.0.2
  */
 public final class CustomEntityDefinitionRegistry {
-    private final Map<CustomEntityId, CustomEntityDefinition<?>> definitions =
-            new LinkedHashMap<CustomEntityId, CustomEntityDefinition<?>>();
+    private final Map<CustomEntityId, EntityTemplate<?>> definitions =
+            new LinkedHashMap<CustomEntityId, EntityTemplate<?>>();
 
     /**
      * Registers the supplied definition.
      *
-     * @param definition the definition to register
+     * @param template the template to register
      */
-    public synchronized void register(@NotNull CustomEntityDefinition<?> definition) {
-        Objects.requireNonNull(definition, "definition cannot be null");
-        CustomEntityDefinition<?> previous = definitions.putIfAbsent(definition.id(), definition);
-        if (previous != null && previous != definition) {
+    public synchronized void register(@NotNull EntityTemplate<?> template) {
+        Objects.requireNonNull(template, "template cannot be null");
+        CustomEntityId templateId = Objects.requireNonNull(template.id(), "template id cannot be null");
+        EntityTemplate<?> previous = definitions.putIfAbsent(templateId, template);
+        if (previous != null && previous != template) {
             throw new IllegalArgumentException(
-                    "A custom entity definition is already registered for '" + definition.id() + "'."
+                    "A custom entity definition is already registered for '" + templateId + "'."
             );
         }
     }
@@ -64,7 +65,7 @@ public final class CustomEntityDefinitionRegistry {
      * @param id the logical definition id
      * @return the registered definition, or {@code null}
      */
-    public synchronized @Nullable CustomEntityDefinition<?> find(@NotNull CustomEntityId id) {
+    public synchronized @Nullable EntityTemplate<?> find(@NotNull CustomEntityId id) {
         Objects.requireNonNull(id, "id cannot be null");
         return definitions.get(id);
     }
@@ -74,7 +75,7 @@ public final class CustomEntityDefinitionRegistry {
      *
      * @return the registered definitions
      */
-    public synchronized @NotNull Collection<CustomEntityDefinition<?>> definitions() {
-        return Collections.unmodifiableList(new ArrayList<CustomEntityDefinition<?>>(definitions.values()));
+    public synchronized @NotNull Collection<EntityTemplate<?>> definitions() {
+        return Collections.unmodifiableList(new ArrayList<EntityTemplate<?>>(definitions.values()));
     }
 }

@@ -25,38 +25,114 @@ package tech.guilhermekaua.spigotboot.entity.api;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 /**
- * Represents a live custom entity bound to a Bukkit wrapper and native lifecycle.
+ * Legacy spawned-entity view kept for migration from the old custom-entity API.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
+ * @deprecated use {@link SpawnedEntity}
  */
-public interface CustomEntityContext<T extends Entity>
-        extends CustomEntitySpawnContext<T>, ControlledEntity<T> {
+@Deprecated
+public interface CustomEntityContext<T extends Entity> extends SpawnedEntity<T> {
 
     /**
-     * Returns the Bukkit entity wrapper backed by the real native custom entity.
+     * Returns the logical custom entity id.
      *
-     * @return the Bukkit entity
+     * @return the logical custom entity id
      */
-    @NotNull T bukkitEntity();
+    default @NotNull CustomEntityId definitionId() {
+        CustomEntityId templateId = templateId();
+        if (templateId == null) {
+            throw new IllegalStateException("This entity was created without a registered definition id.");
+        }
+        return templateId;
+    }
 
     /**
-     * Returns the mutable state bag associated with this entity.
+     * Returns the Bukkit type exposed to plugin code.
      *
-     * @return the entity state bag
+     * @return the Bukkit entity type
      */
-    @NotNull CustomEntityState state();
+    default @NotNull Class<T> bukkitType() {
+        return template().bukkitType();
+    }
 
     /**
-     * Removes the entity from the world.
-     */
-    void remove();
-
-    /**
-     * Returns whether the entity has already been removed.
+     * Returns the immutable spawn request used for this entity instance.
      *
-     * @return {@code true} when the entity has been removed
+     * @return the spawn request
      */
-    boolean isRemoved();
+    default @NotNull CustomEntitySpawnRequest spawnRequest() {
+        return CustomEntitySpawnRequest.fromOptions(spawnOptions());
+    }
+
+    static <T extends Entity> @NotNull CustomEntityContext<T> adapt(@NotNull SpawnedEntity<T> entity) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        if (entity instanceof CustomEntityContext) {
+            return (CustomEntityContext<T>) entity;
+        }
+        return new CustomEntityContext<T>() {
+            @Override
+            public @NotNull EntityTemplate<T> template() {
+                return entity.template();
+            }
+
+            @Override
+            public @NotNull SpawnOptions spawnOptions() {
+                return entity.spawnOptions();
+            }
+
+            @Override
+            public @NotNull T bukkitEntity() {
+                return entity.bukkitEntity();
+            }
+
+            @Override
+            public @NotNull CustomEntityState state() {
+                return entity.state();
+            }
+
+            @Override
+            public void remove() {
+                entity.remove();
+            }
+
+            @Override
+            public boolean isRemoved() {
+                return entity.isRemoved();
+            }
+
+            @Override
+            public @NotNull CustomEntityBaseType baseType() {
+                return entity.baseType();
+            }
+
+            @Override
+            public @NotNull MinecraftVersion minecraftVersion() {
+                return entity.minecraftVersion();
+            }
+
+            @Override
+            public @NotNull EntityController<T> controller() {
+                return entity.controller();
+            }
+
+            @Override
+            public void setController(@NotNull EntityController<T> controller) {
+                entity.setController(controller);
+            }
+
+            @Override
+            public void clearController() {
+                entity.clearController();
+            }
+
+            @Override
+            public boolean isHooked() {
+                return entity.isHooked();
+            }
+        };
+    }
 }

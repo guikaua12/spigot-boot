@@ -33,10 +33,8 @@ import tech.guilhermekaua.spigotboot.commands.annotations.DefaultCommand;
 import tech.guilhermekaua.spigotboot.commands.annotations.RootCommand;
 import tech.guilhermekaua.spigotboot.commands.annotations.Sender;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
 import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
-import java.util.Locale;
 import java.util.Objects;
 
 @CommandHandler
@@ -57,7 +55,7 @@ public class ZombieTestCommand {
     public void root(@Sender Player player) {
         player.sendMessage(ChatColor.GREEN + "Zombie demo commands:");
         player.sendMessage(ChatColor.YELLOW + "/zombietest spawn " + ChatColor.GRAY + "- spawn the orbit zombie demo.");
-        player.sendMessage(ChatColor.YELLOW + "/zombietest spawn-dynamic <baseType> " + ChatColor.GRAY + "- build and spawn a demo for the typed base type.");
+        player.sendMessage(ChatColor.YELLOW + "/zombietest spawn-dynamic <baseType> " + ChatColor.GRAY + "- spawn a one-off demo for the typed base type.");
         player.sendMessage(ChatColor.YELLOW + "/zombietest clear-spawn " + ChatColor.GRAY + "- clear your spawned demo entity.");
         player.sendMessage(ChatColor.YELLOW + "/zombietest attach " + ChatColor.GRAY + "- attach hooks to the nearest zombie.");
         player.sendMessage(ChatColor.YELLOW + "/zombietest clear-attach " + ChatColor.GRAY + "- clear your attached zombie demo.");
@@ -90,15 +88,14 @@ public class ZombieTestCommand {
         });
     }
 
-    @Command(value = "spawn-dynamic <baseType>", description = "Builds and spawns a demo for the supplied base type.")
+    @Command(value = "spawn-dynamic <baseType>", description = "Spawns a one-off demo for the supplied base type.")
     public void spawnDynamic(@Sender Player player, CustomEntityBaseType baseType) {
         execute(player, () -> {
-            CustomEntityDefinition<?> definition = versionedZombieService.buildDynamicDemoDefinition(baseType);
-            Entity entity = versionedZombieService.spawnDynamicDemoEntity(player, definition);
+            Entity entity = versionedZombieService.spawnDynamicDemoEntity(player, baseType);
             player.sendMessage(
-                    ChatColor.GREEN + "Built " + definition.id() + " from "
+                    ChatColor.GREEN + "Spawned a one-off "
                             + baseType.name().toLowerCase(Locale.ROOT)
-                            + " and spawned it at " + formatLocation(entity) + "."
+                            + " demo at " + formatLocation(entity) + "."
             );
         });
     }

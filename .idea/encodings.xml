@@ -55,5 +55,15 @@
     <file url="file://$PROJECT_DIR$/tests/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/utils/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/utils/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/1.21.11/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/1.21.11/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/1.8.8/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/1.8.8/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/runtime/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/runtime/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/versions/src/main/resources" charset="UTF-8" />
   </component>
 </project>

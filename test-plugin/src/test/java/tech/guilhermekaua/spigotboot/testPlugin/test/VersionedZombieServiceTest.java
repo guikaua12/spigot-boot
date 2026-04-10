@@ -2,7 +2,6 @@ package tech.guilhermekaua.spigotboot.testPlugin.test;
 
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Cow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -12,16 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityHandle;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnBuilder;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.VersionedEntityPlatform;
 import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.SpigotEntityBootstrap;
 import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,23 +33,23 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class VersionedZombieServiceTest {
     private static final CustomEntityId DEMO_ENTITY_ID = CustomEntityId.of("test-plugin", "orbit-zombie");
-    private static final CustomEntityId DYNAMIC_COW_ID = CustomEntityId.of("test-plugin", "dynamic-cow");
 
     @Test
-    void spawnDemoZombie_registersTheDefinitionAndDelegatesToTheResolvedPlatform() {
+    void spawnDemoZombie_registersTheTemplateAndDelegatesToTheResolvedPlatform() {
         JavaPlugin plugin = mock(JavaPlugin.class);
         VersionedZombieService service = new VersionedZombieService(plugin);
         VersionedEntityPlatform platform = mock(VersionedEntityPlatform.class);
         Player owner = mock(Player.class);
         Zombie zombie = mock(Zombie.class);
         @SuppressWarnings("unchecked")
-        CustomEntityHandle<Zombie> handle = mock(CustomEntityHandle.class);
+        SpawnedEntity<Zombie> entity = mock(SpawnedEntity.class);
         World world = mock(World.class);
 
         UUID ownerId = UUID.randomUUID();
@@ -58,9 +58,9 @@ class VersionedZombieServiceTest {
 
         when(owner.getUniqueId()).thenReturn(ownerId);
         when(owner.getLocation()).thenAnswer(invocation -> ownerLocation.clone());
-        when(platform.definition(any(CustomEntityId.class))).thenReturn(null);
-        when(handle.bukkitEntity()).thenReturn(zombie);
-        when(platform.spawn(any(CustomEntityDefinition.class), any(CustomEntitySpawnRequest.class))).thenReturn(handle);
+        when(platform.template(any(CustomEntityId.class))).thenReturn(null);
+        when(entity.bukkitEntity()).thenReturn(zombie);
+        when(platform.spawn(any(EntityTemplate.class), any(Location.class), any())).thenReturn(entity);
 
         try (MockedStatic<SpigotEntityBootstrap> mockedBootstrap = mockStatic(SpigotEntityBootstrap.class)) {
             mockedBootstrap.when(SpigotEntityBootstrap::boot).thenReturn(platform);
@@ -69,24 +69,28 @@ class VersionedZombieServiceTest {
             assertSame(zombie, spawnedZombie);
         }
 
-        ArgumentCaptor<CustomEntityDefinition> registeredDefinition = ArgumentCaptor.forClass(CustomEntityDefinition.class);
-        ArgumentCaptor<CustomEntityDefinition> spawnedDefinition = ArgumentCaptor.forClass(CustomEntityDefinition.class);
-        ArgumentCaptor<CustomEntitySpawnRequest> spawnRequest = ArgumentCaptor.forClass(CustomEntitySpawnRequest.class);
+        ArgumentCaptor<EntityTemplate> registeredTemplate = ArgumentCaptor.forClass(EntityTemplate.class);
+        ArgumentCaptor<EntityTemplate> spawnedTemplate = ArgumentCaptor.forClass(EntityTemplate.class);
+        ArgumentCaptor<Location> spawnLocation = ArgumentCaptor.forClass(Location.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Consumer<SpawnBuilder<Zombie>>> customizer = ArgumentCaptor.forClass(Consumer.class);
 
-        verify(platform).registerDefinition(registeredDefinition.capture());
-        verify(platform).spawn(spawnedDefinition.capture(), spawnRequest.capture());
+        verify(platform).register(registeredTemplate.capture());
+        verify(platform).spawn(spawnedTemplate.capture(), spawnLocation.capture(), customizer.capture());
 
-        CustomEntityDefinition definition = registeredDefinition.getValue();
-        assertSame(definition, spawnedDefinition.getValue());
-        assertEquals(DEMO_ENTITY_ID, definition.id());
-        assertEquals(CustomEntityBaseType.ZOMBIE, definition.baseType());
+        EntityTemplate template = registeredTemplate.getValue();
+        assertSame(template, spawnedTemplate.getValue());
+        assertEquals(DEMO_ENTITY_ID, template.id());
+        assertEquals(CustomEntityBaseType.ZOMBIE, template.baseType());
 
-        CustomEntitySpawnRequest request = spawnRequest.getValue();
-        assertEquals(ownerId, request.data().getRequired("trackedPlayerId", UUID.class));
-        assertEquals(world, request.location().getWorld());
-        assertEquals(16.0D, request.location().getX(), 1.0E-9D);
-        assertEquals(64.5D, request.location().getY(), 1.0E-9D);
-        assertEquals(-8.0D, request.location().getZ(), 1.0E-9D);
+        SpawnBuilder<Zombie> builder = SpawnBuilder.fromTemplate(template, spawnLocation.getValue());
+        customizer.getValue().accept(builder);
+
+        assertEquals(ownerId, builder.spawnOptions().data().getRequired("trackedPlayerId", UUID.class));
+        assertEquals(world, spawnLocation.getValue().getWorld());
+        assertEquals(16.0D, spawnLocation.getValue().getX(), 1.0E-9D);
+        assertEquals(64.5D, spawnLocation.getValue().getY(), 1.0E-9D);
+        assertEquals(-8.0D, spawnLocation.getValue().getZ(), 1.0E-9D);
     }
 
     @Test
@@ -98,11 +102,11 @@ class VersionedZombieServiceTest {
         Zombie firstZombie = mock(Zombie.class);
         Zombie secondZombie = mock(Zombie.class);
         @SuppressWarnings("unchecked")
-        CustomEntityHandle<Zombie> firstHandle = mock(CustomEntityHandle.class);
+        SpawnedEntity<Zombie> firstEntity = mock(SpawnedEntity.class);
         @SuppressWarnings("unchecked")
-        CustomEntityHandle<Zombie> secondHandle = mock(CustomEntityHandle.class);
+        SpawnedEntity<Zombie> secondEntity = mock(SpawnedEntity.class);
         World world = mock(World.class);
-        AtomicReference<CustomEntityDefinition<?>> registeredDefinition = new AtomicReference<CustomEntityDefinition<?>>();
+        AtomicReference<EntityTemplate<?>> registeredTemplate = new AtomicReference<EntityTemplate<?>>();
 
         UUID ownerId = UUID.randomUUID();
         Location ownerLocation = new Location(world, 0.0D, 70.0D, 0.0D);
@@ -110,16 +114,16 @@ class VersionedZombieServiceTest {
 
         when(owner.getUniqueId()).thenReturn(ownerId);
         when(owner.getLocation()).thenAnswer(invocation -> ownerLocation.clone());
-        when(platform.definition(any(CustomEntityId.class))).thenAnswer(invocation -> registeredDefinition.get());
-        when(firstHandle.bukkitEntity()).thenReturn(firstZombie);
-        when(secondHandle.bukkitEntity()).thenReturn(secondZombie);
-        when(platform.spawn(any(CustomEntityDefinition.class), any(CustomEntitySpawnRequest.class)))
-                .thenReturn(firstHandle)
-                .thenReturn(secondHandle);
+        when(platform.template(any(CustomEntityId.class))).thenAnswer(invocation -> registeredTemplate.get());
+        when(firstEntity.bukkitEntity()).thenReturn(firstZombie);
+        when(secondEntity.bukkitEntity()).thenReturn(secondZombie);
+        when(platform.spawn(any(EntityTemplate.class), any(Location.class), any()))
+                .thenReturn(firstEntity)
+                .thenReturn(secondEntity);
         doAnswer(invocation -> {
-            registeredDefinition.set(invocation.getArgument(0));
+            registeredTemplate.set(invocation.getArgument(0));
             return null;
-        }).when(platform).registerDefinition(any(CustomEntityDefinition.class));
+        }).when(platform).register(any(EntityTemplate.class));
 
         try (MockedStatic<SpigotEntityBootstrap> mockedBootstrap = mockStatic(SpigotEntityBootstrap.class)) {
             mockedBootstrap.when(SpigotEntityBootstrap::boot).thenReturn(platform);
@@ -128,8 +132,8 @@ class VersionedZombieServiceTest {
             assertSame(secondZombie, service.spawnDemoZombie(owner));
         }
 
-        verify(firstHandle).remove();
-        verify(platform, times(1)).registerDefinition(any(CustomEntityDefinition.class));
+        verify(firstEntity).remove();
+        verify(platform, times(1)).register(any(EntityTemplate.class));
     }
 
     @Test
@@ -154,56 +158,38 @@ class VersionedZombieServiceTest {
     }
 
     @Test
-    void buildDynamicDemoDefinition_usesTheTypedBaseTypeToBuildTheDefinition() {
-        JavaPlugin plugin = mock(JavaPlugin.class);
-        VersionedZombieService service = new VersionedZombieService(plugin);
-
-        CustomEntityDefinition<?> definition = service.buildDynamicDemoDefinition(CustomEntityBaseType.COW);
-
-        assertEquals(DYNAMIC_COW_ID, definition.id());
-        assertSame(CustomEntityBaseType.COW, definition.baseType());
-        assertSame(Cow.class, definition.bukkitType());
-    }
-
-    @Test
-    void spawnDynamicDemoEntity_registersAndSpawnsTheTypedDefinition() {
+    void spawnDynamicDemoEntity_usesTheOneOffBaseTypeSpawnFlow() {
         JavaPlugin plugin = mock(JavaPlugin.class);
         VersionedZombieService service = new VersionedZombieService(plugin);
         VersionedEntityPlatform platform = mock(VersionedEntityPlatform.class);
         Player owner = mock(Player.class);
-        Entity entity = mock(Entity.class);
+        Entity entityView = mock(Entity.class);
         @SuppressWarnings("unchecked")
-        CustomEntityHandle<Entity> handle = mock(CustomEntityHandle.class);
+        SpawnedEntity<Entity> entity = mock(SpawnedEntity.class);
         World world = mock(World.class);
 
         Location ownerLocation = new Location(world, 5.0D, 65.0D, 3.0D);
         ownerLocation.setDirection(new Vector(1.0D, 0.0D, 0.0D));
-        CustomEntityDefinition<?> definition = service.buildDynamicDemoDefinition(CustomEntityBaseType.COW);
 
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());
         when(owner.getLocation()).thenAnswer(invocation -> ownerLocation.clone());
         when(platform.supports(CustomEntityBaseType.COW)).thenReturn(true);
-        when(platform.definition(DYNAMIC_COW_ID)).thenReturn(null);
-        when(handle.bukkitEntity()).thenReturn(entity);
-        doReturn(handle).when(platform).spawn(any(CustomEntityId.class), any(CustomEntitySpawnRequest.class));
+        when(entity.bukkitEntity()).thenReturn(entityView);
+        doReturn(entity).when(platform).spawn(any(CustomEntityBaseType.class), any(Location.class), any());
 
         try (MockedStatic<SpigotEntityBootstrap> mockedBootstrap = mockStatic(SpigotEntityBootstrap.class)) {
             mockedBootstrap.when(SpigotEntityBootstrap::boot).thenReturn(platform);
 
-            assertSame(entity, service.spawnDynamicDemoEntity(owner, definition));
+            assertSame(entityView, service.spawnDynamicDemoEntity(owner, CustomEntityBaseType.COW));
         }
 
-        ArgumentCaptor<CustomEntityDefinition> registeredDefinition = ArgumentCaptor.forClass(CustomEntityDefinition.class);
-        ArgumentCaptor<CustomEntitySpawnRequest> spawnRequest = ArgumentCaptor.forClass(CustomEntitySpawnRequest.class);
+        ArgumentCaptor<Location> spawnLocation = ArgumentCaptor.forClass(Location.class);
+        verify(platform).spawn(any(CustomEntityBaseType.class), spawnLocation.capture(), any());
+        verify(platform, never()).register(any(EntityTemplate.class));
 
-        verify(platform).registerDefinition(registeredDefinition.capture());
-        verify(platform).spawn(any(CustomEntityId.class), spawnRequest.capture());
-
-        assertEquals(DYNAMIC_COW_ID, registeredDefinition.getValue().id());
-        assertSame(CustomEntityBaseType.COW, registeredDefinition.getValue().baseType());
-        assertEquals(9.0D, spawnRequest.getValue().location().getX(), 1.0E-9D);
-        assertEquals(65.5D, spawnRequest.getValue().location().getY(), 1.0E-9D);
-        assertEquals(3.0D, spawnRequest.getValue().location().getZ(), 1.0E-9D);
+        assertEquals(9.0D, spawnLocation.getValue().getX(), 1.0E-9D);
+        assertEquals(65.5D, spawnLocation.getValue().getY(), 1.0E-9D);
+        assertEquals(3.0D, spawnLocation.getValue().getZ(), 1.0E-9D);
     }
 
     @Test
@@ -212,7 +198,6 @@ class VersionedZombieServiceTest {
         VersionedZombieService service = new VersionedZombieService(plugin);
         VersionedEntityPlatform platform = mock(VersionedEntityPlatform.class);
         Player owner = mock(Player.class);
-        CustomEntityDefinition<?> definition = service.buildDynamicDemoDefinition(CustomEntityBaseType.COW);
 
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());
         when(platform.supports(CustomEntityBaseType.COW)).thenReturn(false);
@@ -222,7 +207,7 @@ class VersionedZombieServiceTest {
 
             IllegalStateException exception = assertThrows(
                     IllegalStateException.class,
-                    () -> service.spawnDynamicDemoEntity(owner, definition)
+                    () -> service.spawnDynamicDemoEntity(owner, CustomEntityBaseType.COW)
             );
 
             assertTrue(exception.getMessage().contains("cow"));

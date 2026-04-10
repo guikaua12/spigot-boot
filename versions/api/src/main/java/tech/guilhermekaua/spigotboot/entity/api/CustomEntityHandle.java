@@ -25,10 +25,12 @@ package tech.guilhermekaua.spigotboot.entity.api;
 import org.bukkit.entity.Entity;
 
 /**
- * Stable plugin-facing handle to a spawned custom entity.
+ * Legacy spawned-entity handle kept for migration from the old custom-entity API.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
+ * @deprecated use {@link SpawnedEntity}
  */
-public interface CustomEntityHandle<T extends Entity> extends CustomEntityContext<T> {
+@Deprecated
+public interface CustomEntityHandle<T extends Entity> extends SpawnedEntity<T> {
 }

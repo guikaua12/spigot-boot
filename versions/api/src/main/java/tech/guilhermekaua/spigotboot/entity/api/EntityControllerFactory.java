@@ -26,13 +26,15 @@ import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Creates the initial controller instance for a single spawn.
+ * Legacy controller factory kept for migration from the old custom-entity API.
  *
  * @param <T> the Bukkit entity type exposed to plugin code
  * @since 2.0.2
+ * @deprecated use {@link SpawnControllerFactory}
  */
+@Deprecated
 @FunctionalInterface
-public interface EntityControllerFactory<T extends Entity> {
+public interface EntityControllerFactory<T extends Entity> extends SpawnControllerFactory<T> {
 
     /**
      * Creates the initial controller for the supplied spawn request.
@@ -41,4 +43,9 @@ public interface EntityControllerFactory<T extends Entity> {
      * @return the controller instance
      */
     @NotNull EntityController<T> create(@NotNull CustomEntitySpawnContext<T> context);
+
+    @Override
+    default @NotNull EntityController<T> create(@NotNull SpawnContext<T> context) {
+        return create(CustomEntitySpawnContext.adapt(context));
+    }
 }
