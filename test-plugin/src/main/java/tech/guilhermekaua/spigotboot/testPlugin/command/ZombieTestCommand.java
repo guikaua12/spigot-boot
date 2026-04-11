@@ -35,6 +35,7 @@ import tech.guilhermekaua.spigotboot.commands.annotations.Sender;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.testPlugin.services.VersionedZombieService;
 
+import java.util.Locale;
 import java.util.Objects;
 
 @CommandHandler
