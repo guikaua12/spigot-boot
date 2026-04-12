@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/modules/data-orm-lite/pom.xml" />
         <option value="$PROJECT_DIR$/modules/placeholder/pom.xml" />
         <option value="$PROJECT_DIR$/test-plugin/pom.xml" />
+        <option value="$PROJECT_DIR$/versions/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

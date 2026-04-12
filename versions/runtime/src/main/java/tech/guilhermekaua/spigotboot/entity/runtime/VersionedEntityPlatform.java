@@ -1,0 +1,515 @@
+/*
+ * The MIT License
+ * Copyright (c) 2025 Guilherme Kaua da Silva
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package tech.guilhermekaua.spigotboot.entity.runtime;
+
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityDefinition;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntityId;
+import tech.guilhermekaua.spigotboot.entity.api.CustomEntitySpawnRequest;
+import tech.guilhermekaua.spigotboot.entity.api.EntityController;
+import tech.guilhermekaua.spigotboot.entity.api.EntityInitializer;
+import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
+import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnBuilder;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
+import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
+import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
+import tech.guilhermekaua.spigotboot.entity.runtime.exception.CustomEntityDefinitionNotFoundException;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AttachedEntityRegistry;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.registry.CustomEntityDefinitionRegistry;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+/**
+ * Plugin-facing runtime entry point for multi-version native custom entities.
+ *
+ * @since 2.0.2
+ */
+public final class VersionedEntityPlatform {
+    private final MinecraftVersion minecraftVersion;
+    private final EntityVersionAdapter adapter;
+    private final CustomEntityDefinitionRegistry definitionRegistry;
+    private final AttachedEntityRegistry attachedEntityRegistry;
+
+    /**
+     * Creates a new resolved platform.
+     *
+     * @param minecraftVersion the resolved Minecraft version
+     * @param adapter the selected adapter
+     */
+    public VersionedEntityPlatform(@NotNull MinecraftVersion minecraftVersion, @NotNull EntityVersionAdapter adapter) {
+        this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        this.adapter = Objects.requireNonNull(adapter, "adapter cannot be null");
+        this.definitionRegistry = new CustomEntityDefinitionRegistry();
+        this.attachedEntityRegistry = new AttachedEntityRegistry();
+    }
+
+    /**
+     * Returns the resolved Minecraft version.
+     *
+     * @return the active Minecraft version
+     */
+    public @NotNull MinecraftVersion minecraftVersion() {
+        return minecraftVersion;
+    }
+
+    /**
+     * Returns the active version adapter.
+     *
+     * @return the active adapter
+     */
+    public @NotNull EntityVersionAdapter adapter() {
+        return adapter;
+    }
+
+    /**
+     * Returns whether the active adapter supports the supplied logical base type.
+     *
+     * @param baseType the base type to inspect
+     * @return {@code true} when the active adapter supports the type
+     */
+    public boolean supports(@NotNull CustomEntityBaseType baseType) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        return adapter.supports(baseType);
+    }
+
+    /**
+     * Registers a reusable template for later lookup by id.
+     *
+     * @param template the template to register
+     * @param <T> the Bukkit entity type exposed to plugin code
+     */
+    public <T extends Entity> void register(@NotNull EntityTemplate<T> template) {
+        Objects.requireNonNull(template, "template cannot be null");
+        CustomEntityId templateId = template.id();
+        if (templateId == null) {
+            throw new IllegalArgumentException("Only templates with an id can be registered.");
+        }
+        requireSupportedBaseType(template.baseType());
+        definitionRegistry.register(template);
+    }
+
+    /**
+     * Registers each supplied template.
+     *
+     * @param templates the templates to register
+     */
+    public void registerAll(@NotNull Iterable<? extends EntityTemplate<?>> templates) {
+        Objects.requireNonNull(templates, "templates cannot be null");
+        for (EntityTemplate<?> template : templates) {
+            register(template);
+        }
+    }
+
+    /**
+     * Returns the registered template for the supplied id, or {@code null} when it does not exist.
+     *
+     * @param id the template id
+     * @return the registered template, or {@code null}
+     */
+    public @Nullable EntityTemplate<?> template(@NotNull CustomEntityId id) {
+        Objects.requireNonNull(id, "id cannot be null");
+        return definitionRegistry.find(id);
+    }
+
+    /**
+     * Returns every registered template.
+     *
+     * @return the registered templates
+     */
+    public @NotNull Collection<EntityTemplate<?>> templates() {
+        return definitionRegistry.definitions();
+    }
+
+    /**
+     * Attaches the shared controller runtime to an existing supported Bukkit entity.
+     *
+     * @param entity the entity to attach
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the controlled entity handle
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends Entity> @NotNull ControlledEntity<T> get(@NotNull T entity) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+
+        ControlledEntity<?> attachedEntity = attachedEntityRegistry.findByBukkit(entity);
+        if (attachedEntity != null) {
+            if (isActiveAttachedEntity(attachedEntity)) {
+                return (ControlledEntity<T>) attachedEntity;
+            }
+            attachedEntityRegistry.unregister(entity, resolveNativeHandle(entity));
+        }
+
+        Object previousNativeHandle = resolveNativeHandle(entity);
+        if (previousNativeHandle != null) {
+            ControlledEntity<?> nativeCached = attachedEntityRegistry.findByNative(previousNativeHandle);
+            if (nativeCached != null && isActiveAttachedEntity(nativeCached)) {
+                attachRegistryCleanup(nativeCached);
+                attachedEntityRegistry.register(entity, previousNativeHandle, nativeCached);
+                return (ControlledEntity<T>) nativeCached;
+            }
+            attachedEntityRegistry.unregister(entity, previousNativeHandle);
+        }
+
+        RuntimeAttachedEntityLifecycle<T> lifecycle =
+                new RuntimeAttachedEntityLifecycle<T>(resolveBaseType(entity), minecraftVersion, nullController());
+        ControlledEntity<T> attached = adapter.attach(entity, lifecycle);
+        attachRegistryCleanup(attached);
+        Object currentNativeHandle = resolveNativeHandle(entity);
+        if (currentNativeHandle != null) {
+            if (previousNativeHandle != null && previousNativeHandle != currentNativeHandle) {
+                attachedEntityRegistry.unregister(entity, previousNativeHandle);
+            }
+            attachedEntityRegistry.register(entity, currentNativeHandle, attached);
+        }
+        return attached;
+    }
+
+    private boolean isActiveAttachedEntity(@NotNull ControlledEntity<?> controlledEntity) {
+        return controlledEntity.isHooked() && !controlledEntity.isRemoved();
+    }
+
+    private void attachRegistryCleanup(@NotNull ControlledEntity<?> entity) {
+        if (!(entity instanceof AbstractRuntimeControlledEntity)) {
+            return;
+        }
+        final ControlledEntity<?> controlledEntity = entity;
+        ((AbstractRuntimeControlledEntity<?>) entity).bindRemovalCallback(new Runnable() {
+            @Override
+            public void run() {
+                Entity bukkitEntity = controlledEntity.bukkitEntity();
+                attachedEntityRegistry.unregister(bukkitEntity, resolveNativeHandle(bukkitEntity));
+            }
+        });
+    }
+
+    /**
+     * Spawns a registered template by id.
+     *
+     * @param id the registered template id
+     * @param spawnOptions the spawn options
+     * @return the spawned entity
+     */
+    public @NotNull SpawnedEntity<?> spawn(@NotNull CustomEntityId id, @NotNull SpawnOptions spawnOptions) {
+        Objects.requireNonNull(id, "id cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+
+        EntityTemplate<?> template = definitionRegistry.find(id);
+        if (template == null) {
+            throw new CustomEntityDefinitionNotFoundException(
+                    "No custom entity template has been registered for '" + id + "'."
+            );
+        }
+        return spawnUnchecked(template, spawnOptions);
+    }
+
+    /**
+     * Spawns a registered template by id at the supplied location.
+     *
+     * @param id the registered template id
+     * @param location the spawn location
+     * @return the spawned entity
+     */
+    public @NotNull SpawnedEntity<?> spawn(@NotNull CustomEntityId id, @NotNull Location location) {
+        return spawn(id, SpawnOptions.at(location));
+    }
+
+    /**
+     * Spawns the supplied template without requiring prior registration.
+     *
+     * @param template the template to spawn
+     * @param spawnOptions the spawn options
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the spawned entity
+     */
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions
+    ) {
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+        requireSupportedBaseType(template.baseType());
+        return spawnUnchecked(template, spawnOptions);
+    }
+
+    /**
+     * Spawns the supplied template at the supplied location.
+     *
+     * @param template the template to spawn
+     * @param location the spawn location
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the spawned entity
+     */
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull Location location
+    ) {
+        return spawn(template, SpawnOptions.at(location));
+    }
+
+    /**
+     * Spawns the supplied template with inline spawn customization.
+     *
+     * @param template the template to spawn
+     * @param location the spawn location
+     * @param customizer the spawn customizer
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the spawned entity
+     */
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull Location location,
+            @NotNull Consumer<SpawnBuilder<T>> customizer
+    ) {
+        Objects.requireNonNull(customizer, "customizer cannot be null");
+        SpawnBuilder<T> spawnBuilder = SpawnBuilder.fromTemplate(template, location);
+        customizer.accept(spawnBuilder);
+        return spawn(spawnBuilder.template(), spawnBuilder.spawnOptions());
+    }
+
+    /**
+     * Spawns a one-off controlled entity for the supplied logical base type.
+     *
+     * @param baseType the logical vanilla base type
+     * @param location the spawn location
+     * @return the spawned entity
+     */
+    public @NotNull SpawnedEntity<?> spawn(@NotNull CustomEntityBaseType baseType, @NotNull Location location) {
+        return spawn(baseType, Entity.class, location, new Consumer<SpawnBuilder<Entity>>() {
+            @Override
+            public void accept(SpawnBuilder<Entity> spawnBuilder) {
+            }
+        });
+    }
+
+    /**
+     * Spawns a one-off controlled entity for the supplied logical base type with inline customization.
+     *
+     * @param baseType the logical vanilla base type
+     * @param location the spawn location
+     * @param customizer the spawn customizer
+     * @return the spawned entity
+     */
+    public @NotNull SpawnedEntity<?> spawn(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull Location location,
+            @NotNull Consumer<SpawnBuilder<Entity>> customizer
+    ) {
+        return spawn(baseType, Entity.class, location, customizer);
+    }
+
+    /**
+     * Spawns a typed one-off controlled entity for the supplied logical base type.
+     *
+     * @param baseType the logical vanilla base type
+     * @param bukkitType the Bukkit type exposed to plugin code
+     * @param location the spawn location
+     * @param customizer the spawn customizer
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the spawned entity
+     */
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull Class<T> bukkitType,
+            @NotNull Location location,
+            @NotNull Consumer<SpawnBuilder<T>> customizer
+    ) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        Objects.requireNonNull(bukkitType, "bukkitType cannot be null");
+        Objects.requireNonNull(location, "location cannot be null");
+        Objects.requireNonNull(customizer, "customizer cannot be null");
+
+        SpawnBuilder<T> spawnBuilder = SpawnBuilder.oneOff(null, baseType, bukkitType, location);
+        customizer.accept(spawnBuilder);
+        return spawn(spawnBuilder.template(), spawnBuilder.spawnOptions());
+    }
+
+    /**
+     * Registers a legacy definition for later lookup by id.
+     *
+     * @param definition the definition to register
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @deprecated use {@link #register(EntityTemplate)}
+     */
+    @Deprecated
+    public <T extends Entity> void registerDefinition(@NotNull CustomEntityDefinition<T> definition) {
+        register(definition.toTemplate());
+    }
+
+    /**
+     * Registers each supplied legacy definition.
+     *
+     * @param definitions the definitions to register
+     * @deprecated use {@link #registerAll(Iterable)}
+     */
+    @Deprecated
+    public void registerDefinitions(@NotNull Iterable<? extends CustomEntityDefinition<?>> definitions) {
+        Objects.requireNonNull(definitions, "definitions cannot be null");
+        for (CustomEntityDefinition<?> definition : definitions) {
+            registerDefinition(definition);
+        }
+    }
+
+    /**
+     * Returns the registered legacy definition for the supplied id, or {@code null} when it does not exist.
+     *
+     * @param id the definition id
+     * @return the registered definition, or {@code null}
+     * @deprecated use {@link #template(CustomEntityId)}
+     */
+    @Deprecated
+    public @Nullable CustomEntityDefinition<?> definition(@NotNull CustomEntityId id) {
+        EntityTemplate<?> template = template(id);
+        if (template == null) {
+            return null;
+        }
+        return CustomEntityDefinition.fromTemplate(template);
+    }
+
+    /**
+     * Returns every registered legacy definition.
+     *
+     * @return the registered definitions
+     * @deprecated use {@link #templates()}
+     */
+    @Deprecated
+    public @NotNull Collection<CustomEntityDefinition<?>> definitions() {
+        List<CustomEntityDefinition<?>> definitions = new ArrayList<CustomEntityDefinition<?>>();
+        for (EntityTemplate<?> template : templates()) {
+            definitions.add(CustomEntityDefinition.fromTemplate(template));
+        }
+        return definitions;
+    }
+
+    /**
+     * Legacy attach entry point.
+     *
+     * @param entity the entity to attach
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the controlled entity handle
+     * @deprecated use {@link #get(Entity)}
+     */
+    @Deprecated
+    public <T extends Entity> @NotNull ControlledEntity<T> entity(@NotNull T entity) {
+        return get(entity);
+    }
+
+    /**
+     * Legacy spawn entry point by id.
+     *
+     * @param id the definition id
+     * @param spawnRequest the spawn request
+     * @return the spawned entity
+     * @deprecated use {@link #spawn(CustomEntityId, SpawnOptions)}
+     */
+    @Deprecated
+    public @NotNull SpawnedEntity<?> spawn(
+            @NotNull CustomEntityId id,
+            @NotNull CustomEntitySpawnRequest spawnRequest
+    ) {
+        return spawn(id, spawnRequest.toSpawnOptions());
+    }
+
+    /**
+     * Legacy spawn entry point for definitions.
+     *
+     * @param definition the definition to spawn
+     * @param spawnRequest the spawn request
+     * @param <T> the Bukkit entity type exposed to plugin code
+     * @return the spawned entity
+     * @deprecated use {@link #spawn(EntityTemplate, SpawnOptions)}
+     */
+    @Deprecated
+    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
+            @NotNull CustomEntityDefinition<T> definition,
+            @NotNull CustomEntitySpawnRequest spawnRequest
+    ) {
+        return spawn(definition.toTemplate(), spawnRequest.toSpawnOptions());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Entity> @NotNull SpawnedEntity<T> spawnUnchecked(
+            @NotNull EntityTemplate<?> template,
+            @NotNull SpawnOptions spawnOptions
+    ) {
+        EntityTemplate<T> typedTemplate = (EntityTemplate<T>) template;
+        RuntimeNativeEntityLifecycle<T> lifecycle = new RuntimeNativeEntityLifecycle<T>(typedTemplate, spawnOptions, minecraftVersion);
+        SpawnedEntity<T> entity = adapter.spawn(typedTemplate, spawnOptions, lifecycle);
+        registerIfHooked(entity);
+        return entity;
+    }
+
+    private void requireSupportedBaseType(@NotNull CustomEntityBaseType baseType) {
+        if (!supports(baseType)) {
+            throw new IllegalArgumentException(
+                    "The active adapter does not support base type '" + baseType + "'."
+            );
+        }
+    }
+
+    private void registerIfHooked(@NotNull ControlledEntity<?> entity) {
+        Object nativeHandle = resolveNativeHandle(entity.bukkitEntity());
+        if (nativeHandle != null) {
+            attachedEntityRegistry.register(entity.bukkitEntity(), nativeHandle, entity);
+            attachRegistryCleanup(entity);
+        }
+    }
+
+    private static @Nullable Object resolveNativeHandle(@NotNull Entity entity) {
+        try {
+            Method getHandleMethod = entity.getClass().getMethod("getHandle");
+            getHandleMethod.setAccessible(true);
+            return getHandleMethod.invoke(entity);
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity> @NotNull EntityController<T> nullController() {
+        return (EntityController<T>) tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController.instance();
+    }
+
+    private static @NotNull CustomEntityBaseType resolveBaseType(@NotNull Entity entity) {
+        CustomEntityBaseType baseType = CustomEntityBaseType.fromEntityType(entity.getType());
+        if (baseType == null) {
+            throw new UnsupportedOperationException(
+                    "The active adapter does not expose a logical base type for Bukkit type '" + entity.getType().name() + "'."
+            );
+        }
+        return baseType;
+    }
+}
