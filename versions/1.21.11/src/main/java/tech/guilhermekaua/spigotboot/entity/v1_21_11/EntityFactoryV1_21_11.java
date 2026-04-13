@@ -46,23 +46,36 @@ import tech.guilhermekaua.spigotboot.entity.api.EntityPositionPassengerContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityPushContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityRemoveContext;
 import tech.guilhermekaua.spigotboot.entity.api.EntityTickContext;
+import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityFreshSpawnPath;
+import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
+import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityWorldRegistrationMode;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.ContextualBaseInvoker;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.NativeHookBinder;
 import tech.guilhermekaua.spigotboot.entity.runtime.controller.LogicalEntityHook;
-import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.FieldCopySupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityFreshSpawnBinding;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityReplacementBinding;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionBindings;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.NativeEntityConstructorShape;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.ReflectionSupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityStrategyBundleSelector;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityVersionEntrypoint;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityStrategyBundle;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperFreshSpawnStrategy_1_21_plus;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperReplacementStrategy_1_21_plus;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -72,11 +85,15 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * Spawns and attaches real 1.21.11 native Entity subclasses and binds them to the shared runtime lifecycle.
+ * Version-local spawn and attach entrypoint for Minecraft 1.21.11.
  *
  * @since 2.0.2
  */
-public final class EntityFactoryV1_21_11 {
+public final class EntityFactoryV1_21_11
+        implements EntityVersionEntrypoint,
+        PaperFreshSpawnStrategy_1_21_plus.Support,
+        PaperReplacementStrategy_1_21_plus.Support {
+    private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 21, 11);
     private static final String HOOK_TICK = "tick";
     private static final String HOOK_MOVE = "move";
     private static final String HOOK_PUSH = "push";
@@ -91,18 +108,81 @@ public final class EntityFactoryV1_21_11 {
     private static final String HOOK_INVENTORY_CHANGE_SILENT = "inventoryChangeSilent";
     private static final String HOOK_IS_ALWAYS_TICKED = "isAlwaysTicked";
     private static final Object[] EMPTY_ARGUMENTS = new Object[0];
+    private static final EntityVersionCapabilities ENTITY_CAPABILITIES = new EntityVersionCapabilities(
+            EntityFreshSpawnPath.CONSTRUCTOR_FIRST,
+            true,
+            EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
+            EntityWorldRegistrationMode.REFERENCE_REWRITE
+    );
+    private static final EntityVersionBindings ENTITY_BINDINGS = new EntityVersionBindings(
+            new EntityFreshSpawnBinding(
+                    Arrays.asList(
+                            NativeEntityConstructorShape.LEVEL_AND_POSITION,
+                            NativeEntityConstructorShape.ENTITY_TYPE_AND_LEVEL,
+                            NativeEntityConstructorShape.LEVEL_ONLY
+                    ),
+                    EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
+                    true,
+                    true
+            ),
+            new EntityReplacementBinding(
+                    EntityWorldRegistrationMode.REFERENCE_REWRITE,
+                    true,
+                    true
+            )
+    );
+    private static final EntityStrategyBundle ENTITY_STRATEGY_BUNDLE = EntityStrategyBundleSelector.select(
+            VERSION,
+            ENTITY_CAPABILITIES,
+            ENTITY_BINDINGS
+    );
+    private static final PaperFreshSpawnStrategy_1_21_plus FRESH_SPAWN_STRATEGY =
+            EntityStrategyBundleSelector.requirePaperFreshSpawnStrategy(ENTITY_STRATEGY_BUNDLE.freshSpawn());
+    private static final PaperReplacementStrategy_1_21_plus REPLACEMENT_STRATEGY =
+            EntityStrategyBundleSelector.requirePaperReplacementStrategy(ENTITY_STRATEGY_BUNDLE.replacement());
 
     private final GeneratedNativeEntityClassFactory classFactory = new GeneratedNativeEntityClassFactory();
     private final EntityHookBinderV1_21_11 hookBinder = new EntityHookBinderV1_21_11();
     private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
+    private final Map<CustomEntityBaseType, ResolvedSpawnMetadata> spawnMetadataRegistry =
+            new LinkedHashMap<CustomEntityBaseType, ResolvedSpawnMetadata>();
     private final Map<Class<?>, ResolvedEntityTypeMetadata> generatedTypes =
             new LinkedHashMap<Class<?>, ResolvedEntityTypeMetadata>();
+    /**
+     * Returns the runtime capability summary for Minecraft 1.21.11.
+     *
+     * @return the runtime capability summary
+     */
+    public static @NotNull EntityVersionCapabilities entityCapabilities() {
+        return ENTITY_CAPABILITIES;
+    }
 
+    /**
+     * Returns the runtime binding bundle for Minecraft 1.21.11.
+     *
+     * @return the runtime binding bundle
+     */
+    public static @NotNull EntityVersionBindings entityBindings() {
+        return ENTITY_BINDINGS;
+    }
+
+    @Override
+    public @NotNull EntityVersionCapabilities capabilities() {
+        return ENTITY_CAPABILITIES;
+    }
+
+    @Override
+    public @NotNull EntityVersionBindings bindings() {
+        return ENTITY_BINDINGS;
+    }
+
+    @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
         return metadataRegistry.containsKey(baseType);
     }
 
+    @Override
     public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
             @NotNull EntityTemplate<T> template,
             @NotNull SpawnOptions spawnOptions,
@@ -111,60 +191,17 @@ public final class EntityFactoryV1_21_11 {
         Objects.requireNonNull(template, "template cannot be null");
         Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-
-        EntityMetadata metadata = requireMetadata(template.baseType());
-        T entity = template.bukkitType().cast(spawnVanillaEntity(spawnOptions.location(), metadata));
-        try {
-            ControlledEntity<T> attached = attachInternal(entity, lifecycle, metadata);
-            lifecycle.onSpawn();
-            if (!(attached instanceof SpawnedEntity)) {
-                throw new IllegalStateException(
-                        "Spawn lifecycle did not return a SpawnedEntity for base type '" + template.baseType() + "'."
-                );
-            }
-            return (SpawnedEntity<T>) attached;
-        } catch (RuntimeException exception) {
-            entity.remove();
-            throw exception;
-        }
+        return FRESH_SPAWN_STRATEGY.spawn(this, template, spawnOptions, lifecycle);
     }
 
+    @Override
     public <T extends Entity> @NotNull ControlledEntity<T> attach(
             @NotNull T entity,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-        return attachInternal(entity, lifecycle, requireMetadata(resolveBaseType(entity)));
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends Entity> @NotNull ControlledEntity<T> attachInternal(
-            @NotNull T entity,
-            @NotNull NativeEntityLifecycle<T> lifecycle,
-            @NotNull EntityMetadata metadata
-    ) {
-        Object currentHandle = resolveNativeHandle(entity);
-        ControlledEntity<?> existing = resolveExistingControlledEntity(currentHandle);
-        if (existing != null) {
-            return (ControlledEntity<T>) existing;
-        }
-
-        ResolvedEntityTypeMetadata resolvedMetadata = resolveGeneratedTypeMetadata(metadata, currentHandle.getClass());
-        Object replacementHandle = ReflectionSupport.allocateInstance(resolvedMetadata.generatedType());
-        FieldCopySupport.copyInstanceFields(currentHandle, replacementHandle);
-        bindRuntimeLifecycle(replacementHandle, resolvedMetadata, lifecycle);
-        rebindBukkitZombie(entity, replacementHandle);
-        rebindModernBukkitBridge(entity, currentHandle, replacementHandle);
-        TrackedEntityState trackedEntityState = replaceModernWorldReferences(currentHandle, replacementHandle);
-        rewireModernVehicleAndPassengerReferences(currentHandle, replacementHandle);
-        refreshModernBukkitWrappers(entity);
-        markModernEntityRemoved(currentHandle);
-        lifecycle.bind((T) resolveBukkitEntity(replacementHandle));
-        lifecycle.handle().networkState().setTrackerEntryHandle(trackedEntityState.trackedEntity());
-        lifecycle.handle().networkState().setTrackerStateHandle(trackedEntityState.serverEntity());
-        scheduleRepairPass((NativeEntityLifecycle<Entity>) lifecycle, entity, currentHandle, replacementHandle);
-        return lifecycle.handle();
+        return REPLACEMENT_STRATEGY.attach(this, entity, lifecycle);
     }
 
     private synchronized @NotNull ResolvedEntityTypeMetadata resolveGeneratedTypeMetadata(
@@ -224,23 +261,424 @@ public final class EntityFactoryV1_21_11 {
         return (AbstractRuntimeControlledEntity<?>) handle;
     }
 
-    private static @Nullable ControlledEntity<?> resolveExistingControlledEntity(@NotNull Object nativeHandle) {
-        if (!(nativeHandle instanceof LifecycleAwareNativeEntity)) {
-            return null;
-        }
-        NativeEntityLifecycle<?> lifecycle = ((LifecycleAwareNativeEntity) nativeHandle).spigotBootGetLifecycle();
-        if (lifecycle == null || !(lifecycle.handle() instanceof ControlledEntity)) {
-            return null;
-        }
-        return (ControlledEntity<?>) lifecycle.handle();
-    }
-
     private static @NotNull Entity spawnVanillaEntity(
             @NotNull Location location,
             @NotNull EntityMetadata metadata
     ) {
         World world = Objects.requireNonNull(location.getWorld(), "location world cannot be null");
         return world.spawnEntity(location.clone(), metadata.entityType());
+    }
+
+    @Override
+    public <T extends Entity> @NotNull PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn prepareFreshSpawn(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions
+    ) {
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+        EntityMetadata metadata = requireMetadata(template.baseType());
+        return new PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn(
+                resolveSpawnMetadata(metadata, spawnOptions.location())
+        );
+    }
+
+    @Override
+    public @NotNull Object createNativeEntity(
+            @NotNull PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn preparedSpawn,
+            @NotNull Location location
+    ) {
+        Objects.requireNonNull(preparedSpawn, "preparedSpawn cannot be null");
+        Objects.requireNonNull(location, "location cannot be null");
+        return createFreshNativeEntity(resolvePreparedSpawnMetadata(preparedSpawn), location);
+    }
+
+    @Override
+    public <T extends Entity> void bindLifecycleToNativeEntity(
+            @NotNull Object nativeEntity,
+            @NotNull PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn preparedSpawn,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    ) {
+        Objects.requireNonNull(nativeEntity, "nativeEntity cannot be null");
+        Objects.requireNonNull(preparedSpawn, "preparedSpawn cannot be null");
+        Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        ResolvedSpawnMetadata spawnMetadata = resolvePreparedSpawnMetadata(preparedSpawn);
+        bindRuntimeLifecycle(nativeEntity, spawnMetadata.resolvedMetadata(), lifecycle);
+    }
+
+    @Override
+    public @NotNull Entity resolveBukkitWrapper(@NotNull Object nativeEntity) {
+        Objects.requireNonNull(nativeEntity, "nativeEntity cannot be null");
+        return resolveBukkitEntity(nativeEntity);
+    }
+
+    @Override
+    public @NotNull Object resolveNativeWorldHandle(@NotNull Location location) {
+        Objects.requireNonNull(location, "location cannot be null");
+        World world = Objects.requireNonNull(location.getWorld(), "location world cannot be null");
+        Method getHandleMethod = ReflectionSupport.requireNamedMethod(world.getClass(), new String[]{"getHandle"});
+        return ReflectionSupport.invoke(getHandleMethod, world);
+    }
+
+    @Override
+    public @NotNull PaperFreshSpawnStrategy_1_21_plus.TrackingHandles resolveTrackingHandles(
+            @NotNull Object nativeEntity
+    ) {
+        Objects.requireNonNull(nativeEntity, "nativeEntity cannot be null");
+        TrackedEntityState trackedEntityState = resolveTrackedEntityState(nativeEntity);
+        return new PaperFreshSpawnStrategy_1_21_plus.TrackingHandles(
+                trackedEntityState.trackedEntity(),
+                trackedEntityState.serverEntity()
+        );
+    }
+
+    @Override
+    public @NotNull PaperReplacementStrategy_1_21_plus.TrackingHandles resolveReplacementTrackingHandles(
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        TrackedEntityState trackedEntityState = resolveTrackedEntityState(replacementHandle);
+        return new PaperReplacementStrategy_1_21_plus.TrackingHandles(
+                trackedEntityState.trackedEntity(),
+                trackedEntityState.serverEntity()
+        );
+    }
+
+    @Override
+    public @NotNull Object resolveCurrentNativeHandle(@NotNull Entity entity) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        return resolveNativeHandle(entity);
+    }
+
+    @Override
+    public <T extends Entity> @NotNull PaperReplacementStrategy_1_21_plus.PreparedReplacement prepareReplacement(
+            @NotNull T entity,
+            @NotNull Object currentNativeHandle
+    ) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        EntityMetadata metadata = requireMetadata(resolveBaseType(entity));
+        return new PaperReplacementStrategy_1_21_plus.PreparedReplacement(
+                resolveGeneratedTypeMetadata(metadata, currentNativeHandle.getClass())
+        );
+    }
+
+    @Override
+    public @NotNull Object allocateReplacementHandle(
+            @NotNull PaperReplacementStrategy_1_21_plus.PreparedReplacement preparedReplacement
+    ) {
+        Objects.requireNonNull(preparedReplacement, "preparedReplacement cannot be null");
+        return ReflectionSupport.allocateInstance(resolvePreparedReplacementMetadata(preparedReplacement).generatedType());
+    }
+
+    @Override
+    public <T extends Entity> void bindLifecycleToReplacement(
+            @NotNull Object replacementHandle,
+            @NotNull PaperReplacementStrategy_1_21_plus.PreparedReplacement preparedReplacement,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    ) {
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        Objects.requireNonNull(preparedReplacement, "preparedReplacement cannot be null");
+        Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        bindRuntimeLifecycle(replacementHandle, resolvePreparedReplacementMetadata(preparedReplacement), lifecycle);
+    }
+
+    @Override
+    public void rebindBukkitZombie(@NotNull Entity entity, @NotNull Object replacementHandle) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        rebindBukkitZombieInternal(entity, replacementHandle);
+    }
+
+    @Override
+    public void rebindModernBukkitBridge(
+            @NotNull Entity entity,
+            @NotNull Object currentNativeHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        rebindModernBukkitBridgeInternal(entity, currentNativeHandle, replacementHandle);
+    }
+
+    @Override
+    public void replaceModernWorldReferences(@NotNull Object currentNativeHandle, @NotNull Object replacementHandle) {
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        replaceModernWorldReferencesInternal(currentNativeHandle, replacementHandle);
+    }
+
+    @Override
+    public void rewireModernVehicleAndPassengerReferences(
+            @NotNull Object currentNativeHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        rewireModernVehicleAndPassengerReferencesInternal(currentNativeHandle, replacementHandle);
+    }
+
+    @Override
+    public void refreshModernBukkitWrappers(@NotNull Entity entity) {
+        Objects.requireNonNull(entity, "entity cannot be null");
+        refreshModernBukkitWrappersInternal(entity);
+    }
+
+    @Override
+    public void markModernEntityRemoved(@NotNull Object currentNativeHandle) {
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        markModernEntityRemovedInternal(currentNativeHandle);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Entity> void scheduleRepairPass(
+            @NotNull NativeEntityLifecycle<T> lifecycle,
+            @NotNull T entity,
+            @NotNull Object currentNativeHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        schedulePaperReplacementRepairPass(
+                (NativeEntityLifecycle<Entity>) lifecycle,
+                entity,
+                currentNativeHandle,
+                replacementHandle
+        );
+    }
+
+    private static @NotNull ResolvedSpawnMetadata resolvePreparedSpawnMetadata(
+            @NotNull PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn preparedSpawn
+    ) {
+        Object preparedMetadata = preparedSpawn.preparedMetadata();
+        if (!(preparedMetadata instanceof ResolvedSpawnMetadata)) {
+            throw new IllegalStateException(
+                    "Prepared paper fresh-spawn metadata did not contain a ResolvedSpawnMetadata instance."
+            );
+        }
+        return (ResolvedSpawnMetadata) preparedMetadata;
+    }
+
+    private static @NotNull ResolvedEntityTypeMetadata resolvePreparedReplacementMetadata(
+            @NotNull PaperReplacementStrategy_1_21_plus.PreparedReplacement preparedReplacement
+    ) {
+        Object preparedMetadata = preparedReplacement.preparedMetadata();
+        if (!(preparedMetadata instanceof ResolvedEntityTypeMetadata)) {
+            throw new IllegalStateException(
+                    "Prepared paper replacement metadata did not contain a ResolvedEntityTypeMetadata instance."
+            );
+        }
+        return (ResolvedEntityTypeMetadata) preparedMetadata;
+    }
+
+    private synchronized @NotNull ResolvedSpawnMetadata resolveSpawnMetadata(
+            @NotNull EntityMetadata metadata,
+            @NotNull Location location
+    ) {
+        ResolvedSpawnMetadata spawnMetadata = spawnMetadataRegistry.get(metadata.baseType());
+        if (spawnMetadata != null) {
+            return spawnMetadata;
+        }
+
+        Entity probeEntity = spawnVanillaEntity(location, metadata);
+        try {
+            Object probeHandle = resolveNativeHandle(probeEntity);
+            ResolvedEntityTypeMetadata resolvedMetadata = resolveGeneratedTypeMetadata(metadata, probeHandle.getClass());
+            Object nativeEntityType = ReflectionSupport.invoke(
+                    ReflectionSupport.requireNamedMethod(probeHandle.getClass(), new String[]{"getType"}),
+                    probeHandle
+            );
+            spawnMetadata = new ResolvedSpawnMetadata(resolvedMetadata, nativeEntityType);
+            spawnMetadataRegistry.put(metadata.baseType(), spawnMetadata);
+            return spawnMetadata;
+        } finally {
+            probeEntity.remove();
+        }
+    }
+
+    private @NotNull Object createFreshNativeEntity(
+            @NotNull ResolvedSpawnMetadata spawnMetadata,
+            @NotNull Location location
+    ) {
+        Object levelHandle = resolveNativeWorldHandle(location);
+        Class<?> generatedType = spawnMetadata.resolvedMetadata().generatedType();
+        Object nativeEntity = instantiateNativeEntity(
+                generatedType,
+                spawnMetadata.nativeEntityType(),
+                levelHandle,
+                location
+        );
+        applySpawnLocation(nativeEntity, location);
+        return nativeEntity;
+    }
+
+    private static @NotNull Object instantiateNativeEntity(
+            @NotNull Class<?> generatedType,
+            @NotNull Object nativeEntityType,
+            @NotNull Object levelHandle,
+            @NotNull Location location
+    ) {
+        Constructor<?> coordinateConstructor = findConstructor(
+                generatedType,
+                levelHandle.getClass(),
+                double.class,
+                double.class,
+                double.class
+        );
+        if (coordinateConstructor != null) {
+            return ReflectionSupport.instantiate(
+                    coordinateConstructor,
+                    levelHandle,
+                    Double.valueOf(location.getX()),
+                    Double.valueOf(location.getY()),
+                    Double.valueOf(location.getZ())
+            );
+        }
+
+        Constructor<?> typedConstructor = findConstructor(generatedType, nativeEntityType.getClass(), levelHandle.getClass());
+        if (typedConstructor != null) {
+            return ReflectionSupport.instantiate(typedConstructor, nativeEntityType, levelHandle);
+        }
+
+        Constructor<?> levelConstructor = findConstructor(generatedType, levelHandle.getClass());
+        if (levelConstructor != null) {
+            return ReflectionSupport.instantiate(levelConstructor, levelHandle);
+        }
+
+        throw new IllegalStateException(
+                "Could not resolve a supported constructor for generated entity type '" + generatedType.getName() + "'."
+        );
+    }
+
+    private static @Nullable Constructor<?> findConstructor(
+            @NotNull Class<?> type,
+            @NotNull Class<?>... argumentTypes
+    ) {
+        for (Constructor<?> constructor : type.getDeclaredConstructors()) {
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            if (parameterTypes.length != argumentTypes.length) {
+                continue;
+            }
+
+            boolean compatible = true;
+            for (int index = 0; index < parameterTypes.length; index++) {
+                if (!wrap(parameterTypes[index]).isAssignableFrom(wrap(argumentTypes[index]))) {
+                    compatible = false;
+                    break;
+                }
+            }
+            if (!compatible) {
+                continue;
+            }
+
+            constructor.setAccessible(true);
+            return constructor;
+        }
+        return null;
+    }
+
+    private static @NotNull Class<?> wrap(@NotNull Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
+    }
+
+    private static void applySpawnLocation(@NotNull Object nativeEntity, @NotNull Location location) {
+        Method moveToMethod = ReflectionSupport.findNamedMethod(
+                nativeEntity.getClass(),
+                new String[]{"moveTo"},
+                double.class,
+                double.class,
+                double.class,
+                float.class,
+                float.class
+        );
+        if (moveToMethod != null) {
+            ReflectionSupport.invoke(
+                    moveToMethod,
+                    nativeEntity,
+                    Double.valueOf(location.getX()),
+                    Double.valueOf(location.getY()),
+                    Double.valueOf(location.getZ()),
+                    Float.valueOf(location.getYaw()),
+                    Float.valueOf(location.getPitch())
+            );
+            return;
+        }
+
+        Method setPosMethod = ReflectionSupport.findNamedMethod(
+                nativeEntity.getClass(),
+                new String[]{"setPos", "setPosRaw"},
+                double.class,
+                double.class,
+                double.class
+        );
+        if (setPosMethod != null) {
+            ReflectionSupport.invoke(
+                    setPosMethod,
+                    nativeEntity,
+                    Double.valueOf(location.getX()),
+                    Double.valueOf(location.getY()),
+                    Double.valueOf(location.getZ())
+            );
+        }
+
+        Method setYRotMethod = ReflectionSupport.findNamedMethod(nativeEntity.getClass(), new String[]{"setYRot"}, float.class);
+        if (setYRotMethod != null) {
+            ReflectionSupport.invoke(setYRotMethod, nativeEntity, Float.valueOf(location.getYaw()));
+        }
+
+        Method setXRotMethod = ReflectionSupport.findNamedMethod(nativeEntity.getClass(), new String[]{"setXRot"}, float.class);
+        if (setXRotMethod != null) {
+            ReflectionSupport.invoke(setXRotMethod, nativeEntity, Float.valueOf(location.getPitch()));
+        }
+    }
+
+    private static @NotNull TrackedEntityState resolveTrackedEntityState(@NotNull Object nativeEntity) {
+        Method trackedEntityMethod = ReflectionSupport.findNamedMethod(
+                nativeEntity.getClass(),
+                new String[]{"moonrise$getTrackedEntity"}
+        );
+        if (trackedEntityMethod == null) {
+            return TrackedEntityState.untracked();
+        }
+
+        Object trackedEntity = ReflectionSupport.invoke(trackedEntityMethod, nativeEntity);
+        if (trackedEntity == null) {
+            return TrackedEntityState.untracked();
+        }
+
+        Field serverEntityField = ReflectionSupport.findField(trackedEntity.getClass(), "serverEntity");
+        Object serverEntity = serverEntityField == null ? null : ReflectionSupport.readField(serverEntityField, trackedEntity);
+        return new TrackedEntityState(trackedEntity, serverEntity);
     }
 
     private @NotNull EntityMetadata requireMetadata(@NotNull CustomEntityBaseType baseType) {
@@ -318,16 +756,16 @@ public final class EntityFactoryV1_21_11 {
         return (Entity) ReflectionSupport.invoke(getBukkitEntityMethod, nmsEntity);
     }
 
-    private static void rebindBukkitZombie(@NotNull Entity Entity, @NotNull Object replacementHandle) {
+    private static void rebindBukkitZombieInternal(@NotNull Entity entity, @NotNull Object replacementHandle) {
         Method setHandleMethod = ReflectionSupport.requireCompatibleMethod(
-                Entity.getClass(),
+                entity.getClass(),
                 new String[]{"setHandle"},
                 replacementHandle.getClass()
         );
-        ReflectionSupport.invoke(setHandleMethod, Entity, replacementHandle);
+        ReflectionSupport.invoke(setHandleMethod, entity, replacementHandle);
     }
 
-    private static void rebindModernBukkitBridge(
+    private static void rebindModernBukkitBridgeInternal(
             @NotNull Entity bukkitEntity,
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
@@ -340,7 +778,7 @@ public final class EntityFactoryV1_21_11 {
         ReflectionSupport.writeField(bukkitEntityField, oldHandle, null);
     }
 
-    private static @NotNull TrackedEntityState replaceModernWorldReferences(
+    private static void replaceModernWorldReferencesInternal(
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
@@ -447,13 +885,12 @@ public final class EntityFactoryV1_21_11 {
             );
         }
 
-        TrackedEntityState trackedEntityState = updateTrackedEntity(level, oldHandle, replacementHandle, entityId);
+        updateTrackedEntity(level, oldHandle, replacementHandle, entityId);
         rebindModernLevelCallback(oldHandle, replacementHandle);
         replaceModernLifecycleCollections(level, oldHandle, replacementHandle);
-        return trackedEntityState;
     }
 
-    private static @NotNull TrackedEntityState updateTrackedEntity(
+    private static void updateTrackedEntity(
             @NotNull Object level,
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle,
@@ -464,7 +901,7 @@ public final class EntityFactoryV1_21_11 {
                 oldHandle
         );
         if (trackedEntity == null) {
-            return TrackedEntityState.untracked();
+            return;
         }
 
         Object chunkSource = ReflectionSupport.readField(ReflectionSupport.requireField(level.getClass(), "chunkSource"), level);
@@ -491,7 +928,6 @@ public final class EntityFactoryV1_21_11 {
         );
         ReflectionSupport.invoke(setTrackedEntityMethod, replacementHandle, trackedEntity);
         ReflectionSupport.invoke(setTrackedEntityMethod, oldHandle, (Object) null);
-        return new TrackedEntityState(trackedEntity, serverEntity);
     }
 
     private static void rebindModernLevelCallback(@NotNull Object oldHandle, @NotNull Object replacementHandle) {
@@ -783,7 +1219,7 @@ public final class EntityFactoryV1_21_11 {
         return false;
     }
 
-    private static void rewireModernVehicleAndPassengerReferences(
+    private static void rewireModernVehicleAndPassengerReferencesInternal(
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
@@ -822,14 +1258,14 @@ public final class EntityFactoryV1_21_11 {
         return ReflectionSupport.invoke(copyOfMethod, null, passengers);
     }
 
-    private static void refreshModernBukkitWrappers(@NotNull Entity Entity) {
-        Field equipmentField = ReflectionSupport.findField(Entity.getClass(), "equipment");
+    private static void refreshModernBukkitWrappersInternal(@NotNull Entity entity) {
+        Field equipmentField = ReflectionSupport.findField(entity.getClass(), "equipment");
         if (equipmentField != null) {
-            ReflectionSupport.writeField(equipmentField, Entity, null);
+            ReflectionSupport.writeField(equipmentField, entity, null);
         }
     }
 
-    private static void markModernEntityRemoved(@NotNull Object oldHandle) {
+    private static void markModernEntityRemovedInternal(@NotNull Object oldHandle) {
         Class<?> removalReasonType = ReflectionSupport.requireClass("net.minecraft.world.entity.Entity$RemovalReason");
         Object discarded = ReflectionSupport.readField(ReflectionSupport.requireField(removalReasonType, "DISCARDED"), null);
         ReflectionSupport.writeField(ReflectionSupport.requireField(oldHandle.getClass(), "removalReason"), oldHandle, discarded);
@@ -840,7 +1276,7 @@ public final class EntityFactoryV1_21_11 {
         }
     }
 
-    private void scheduleRepairPass(
+    private void schedulePaperReplacementRepairPass(
             @NotNull NativeEntityLifecycle<Entity> lifecycle,
             @NotNull Entity entity,
             @NotNull Object oldHandle,
@@ -938,6 +1374,27 @@ public final class EntityFactoryV1_21_11 {
 
         public @NotNull EnumSet<LogicalEntityHook> supportedHooks() {
             return supportedHooks.clone();
+        }
+    }
+
+    private static final class ResolvedSpawnMetadata {
+        private final ResolvedEntityTypeMetadata resolvedMetadata;
+        private final Object nativeEntityType;
+
+        private ResolvedSpawnMetadata(
+                @NotNull ResolvedEntityTypeMetadata resolvedMetadata,
+                @NotNull Object nativeEntityType
+        ) {
+            this.resolvedMetadata = Objects.requireNonNull(resolvedMetadata, "resolvedMetadata cannot be null");
+            this.nativeEntityType = Objects.requireNonNull(nativeEntityType, "nativeEntityType cannot be null");
+        }
+
+        public @NotNull ResolvedEntityTypeMetadata resolvedMetadata() {
+            return resolvedMetadata;
+        }
+
+        public @NotNull Object nativeEntityType() {
+            return nativeEntityType;
         }
     }
 

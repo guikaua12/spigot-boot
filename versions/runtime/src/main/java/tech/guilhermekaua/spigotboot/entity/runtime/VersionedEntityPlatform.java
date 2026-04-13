@@ -39,12 +39,17 @@ import tech.guilhermekaua.spigotboot.entity.api.SpawnBuilder;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
+import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 import tech.guilhermekaua.spigotboot.entity.runtime.exception.CustomEntityDefinitionNotFoundException;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AttachedEntityRegistry;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionBindings;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionMetadataProvider;
 import tech.guilhermekaua.spigotboot.entity.runtime.registry.CustomEntityDefinitionRegistry;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityStrategyBundleSelector;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityStrategyBundle;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -63,6 +68,9 @@ public final class VersionedEntityPlatform {
     private final EntityVersionAdapter adapter;
     private final CustomEntityDefinitionRegistry definitionRegistry;
     private final AttachedEntityRegistry attachedEntityRegistry;
+    private final EntityVersionCapabilities capabilities;
+    private final EntityVersionBindings bindings;
+    private final EntityStrategyBundle strategies;
 
     /**
      * Creates a new resolved platform.
@@ -75,6 +83,9 @@ public final class VersionedEntityPlatform {
         this.adapter = Objects.requireNonNull(adapter, "adapter cannot be null");
         this.definitionRegistry = new CustomEntityDefinitionRegistry();
         this.attachedEntityRegistry = new AttachedEntityRegistry();
+        this.capabilities = resolveCapabilities(adapter);
+        this.bindings = resolveBindings(adapter);
+        this.strategies = EntityStrategyBundleSelector.select(minecraftVersion, capabilities, bindings);
     }
 
     /**
@@ -93,6 +104,33 @@ public final class VersionedEntityPlatform {
      */
     public @NotNull EntityVersionAdapter adapter() {
         return adapter;
+    }
+
+    /**
+     * Returns the runtime-facing capability summary for the active adapter.
+     *
+     * @return the adapter capability summary
+     */
+    public @NotNull EntityVersionCapabilities capabilities() {
+        return capabilities;
+    }
+
+    /**
+     * Returns the runtime-facing binding bundle for the active adapter.
+     *
+     * @return the adapter binding bundle
+     */
+    public @NotNull EntityVersionBindings bindings() {
+        return bindings;
+    }
+
+    /**
+     * Returns the runtime-selected strategy bundle for the active adapter metadata.
+     *
+     * @return the selected strategy bundle
+     */
+    public @NotNull EntityStrategyBundle strategies() {
+        return strategies;
     }
 
     /**
@@ -186,7 +224,7 @@ public final class VersionedEntityPlatform {
 
         RuntimeAttachedEntityLifecycle<T> lifecycle =
                 new RuntimeAttachedEntityLifecycle<T>(resolveBaseType(entity), minecraftVersion, nullController());
-        ControlledEntity<T> attached = adapter.attach(entity, lifecycle);
+        ControlledEntity<T> attached = strategies.replacement().attach(adapter, entity, lifecycle);
         attachRegistryCleanup(attached);
         Object currentNativeHandle = resolveNativeHandle(entity);
         if (currentNativeHandle != null) {
@@ -207,12 +245,9 @@ public final class VersionedEntityPlatform {
             return;
         }
         final ControlledEntity<?> controlledEntity = entity;
-        ((AbstractRuntimeControlledEntity<?>) entity).bindRemovalCallback(new Runnable() {
-            @Override
-            public void run() {
-                Entity bukkitEntity = controlledEntity.bukkitEntity();
-                attachedEntityRegistry.unregister(bukkitEntity, resolveNativeHandle(bukkitEntity));
-            }
+        ((AbstractRuntimeControlledEntity<?>) entity).bindRemovalCallback(() -> {
+            Entity bukkitEntity = controlledEntity.bukkitEntity();
+            attachedEntityRegistry.unregister(bukkitEntity, resolveNativeHandle(bukkitEntity));
         });
     }
 
@@ -308,10 +343,7 @@ public final class VersionedEntityPlatform {
      * @return the spawned entity
      */
     public @NotNull SpawnedEntity<?> spawn(@NotNull CustomEntityBaseType baseType, @NotNull Location location) {
-        return spawn(baseType, Entity.class, location, new Consumer<SpawnBuilder<Entity>>() {
-            @Override
-            public void accept(SpawnBuilder<Entity> spawnBuilder) {
-            }
+        return spawn(baseType, Entity.class, location, spawnBuilder -> {
         });
     }
 
@@ -407,7 +439,7 @@ public final class VersionedEntityPlatform {
      */
     @Deprecated
     public @NotNull Collection<CustomEntityDefinition<?>> definitions() {
-        List<CustomEntityDefinition<?>> definitions = new ArrayList<CustomEntityDefinition<?>>();
+        List<CustomEntityDefinition<?>> definitions = new ArrayList<>();
         for (EntityTemplate<?> template : templates()) {
             definitions.add(CustomEntityDefinition.fromTemplate(template));
         }
@@ -467,9 +499,23 @@ public final class VersionedEntityPlatform {
     ) {
         EntityTemplate<T> typedTemplate = (EntityTemplate<T>) template;
         RuntimeNativeEntityLifecycle<T> lifecycle = new RuntimeNativeEntityLifecycle<T>(typedTemplate, spawnOptions, minecraftVersion);
-        SpawnedEntity<T> entity = adapter.spawn(typedTemplate, spawnOptions, lifecycle);
+        SpawnedEntity<T> entity = strategies.freshSpawn().spawn(adapter, typedTemplate, spawnOptions, lifecycle);
         registerIfHooked(entity);
         return entity;
+    }
+
+    private static @NotNull EntityVersionCapabilities resolveCapabilities(@NotNull EntityVersionAdapter adapter) {
+        if (adapter instanceof EntityVersionMetadataProvider) {
+            return ((EntityVersionMetadataProvider) adapter).entityCapabilities();
+        }
+        return EntityVersionCapabilities.unspecified();
+    }
+
+    private static @NotNull EntityVersionBindings resolveBindings(@NotNull EntityVersionAdapter adapter) {
+        if (adapter instanceof EntityVersionMetadataProvider) {
+            return ((EntityVersionMetadataProvider) adapter).entityBindings();
+        }
+        return EntityVersionBindings.unspecified();
     }
 
     private void requireSupportedBaseType(@NotNull CustomEntityBaseType baseType) {

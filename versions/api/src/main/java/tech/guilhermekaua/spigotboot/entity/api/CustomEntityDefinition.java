@@ -83,12 +83,7 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the controller factory
      */
     public @NotNull EntityControllerFactory<T> controllerFactory() {
-        return new EntityControllerFactory<T>() {
-            @Override
-            public @NotNull EntityController<T> create(@NotNull CustomEntitySpawnContext<T> context) {
-                return template.controllerFactory().create(context);
-            }
-        };
+        return template.controllerFactory()::create;
     }
 
     /**
@@ -97,12 +92,7 @@ public final class CustomEntityDefinition<T extends Entity> {
      * @return the initializer
      */
     public @NotNull CustomEntityInitializer<T> initializer() {
-        return new CustomEntityInitializer<T>() {
-            @Override
-            public void initialize(@NotNull CustomEntityContext<T> context) {
-                template.initializer().initialize(context);
-            }
-        };
+        return template.initializer()::initialize;
     }
 
     /**
@@ -128,7 +118,7 @@ public final class CustomEntityDefinition<T extends Entity> {
     ) {
         Objects.requireNonNull(id, "id cannot be null");
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return new Builder<T>(EntityTemplate.builder(id, baseType));
+        return new Builder<>(EntityTemplate.builder(id, baseType));
     }
 
     /**
@@ -145,11 +135,11 @@ public final class CustomEntityDefinition<T extends Entity> {
     ) {
         Objects.requireNonNull(id, "id cannot be null");
         Objects.requireNonNull(entityType, "entityType cannot be null");
-        return new Builder<T>(EntityTemplate.builder(id, entityType));
+        return new Builder<>(EntityTemplate.builder(id, entityType));
     }
 
     public static <T extends Entity> @NotNull CustomEntityDefinition<T> fromTemplate(@NotNull EntityTemplate<T> template) {
-        return new CustomEntityDefinition<T>(template);
+        return new CustomEntityDefinition<>(template);
     }
 
     /**
@@ -197,7 +187,7 @@ public final class CustomEntityDefinition<T extends Entity> {
             if (!controllerFactorySet) {
                 throw new IllegalStateException("controllerFactory cannot be null");
             }
-            return new CustomEntityDefinition<T>(delegate.build());
+            return new CustomEntityDefinition<>(delegate.build());
         }
     }
 }

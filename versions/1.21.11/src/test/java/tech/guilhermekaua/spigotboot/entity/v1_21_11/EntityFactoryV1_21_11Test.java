@@ -38,6 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EntityFactoryV1_21_11Test {
 
     @Test
+    void shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors() {
+        assertNotNull(EntityFactoryV1_21_11.entityCapabilities());
+        assertNotNull(EntityFactoryV1_21_11.entityBindings());
+    }
+
+    @Test
     void recreateModernSectionCallback_shouldBindTheReplacementEntity() {
         StubSectionManager manager = new StubSectionManager();
         StubSection section = new StubSection();
@@ -89,6 +95,22 @@ class EntityFactoryV1_21_11Test {
     }
 
     @Test
+    void migrateModernSectionMembership_shouldStayIdempotentAfterExtraction() {
+        StubSection section = new StubSection();
+        StubEntity oldEntity = new StubEntity(12);
+        StubEntity replacementEntity = new StubEntity(12);
+        StubCallback callback = new StubCallback(new StubSectionManager(), oldEntity, 7L, section);
+        section.add(oldEntity);
+
+        EntityFactoryV1_21_11.migrateModernSectionMembership(callback, oldEntity, replacementEntity);
+        EntityFactoryV1_21_11.migrateModernSectionMembership(callback, oldEntity, replacementEntity);
+
+        assertFalse(section.contains(oldEntity));
+        assertTrue(section.contains(replacementEntity));
+        assertEquals(1, section.size());
+    }
+
+    @Test
     void replaceManagedCollectionEntry_shouldOnlySwapWhenTheOriginalIsPresent() {
         StubEntity oldEntity = new StubEntity(3);
         StubEntity replacementEntity = new StubEntity(3);
@@ -96,9 +118,11 @@ class EntityFactoryV1_21_11Test {
         tickList.add(oldEntity);
 
         EntityFactoryV1_21_11.replaceManagedCollectionEntry(tickList, oldEntity, replacementEntity);
+        EntityFactoryV1_21_11.replaceManagedCollectionEntry(tickList, oldEntity, replacementEntity);
 
         assertFalse(tickList.contains(oldEntity));
         assertTrue(tickList.contains(replacementEntity));
+        assertEquals(1, tickList.size());
 
         StubNavigatingMobs navigatingMobs = new StubNavigatingMobs();
         EntityFactoryV1_21_11.replaceManagedCollectionEntry(navigatingMobs, oldEntity, replacementEntity);
@@ -176,6 +200,10 @@ class EntityFactoryV1_21_11Test {
 
         public boolean contains(StubEntity entity) {
             return entities.contains(entity);
+        }
+
+        public int size() {
+            return entities.size();
         }
     }
 
