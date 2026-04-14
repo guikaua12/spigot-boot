@@ -37,6 +37,11 @@ import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.controller.ControllerMethodResolver;
 import tech.guilhermekaua.spigotboot.entity.runtime.controller.LogicalEntityHook;
 import tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransport;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransportPipeline;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransportResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
@@ -61,6 +66,8 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
     private final MinecraftVersion minecraftVersion;
     private final SimpleCustomEntityState state;
     private final EntityNetworkState networkState;
+    private final EntityTransportPipeline transportPipeline;
+    private final EntityPublicationBackend publicationBackend;
     private final AtomicBoolean removed;
     private final AtomicBoolean removeDispatchInProgress;
     private final AtomicBoolean repairPending;
@@ -73,16 +80,55 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
     private volatile EntityNetworkController<T> networkController;
     private volatile Runnable nextTickRepair;
     private volatile Runnable removalCallback;
+    private volatile boolean trackerHookOwnsNetworkDispatch;
 
     protected AbstractRuntimeControlledEntity(
             @NotNull CustomEntityBaseType baseType,
             @NotNull MinecraftVersion minecraftVersion,
             @NotNull EntityController<T> initialController
     ) {
+        this(baseType, minecraftVersion, initialController, EntityTransportResolver.noop());
+    }
+
+    /**
+     * Creates a new runtime-controlled entity with an explicit internal transport backend.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     */
+    protected AbstractRuntimeControlledEntity(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport
+    ) {
+        this(baseType, minecraftVersion, initialController, transport, EntityPublicationBackendResolver.noop());
+    }
+
+    /**
+     * Creates a new runtime-controlled entity with explicit internal transport and publication backends.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     */
+    protected AbstractRuntimeControlledEntity(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend
+    ) {
         this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
         this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
         this.state = new SimpleCustomEntityState();
         this.networkState = new EntityNetworkState();
+        this.transportPipeline = new EntityTransportPipeline(Objects.requireNonNull(transport, "transport cannot be null"));
+        this.publicationBackend = Objects.requireNonNull(publicationBackend, "publicationBackend cannot be null");
         this.removed = new AtomicBoolean(false);
         this.removeDispatchInProgress = new AtomicBoolean(false);
         this.repairPending = new AtomicBoolean(false);
@@ -93,6 +139,42 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         this.removalCallback = NOOP_REMOVAL_CALLBACK;
     }
 
+    /**
+     * Registers a viewer against the runtime-owned network pipeline.
+     *
+     * @param viewer the viewer to register
+     */
+    public final void registerViewer(@NotNull Player viewer) {
+        Objects.requireNonNull(viewer, "viewer cannot be null");
+        if (removed.get()) {
+            return;
+        }
+
+        ensureBound();
+        if (!networkState.addViewer(viewer)) {
+            return;
+        }
+
+        refreshNetworkState(false);
+        networkController.onViewerAdded(this, viewer, networkState);
+        transportPipeline.onViewerAdded(this, networkState, viewer);
+    }
+
+    /**
+     * Unregisters a viewer from the runtime-owned network pipeline.
+     *
+     * @param viewer the viewer to unregister
+     */
+    public final void unregisterViewer(@NotNull Player viewer) {
+        Objects.requireNonNull(viewer, "viewer cannot be null");
+        if (!networkState.removeViewer(viewer)) {
+            return;
+        }
+
+        transportPipeline.onViewerRemoved(this, networkState, viewer);
+        networkController.onViewerRemoved(this, viewer, networkState);
+    }
+
     @Override
     public void bind(@NotNull T bukkitEntity) {
         Objects.requireNonNull(bukkitEntity, "bukkitEntity cannot be null");
@@ -100,6 +182,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
             throw new IllegalStateException("The Bukkit entity has already been bound.");
         }
         this.bukkitEntity = bukkitEntity;
+        refreshNetworkState(false);
         networkController.onBind(this, networkState);
     }
 
@@ -189,6 +272,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         previous.onUnbind(this, networkState);
         networkController = controller;
         if (bukkitEntity != null) {
+            refreshNetworkState(false);
             controller.onBind(this, networkState);
         }
     }
@@ -223,6 +307,10 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         this.removalCallback = removalCallback;
     }
 
+    public final @NotNull EntityPublicationBackend publicationBackend() {
+        return publicationBackend;
+    }
+
     public final void dispatchTick(@NotNull ContextualBaseInvoker<EntityTickContext<T>, Void> base) {
         if (removed.get()) {
             return;
@@ -230,8 +318,31 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         EntityTickContext<T>[] holder = new EntityTickContext[1];
         holder[0] = new EntityTickContext<>(this, () -> base.invoke(holder[0]));
         dispatchHook(LogicalEntityHook.TICK, holder[0], null);
-        refreshNetworkState();
+        refreshNetworkState(!trackerHookOwnsNetworkDispatch);
+        if (!trackerHookOwnsNetworkDispatch) {
+            networkController.onTick(this, networkState);
+            transportPipeline.onTick(this, networkController, networkState);
+        }
+    }
+
+    /**
+     * Marks this lifecycle as network-ticked by an external tracker hook.
+     */
+    public final void bindTrackerHookNetworkDispatch() {
+        this.trackerHookOwnsNetworkDispatch = true;
+    }
+
+    /**
+     * Dispatches the runtime-owned transport tick from an external tracker hook.
+     */
+    public final void dispatchTrackerTick() {
+        if (removed.get()) {
+            return;
+        }
+        ensureBound();
+        refreshNetworkState(true);
         networkController.onTick(this, networkState);
+        transportPipeline.onTick(this, networkController, networkState);
     }
 
     public final void dispatchMove(
@@ -449,11 +560,12 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         }
         Runnable callback = removalCallback;
         removalCallback = NOOP_REMOVAL_CALLBACK;
+        transportPipeline.onUnbind(this, networkState);
         networkController.onUnbind(this, networkState);
         callback.run();
     }
 
-    private void refreshNetworkState() {
+    private void refreshNetworkState(boolean incrementAbsoluteSyncCounter) {
         T entity = bukkitEntity;
         if (entity == null) {
             return;
@@ -462,10 +574,13 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         if (location != null) {
             networkState.setLivePosition(location.getX(), location.getY(), location.getZ());
             networkState.setLiveRotation(location.getYaw(), location.getPitch());
+            networkState.setLiveHeadYaw(location.getYaw());
         }
         if (entity.getVelocity() != null) {
             networkState.setLiveVelocity(entity.getVelocity().getX(), entity.getVelocity().getY(), entity.getVelocity().getZ());
         }
-        networkState.incrementTicksSinceAbsoluteSync();
+        if (incrementAbsoluteSyncCounter) {
+            networkState.incrementTicksSinceAbsoluteSync();
+        }
     }
 }

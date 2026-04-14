@@ -29,7 +29,11 @@ import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.FieldCopySupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationReplacementSupport;
 
 import java.util.Objects;
 
@@ -136,7 +140,7 @@ public final class LegacyReplacementStrategy_1_8_to_1_12 implements ReplacementS
         Object replacementHandle = support.allocateReplacementHandle(preparedReplacement);
         FieldCopySupport.copyInstanceFields(currentNativeHandle, replacementHandle);
         support.bindLifecycleToReplacement(replacementHandle, preparedReplacement, lifecycle);
-        worldAddStrategy.publishReplacement(support, entity, currentNativeHandle, replacementHandle);
+        resolvePublicationBackend(lifecycle).publishReplacement(support, entity, currentNativeHandle, replacementHandle);
         lifecycle.bind((T) support.resolveBukkitWrapper(replacementHandle));
         trackingBindingStrategy.bindReplacementTracking(support, replacementHandle, lifecycle);
         support.scheduleRepairPass(lifecycle, entity, currentNativeHandle, replacementHandle);
@@ -186,6 +190,7 @@ public final class LegacyReplacementStrategy_1_8_to_1_12 implements ReplacementS
      * @since 2.0.2
      */
     public interface Support extends LegacyWorldAddStrategy_1_8_to_1_12.ReplacementSupport,
+            EntityPublicationReplacementSupport,
             LegacyTrackingBindingStrategy_1_8_to_1_12.ReplacementSupport {
 
         /**
@@ -290,6 +295,13 @@ public final class LegacyReplacementStrategy_1_8_to_1_12 implements ReplacementS
         public @NotNull Object preparedMetadata() {
             return preparedMetadata;
         }
+    }
+
+    private static @NotNull EntityPublicationBackend resolvePublicationBackend(@NotNull NativeEntityLifecycle<?> lifecycle) {
+        if (lifecycle.handle() instanceof AbstractRuntimeControlledEntity) {
+            return ((AbstractRuntimeControlledEntity<?>) lifecycle.handle()).publicationBackend();
+        }
+        return EntityPublicationBackendResolver.noop();
     }
 
     /**

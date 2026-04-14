@@ -53,7 +53,11 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Central shared runtime selector that composes strategy bundles from capability and binding metadata.
+ * Central shared runtime selector that composes spawn/replacement strategy bundles from capability and binding
+ * metadata.
+ *
+ * <p>Transport-facing tracker-hook, publication, packet transport, and metadata families are composed separately by
+ * {@link EntityNetworkRuntimeBundleSelector}.</p>
  *
  * @since 2.0.2
  */
@@ -63,7 +67,7 @@ public final class EntityStrategyBundleSelector {
     }
 
     /**
-     * Selects a composed strategy bundle for the supplied runtime metadata.
+     * Selects a composed spawn/replacement strategy bundle for the supplied runtime metadata.
      *
      * @param minecraftVersion the resolved Minecraft version
      * @param capabilities the resolved runtime capabilities
@@ -79,7 +83,7 @@ public final class EntityStrategyBundleSelector {
     }
 
     /**
-     * Selects a composed strategy bundle for the supplied runtime metadata.
+     * Selects a composed spawn/replacement strategy bundle for the supplied runtime metadata.
      *
      * @param context the runtime selection context
      * @return the selected strategy bundle

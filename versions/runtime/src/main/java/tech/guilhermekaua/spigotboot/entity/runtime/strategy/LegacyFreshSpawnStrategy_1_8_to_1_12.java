@@ -31,6 +31,10 @@ import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationFreshSupport;
 
 import java.util.Objects;
 
@@ -171,7 +175,7 @@ public final class LegacyFreshSpawnStrategy_1_8_to_1_12 implements FreshSpawnStr
         lifecycle.bind(bukkitEntity);
 
         try {
-            worldAddStrategy.addFreshEntity(support, nativeEntity, spawnOptions.location());
+            resolvePublicationBackend(lifecycle).addFreshEntity(support, nativeEntity, spawnOptions.location());
             trackingBindingStrategy.bindFreshSpawnTracking(support, nativeEntity, lifecycle);
             return lifecycle.handle();
         } catch (RuntimeException exception) {
@@ -201,7 +205,13 @@ public final class LegacyFreshSpawnStrategy_1_8_to_1_12 implements FreshSpawnStr
      * @since 2.0.2
      */
     public interface Support extends LegacyWorldAddStrategy_1_8_to_1_12.FreshSupport,
+            EntityPublicationFreshSupport,
             LegacyTrackingBindingStrategy_1_8_to_1_12.FreshSupport {
+
+        @Override
+        default void beforeWorldAdd(@NotNull Object nativeEntity, @NotNull Location location) {
+            LegacyWorldAddStrategy_1_8_to_1_12.FreshSupport.super.beforeWorldAdd(nativeEntity, location);
+        }
 
         /**
          * Resolves and prepares the version-local fresh-spawn metadata for one request.
@@ -301,5 +311,12 @@ public final class LegacyFreshSpawnStrategy_1_8_to_1_12 implements FreshSpawnStr
         public @NotNull Object preparedMetadata() {
             return preparedMetadata;
         }
+    }
+
+    private static @NotNull EntityPublicationBackend resolvePublicationBackend(@NotNull NativeEntityLifecycle<?> lifecycle) {
+        if (lifecycle.handle() instanceof AbstractRuntimeControlledEntity) {
+            return ((AbstractRuntimeControlledEntity<?>) lifecycle.handle()).publicationBackend();
+        }
+        return EntityPublicationBackendResolver.noop();
     }
 }

@@ -22,51 +22,21 @@
  */
 package tech.guilhermekaua.spigotboot.entity.runtime.support;
 
-import org.bukkit.entity.Entity;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
-import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
-import tech.guilhermekaua.spigotboot.entity.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
-import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
-import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
-import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
-import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.RuntimeSupportFixtures;
 
 /**
  * ServiceLoader test fixture.
  */
-public final class ServiceLoadedAdapter implements EntityVersionAdapter {
+public final class ServiceLoadedAdapter extends RuntimeSupportFixtures.SupportedMetadataAdapter {
 
-    @Override
-    public @NotNull MinecraftVersion minimumVersion() {
-        return MinecraftVersion.of(1, 21, 11);
-    }
-
-    @Override
-    public @NotNull MinecraftVersion maximumVersion() {
-        return MinecraftVersion.of(1, 21, 11);
-    }
-
-    @Override
-    public boolean supports(@NotNull CustomEntityBaseType baseType) {
-        return baseType == CustomEntityBaseType.ZOMBIE;
-    }
-
-    @Override
-    public <T extends Entity> @NotNull SpawnedEntity<T> spawn(
-            @NotNull EntityTemplate<T> template,
-            @NotNull SpawnOptions spawnOptions,
-            @NotNull NativeEntityLifecycle<T> lifecycle
-    ) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <T extends Entity> @NotNull ControlledEntity<T> attach(
-            @NotNull T entity,
-            @NotNull NativeEntityLifecycle<T> lifecycle
-    ) {
-        throw new UnsupportedOperationException();
+    public ServiceLoadedAdapter() {
+        super(
+                MinecraftVersion.of(1, 21, 11),
+                MinecraftVersion.of(1, 21, 11),
+                RuntimeSupportFixtures.modernCapabilities(),
+                RuntimeSupportFixtures.modernBindings(),
+                RuntimeSupportFixtures.metadataContract(MinecraftVersion.of(1, 21, 11))
+        );
     }
 }

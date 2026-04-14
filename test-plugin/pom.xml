@@ -59,18 +59,12 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <!--                        <configuration>-->
-                        <!--                            <createDependencyReducedPom>false</createDependencyReducedPom>-->
-                        <!--                            &lt;!&ndash;                            <relocations>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                <relocation>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <pattern>tech.guilhermekaua.spigotboot</pattern>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <shadedPattern>tech.guilhermekaua.spigotboot.testPlugin.libs.apxPlugin</shadedPattern>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    <excludes>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                        <exclude>tech.guilhermekaua.spigotboot.testPlugin.**</exclude>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                    </excludes>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                                </relocation>&ndash;&gt;-->
-                        <!--                            &lt;!&ndash;                            </relocations>&ndash;&gt;-->
-                        <!--                        </configuration>-->
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -130,7 +124,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.3.232</version>
+            <version>1.4.200</version>
         </dependency>
 
         <dependency>
@@ -178,6 +172,66 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-entity-runtime</artifactId>
+            <version>2.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_8_8</artifactId>
+            <version>2.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_13_2</artifactId>
+            <version>2.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_16_5</artifactId>
+            <version>2.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_17_1</artifactId>
+            <version>2.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-v1_19_2</artifactId>
             <version>2.0.2</version>
             <exclusions>
                 <exclusion>

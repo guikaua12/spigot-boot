@@ -39,15 +39,25 @@ import tech.guilhermekaua.spigotboot.entity.api.SpawnBuilder;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.EntityRuntimeProfile;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.RuntimeServerFlavor;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 import tech.guilhermekaua.spigotboot.entity.runtime.exception.CustomEntityDefinitionNotFoundException;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AttachedEntityRegistry;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransport;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransportResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionBindings;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionMetadataProvider;
 import tech.guilhermekaua.spigotboot.entity.runtime.registry.CustomEntityDefinitionRegistry;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataContract;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityNetworkRuntimeBundle;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityNetworkRuntimeBundleSelector;
 import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityStrategyBundleSelector;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityStrategyBundle;
 
@@ -70,6 +80,10 @@ public final class VersionedEntityPlatform {
     private final AttachedEntityRegistry attachedEntityRegistry;
     private final EntityVersionCapabilities capabilities;
     private final EntityVersionBindings bindings;
+    private final EntityNetworkMetadataContract networkMetadataContract;
+    private final EntityNetworkRuntimeBundle networkRuntime;
+    private final EntityTransport transport;
+    private final EntityPublicationBackend publicationBackend;
     private final EntityStrategyBundle strategies;
 
     /**
@@ -79,12 +93,37 @@ public final class VersionedEntityPlatform {
      * @param adapter the selected adapter
      */
     public VersionedEntityPlatform(@NotNull MinecraftVersion minecraftVersion, @NotNull EntityVersionAdapter adapter) {
-        this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        this(
+                new EntityRuntimeProfile(
+                        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null"),
+                        RuntimeServerFlavor.SPIGOT,
+                        false,
+                        false,
+                        false
+                ),
+                adapter
+        );
+    }
+
+    /**
+     * Creates a new resolved platform from a concrete runtime profile.
+     *
+     * @param runtimeProfile the resolved runtime profile
+     * @param adapter the selected adapter
+     */
+    public VersionedEntityPlatform(@NotNull EntityRuntimeProfile runtimeProfile, @NotNull EntityVersionAdapter adapter) {
+        Objects.requireNonNull(runtimeProfile, "runtimeProfile cannot be null");
+
+        this.minecraftVersion = runtimeProfile.minecraftVersion();
         this.adapter = Objects.requireNonNull(adapter, "adapter cannot be null");
         this.definitionRegistry = new CustomEntityDefinitionRegistry();
         this.attachedEntityRegistry = new AttachedEntityRegistry();
         this.capabilities = resolveCapabilities(adapter);
         this.bindings = resolveBindings(adapter);
+        this.networkMetadataContract = resolveNetworkMetadataContract(adapter);
+        this.networkRuntime = EntityNetworkRuntimeBundleSelector.select(runtimeProfile, capabilities, bindings);
+        this.transport = EntityTransportResolver.resolve(runtimeProfile, networkRuntime, adapter, networkMetadataContract);
+        this.publicationBackend = EntityPublicationBackendResolver.resolve(networkRuntime);
         this.strategies = EntityStrategyBundleSelector.select(minecraftVersion, capabilities, bindings);
     }
 
@@ -122,6 +161,31 @@ public final class VersionedEntityPlatform {
      */
     public @NotNull EntityVersionBindings bindings() {
         return bindings;
+    }
+
+    /**
+     * Returns the runtime-selected network subsystem bundle for the active adapter metadata.
+     *
+     * @return the selected network subsystem bundle
+     */
+    public @NotNull EntityNetworkRuntimeBundle networkRuntime() {
+        return networkRuntime;
+    }
+
+    /**
+     * Returns the dedicated watcher and network metadata synchronization contract for the active adapter.
+     *
+     * <p>This contract is resolved separately from the transport family selection metadata and from the version-local
+     * `EntityFactory...EntityMetadata` records used to resolve logical base types.
+     *
+     * @return the resolved network metadata contract
+     */
+    public @NotNull EntityNetworkMetadataContract networkMetadataContract() {
+        return networkMetadataContract;
+    }
+
+    final @NotNull EntityTransport transport() {
+        return transport;
     }
 
     /**
@@ -223,7 +287,13 @@ public final class VersionedEntityPlatform {
         }
 
         RuntimeAttachedEntityLifecycle<T> lifecycle =
-                new RuntimeAttachedEntityLifecycle<T>(resolveBaseType(entity), minecraftVersion, nullController());
+                new RuntimeAttachedEntityLifecycle<T>(
+                        resolveBaseType(entity),
+                        minecraftVersion,
+                        nullController(),
+                        transport,
+                        publicationBackend
+                );
         ControlledEntity<T> attached = strategies.replacement().attach(adapter, entity, lifecycle);
         attachRegistryCleanup(attached);
         Object currentNativeHandle = resolveNativeHandle(entity);
@@ -498,7 +568,13 @@ public final class VersionedEntityPlatform {
             @NotNull SpawnOptions spawnOptions
     ) {
         EntityTemplate<T> typedTemplate = (EntityTemplate<T>) template;
-        RuntimeNativeEntityLifecycle<T> lifecycle = new RuntimeNativeEntityLifecycle<T>(typedTemplate, spawnOptions, minecraftVersion);
+        RuntimeNativeEntityLifecycle<T> lifecycle = new RuntimeNativeEntityLifecycle<T>(
+                typedTemplate,
+                spawnOptions,
+                minecraftVersion,
+                transport,
+                publicationBackend
+        );
         SpawnedEntity<T> entity = strategies.freshSpawn().spawn(adapter, typedTemplate, spawnOptions, lifecycle);
         registerIfHooked(entity);
         return entity;
@@ -516,6 +592,15 @@ public final class VersionedEntityPlatform {
             return ((EntityVersionMetadataProvider) adapter).entityBindings();
         }
         return EntityVersionBindings.unspecified();
+    }
+
+    private static @NotNull EntityNetworkMetadataContract resolveNetworkMetadataContract(
+            @NotNull EntityVersionAdapter adapter
+    ) {
+        if (adapter instanceof EntityVersionNetworkMetadataProvider) {
+            return ((EntityVersionNetworkMetadataProvider) adapter).entityNetworkMetadataContract();
+        }
+        return EntityNetworkMetadataContract.unspecified();
     }
 
     private void requireSupportedBaseType(@NotNull CustomEntityBaseType baseType) {

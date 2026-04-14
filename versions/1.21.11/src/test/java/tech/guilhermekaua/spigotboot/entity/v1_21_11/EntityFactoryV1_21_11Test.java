@@ -111,6 +111,20 @@ class EntityFactoryV1_21_11Test {
     }
 
     @Test
+    void migrateModernSectionMembership_shouldAddTheReplacementWhenTheOriginalWasAlreadyExtracted() {
+        StubSection section = new StubSection();
+        StubEntity oldEntity = new StubEntity(12);
+        StubEntity replacementEntity = new StubEntity(12);
+        StubCallback callback = new StubCallback(new StubSectionManager(), oldEntity, 7L, section);
+
+        EntityFactoryV1_21_11.migrateModernSectionMembership(callback, oldEntity, replacementEntity);
+
+        assertFalse(section.contains(oldEntity));
+        assertTrue(section.contains(replacementEntity));
+        assertEquals(1, section.size());
+    }
+
+    @Test
     void replaceManagedCollectionEntry_shouldOnlySwapWhenTheOriginalIsPresent() {
         StubEntity oldEntity = new StubEntity(3);
         StubEntity replacementEntity = new StubEntity(3);

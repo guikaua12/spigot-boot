@@ -27,6 +27,10 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.entity.api.EntityController;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransport;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransportResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
 
 /**
  * Runtime bridge used when attaching controllers to pre-existing vanilla entities.
@@ -41,6 +45,42 @@ public class RuntimeAttachedEntityLifecycle<T extends Entity> extends AbstractRu
             @NotNull MinecraftVersion minecraftVersion,
             @NotNull EntityController<T> initialController
     ) {
-        super(baseType, minecraftVersion, initialController);
+        this(baseType, minecraftVersion, initialController, EntityTransportResolver.noop());
+    }
+
+    /**
+     * Creates a new attached runtime lifecycle with an explicit internal transport backend.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     */
+    public RuntimeAttachedEntityLifecycle(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport
+    ) {
+        this(baseType, minecraftVersion, initialController, transport, EntityPublicationBackendResolver.noop());
+    }
+
+    /**
+     * Creates a new attached runtime lifecycle with explicit internal transport and publication backends.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     */
+    public RuntimeAttachedEntityLifecycle(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend
+    ) {
+        super(baseType, minecraftVersion, initialController, transport, publicationBackend);
     }
 }

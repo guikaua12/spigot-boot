@@ -42,6 +42,8 @@ import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.EntityRuntimeProfile;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.RuntimeServerFlavor;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityFreshSpawnPath;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityWorldRegistrationMode;
@@ -56,6 +58,10 @@ import tech.guilhermekaua.spigotboot.entity.runtime.model.NativeEntityConstructo
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeAttachedEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.RuntimeNativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityMetadataFamily;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityPublicationFamily;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityTrackerHookFamily;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityTransportFamily;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyFreshSpawnStrategy_1_8_to_1_12;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyReplacementStrategy_1_8_to_1_12;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyTrackingBindingStrategy_1_8_to_1_12;
@@ -310,6 +316,57 @@ class VersionedEntityPlatformTest {
         assertEquals("paper-reference-rewrite", platform.strategies().replacement().id());
         assertEquals("paper-chunk-preload-and-rewrite", platform.strategies().worldAdd().id());
         assertEquals("paper-entry-and-state", platform.strategies().trackingBinding().id());
+        assertSame(EntityTrackerHookFamily.MODERN_ENTRY_AND_STATE, platform.networkRuntime().trackerHookFamily());
+        assertSame(EntityPublicationFamily.SECTION_MANAGER, platform.networkRuntime().publicationFamily());
+        assertSame(EntityTransportFamily.LATEST_1_21_X, platform.networkRuntime().transportFamily());
+        assertSame(EntityMetadataFamily.LATEST_SYNCHED_ENTITY_DATA_1_21_X, platform.networkRuntime().metadataFamily());
+    }
+
+    @Test
+    void shouldComposeNetworkRuntimeBundleFromRuntimeProfileAndMetadata() {
+        VersionedEntityPlatform platform = new VersionedEntityPlatform(
+                new EntityRuntimeProfile(
+                        MinecraftVersion.of(1, 19, 2),
+                        RuntimeServerFlavor.PAPER,
+                        true,
+                        true,
+                        false
+                ),
+                new MetadataOnlyAdapter(
+                        MinecraftVersion.of(1, 19, 2),
+                        new EntityVersionCapabilities(
+                                EntityFreshSpawnPath.CONSTRUCTOR_FIRST,
+                                true,
+                                EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
+                                EntityWorldRegistrationMode.REFERENCE_REWRITE
+                        ),
+                        new EntityVersionBindings(
+                                new EntityFreshSpawnBinding(
+                                        Arrays.asList(
+                                                NativeEntityConstructorShape.LEVEL_AND_POSITION,
+                                                NativeEntityConstructorShape.ENTITY_TYPE_AND_LEVEL
+                                        ),
+                                        EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
+                                        true,
+                                        true
+                                ),
+                                new EntityReplacementBinding(
+                                        EntityWorldRegistrationMode.REFERENCE_REWRITE,
+                                        true,
+                                        true
+                                )
+                        )
+                )
+        );
+
+        assertSame(platform.networkRuntime(), platform.networkRuntime());
+        assertSame(EntityTrackerHookFamily.MODERN_ENTRY_AND_STATE, platform.networkRuntime().trackerHookFamily());
+        assertSame(EntityPublicationFamily.PAPER_CHUNK_SYSTEM, platform.networkRuntime().publicationFamily());
+        assertSame(EntityTransportFamily.MODERN_1_19_2_TO_1_20_6, platform.networkRuntime().transportFamily());
+        assertSame(
+                EntityMetadataFamily.MODERN_SYNCHED_ENTITY_DATA_1_17_TO_1_20_6,
+                platform.networkRuntime().metadataFamily()
+        );
     }
 
     @Test
@@ -598,6 +655,10 @@ class VersionedEntityPlatformTest {
         assertEquals("unspecified", platform.strategies().replacement().id());
         assertEquals("unspecified", platform.strategies().worldAdd().id());
         assertEquals("unspecified", platform.strategies().trackingBinding().id());
+        assertSame(EntityTrackerHookFamily.UNSPECIFIED, platform.networkRuntime().trackerHookFamily());
+        assertSame(EntityPublicationFamily.UNSPECIFIED, platform.networkRuntime().publicationFamily());
+        assertSame(EntityTransportFamily.UNSPECIFIED, platform.networkRuntime().transportFamily());
+        assertSame(EntityMetadataFamily.UNSPECIFIED, platform.networkRuntime().metadataFamily());
     }
 
     @Test

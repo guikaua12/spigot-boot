@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
 import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations.Plugin;
+import tech.guilhermekaua.spigotboot.testPlugin.services.EntityMatrixAutorunService;
 import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
 
 @Getter
@@ -47,6 +48,7 @@ public class Main extends JavaPlugin {
 
         MainConfig mainConfig = ctx.getBean(MainConfig.class);
         getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
+        ctx.getBean(EntityMatrixAutorunService.class).startIfRequested(this);
     }
 
     @Override

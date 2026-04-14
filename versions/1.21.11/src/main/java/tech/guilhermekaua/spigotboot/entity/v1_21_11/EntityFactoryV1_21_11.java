@@ -65,11 +65,14 @@ import tech.guilhermekaua.spigotboot.entity.runtime.model.NativeEntityConstructo
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.ReflectionSupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.SectionManagerPublicationSupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityPublicationFamily;
 import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityStrategyBundleSelector;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityVersionEntrypoint;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityStrategyBundle;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperFreshSpawnStrategy_1_21_plus;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperReplacementStrategy_1_21_plus;
+import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperTrackingBindingStrategy_1_21_plus;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -91,6 +94,7 @@ import java.util.stream.Stream;
  */
 public final class EntityFactoryV1_21_11
         implements EntityVersionEntrypoint,
+        PaperTrackingBindingStrategy_1_21_plus.Support,
         PaperFreshSpawnStrategy_1_21_plus.Support,
         PaperReplacementStrategy_1_21_plus.Support {
     private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 21, 11);
@@ -399,6 +403,29 @@ public final class EntityFactoryV1_21_11
         Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
         Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
         rebindModernBukkitBridgeInternal(entity, currentNativeHandle, replacementHandle);
+    }
+
+    @Override
+    public void replaceWorldReferences(
+            @NotNull EntityPublicationFamily family,
+            @NotNull Object currentNativeHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(family, "family cannot be null");
+        Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
+        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
+        switch (family) {
+            case SECTION_MANAGER:
+                replaceSectionManagerWorldReferencesInternal(currentNativeHandle, replacementHandle);
+                return;
+            case PAPER_MOONRISE_CHUNK_SYSTEM:
+                replaceModernWorldReferencesInternal(currentNativeHandle, replacementHandle);
+                return;
+            default:
+                throw new IllegalStateException(
+                        "Minecraft 1.21.11 does not support publication family '" + family.id() + "'."
+                );
+        }
     }
 
     @Override
@@ -890,6 +917,83 @@ public final class EntityFactoryV1_21_11
         replaceModernLifecycleCollections(level, oldHandle, replacementHandle);
     }
 
+    private static void replaceSectionManagerWorldReferencesInternal(
+            @NotNull Object oldHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Object level = ReflectionSupport.readField(ReflectionSupport.requireField(oldHandle.getClass(), "level"), oldHandle);
+        replaceSectionManagerVisibleStorage(level, oldHandle, replacementHandle);
+        rebindModernLevelCallback(oldHandle, replacementHandle);
+        replaceModernLifecycleCollections(level, oldHandle, replacementHandle);
+    }
+
+    private static void replaceSectionManagerVisibleStorage(
+            @NotNull Object level,
+            @NotNull Object oldHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Field entityManagerField = ReflectionSupport.findField(level.getClass(), "entityManager");
+        if (entityManagerField == null) {
+            return;
+        }
+
+        Object entityManager = ReflectionSupport.readField(entityManagerField, level);
+        if (entityManager == null) {
+            return;
+        }
+
+        Field visibleEntityStorageField = ReflectionSupport.findField(entityManager.getClass(), "visibleEntityStorage");
+        if (visibleEntityStorageField == null) {
+            return;
+        }
+
+        Object visibleEntityStorage = ReflectionSupport.readField(visibleEntityStorageField, entityManager);
+        if (visibleEntityStorage == null) {
+            return;
+        }
+
+        int entityId = ((Integer) ReflectionSupport.invoke(
+                ReflectionSupport.requireNamedMethod(oldHandle.getClass(), new String[]{"getId"}),
+                oldHandle
+        )).intValue();
+        Object uuid = ReflectionSupport.invoke(
+                ReflectionSupport.requireNamedMethod(oldHandle.getClass(), new String[]{"getUUID"}),
+                oldHandle
+        );
+
+        replaceMapEntryByKey(visibleEntityStorage, "byId", Integer.valueOf(entityId), oldHandle, replacementHandle);
+        replaceMapEntryByKey(visibleEntityStorage, "byUUID", uuid, oldHandle, replacementHandle);
+        replaceMapEntryByKey(visibleEntityStorage, "byUuid", uuid, oldHandle, replacementHandle);
+    }
+
+    private static void replaceMapEntryByKey(
+            @NotNull Object owner,
+            @NotNull String fieldName,
+            @Nullable Object key,
+            @NotNull Object oldValue,
+            @NotNull Object newValue
+    ) {
+        if (key == null) {
+            return;
+        }
+
+        Field field = ReflectionSupport.findField(owner.getClass(), fieldName);
+        if (field == null) {
+            return;
+        }
+
+        Object mapping = ReflectionSupport.readField(field, owner);
+        if (!(mapping instanceof Map)) {
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> values = (Map<Object, Object>) mapping;
+        if (values.get(key) == oldValue) {
+            values.put(key, newValue);
+        }
+    }
+
     private static void updateTrackedEntity(
             @NotNull Object level,
             @NotNull Object oldHandle,
@@ -982,70 +1086,14 @@ public final class EntityFactoryV1_21_11
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
-        Objects.requireNonNull(oldHandle, "oldHandle cannot be null");
-        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
-        if (oldLevelCallback == null) {
-            return null;
-        }
-
-        Field entityField = ReflectionSupport.findField(oldLevelCallback.getClass(), "entity");
-        if (entityField == null) {
-            return null;
-        }
-
-        Object callbackEntity = ReflectionSupport.readField(entityField, oldLevelCallback);
-        if (callbackEntity != oldHandle) {
-            return null;
-        }
-        if (!entityField.getType().isAssignableFrom(replacementHandle.getClass())) {
-            return null;
-        }
-
-        ReflectionSupport.writeField(entityField, oldLevelCallback, replacementHandle);
-        return oldLevelCallback;
+        return SectionManagerPublicationSupport.retargetSectionCallback(oldLevelCallback, oldHandle, replacementHandle);
     }
 
     static @Nullable Object recreateModernSectionCallback(
             @Nullable Object oldLevelCallback,
             @NotNull Object replacementHandle
     ) {
-        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
-        if (oldLevelCallback == null) {
-            return null;
-        }
-
-        Field entityField = ReflectionSupport.findField(oldLevelCallback.getClass(), "entity");
-        Field managerField = ReflectionSupport.findField(oldLevelCallback.getClass(), "this$0");
-        Field currentSectionKeyField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSectionKey");
-        Field currentSectionField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSection");
-        if (entityField == null || managerField == null || currentSectionKeyField == null || currentSectionField == null) {
-            return null;
-        }
-
-        Object manager = ReflectionSupport.readField(managerField, oldLevelCallback);
-        Object currentSectionKey = ReflectionSupport.readField(currentSectionKeyField, oldLevelCallback);
-        Object currentSection = ReflectionSupport.readField(currentSectionField, oldLevelCallback);
-        if (!(currentSectionKey instanceof Long)) {
-            return null;
-        }
-
-        Constructor<?> callbackConstructor = findModernSectionCallbackConstructor(
-                oldLevelCallback.getClass(),
-                manager,
-                replacementHandle,
-                currentSection
-        );
-        if (callbackConstructor == null) {
-            return null;
-        }
-
-        return ReflectionSupport.instantiate(
-                callbackConstructor,
-                manager,
-                replacementHandle,
-                Long.valueOf(((Long) currentSectionKey).longValue()),
-                currentSection
-        );
+        return SectionManagerPublicationSupport.recreateSectionCallback(oldLevelCallback, replacementHandle);
     }
 
     private static @Nullable Constructor<?> findModernSectionCallbackConstructor(
@@ -1082,40 +1130,7 @@ public final class EntityFactoryV1_21_11
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
-        Objects.requireNonNull(oldHandle, "oldHandle cannot be null");
-        Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
-        if (oldLevelCallback == null) {
-            return;
-        }
-
-        Field currentSectionField = ReflectionSupport.findField(oldLevelCallback.getClass(), "currentSection");
-        if (currentSectionField == null) {
-            return;
-        }
-
-        Object currentSection = ReflectionSupport.readField(currentSectionField, oldLevelCallback);
-        if (currentSection == null) {
-            return;
-        }
-
-        Method removeMethod = ReflectionSupport.findCompatibleMethod(
-                currentSection.getClass(),
-                new String[]{"remove"},
-                oldHandle.getClass()
-        );
-        Method addMethod = ReflectionSupport.findCompatibleMethod(
-                currentSection.getClass(),
-                new String[]{"add"},
-                replacementHandle.getClass()
-        );
-        if (removeMethod == null || addMethod == null) {
-            return;
-        }
-
-        boolean removed = Boolean.TRUE.equals(ReflectionSupport.invoke(removeMethod, currentSection, oldHandle));
-        if (removed || !containsManagedEntry(currentSection, replacementHandle)) {
-            ReflectionSupport.invoke(addMethod, currentSection, replacementHandle);
-        }
+        SectionManagerPublicationSupport.migrateSectionMembership(oldLevelCallback, oldHandle, replacementHandle);
     }
 
     private static void replaceModernLifecycleCollections(
@@ -1147,35 +1162,7 @@ public final class EntityFactoryV1_21_11
             @NotNull Object oldValue,
             @NotNull Object newValue
     ) {
-        Objects.requireNonNull(oldValue, "oldValue cannot be null");
-        Objects.requireNonNull(newValue, "newValue cannot be null");
-        if (collection == null || !containsManagedEntry(collection, oldValue)) {
-            return;
-        }
-
-        Method removeMethod = ReflectionSupport.findCompatibleMethod(
-                collection.getClass(),
-                new String[]{"remove"},
-                oldValue.getClass()
-        );
-        Method addMethod = ReflectionSupport.findCompatibleMethod(
-                collection.getClass(),
-                new String[]{"add"},
-                newValue.getClass()
-        );
-        if (removeMethod != null && addMethod != null) {
-            ReflectionSupport.invoke(removeMethod, collection, oldValue);
-            ReflectionSupport.invoke(addMethod, collection, newValue);
-            return;
-        }
-
-        if (collection instanceof Collection) {
-            @SuppressWarnings("unchecked")
-            Collection<Object> values = (Collection<Object>) collection;
-            if (values.remove(oldValue)) {
-                values.add(newValue);
-            }
-        }
+        SectionManagerPublicationSupport.replaceManagedCollectionEntry(collection, oldValue, newValue);
     }
 
     private static boolean containsManagedEntry(@Nullable Object collection, @NotNull Object value) {

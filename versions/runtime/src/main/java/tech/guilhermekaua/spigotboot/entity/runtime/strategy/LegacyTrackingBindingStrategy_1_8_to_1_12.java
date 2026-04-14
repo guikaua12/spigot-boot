@@ -26,6 +26,9 @@ import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerHookBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerHookSupport;
 
 import java.util.Objects;
 
@@ -105,7 +108,7 @@ public final class LegacyTrackingBindingStrategy_1_8_to_1_12 implements Tracking
         Objects.requireNonNull(support, "support cannot be null");
         Objects.requireNonNull(nativeEntity, "nativeEntity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-        bindTracking(resolveTrackingHandles(support, nativeEntity), lifecycle);
+        bindTracking(support, resolveTrackingHandles(support, nativeEntity), lifecycle);
     }
 
     /**
@@ -124,7 +127,7 @@ public final class LegacyTrackingBindingStrategy_1_8_to_1_12 implements Tracking
         Objects.requireNonNull(support, "support cannot be null");
         Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-        bindTracking(resolveTrackingHandles(support, replacementHandle), lifecycle);
+        bindTracking(support, resolveTrackingHandles(support, replacementHandle), lifecycle);
     }
 
     private static @NotNull TrackingHandles resolveTrackingHandles(
@@ -135,11 +138,40 @@ public final class LegacyTrackingBindingStrategy_1_8_to_1_12 implements Tracking
     }
 
     private static <T extends Entity> void bindTracking(
+            @NotNull Support support,
             @NotNull TrackingHandles trackingHandles,
             @NotNull NativeEntityLifecycle<T> lifecycle
     ) {
         lifecycle.handle().networkState().setTrackerEntryHandle(trackingHandles.trackerEntryHandle());
         lifecycle.handle().networkState().setTrackerStateHandle(trackingHandles.trackerStateHandle());
+        bindLegacyTrackerHook(support, trackingHandles.trackerEntryHandle(), lifecycle);
+    }
+
+    private static <T extends Entity> void bindLegacyTrackerHook(
+            @NotNull Support support,
+            @Nullable Object trackerEntryHandle,
+            @NotNull NativeEntityLifecycle<T> lifecycle
+    ) {
+        if (trackerEntryHandle == null) {
+            return;
+        }
+
+        LegacyTrackerHookSupport hookSupport = support.legacyTrackerHookSupport();
+        if (hookSupport == null) {
+            return;
+        }
+
+        if (!(lifecycle.handle() instanceof AbstractRuntimeControlledEntity)) {
+            throw new IllegalStateException(
+                    "The runtime lifecycle handle must extend AbstractRuntimeControlledEntity for legacy tracker-hook binding."
+            );
+        }
+
+        LegacyTrackerHookBackend.bind(
+                (AbstractRuntimeControlledEntity<?>) lifecycle.handle(),
+                trackerEntryHandle,
+                hookSupport
+        );
     }
 
     /**
@@ -156,6 +188,15 @@ public final class LegacyTrackingBindingStrategy_1_8_to_1_12 implements Tracking
          * @return the tracker-entry handle, or {@code null}
          */
         @Nullable Object resolveTrackerEntryHandle(@NotNull Object trackedHandle);
+
+        /**
+         * Returns the optional legacy tracker-hook bridge for active entry-hook dispatch.
+         *
+         * @return the legacy tracker-hook bridge, or {@code null}
+         */
+        default @Nullable LegacyTrackerHookSupport legacyTrackerHookSupport() {
+            return null;
+        }
     }
 
     /**

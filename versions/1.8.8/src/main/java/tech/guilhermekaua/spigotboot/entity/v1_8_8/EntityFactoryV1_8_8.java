@@ -65,6 +65,7 @@ import tech.guilhermekaua.spigotboot.entity.runtime.model.NativeEntityConstructo
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.GeneratedNativeHookSpec;
 import tech.guilhermekaua.spigotboot.entity.runtime.nativebridge.ReflectionSupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityPublicationFamily;
 import tech.guilhermekaua.spigotboot.entity.runtime.selection.EntityStrategyBundleSelector;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityVersionEntrypoint;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityStrategyBundle;
@@ -402,6 +403,25 @@ public final class EntityFactoryV1_8_8
         Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
         Objects.requireNonNull(replacementHandle, "replacementHandle cannot be null");
         rebindLegacyBukkitBridgeInternal(entity, currentNativeHandle, replacementHandle);
+    }
+
+    @Override
+    public void replaceWorldReferences(
+            @NotNull EntityPublicationFamily family,
+            @NotNull Object currentNativeHandle,
+            @NotNull Object replacementHandle
+    ) {
+        Objects.requireNonNull(family, "family cannot be null");
+        if (family != EntityPublicationFamily.LEGACY_WORLD_LISTENER) {
+            throw new IllegalStateException(
+                    "Minecraft 1.8.8 only supports publication family '"
+                            + EntityPublicationFamily.LEGACY_WORLD_LISTENER.id()
+                            + "' but received '"
+                            + family.id()
+                            + "'."
+            );
+        }
+        replaceLegacyWorldReferences(currentNativeHandle, replacementHandle);
     }
 
     @Override

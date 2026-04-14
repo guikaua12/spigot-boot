@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.entity.v1_8_8;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.api.ControlledEntity;
 import tech.guilhermekaua.spigotboot.entity.api.CustomEntityBaseType;
@@ -35,10 +36,18 @@ import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionBindings;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionLegacyTransportProvider;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionMetadataProvider;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionNetworkMetadataProvider;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataContract;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.LegacyTransportSupport;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.EntityVersionEntrypoint;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyFreshSpawnStrategy_1_8_to_1_12;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyReplacementStrategy_1_8_to_1_12;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerEntryHandleBridge;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerEntryHook;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerHookSupport;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerViewabilitySnapshot;
 
 import java.util.Objects;
 
@@ -50,14 +59,49 @@ import java.util.Objects;
 public final class SpigotEntityAdapterV1_8_8
         implements EntityVersionAdapter,
         EntityVersionMetadataProvider,
+        EntityVersionNetworkMetadataProvider,
+        EntityVersionLegacyTransportProvider,
         LegacyFreshSpawnStrategy_1_8_to_1_12.Provider,
         LegacyReplacementStrategy_1_8_to_1_12.Provider {
     private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 8, 8);
+    private static final MinecraftVersion MAXIMUM_VERSION = MinecraftVersion.of(1, 12, 2);
+    private static final EntityNetworkMetadataContract NETWORK_METADATA_CONTRACT =
+            EntityNetworkMetadataContract.of("legacy-datawatcher-1.8.8-1.12.2");
+    private static final LegacyTransportSupport LEGACY_TRANSPORT_SUPPORT = new LegacyTransportSupportV1_8_8();
+    private static final LegacyTrackerHookSupport LEGACY_TRACKER_HOOK_SUPPORT = new LegacyTrackerHookSupport() {
+        @Override
+        public @NotNull String overlayId() {
+            return "legacy-entry-hook-1.8.8-1.12.2";
+        }
+
+        @Override
+        public void installHook(@NotNull Object trackerEntryHandle, @NotNull LegacyTrackerEntryHook hook) {
+            if (trackerEntryHandle instanceof LegacyTrackerEntryHandleBridge) {
+                ((LegacyTrackerEntryHandleBridge) trackerEntryHandle).bindLegacyTrackerEntryHook(hook);
+            }
+        }
+
+        @Override
+        public Player resolveViewer(@NotNull Object rawViewer) {
+            return rawViewer instanceof Player ? (Player) rawViewer : null;
+        }
+
+        @Override
+        public @NotNull LegacyTrackerViewabilitySnapshot describeViewability(
+                @NotNull Object trackerEntryHandle,
+                @NotNull Object rawViewer
+        ) {
+            if (trackerEntryHandle instanceof LegacyTrackerEntryHandleBridge) {
+                return ((LegacyTrackerEntryHandleBridge) trackerEntryHandle).describeLegacyViewability(rawViewer);
+            }
+            return LegacyTrackerViewabilitySnapshot.hidden();
+        }
+    };
 
     private final LegacyFreshSpawnStrategy_1_8_to_1_12.Support legacyFreshSpawnSupport =
             new LegacyFreshSpawnStrategy_1_8_to_1_12.Support() {
                 @Override
-                public <T extends Entity> @NotNull LegacyFreshSpawnStrategy_1_8_to_1_12.PreparedSpawn prepareFreshSpawn(
+                public <T extends Entity> LegacyFreshSpawnStrategy_1_8_to_1_12.PreparedSpawn prepareFreshSpawn(
                         @NotNull EntityTemplate<T> template,
                         @NotNull SpawnOptions spawnOptions
                 ) {
@@ -95,6 +139,11 @@ public final class SpigotEntityAdapterV1_8_8
                 public Object resolveTrackerEntryHandle(@NotNull Object nativeEntity) {
                     return resolvedLegacyFreshSpawnSupport().resolveTrackerEntryHandle(nativeEntity);
                 }
+
+                @Override
+                public LegacyTrackerHookSupport legacyTrackerHookSupport() {
+                    return LEGACY_TRACKER_HOOK_SUPPORT;
+                }
             };
     private final LegacyReplacementStrategy_1_8_to_1_12.Support legacyReplacementSupport =
             new LegacyReplacementStrategy_1_8_to_1_12.Support() {
@@ -104,7 +153,7 @@ public final class SpigotEntityAdapterV1_8_8
                 }
 
                 @Override
-                public <T extends Entity> @NotNull LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement prepareReplacement(
+                public <T extends Entity> LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement prepareReplacement(
                         @NotNull T entity,
                         @NotNull Object currentNativeHandle
                 ) {
@@ -192,6 +241,11 @@ public final class SpigotEntityAdapterV1_8_8
                 }
 
                 @Override
+                public LegacyTrackerHookSupport legacyTrackerHookSupport() {
+                    return LEGACY_TRACKER_HOOK_SUPPORT;
+                }
+
+                @Override
                 public <T extends Entity> void scheduleRepairPass(
                         @NotNull NativeEntityLifecycle<T> lifecycle,
                         @NotNull T entity,
@@ -216,7 +270,7 @@ public final class SpigotEntityAdapterV1_8_8
 
     @Override
     public @NotNull MinecraftVersion maximumVersion() {
-        return VERSION;
+        return MAXIMUM_VERSION;
     }
 
     @Override
@@ -227,6 +281,16 @@ public final class SpigotEntityAdapterV1_8_8
     @Override
     public @NotNull EntityVersionBindings entityBindings() {
         return EntityFactoryV1_8_8.entityBindings();
+    }
+
+    @Override
+    public @NotNull EntityNetworkMetadataContract entityNetworkMetadataContract() {
+        return NETWORK_METADATA_CONTRACT;
+    }
+
+    @Override
+    public @NotNull LegacyTransportSupport legacyTransportSupport() {
+        return LEGACY_TRANSPORT_SUPPORT;
     }
 
     @Override

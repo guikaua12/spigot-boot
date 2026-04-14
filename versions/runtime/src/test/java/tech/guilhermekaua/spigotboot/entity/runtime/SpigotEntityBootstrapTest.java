@@ -36,6 +36,8 @@ import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityFreshSpawnPath;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityWorldRegistrationMode;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.EntityRuntimeProfile;
+import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.RuntimeServerFlavor;
 import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.SpigotEntityBootstrap;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityFreshSpawnBinding;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityReplacementBinding;
@@ -46,6 +48,7 @@ import tech.guilhermekaua.spigotboot.entity.runtime.exception.EntityAdapterNotFo
 import tech.guilhermekaua.spigotboot.entity.runtime.registry.EntityAdapterRegistry;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyTrackingBindingStrategy_1_8_to_1_12;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.PaperTrackingBindingStrategy_1_21_plus;
+import tech.guilhermekaua.spigotboot.entity.runtime.support.RuntimeSupportMatrix;
 import tech.guilhermekaua.spigotboot.entity.runtime.support.ServiceLoadedAdapter;
 
 import java.net.URL;
@@ -56,6 +59,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,19 +74,51 @@ class SpigotEntityBootstrapTest {
     @Test
     void shouldSelectLegacyAdapterForLegacyVersion() {
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot(
-                "1.8.8-R0.1-SNAPSHOT",
+                spigotProfile(MinecraftVersion.of(1, 8, 8)),
                 Arrays.<EntityVersionAdapter>asList(
-                        InlineMetadataAdapter.legacy(MinecraftVersion.of(1, 8, 8)),
-                        InlineMetadataAdapter.paperLike(MinecraftVersion.of(1, 21, 11))
+                        InlineSupportedAdapter.legacy(MinecraftVersion.of(1, 8, 8)),
+                        InlineSupportedAdapter.paperLike(MinecraftVersion.of(1, 21, 11))
                 )
         );
 
         assertEquals(MinecraftVersion.of(1, 8, 8), platform.adapter().minimumVersion());
+        assertSupportDeclarationId("legacy-1.8.8-1.12.2", spigotProfile(MinecraftVersion.of(1, 8, 8)), platform);
         assertEquals("legacy-constructor-first", platform.strategies().freshSpawn().id());
         assertEquals("legacy-reference-rewrite", platform.strategies().replacement().id());
         assertEquals("legacy-constructor-add-and-rewrite", platform.strategies().worldAdd().id());
         assertEquals("legacy-entry-only", platform.strategies().trackingBinding().id());
         assertInstanceOf(LegacyTrackingBindingStrategy_1_8_to_1_12.class, platform.strategies().trackingBinding());
+    }
+
+    @Test
+    void shouldSelectDeterministicFamilyRangeAdapterForPlannedVersions() {
+        InlineAdapter v1_8_8 = new InlineAdapter(MinecraftVersion.of(1, 8, 8), MinecraftVersion.of(1, 12, 2));
+        InlineAdapter v1_13_2 = new InlineAdapter(MinecraftVersion.of(1, 13, 0), MinecraftVersion.of(1, 13, 2));
+        InlineAdapter v1_16_5 = new InlineAdapter(MinecraftVersion.of(1, 14, 0), MinecraftVersion.of(1, 16, 5));
+        InlineAdapter v1_17_1 = new InlineAdapter(MinecraftVersion.of(1, 17, 0), MinecraftVersion.of(1, 18, 2));
+        InlineAdapter v1_19_2 = new InlineAdapter(MinecraftVersion.of(1, 19, 2), MinecraftVersion.of(1, 20, 6));
+        InlineAdapter v1_21_11 = new InlineAdapter(MinecraftVersion.of(1, 21, 0), MinecraftVersion.of(1, 21, 11));
+        List<EntityVersionAdapter> adapters = Arrays.<EntityVersionAdapter>asList(
+                v1_8_8,
+                v1_13_2,
+                v1_16_5,
+                v1_17_1,
+                v1_19_2,
+                v1_21_11
+        );
+
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 8, 8)), adapters, v1_8_8);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 12, 2)), adapters, v1_8_8);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 13, 0)), adapters, v1_13_2);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 13, 2)), adapters, v1_13_2);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 14, 0)), adapters, v1_16_5);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 16, 5)), adapters, v1_16_5);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 17, 0)), adapters, v1_17_1);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 18, 2)), adapters, v1_17_1);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 19, 2)), adapters, v1_19_2);
+        assertResolvesExactlyOneAdapter(paperProfile(MinecraftVersion.of(1, 20, 6), true, true, false), adapters, v1_19_2);
+        assertResolvesExactlyOneAdapter(spigotProfile(MinecraftVersion.of(1, 21, 0)), adapters, v1_21_11);
+        assertResolvesExactlyOneAdapter(paperProfile(MinecraftVersion.of(1, 21, 11), true, true, true), adapters, v1_21_11);
     }
 
     @Test
@@ -94,25 +130,31 @@ class SpigotEntityBootstrapTest {
 
     @Test
     void shouldResolvePlatformFromExplicitlyRegisteredAdapters() {
-        EntityAdapterRegistry.register(InlineMetadataAdapter.legacy(MinecraftVersion.of(1, 8, 8)));
+        EntityAdapterRegistry.register(InlineSupportedAdapter.legacy(MinecraftVersion.of(1, 8, 8)));
 
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot("1.8.8-R0.1-SNAPSHOT");
 
         assertEquals(MinecraftVersion.of(1, 8, 8), platform.adapter().minimumVersion());
+        assertSupportDeclarationId("legacy-1.8.8-1.12.2", spigotProfile(MinecraftVersion.of(1, 8, 8)), platform);
         assertEquals("legacy-constructor-first", platform.strategies().freshSpawn().id());
     }
 
     @Test
     void shouldExposePaperLikeStrategyBundleForModernMetadataAdapter() {
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot(
-                "1.21.11",
+                paperProfile(MinecraftVersion.of(1, 21, 11), true, true, true),
                 Arrays.<EntityVersionAdapter>asList(
-                        InlineMetadataAdapter.legacy(MinecraftVersion.of(1, 8, 8)),
-                        InlineMetadataAdapter.paperLike(MinecraftVersion.of(1, 21, 11))
+                        InlineSupportedAdapter.legacy(MinecraftVersion.of(1, 8, 8)),
+                        InlineSupportedAdapter.paperLike(MinecraftVersion.of(1, 21, 11))
                 )
         );
 
         assertEquals(MinecraftVersion.of(1, 21, 11), platform.adapter().minimumVersion());
+        assertSupportDeclarationId(
+                "paper-moonrise-1.21.x",
+                paperProfile(MinecraftVersion.of(1, 21, 11), true, true, true),
+                platform
+        );
         assertEquals("paper-constructor-first", platform.strategies().freshSpawn().id());
         assertEquals("paper-reference-rewrite", platform.strategies().replacement().id());
         assertEquals("paper-chunk-preload-and-rewrite", platform.strategies().worldAdd().id());
@@ -123,11 +165,16 @@ class SpigotEntityBootstrapTest {
     @Test
     void shouldKeepLegacyWorldAndTrackingStrategiesSelectorDrivenForModernVersionMetadata() {
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot(
-                "1.21.11",
-                Collections.<EntityVersionAdapter>singletonList(InlineMetadataAdapter.legacy(MinecraftVersion.of(1, 21, 11)))
+                paperProfile(MinecraftVersion.of(1, 21, 11), true, true, true),
+                Collections.<EntityVersionAdapter>singletonList(InlineSupportedAdapter.legacy(MinecraftVersion.of(1, 21, 11)))
         );
 
         assertEquals(MinecraftVersion.of(1, 21, 11), platform.adapter().minimumVersion());
+        assertSupportDeclarationId(
+                "paper-moonrise-1.21.x",
+                paperProfile(MinecraftVersion.of(1, 21, 11), true, true, true),
+                platform
+        );
         assertEquals("legacy-constructor-first", platform.strategies().freshSpawn().id());
         assertEquals("legacy-reference-rewrite", platform.strategies().replacement().id());
         assertEquals("legacy-constructor-add-and-rewrite", platform.strategies().worldAdd().id());
@@ -138,11 +185,12 @@ class SpigotEntityBootstrapTest {
     @Test
     void shouldKeepPaperWorldAndTrackingStrategiesSelectorDrivenForLegacyVersionMetadata() {
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot(
-                "1.8.8-R0.1-SNAPSHOT",
-                Collections.<EntityVersionAdapter>singletonList(InlineMetadataAdapter.paperLike(MinecraftVersion.of(1, 8, 8)))
+                spigotProfile(MinecraftVersion.of(1, 8, 8)),
+                Collections.<EntityVersionAdapter>singletonList(InlineSupportedAdapter.paperLike(MinecraftVersion.of(1, 8, 8)))
         );
 
         assertEquals(MinecraftVersion.of(1, 8, 8), platform.adapter().minimumVersion());
+        assertSupportDeclarationId("legacy-1.8.8-1.12.2", spigotProfile(MinecraftVersion.of(1, 8, 8)), platform);
         assertEquals("paper-constructor-first", platform.strategies().freshSpawn().id());
         assertEquals("paper-reference-rewrite", platform.strategies().replacement().id());
         assertEquals("paper-chunk-preload-and-rewrite", platform.strategies().worldAdd().id());
@@ -152,15 +200,16 @@ class SpigotEntityBootstrapTest {
 
     @Test
     void shouldFallbackToUnspecifiedStrategyBundleForPlainBootstrapAdapter() {
-        VersionedEntityPlatform platform = SpigotEntityBootstrap.boot(
-                "1.21.11",
-                Collections.singletonList(new InlineAdapter(MinecraftVersion.of(1, 21, 11)))
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> SpigotEntityBootstrap.boot(
+                        spigotProfile(MinecraftVersion.of(1, 21, 11)),
+                        Collections.singletonList(new InlineAdapter(MinecraftVersion.of(1, 21, 11)))
+                )
         );
 
-        assertEquals("unspecified", platform.strategies().freshSpawn().id());
-        assertEquals("unspecified", platform.strategies().replacement().id());
-        assertEquals("unspecified", platform.strategies().worldAdd().id());
-        assertEquals("unspecified", platform.strategies().trackingBinding().id());
+        assertTrue(exception.getMessage().contains("only partially wired"));
+        assertTrue(exception.getMessage().contains("tracker hook backend is unspecified"));
     }
 
     @Test
@@ -170,6 +219,20 @@ class SpigotEntityBootstrapTest {
         VersionedEntityPlatform platform = SpigotEntityBootstrap.boot("1.21.11");
 
         assertTrue(platform.adapter() instanceof ServiceLoadedAdapter);
+        assertSupportDeclarationId("spigot-1.21.x", spigotProfile(MinecraftVersion.of(1, 21, 11)), platform);
+    }
+
+    @Test
+    void shouldRejectProfilesThatAreNotExplicitlyDeclaredAsSupported() {
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> SpigotEntityBootstrap.boot(
+                        paperProfile(MinecraftVersion.of(1, 19, 2), true, false, false),
+                        Collections.<EntityVersionAdapter>singletonList(InlineSupportedAdapter.paperLike(MinecraftVersion.of(1, 19, 2)))
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("No runtime support declaration claims profile"));
     }
 
     @Test
@@ -183,20 +246,26 @@ class SpigotEntityBootstrapTest {
     }
 
     private static class InlineAdapter implements EntityVersionAdapter {
-        private final MinecraftVersion version;
+        private final MinecraftVersion minimumVersion;
+        private final MinecraftVersion maximumVersion;
 
         private InlineAdapter(MinecraftVersion version) {
-            this.version = version;
+            this(version, version);
+        }
+
+        private InlineAdapter(MinecraftVersion minimumVersion, MinecraftVersion maximumVersion) {
+            this.minimumVersion = minimumVersion;
+            this.maximumVersion = maximumVersion;
         }
 
         @Override
         public MinecraftVersion minimumVersion() {
-            return version;
+            return minimumVersion;
         }
 
         @Override
         public MinecraftVersion maximumVersion() {
-            return version;
+            return maximumVersion;
         }
 
         @Override
@@ -222,85 +291,74 @@ class SpigotEntityBootstrapTest {
         }
     }
 
-    private static final class InlineMetadataAdapter extends InlineAdapter implements EntityVersionMetadataProvider {
-        private final EntityVersionCapabilities capabilities;
-        private final EntityVersionBindings bindings;
+    private static final class InlineSupportedAdapter extends RuntimeSupportFixtures.SupportedMetadataAdapter {
 
-        private InlineMetadataAdapter(
+        private InlineSupportedAdapter(
                 MinecraftVersion version,
                 EntityVersionCapabilities capabilities,
                 EntityVersionBindings bindings
         ) {
-            super(version);
-            this.capabilities = capabilities;
-            this.bindings = bindings;
+            super(version, version, capabilities, bindings, RuntimeSupportFixtures.metadataContract(version));
         }
 
-        private static InlineMetadataAdapter legacy(MinecraftVersion version) {
-            return new InlineMetadataAdapter(
+        private static InlineSupportedAdapter legacy(MinecraftVersion version) {
+            return new InlineSupportedAdapter(
                     version,
-                    new EntityVersionCapabilities(
-                            EntityFreshSpawnPath.CONSTRUCTOR_FIRST,
-                            false,
-                            EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
-                            EntityWorldRegistrationMode.REFERENCE_REWRITE
-                    ),
-                    new EntityVersionBindings(
-                            new EntityFreshSpawnBinding(
-                                    Arrays.asList(
-                                            NativeEntityConstructorShape.LEVEL_AND_POSITION,
-                                            NativeEntityConstructorShape.LEVEL_ONLY
-                                    ),
-                                    EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
-                                    true,
-                                    false
-                            ),
-                            new EntityReplacementBinding(
-                                    EntityWorldRegistrationMode.REFERENCE_REWRITE,
-                                    true,
-                                    false
-                            )
-                    )
+                    RuntimeSupportFixtures.legacyCapabilities(),
+                    RuntimeSupportFixtures.legacyBindings()
             );
         }
 
-        private static InlineMetadataAdapter paperLike(MinecraftVersion version) {
-            return new InlineMetadataAdapter(
+        private static InlineSupportedAdapter paperLike(MinecraftVersion version) {
+            return new InlineSupportedAdapter(
                     version,
-                    new EntityVersionCapabilities(
-                            EntityFreshSpawnPath.CONSTRUCTOR_FIRST,
-                            true,
-                            EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
-                            EntityWorldRegistrationMode.REFERENCE_REWRITE
-                    ),
-                    new EntityVersionBindings(
-                            new EntityFreshSpawnBinding(
-                                    Arrays.asList(
-                                            NativeEntityConstructorShape.LEVEL_AND_POSITION,
-                                            NativeEntityConstructorShape.ENTITY_TYPE_AND_LEVEL,
-                                            NativeEntityConstructorShape.LEVEL_ONLY
-                                    ),
-                                    EntityWorldRegistrationMode.CHUNK_PRELOAD_AND_ADD,
-                                    true,
-                                    true
-                            ),
-                            new EntityReplacementBinding(
-                                    EntityWorldRegistrationMode.REFERENCE_REWRITE,
-                                    true,
-                                    true
-                            )
-                    )
+                    RuntimeSupportFixtures.modernCapabilities(),
+                    RuntimeSupportFixtures.modernBindings()
             );
         }
+    }
 
-        @Override
-        public EntityVersionCapabilities entityCapabilities() {
-            return capabilities;
-        }
+    private static EntityRuntimeProfile spigotProfile(MinecraftVersion version) {
+        return new EntityRuntimeProfile(version, RuntimeServerFlavor.SPIGOT, false, false, false);
+    }
 
-        @Override
-        public EntityVersionBindings entityBindings() {
-            return bindings;
-        }
+    private static void assertResolvesExactlyOneAdapter(
+            EntityRuntimeProfile runtimeProfile,
+            List<EntityVersionAdapter> adapters,
+            EntityVersionAdapter expected
+    ) {
+        long matchingAdapters = adapters.stream()
+                .filter(adapter -> adapter.supports(runtimeProfile.minecraftVersion()))
+                .count();
+
+        assertEquals(
+                1L,
+                matchingAdapters,
+                "Expected exactly one version-family adapter for " + runtimeProfile.minecraftVersion()
+        );
+        assertSame(expected, SpigotEntityBootstrap.selectAdapter(runtimeProfile, adapters));
+    }
+
+    private static void assertSupportDeclarationId(
+            String expectedId,
+            EntityRuntimeProfile runtimeProfile,
+            VersionedEntityPlatform platform
+    ) {
+        assertEquals(expectedId, RuntimeSupportMatrix.requireSupported(runtimeProfile, platform.adapter()).id());
+    }
+
+    private static EntityRuntimeProfile paperProfile(
+            MinecraftVersion version,
+            boolean trackerStateAvailable,
+            boolean paperChunkSystemAvailable,
+            boolean paperMoonriseChunkSystemAvailable
+    ) {
+        return new EntityRuntimeProfile(
+                version,
+                RuntimeServerFlavor.PAPER,
+                trackerStateAvailable,
+                paperChunkSystemAvailable,
+                paperMoonriseChunkSystemAvailable
+        );
     }
 }

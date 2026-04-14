@@ -53,7 +53,12 @@ public class EntityDemoCommand {
     @DefaultCommand
     public void root(@Sender Player player, CommandExecutionContext context) {
         player.sendMessage("Use /" + context.getCommandLabel() + " orbit");
+        player.sendMessage("Use /" + context.getCommandLabel() + " wrap");
+        player.sendMessage("Use /" + context.getCommandLabel() + " deathfx-cow");
         player.sendMessage("Use /" + context.getCommandLabel() + " deathfx <entityType>");
+        player.sendMessage("Use /" + context.getCommandLabel() + " metadata-dirty-zombie");
+        player.sendMessage("Use /" + context.getCommandLabel() + " viewer-cycle-zombie");
+        player.sendMessage("Use /" + context.getCommandLabel() + " attach-existing-zombie");
     }
 
     /**
@@ -64,10 +69,25 @@ public class EntityDemoCommand {
     @Command("orbit")
     public void orbit(@Sender Player player) {
         try {
-            entityDemoService.spawnOrbitingZombie(player);
+            entityDemoService.spawnOrbitScenario(player);
             player.sendMessage("Spawned an orbiting custom zombie around you.");
         } catch (RuntimeException exception) {
             player.sendMessage("Could not spawn the orbiting zombie: " + exception.getMessage());
+        }
+    }
+
+    /**
+     * Spawns a normal Bukkit zombie and wraps it with the entity platform.
+     *
+     * @param player the executing player
+     */
+    @Command("wrap")
+    public void wrap(@Sender Player player) {
+        try {
+            entityDemoService.wrapBukkitZombie(player);
+            player.sendMessage("Spawned and wrapped a Bukkit zombie in front of you.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not wrap the Bukkit zombie: " + exception.getMessage());
         }
     }
 
@@ -84,6 +104,46 @@ public class EntityDemoCommand {
             player.sendMessage("Spawned a custom " + entityType.name() + " with a rain death effect.");
         } catch (RuntimeException exception) {
             player.sendMessage("Could not spawn the custom entity: " + exception.getMessage());
+        }
+    }
+
+    @Command("deathfx-cow")
+    public void deathFxCow(@Sender Player player) {
+        try {
+            entityDemoService.spawnDeathFxCowScenario(player);
+            player.sendMessage("Spawned the deathfx-cow scenario.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not spawn the deathfx-cow scenario: " + exception.getMessage());
+        }
+    }
+
+    @Command("metadata-dirty-zombie")
+    public void metadataDirtyZombie(@Sender Player player) {
+        try {
+            entityDemoService.spawnMetadataDirtyZombieScenario(player);
+            player.sendMessage("Spawned the metadata-dirty-zombie scenario.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not spawn the metadata-dirty-zombie scenario: " + exception.getMessage());
+        }
+    }
+
+    @Command("viewer-cycle-zombie")
+    public void viewerCycleZombie(@Sender Player player) {
+        try {
+            entityDemoService.spawnViewerCycleZombieScenario(player);
+            player.sendMessage("Spawned the viewer-cycle-zombie scenario.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not spawn the viewer-cycle-zombie scenario: " + exception.getMessage());
+        }
+    }
+
+    @Command("attach-existing-zombie")
+    public void attachExistingZombie(@Sender Player player) {
+        try {
+            entityDemoService.attachExistingZombieScenario(player);
+            player.sendMessage("Spawned the attach-existing-zombie scenario.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not spawn the attach-existing-zombie scenario: " + exception.getMessage());
         }
     }
 }

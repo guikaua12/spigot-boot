@@ -31,6 +31,10 @@ import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.api.spi.EntityVersionAdapter;
 import tech.guilhermekaua.spigotboot.entity.api.spi.NativeEntityLifecycle;
+import tech.guilhermekaua.spigotboot.entity.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationFreshSupport;
 
 import java.util.Objects;
 
@@ -165,7 +169,7 @@ public final class PaperFreshSpawnStrategy_1_21_plus implements FreshSpawnStrate
         lifecycle.bind(bukkitEntity);
 
         try {
-            worldAddStrategy.addFreshEntity(support, nativeEntity, spawnOptions.location());
+            resolvePublicationBackend(lifecycle).addFreshEntity(support, nativeEntity, spawnOptions.location());
             trackingBindingStrategy.bindFreshSpawnTracking(support, nativeEntity, lifecycle);
             return lifecycle.handle();
         } catch (RuntimeException exception) {
@@ -195,7 +199,13 @@ public final class PaperFreshSpawnStrategy_1_21_plus implements FreshSpawnStrate
      * @since 2.0.2
      */
     public interface Support extends PaperWorldAddStrategy_1_21_plus.FreshSupport,
+            EntityPublicationFreshSupport,
             PaperTrackingBindingStrategy_1_21_plus.FreshSupport {
+
+        @Override
+        default void beforeWorldAdd(@NotNull Object nativeEntity, @NotNull Location location) {
+            PaperWorldAddStrategy_1_21_plus.FreshSupport.super.beforeWorldAdd(nativeEntity, location);
+        }
 
         /**
          * Resolves and prepares the version-local fresh-spawn metadata for one request.
@@ -293,5 +303,12 @@ public final class PaperFreshSpawnStrategy_1_21_plus implements FreshSpawnStrate
         public TrackingHandles(@Nullable Object trackerEntryHandle, @Nullable Object trackerStateHandle) {
             super(trackerEntryHandle, trackerStateHandle);
         }
+    }
+
+    private static @NotNull EntityPublicationBackend resolvePublicationBackend(@NotNull NativeEntityLifecycle<?> lifecycle) {
+        if (lifecycle.handle() instanceof AbstractRuntimeControlledEntity) {
+            return ((AbstractRuntimeControlledEntity<?>) lifecycle.handle()).publicationBackend();
+        }
+        return EntityPublicationBackendResolver.noop();
     }
 }

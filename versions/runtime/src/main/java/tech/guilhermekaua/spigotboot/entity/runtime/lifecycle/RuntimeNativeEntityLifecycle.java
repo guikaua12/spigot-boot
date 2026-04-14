@@ -31,6 +31,10 @@ import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.entity.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.entity.runtime.controller.PassThroughEntityController;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransport;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.EntityTransportResolver;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackend;
+import tech.guilhermekaua.spigotboot.entity.runtime.publication.EntityPublicationBackendResolver;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,10 +58,48 @@ public class RuntimeNativeEntityLifecycle<T extends Entity>
             @NotNull SpawnOptions spawnOptions,
             @NotNull MinecraftVersion minecraftVersion
     ) {
+        this(template, spawnOptions, minecraftVersion, EntityTransportResolver.noop());
+    }
+
+    /**
+     * Creates a new spawned runtime lifecycle with an explicit internal transport backend.
+     *
+     * @param template the entity template
+     * @param spawnOptions the immutable spawn options
+     * @param minecraftVersion the resolved Minecraft version
+     * @param transport the internal semantic transport backend
+     */
+    public RuntimeNativeEntityLifecycle(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityTransport transport
+    ) {
+        this(template, spawnOptions, minecraftVersion, transport, EntityPublicationBackendResolver.noop());
+    }
+
+    /**
+     * Creates a new spawned runtime lifecycle with explicit internal transport and publication backends.
+     *
+     * @param template the entity template
+     * @param spawnOptions the immutable spawn options
+     * @param minecraftVersion the resolved Minecraft version
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     */
+    public RuntimeNativeEntityLifecycle(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend
+    ) {
         super(
                 template.baseType(),
                 minecraftVersion,
-                PassThroughEntityController.instance()
+                PassThroughEntityController.instance(),
+                transport,
+                publicationBackend
         );
         this.template = Objects.requireNonNull(template, "template cannot be null");
         this.spawnOptions = Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");

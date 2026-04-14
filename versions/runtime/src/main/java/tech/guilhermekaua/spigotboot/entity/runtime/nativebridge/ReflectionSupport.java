@@ -109,17 +109,24 @@ public final class ReflectionSupport {
         Objects.requireNonNull(candidateNames, "candidateNames cannot be null");
         Objects.requireNonNull(argumentTypes, "argumentTypes cannot be null");
 
+        for (String candidateName : candidateNames) {
+            Method method = findCompatibleMethodByName(type, candidateName, argumentTypes);
+            if (method != null) {
+                return method;
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable Method findCompatibleMethodByName(
+            @NotNull Class<?> type,
+            @NotNull String candidateName,
+            @NotNull Class<?>... argumentTypes
+    ) {
         Class<?> current = type;
         while (current != null) {
             for (Method method : current.getDeclaredMethods()) {
-                boolean matchingName = false;
-                for (String candidateName : candidateNames) {
-                    if (candidateName.equals(method.getName())) {
-                        matchingName = true;
-                        break;
-                    }
-                }
-                if (!matchingName) {
+                if (!candidateName.equals(method.getName())) {
                     continue;
                 }
 

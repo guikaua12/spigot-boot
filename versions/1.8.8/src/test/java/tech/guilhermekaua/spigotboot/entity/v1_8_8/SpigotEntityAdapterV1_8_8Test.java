@@ -26,9 +26,14 @@ import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.entity.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityFreshSpawnPath;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityWorldRegistrationMode;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionLegacyTransportProvider;
+import tech.guilhermekaua.spigotboot.entity.runtime.model.EntityVersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.entity.runtime.model.NativeEntityConstructorShape;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataContract;
+import tech.guilhermekaua.spigotboot.entity.runtime.network.transport.LegacyTransportSupport;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyFreshSpawnStrategy_1_8_to_1_12;
 import tech.guilhermekaua.spigotboot.entity.runtime.strategy.LegacyReplacementStrategy_1_8_to_1_12;
+import tech.guilhermekaua.spigotboot.entity.runtime.tracker.legacy.LegacyTrackerHookSupport;
 
 import java.util.Arrays;
 
@@ -36,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,7 +52,10 @@ class SpigotEntityAdapterV1_8_8Test {
         SpigotEntityAdapterV1_8_8 adapter = assertDoesNotThrow(SpigotEntityAdapterV1_8_8::new);
 
         assertEquals(MinecraftVersion.of(1, 8, 8), adapter.minimumVersion());
-        assertEquals(MinecraftVersion.of(1, 8, 8), adapter.maximumVersion());
+        assertEquals(MinecraftVersion.of(1, 12, 2), adapter.maximumVersion());
+        assertTrue(adapter.supports(MinecraftVersion.of(1, 8, 8)));
+        assertTrue(adapter.supports(MinecraftVersion.of(1, 12, 2)));
+        assertFalse(adapter.supports(MinecraftVersion.of(1, 13, 0)));
     }
 
     @Test
@@ -99,5 +108,47 @@ class SpigotEntityAdapterV1_8_8Test {
         );
 
         assertSame(provider.legacyReplacementSupport(), provider.legacyReplacementSupport());
+    }
+
+    @Test
+    void shouldExposeLegacyTrackerHookBridgeForBothFreshSpawnAndReplacementSupport() {
+        SpigotEntityAdapterV1_8_8 adapter = assertDoesNotThrow(SpigotEntityAdapterV1_8_8::new);
+        LegacyFreshSpawnStrategy_1_8_to_1_12.Provider freshProvider = assertInstanceOf(
+                LegacyFreshSpawnStrategy_1_8_to_1_12.Provider.class,
+                adapter
+        );
+        LegacyReplacementStrategy_1_8_to_1_12.Provider replacementProvider = assertInstanceOf(
+                LegacyReplacementStrategy_1_8_to_1_12.Provider.class,
+                adapter
+        );
+
+        LegacyTrackerHookSupport freshSupport = freshProvider.legacyFreshSpawnSupport().legacyTrackerHookSupport();
+        LegacyTrackerHookSupport replacementSupport = replacementProvider.legacyReplacementSupport().legacyTrackerHookSupport();
+
+        assertNotNull(freshSupport);
+        assertSame(freshSupport, replacementSupport);
+        assertEquals("legacy-entry-hook-1.8.8-1.12.2", freshSupport.overlayId());
+    }
+
+    @Test
+    void shouldExposeSpecifiedLegacyMetadataContractAndTransportBridge() {
+        SpigotEntityAdapterV1_8_8 adapter = assertDoesNotThrow(SpigotEntityAdapterV1_8_8::new);
+        EntityVersionNetworkMetadataProvider metadataProvider = assertInstanceOf(
+                EntityVersionNetworkMetadataProvider.class,
+                adapter
+        );
+        EntityVersionLegacyTransportProvider transportProvider = assertInstanceOf(
+                EntityVersionLegacyTransportProvider.class,
+                adapter
+        );
+
+        EntityNetworkMetadataContract contract = metadataProvider.entityNetworkMetadataContract();
+        LegacyTransportSupport support = transportProvider.legacyTransportSupport();
+
+        assertTrue(contract.isSpecified());
+        assertEquals("legacy-datawatcher-1.8.8-1.12.2", contract.id());
+        assertNotNull(support);
+        assertSame(support, transportProvider.legacyTransportSupport());
+        assertEquals("legacy-packet-transport-1.8.8-1.12.2", support.id());
     }
 }

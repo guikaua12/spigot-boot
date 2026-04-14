@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
+        <artifactId>spigot-boot-versions</artifactId>
+        <version>2.0.2</version>
+    </parent>
+
+    <name>${project.artifactId}</name>
+    <description>Custom entity adapter scaffold for the Minecraft 1.13-1.13.2 family.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
+    <artifactId>spigot-boot-entity-v1_13_2</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-api</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-entity-runtime</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+        </dependency>
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.8.8-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

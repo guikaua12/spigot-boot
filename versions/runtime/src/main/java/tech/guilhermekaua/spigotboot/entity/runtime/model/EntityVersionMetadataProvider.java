@@ -26,7 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.entity.runtime.capability.EntityVersionCapabilities;
 
 /**
- * Optional runtime-facing metadata contract implemented by version-specific entity adapters.
+ * Optional runtime-facing selection metadata contract implemented by version-specific entity adapters.
+ *
+ * <p>This provider only exposes the capability and binding metadata used to resolve runtime strategy and
+ * network-family selections. Dedicated watcher/network metadata synchronization contracts are published separately
+ * through {@link EntityVersionNetworkMetadataProvider} so they do not get conflated with factory type metadata.
  *
  * @since 2.0.2
  */
