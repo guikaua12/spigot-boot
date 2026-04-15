@@ -38,24 +38,24 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Service;
-import tech.guilhermekaua.spigotboot.entity.api.*;
-import tech.guilhermekaua.spigotboot.entity.runtime.VersionedEntityPlatform;
-import tech.guilhermekaua.spigotboot.entity.runtime.bootstrap.SpigotEntityBootstrap;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.ActiveEffect;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.ActiveEffectsSnapshot;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataDelta;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataSnapshot;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EntityNetworkMetadataSource;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EquipmentEntry;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.EquipmentSnapshot;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.HeadRotation;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.LivingAttribute;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.LivingAttributeSnapshot;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.LivingEntityMetadata;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.PassengerVehicleState;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.WatcherDelta;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.WatcherItem;
-import tech.guilhermekaua.spigotboot.entity.runtime.network.metadata.WatcherPayload;
+import tech.guilhermekaua.spigotboot.versions.api.*;
+import tech.guilhermekaua.spigotboot.versions.runtime.VersionedPlatform;
+import tech.guilhermekaua.spigotboot.versions.runtime.bootstrap.SpigotVersionBootstrap;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.ActiveEffect;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.ActiveEffectsSnapshot;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataDelta;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataSnapshot;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataSource;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EquipmentEntry;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EquipmentSnapshot;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.HeadRotation;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.LivingAttribute;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.LivingAttributeSnapshot;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.LivingEntityMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.PassengerVehicleState;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.WatcherDelta;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.WatcherItem;
+import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.WatcherPayload;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +73,7 @@ import java.lang.reflect.Method;
  */
 @Service
 public class EntityDemoService {
-    private volatile VersionedEntityPlatform entityPlatform;
+    private volatile VersionedPlatform entityPlatform;
 
     public @NotNull Set<String> scenarioIds() {
         return new LinkedHashSet<String>(EntityScenarioDescriptor.all().keySet());
@@ -489,9 +489,9 @@ public class EntityDemoService {
         return spawnRainDeathEffectEntity(player, baseType, entityType, entityClass.asSubclass(LivingEntity.class));
     }
 
-    private synchronized @NotNull VersionedEntityPlatform platform() {
+    private synchronized @NotNull VersionedPlatform platform() {
         if (entityPlatform == null) {
-            entityPlatform = SpigotEntityBootstrap.boot();
+            entityPlatform = SpigotVersionBootstrap.boot();
         }
         return entityPlatform;
     }

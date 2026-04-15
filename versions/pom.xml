@@ -12,7 +12,7 @@
     <name>${project.artifactId}</name>
     <description>Versioned custom entity support for Spigot Boot.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-versions</artifactId>
+    <artifactId>spigot-boot-versions-parent</artifactId>
     <packaging>pom</packaging>
 
     <modules>
@@ -24,6 +24,7 @@
         <module>1.17.1</module>
         <module>1.19.2</module>
         <module>1.21.11</module>
+        <module>shared</module>
     </modules>
 
     <properties>

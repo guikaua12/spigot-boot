@@ -5,24 +5,36 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
-        <artifactId>spigot-boot-versions</artifactId>
+        <artifactId>spigot-boot-versions-parent</artifactId>
         <version>2.0.2</version>
     </parent>
 
     <name>${project.artifactId}</name>
-    <description>Custom entity adapter scaffold for the Minecraft 1.14-1.16.5 family.</description>
+    <description>Custom version adapter scaffold for the Minecraft 1.14-1.16.5 family.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-entity-v1_16_5</artifactId>
+    <artifactId>spigot-boot-versions-v1_16_5</artifactId>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-entity-api</artifactId>
+            <artifactId>spigot-boot-versions-api</artifactId>
             <version>2.0.2</version>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-entity-runtime</artifactId>
+            <artifactId>spigot-boot-versions-runtime</artifactId>
             <version>2.0.2</version>
         </dependency>
         <dependency>

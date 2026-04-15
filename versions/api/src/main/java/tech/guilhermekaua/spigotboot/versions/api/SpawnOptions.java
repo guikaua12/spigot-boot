@@ -1,0 +1,134 @@
+/*
+ * The MIT License
+ * Copyright (c) 2025 Guilherme Kaua da Silva
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package tech.guilhermekaua.spigotboot.versions.api;
+
+import org.bukkit.Location;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Immutable version-agnostic options for a single spawn.
+ *
+ * @since 2.0.2
+ */
+public final class SpawnOptions {
+    private final Location location;
+    private final CustomEntityDataView data;
+
+    private SpawnOptions(@NotNull Location location, @NotNull CustomEntityDataView data) {
+        this.location = location;
+        this.data = data;
+    }
+
+    /**
+     * Creates a new builder for the supplied location.
+     *
+     * @param location the spawn location
+     * @return the builder
+     */
+    public static @NotNull Builder builder(@NotNull Location location) {
+        return new Builder(location);
+    }
+
+    /**
+     * Creates empty spawn options for the supplied location.
+     *
+     * @param location the spawn location
+     * @return the spawn options
+     */
+    public static @NotNull SpawnOptions at(@NotNull Location location) {
+        return builder(location).build();
+    }
+
+    /**
+     * Returns the spawn location.
+     *
+     * @return the spawn location
+     */
+    public @NotNull Location location() {
+        return location.clone();
+    }
+
+    /**
+     * Returns the immutable spawn data.
+     *
+     * @return the spawn data
+     */
+    public @NotNull CustomEntityDataView data() {
+        return data;
+    }
+
+    /**
+     * Builds immutable spawn options.
+     */
+    public static final class Builder {
+        private final Location location;
+        private final Map<String, Object> data = new LinkedHashMap<String, Object>();
+
+        private Builder(@NotNull Location location) {
+            this.location = Objects.requireNonNull(location, "location cannot be null").clone();
+            if (this.location.getWorld() == null) {
+                throw new IllegalArgumentException("location world cannot be null");
+            }
+        }
+
+        /**
+         * Stores arbitrary spawn metadata.
+         *
+         * @param key the key to store
+         * @param value the value to store
+         * @return the builder
+         */
+        public @NotNull Builder data(@NotNull String key, @NotNull Object value) {
+            Objects.requireNonNull(key, "key cannot be null");
+            Objects.requireNonNull(value, "value cannot be null");
+            data.put(key, value);
+            return this;
+        }
+
+        /**
+         * Stores arbitrary spawn metadata.
+         *
+         * @param key the key to store
+         * @param value the value to store
+         * @return the builder
+         * @deprecated use {@link #data(String, Object)}
+         */
+        @Deprecated
+        public @NotNull Builder put(@NotNull String key, @NotNull Object value) {
+            return data(key, value);
+        }
+
+        /**
+         * Creates the immutable spawn options.
+         *
+         * @return the immutable spawn options
+         */
+        public @NotNull SpawnOptions build() {
+            return new SpawnOptions(location.clone(), CustomEntityDataView.of(data));
+        }
+    }
+}

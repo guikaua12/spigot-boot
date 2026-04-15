@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
-        <artifactId>spigot-boot-versions</artifactId>
+        <artifactId>spigot-boot-versions-parent</artifactId>
         <version>2.0.2</version>
     </parent>
 
     <name>${project.artifactId}</name>
     <description>Runtime version resolver for custom entities.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-entity-runtime</artifactId>
+    <artifactId>spigot-boot-versions-runtime</artifactId>
 
     <build>
         <plugins>
@@ -89,7 +89,7 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-entity-api</artifactId>
+            <artifactId>spigot-boot-versions-api</artifactId>
             <version>2.0.2</version>
         </dependency>
 

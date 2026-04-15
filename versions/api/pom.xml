@@ -5,14 +5,26 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
-        <artifactId>spigot-boot-versions</artifactId>
+        <artifactId>spigot-boot-versions-parent</artifactId>
         <version>2.0.2</version>
     </parent>
 
     <name>${project.artifactId}</name>
     <description>Public abstraction for versioned custom entities.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
-    <artifactId>spigot-boot-entity-api</artifactId>
+    <artifactId>spigot-boot-versions-api</artifactId>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
