@@ -49,6 +49,14 @@ import tech.guilhermekaua.spigotboot.versions.api.EntityTickContext;
 import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.versions.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.versions.api.SpawnedEntity;
+import tech.guilhermekaua.spigotboot.versions.api.goal.CustomGoalKey;
+import tech.guilhermekaua.spigotboot.versions.api.goal.CustomGoalSpec;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalOperationException;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalProfile;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalSelectorType;
+import tech.guilhermekaua.spigotboot.versions.api.goal.UnsupportedGoalOperationException;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalKey;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalSpec;
 import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.EntityFreshSpawnPath;
@@ -61,9 +69,12 @@ import tech.guilhermekaua.spigotboot.versions.runtime.model.EntityFreshSpawnBind
 import tech.guilhermekaua.spigotboot.versions.runtime.model.EntityReplacementBinding;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.NativeEntityConstructorShape;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionBindings;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
 import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.GeneratedNativeHookSpec;
 import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationBatch;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityPublicationFamily;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityStrategyBundleSelector;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.EntityStrategyBundle;
@@ -78,6 +89,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,13 +153,29 @@ public final class EntityFactoryV1_19_2
             EntityStrategyBundleSelector.requirePaperFreshSpawnStrategy(ENTITY_STRATEGY_BUNDLE.freshSpawn());
     private static final PaperReplacementStrategy_1_21_plus REPLACEMENT_STRATEGY =
             EntityStrategyBundleSelector.requirePaperReplacementStrategy(ENTITY_STRATEGY_BUNDLE.replacement());
+    private static final VersionGoalSupportMetadata GOAL_SUPPORT_METADATA = new VersionGoalSupportMetadata(
+            EnumSet.allOf(VanillaGoalKey.class),
+            true,
+            true,
+            true
+    );
 
     private static final GeneratedNativeEntityClassFactory CLASS_FACTORY = new GeneratedNativeEntityClassFactory();
     private static final EntityHookBinderV1_19_2 HOOK_BINDER = new EntityHookBinderV1_19_2();
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUDED_BASE_TYPES = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUDED_BASE_TYPES = EnumSet.of(CustomEntityBaseType.COW);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORTED_BASE_TYPES = createAdvertisedSupportedBaseTypes();
+    private static final Map<CustomEntityBaseType, EntityMetadata> METADATA_REGISTRY = createMetadataRegistry();
     private static final Map<Class<?>, ResolvedReplacementMetadata> GENERATED_REPLACEMENT_TYPES =
             new LinkedHashMap<Class<?>, ResolvedReplacementMetadata>();
+    private static final Class<?> NMS_ENTITY_CLASS_V1_19_2 = resolveNmsEntityClassV1_19_2();
     private final Map<UUID, ControlledEntity<?>> attachedEntities = new LinkedHashMap<UUID, ControlledEntity<?>>();
-    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
+    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = METADATA_REGISTRY;
     private final Map<CustomEntityBaseType, ResolvedSpawnMetadata> spawnMetadataRegistry =
             new LinkedHashMap<CustomEntityBaseType, ResolvedSpawnMetadata>();
 
@@ -156,6 +185,39 @@ public final class EntityFactoryV1_19_2
 
     public static @NotNull VersionBindings entityBindings() {
         return ENTITY_BINDINGS;
+    }
+
+    public @NotNull VersionGoalSupportMetadata entityGoalSupportMetadata() {
+        return GOAL_SUPPORT_METADATA;
+    }
+
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createSpawnGoalMutationExecutor(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        requireMetadata(template.baseType());
+        return new GoalMutationExecutorBridge<T>(this, template.bukkitType(), template.goalProfile());
+    }
+
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createAttachedGoalMutationExecutor(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull T entity,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        T resolvedEntity = Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        requireMetadata(baseType);
+        Class<T> entityType = entityType(resolvedEntity);
+        return new GoalMutationExecutorBridge<T>(
+                this,
+                entityType,
+                snapshotManagedGoals(entityType, resolveCurrentNativeHandle(resolvedEntity))
+        );
     }
 
     @Override
@@ -171,7 +233,7 @@ public final class EntityFactoryV1_19_2
     @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return metadataRegistry.containsKey(baseType);
+        return ADVERTISED_SUPPORTED_BASE_TYPES.contains(baseType);
     }
 
     @Override
@@ -248,6 +310,9 @@ public final class EntityFactoryV1_19_2
         Objects.requireNonNull(nativeEntity, "nativeEntity cannot be null");
         Objects.requireNonNull(preparedSpawn, "preparedSpawn cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        ResolvedSpawnMetadata spawnMetadata = resolvePreparedSpawnMetadata(preparedSpawn);
+        bindRuntimeLifecycle(nativeEntity, spawnMetadata.resolvedMetadata(), lifecycle);
+        applyManagedGoalSnapshot(nativeEntity, lifecycle.handle().goalManager().managedGoals());
     }
 
     @Override
@@ -658,9 +723,10 @@ public final class EntityFactoryV1_19_2
         Entity probeEntity = spawnVanillaEntity(location, metadata);
         try {
             Object probeHandle = resolveNativeHandle(probeEntity);
+            ResolvedReplacementMetadata resolvedMetadata = resolveReplacementMetadata(metadata, probeHandle.getClass());
             Object nativeEntityType = resolveNativeEntityType(probeHandle);
 
-            spawnMetadata = new ResolvedSpawnMetadata(metadata, probeHandle.getClass(), nativeEntityType);
+            spawnMetadata = new ResolvedSpawnMetadata(resolvedMetadata, nativeEntityType);
             spawnMetadataRegistry.put(metadata.baseType(), spawnMetadata);
             return spawnMetadata;
         } finally {
@@ -691,7 +757,7 @@ public final class EntityFactoryV1_19_2
     ) {
         Object levelHandle = resolveNativeWorldHandle(location);
         Object nativeEntity = instantiateNativeEntity(
-                spawnMetadata.nativeType(),
+                spawnMetadata.resolvedMetadata().generatedType(),
                 spawnMetadata.nativeEntityType(),
                 levelHandle,
                 location
@@ -918,23 +984,51 @@ public final class EntityFactoryV1_19_2
         return metadata;
     }
 
+    private static @NotNull EnumSet<CustomEntityBaseType> createAdvertisedSupportedBaseTypes() {
+        EnumSet<CustomEntityBaseType> supportedBaseTypes = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            if (!canAdvertiseSupport(baseType)) {
+                continue;
+            }
+            supportedBaseTypes.add(baseType);
+        }
+        return supportedBaseTypes;
+    }
+
     private static @NotNull Map<CustomEntityBaseType, EntityMetadata> createMetadataRegistry() {
         Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
-        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
-            EntityType entityType = baseType.entityTypeOrNull();
-            if (entityType == null || entityType.getEntityClass() == null) {
-                continue;
-            }
-            if (baseType == CustomEntityBaseType.UNKNOWN
-                    || baseType == CustomEntityBaseType.PLAYER
-                    || baseType == CustomEntityBaseType.WEATHER
-                    || baseType == CustomEntityBaseType.COMPLEX_PART
-                    || baseType == CustomEntityBaseType.COW) {
-                continue;
-            }
-            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+        for (CustomEntityBaseType baseType : ADVERTISED_SUPPORTED_BASE_TYPES) {
+            requireExplicitlyAllowedBaseType(baseType);
+            metadata.put(baseType, new EntityMetadata(baseType, requireEntityType(baseType)));
         }
         return metadata;
+    }
+
+    private static boolean canAdvertiseSupport(@NotNull CustomEntityBaseType baseType) {
+        if (PERMANENT_EXCLUDED_BASE_TYPES.contains(baseType) || PRESERVED_EXCLUDED_BASE_TYPES.contains(baseType)) {
+            return false;
+        }
+        EntityType entityType = baseType.entityTypeOrNull();
+        return entityType != null && entityType.getEntityClass() != null;
+    }
+
+    private static void requireExplicitlyAllowedBaseType(@NotNull CustomEntityBaseType baseType) {
+        if (PERMANENT_EXCLUDED_BASE_TYPES.contains(baseType) || PRESERVED_EXCLUDED_BASE_TYPES.contains(baseType)) {
+            throw new IllegalStateException(
+                    "Minecraft " + SUPPORTED_FAMILY + " cannot advertise support for excluded base type '" + baseType + "'."
+            );
+        }
+    }
+
+    private static @NotNull EntityType requireEntityType(@NotNull CustomEntityBaseType baseType) {
+        EntityType entityType = baseType.entityTypeOrNull();
+        if (entityType == null || entityType.getEntityClass() == null) {
+            throw new IllegalStateException(
+                    "Minecraft " + SUPPORTED_FAMILY + " cannot advertise support for base type '" + baseType
+                            + "' because Bukkit EntityType is unavailable."
+            );
+        }
+        return entityType;
     }
 
     private static @NotNull Entity spawnVanillaEntity(
@@ -1506,12 +1600,27 @@ public final class EntityFactoryV1_19_2
         return getUuidMethod == null ? null : ReflectionSupport.invoke(getUuidMethod, nativeEntity);
     }
 
+    private static @Nullable Class<?> resolveNmsEntityClassV1_19_2() {
+        try {
+            return Class.forName("net.minecraft.world.entity.Entity");
+        } catch (ClassNotFoundException exception) {
+            return null;
+        }
+    }
+
     private static void rewireModernVehicleAndPassengerReferencesInternal(
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
-        Field passengersField = ReflectionSupport.findField(oldHandle.getClass(), "passengers", "au");
-        Field vehicleField = ReflectionSupport.findField(oldHandle.getClass(), "vehicle", "av", "au");
+        // resolve passengers via a List-typed filter so a shadowing "au" DataWatcherObject
+        // on obfuscated LivingEntity descendants cannot hijack the lookup and trigger a CCE.
+        Field passengersField = ReflectionSupport.findFieldOfType(
+                oldHandle.getClass(), List.class, "passengers", "au");
+        // resolve vehicle via the NMS Entity type when available; fall back to Object for
+        // environments where the NMS class is not on the classpath (tests, non-paper runtimes).
+        Class<?> vehicleType = (NMS_ENTITY_CLASS_V1_19_2 != null) ? NMS_ENTITY_CLASS_V1_19_2 : Object.class;
+        Field vehicleField = ReflectionSupport.findFieldOfType(
+                oldHandle.getClass(), vehicleType, "vehicle", "av", "au");
         if (passengersField == null || vehicleField == null) {
             return;
         }
@@ -1615,6 +1724,393 @@ public final class EntityFactoryV1_19_2
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity> @NotNull Class<T> entityType(@NotNull T entity) {
+        return (Class<T>) entity.getClass().asSubclass(Entity.class);
+    }
+
+    private <T extends Entity> @NotNull GoalProfile<T> snapshotManagedGoals(
+            @NotNull Class<T> entityType,
+            @NotNull Object nativeHandle
+    ) {
+        GoalProfile.Builder<T> builder = GoalProfile.builder(entityType);
+        for (GoalSelectorType selectorType : GoalSelectorType.values()) {
+            SelectorAccessor selectorAccessor = SelectorAccessor.resolve(nativeHandle, selectorType);
+            for (Object selectorEntry : selectorAccessor.entries()) {
+                ManagedGoalEntry entry = ManagedGoalEntry.resolve(selectorEntry);
+                if (entry == null) {
+                    continue;
+                }
+                if (entry.vanillaKey() != null) {
+                    builder.add(VanillaGoalSpec.of(selectorType, entry.vanillaKey(), entry.priority()));
+                    continue;
+                }
+                if (entry.customKey() != null) {
+                    builder.add(CustomGoalSpec.of(selectorType, entry.customKey(), entry.priority()));
+                }
+            }
+        }
+        return builder.build();
+    }
+
+    private static void applyManagedGoalSnapshot(
+            @NotNull Object nativeHandle,
+            @NotNull GoalProfile<?> managedGoals
+    ) {
+        Objects.requireNonNull(nativeHandle, "nativeHandle cannot be null");
+        Objects.requireNonNull(managedGoals, "managedGoals cannot be null");
+        for (GoalSelectorType selectorType : GoalSelectorType.values()) {
+            SelectorAccessor selectorAccessor = SelectorAccessor.resolve(nativeHandle, selectorType);
+            selectorAccessor.removeManagedEntries();
+            for (VanillaGoalSpec goalSpec : managedGoals.vanillaGoals(selectorType)) {
+                selectorAccessor.add(goalSpec.priority(), selectorAccessor.createVanillaGoal(goalSpec));
+            }
+            for (CustomGoalSpec goalSpec : managedGoals.customGoals(selectorType)) {
+                selectorAccessor.add(goalSpec.priority(), new ManagedCustomGoalBridge(goalSpec.key()));
+            }
+        }
+    }
+
+    private static final class GoalMutationExecutorBridge<T extends Entity> implements RuntimeGoalMutationExecutor<T> {
+        private final EntityFactoryV1_19_2 factory;
+        private final Class<T> entityType;
+        private final GoalProfile<T> initialManagedGoals;
+
+        private GoalMutationExecutorBridge(
+                @NotNull EntityFactoryV1_19_2 factory,
+                @NotNull Class<T> entityType,
+                @NotNull GoalProfile<T> initialManagedGoals
+        ) {
+            this.factory = Objects.requireNonNull(factory, "factory cannot be null");
+            this.entityType = Objects.requireNonNull(entityType, "entityType cannot be null");
+            this.initialManagedGoals = Objects.requireNonNull(initialManagedGoals, "initialManagedGoals cannot be null");
+        }
+
+        @Override
+        public @NotNull GoalProfile<T> initialManagedGoals() {
+            return initialManagedGoals;
+        }
+
+        @Override
+        public void execute(@NotNull RuntimeGoalMutationBatch<T> batch) {
+            Objects.requireNonNull(batch, "batch cannot be null");
+            try {
+                applyManagedGoalSnapshot(
+                        factory.resolveCurrentNativeHandle(batch.controlledEntity().bukkitEntity()),
+                        batch.managedGoals()
+                );
+            } catch (GoalOperationException exception) {
+                throw exception;
+            } catch (RuntimeException exception) {
+                throw new GoalOperationException(
+                        "Minecraft " + VERSION + " failed to apply managed goals for '" + entityType.getName() + "'.",
+                        exception,
+                        GoalSelectorType.NORMAL,
+                        entityType,
+                        VERSION
+                );
+            }
+        }
+    }
+
+    private static final class SelectorAccessor {
+        private final Object owner;
+        private final GoalSelectorType selectorType;
+        private final Object selector;
+        private final Field availableGoalsField;
+        private final Method addGoalMethod;
+
+        private SelectorAccessor(
+                @NotNull Object owner,
+                @NotNull GoalSelectorType selectorType,
+                @NotNull Object selector,
+                @NotNull Field availableGoalsField,
+                @NotNull Method addGoalMethod
+        ) {
+            this.owner = owner;
+            this.selectorType = selectorType;
+            this.selector = selector;
+            this.availableGoalsField = availableGoalsField;
+            this.addGoalMethod = addGoalMethod;
+        }
+
+        private static @NotNull SelectorAccessor resolve(@NotNull Object owner, @NotNull GoalSelectorType selectorType) {
+            Field selectorField = selectorType == GoalSelectorType.NORMAL
+                    ? ReflectionSupport.findField(owner.getClass(), "goalSelector", "bP", "bQ")
+                    : ReflectionSupport.findField(owner.getClass(), "targetSelector", "bQ", "bR");
+            if (selectorField == null) {
+                throw unsupportedSelector(selectorType, null);
+            }
+            Object selector = ReflectionSupport.readField(selectorField, owner);
+            if (selector == null) {
+                throw unsupportedSelector(selectorType, null);
+            }
+            Field availableGoalsField = ReflectionSupport.findField(selector.getClass(), "availableGoals", "d", "c", "goals");
+            if (availableGoalsField == null) {
+                throw unsupportedSelector(selectorType, null);
+            }
+            Method addGoalMethod = findAddGoalMethod(selector.getClass());
+            if (addGoalMethod == null) {
+                throw unsupportedSelector(selectorType, null);
+            }
+            return new SelectorAccessor(owner, selectorType, selector, availableGoalsField, addGoalMethod);
+        }
+
+        @SuppressWarnings("unchecked")
+        private @NotNull Collection<Object> entries() {
+            Object entries = ReflectionSupport.readField(availableGoalsField, selector);
+            if (!(entries instanceof Collection)) {
+                throw unsupportedSelector(selectorType, null);
+            }
+            return (Collection<Object>) entries;
+        }
+
+        private void removeManagedEntries() {
+            for (Iterator<Object> iterator = entries().iterator(); iterator.hasNext(); ) {
+                if (ManagedGoalEntry.resolve(iterator.next()) != null) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        private void add(int priority, @NotNull Object goal) {
+            Object resolvedGoal = goal;
+            Class<?> goalParameterType = addGoalMethod.getParameterTypes()[1];
+            if (!goalParameterType.isInstance(resolvedGoal)) {
+                resolvedGoal = createNativeGoal(goalParameterType, goal);
+            }
+            if (!goalParameterType.isInstance(resolvedGoal)) {
+                throw new GoalOperationException(
+                        "Minecraft " + VERSION + " could not materialize a compatible goal bridge.",
+                        selectorType,
+                        null,
+                        VERSION
+                );
+            }
+            ReflectionSupport.invoke(addGoalMethod, selector, Integer.valueOf(priority), resolvedGoal);
+        }
+
+        private @NotNull Object createVanillaGoal(@NotNull VanillaGoalSpec goalSpec) {
+            return new ManagedVanillaGoalBridge(goalSpec.key());
+        }
+
+        private @NotNull Object createNativeGoal(@NotNull Class<?> goalParameterType, @NotNull Object goal) {
+            if (goal instanceof ManagedVanillaGoalBridge) {
+                Object nativeGoal = tryCreateNativeVanillaGoal(((ManagedVanillaGoalBridge) goal).key());
+                if (goalParameterType.isInstance(nativeGoal)) {
+                    return nativeGoal;
+                }
+            }
+            return goal;
+        }
+
+        private @NotNull Object tryCreateNativeVanillaGoal(@NotNull VanillaGoalKey key) {
+            try {
+                switch (key) {
+                    case FLOAT:
+                        return instantiateGoal("net.minecraft.world.entity.ai.goal.FloatGoal", owner);
+                    case MELEE_ATTACK:
+                        return instantiateGoal("net.minecraft.world.entity.ai.goal.MeleeAttackGoal", owner, Double.valueOf(1.0D), Boolean.TRUE);
+                    case RANDOM_STROLL_LAND:
+                        return instantiateGoal("net.minecraft.world.entity.ai.goal.RandomStrollGoal", owner, Double.valueOf(1.0D));
+                    case LOOK_AT_PLAYER:
+                        return instantiateGoal(
+                                "net.minecraft.world.entity.ai.goal.LookAtPlayerGoal",
+                                owner,
+                                ReflectionSupport.requireClass("net.minecraft.world.entity.player.Player"),
+                                Float.valueOf(8.0F)
+                        );
+                    case RANDOM_LOOK_AROUND:
+                        return instantiateGoal("net.minecraft.world.entity.ai.goal.RandomLookAroundGoal", owner);
+                    case HURT_BY_TARGET:
+                        return instantiateGoal(
+                                "net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal",
+                                owner,
+                                new Class[0]
+                        );
+                    case NEAREST_ATTACKABLE_TARGET:
+                        return instantiateGoal(
+                                "net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal",
+                                owner,
+                                ReflectionSupport.requireClass("net.minecraft.world.entity.player.Player"),
+                                Boolean.TRUE
+                        );
+                    default:
+                        return new ManagedVanillaGoalBridge(key);
+                }
+            } catch (RuntimeException ignored) {
+                return new ManagedVanillaGoalBridge(key);
+            }
+        }
+
+        private static @NotNull Object instantiateGoal(@NotNull String goalClassName, @NotNull Object... arguments) {
+            Class<?> goalType = ReflectionSupport.requireClass(goalClassName);
+            Class<?>[] argumentTypes = new Class<?>[arguments.length];
+            for (int index = 0; index < arguments.length; index++) {
+                argumentTypes[index] = arguments[index].getClass();
+                if (arguments[index] instanceof Class[]) {
+                    argumentTypes[index] = Class[].class;
+                }
+            }
+            Constructor<?> constructor = ReflectionSupport.requireCompatibleConstructor(goalType, argumentTypes);
+            return ReflectionSupport.instantiate(constructor, arguments);
+        }
+
+        private static @Nullable Method findAddGoalMethod(@NotNull Class<?> selectorType) {
+            Class<?> current = selectorType;
+            while (current != null) {
+                for (Method method : current.getDeclaredMethods()) {
+                    Class<?>[] parameterTypes = method.getParameterTypes();
+                    if (parameterTypes.length == 2
+                            && (Integer.TYPE.equals(parameterTypes[0]) || Integer.class.equals(parameterTypes[0]))
+                            && ("addGoal".equals(method.getName()) || "a".equals(method.getName()))) {
+                        method.setAccessible(true);
+                        return method;
+                    }
+                }
+                current = current.getSuperclass();
+            }
+            return null;
+        }
+    }
+
+    private static final class ManagedGoalEntry {
+        private final VanillaGoalKey vanillaKey;
+        private final CustomGoalKey customKey;
+        private final int priority;
+
+        private ManagedGoalEntry(@Nullable VanillaGoalKey vanillaKey, @Nullable CustomGoalKey customKey, int priority) {
+            this.vanillaKey = vanillaKey;
+            this.customKey = customKey;
+            this.priority = priority;
+        }
+
+        private static @Nullable ManagedGoalEntry resolve(@Nullable Object selectorEntry) {
+            if (selectorEntry == null) {
+                return null;
+            }
+            Object goal = resolveGoal(selectorEntry);
+            if (goal instanceof ManagedVanillaGoalBridge) {
+                return new ManagedGoalEntry(((ManagedVanillaGoalBridge) goal).key(), null, resolvePriority(selectorEntry));
+            }
+            if (goal instanceof ManagedCustomGoalBridge) {
+                return new ManagedGoalEntry(null, ((ManagedCustomGoalBridge) goal).key(), resolvePriority(selectorEntry));
+            }
+            VanillaGoalKey key = resolveVanillaKey(goal.getClass());
+            if (key == null) {
+                return null;
+            }
+            return new ManagedGoalEntry(key, null, resolvePriority(selectorEntry));
+        }
+
+        private static @NotNull Object resolveGoal(@NotNull Object selectorEntry) {
+            Method goalMethod = ReflectionSupport.findNamedMethod(selectorEntry.getClass(), new String[]{"getGoal", "j", "k"});
+            if (goalMethod != null) {
+                return ReflectionSupport.invoke(goalMethod, selectorEntry);
+            }
+            Field goalField = ReflectionSupport.findField(selectorEntry.getClass(), "goal", "c", "a", "b");
+            if (goalField != null) {
+                Object goal = ReflectionSupport.readField(goalField, selectorEntry);
+                if (goal != null) {
+                    return goal;
+                }
+            }
+            return selectorEntry;
+        }
+
+        private static int resolvePriority(@NotNull Object selectorEntry) {
+            Method priorityMethod = ReflectionSupport.findNamedMethod(selectorEntry.getClass(), new String[]{"getPriority", "i", "h"});
+            if (priorityMethod != null) {
+                Object priority = ReflectionSupport.invoke(priorityMethod, selectorEntry);
+                if (priority instanceof Number) {
+                    return ((Number) priority).intValue();
+                }
+            }
+            Field priorityField = ReflectionSupport.findField(selectorEntry.getClass(), "priority", "d", "b", "a");
+            if (priorityField != null) {
+                Object priority = ReflectionSupport.readField(priorityField, selectorEntry);
+                if (priority instanceof Number) {
+                    return ((Number) priority).intValue();
+                }
+            }
+            return 0;
+        }
+
+        private static @Nullable VanillaGoalKey resolveVanillaKey(@NotNull Class<?> goalType) {
+            String simpleName = goalType.getSimpleName();
+            if ("FloatGoal".equals(simpleName)) {
+                return VanillaGoalKey.FLOAT;
+            }
+            if ("MeleeAttackGoal".equals(simpleName)) {
+                return VanillaGoalKey.MELEE_ATTACK;
+            }
+            if ("RandomStrollGoal".equals(simpleName) || "RandomStrollLandGoal".equals(simpleName)) {
+                return VanillaGoalKey.RANDOM_STROLL_LAND;
+            }
+            if ("LookAtPlayerGoal".equals(simpleName)) {
+                return VanillaGoalKey.LOOK_AT_PLAYER;
+            }
+            if ("RandomLookAroundGoal".equals(simpleName)) {
+                return VanillaGoalKey.RANDOM_LOOK_AROUND;
+            }
+            if ("HurtByTargetGoal".equals(simpleName)) {
+                return VanillaGoalKey.HURT_BY_TARGET;
+            }
+            if ("NearestAttackableTargetGoal".equals(simpleName)) {
+                return VanillaGoalKey.NEAREST_ATTACKABLE_TARGET;
+            }
+            return null;
+        }
+
+        private @Nullable VanillaGoalKey vanillaKey() {
+            return vanillaKey;
+        }
+
+        private @Nullable CustomGoalKey customKey() {
+            return customKey;
+        }
+
+        private int priority() {
+            return priority;
+        }
+    }
+
+    private static final class ManagedVanillaGoalBridge {
+        private final VanillaGoalKey key;
+
+        private ManagedVanillaGoalBridge(@NotNull VanillaGoalKey key) {
+            this.key = Objects.requireNonNull(key, "key cannot be null");
+        }
+
+        private @NotNull VanillaGoalKey key() {
+            return key;
+        }
+    }
+
+    private static final class ManagedCustomGoalBridge {
+        private final CustomGoalKey key;
+
+        private ManagedCustomGoalBridge(@NotNull CustomGoalKey key) {
+            this.key = Objects.requireNonNull(key, "key cannot be null");
+        }
+
+        private @NotNull CustomGoalKey key() {
+            return key;
+        }
+    }
+
+    private static @NotNull UnsupportedGoalOperationException unsupportedSelector(
+            @NotNull GoalSelectorType selectorType,
+            @Nullable Class<? extends Entity> entityType
+    ) {
+        return new UnsupportedGoalOperationException(
+                "Minecraft " + VERSION + " does not expose a compatible managed-goal selector bridge.",
+                selectorType,
+                entityType,
+                VERSION
+        );
+    }
+
     private static @NotNull UnsupportedOperationException unsupported(@NotNull String operation) {
         return new UnsupportedOperationException(
                 "Minecraft " + SUPPORTED_FAMILY + " skeleton does not implement native " + operation + " yet (anchor " + VERSION + ")."
@@ -1657,26 +2153,23 @@ public final class EntityFactoryV1_19_2
     }
 
     private static final class ResolvedSpawnMetadata {
-        private final EntityMetadata metadata;
-        private final Class<?> nativeType;
+        private final ResolvedReplacementMetadata resolvedMetadata;
         private final Object nativeEntityType;
 
         private ResolvedSpawnMetadata(
-                @NotNull EntityMetadata metadata,
-                @NotNull Class<?> nativeType,
+                @NotNull ResolvedReplacementMetadata resolvedMetadata,
                 @Nullable Object nativeEntityType
         ) {
-            this.metadata = Objects.requireNonNull(metadata, "metadata cannot be null");
-            this.nativeType = Objects.requireNonNull(nativeType, "nativeType cannot be null");
+            this.resolvedMetadata = Objects.requireNonNull(resolvedMetadata, "resolvedMetadata cannot be null");
             this.nativeEntityType = nativeEntityType;
         }
 
         public @NotNull CustomEntityBaseType baseType() {
-            return metadata.baseType();
+            return resolvedMetadata.metadata().baseType();
         }
 
-        public @NotNull Class<?> nativeType() {
-            return nativeType;
+        public @NotNull ResolvedReplacementMetadata resolvedMetadata() {
+            return resolvedMetadata;
         }
 
         public @Nullable Object nativeEntityType() {

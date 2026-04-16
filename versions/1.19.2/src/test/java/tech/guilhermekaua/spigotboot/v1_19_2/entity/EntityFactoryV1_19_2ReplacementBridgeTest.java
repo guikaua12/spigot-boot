@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.v1_19_2.entity;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Cow;
 import org.bukkit.entity.Zombie;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -35,9 +36,12 @@ import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityPublicationFamily;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperReplacementStrategy_1_21_plus;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -46,13 +50,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,6 +91,24 @@ class EntityFactoryV1_19_2ReplacementBridgeTest {
         assertInstanceOf(HookBridgeReplacementHandle.class, replacementHandle);
         assertInstanceOf(LifecycleAwareNativeEntity.class, replacementHandle);
         assertNotSame(currentHandle, replacementHandle);
+    }
+
+    @Test
+    void prepareReplacement_shouldRejectPreservedCowAttachParity() {
+        EntityFactoryV1_19_2 factory = new EntityFactoryV1_19_2();
+        Cow entity = Mockito.mock(Cow.class);
+
+        when(entity.getType()).thenReturn(EntityType.COW);
+
+        UnsupportedOperationException exception = assertThrows(
+                UnsupportedOperationException.class,
+                () -> factory.prepareReplacement(entity, new HookBridgeReplacementHandle())
+        );
+
+        assertEquals(
+                "Minecraft 1.19.2-1.20.6 does not support spawn and attach for base type 'COW'.",
+                exception.getMessage()
+        );
     }
 
     @Test
@@ -416,5 +441,66 @@ class EntityFactoryV1_19_2ReplacementBridgeTest {
                 }
             });
         }
+    }
+
+    @Test
+    void rewireVehicleAndPassengerReferencesModern_hierarchicalStub_picksCorrectFieldDespiteAuCollision() {
+        // passengers must resolve to the List field on the base Entity stub; the DataWatcherObject
+        // field named "au" on the intermediate LivingEntity stub must not hijack the lookup.
+        Field passengers = ReflectionSupport.findFieldOfType(
+                HierarchicalStubV1_19_2_Zombie.class, List.class, "passengers", "au");
+
+        assertNotNull(passengers);
+        assertSame(HierarchicalStubV1_19_2_Entity.class, passengers.getDeclaringClass(),
+                "passengers should resolve to the List field on the base Entity stub, not the au DataWatcherObject");
+        assertSame(List.class, passengers.getType());
+
+        // vehicle must resolve to a field whose type is assignable from an Entity reference.
+        // the "vehicle" candidate wins by candidate order before the shared "au" fallback.
+        Field vehicle = ReflectionSupport.findFieldOfType(
+                HierarchicalStubV1_19_2_Zombie.class,
+                HierarchicalStubV1_19_2_Entity.class,
+                "vehicle", "av", "au");
+
+        assertNotNull(vehicle);
+        assertEquals("vehicle", vehicle.getName(),
+                "with 'vehicle' as the primary candidate and an Entity-typed filter, the walk must prefer vehicle over the au fallback");
+        assertTrue(HierarchicalStubV1_19_2_Entity.class.isAssignableFrom(vehicle.getType()),
+                "vehicle field type must be assignable from the Entity stub so the filter excludes DataWatcherObject");
+    }
+
+    @Test
+    void rewireVehicleAndPassengerReferencesModern_hierarchicalStub_doesNotThrowClassCastException() throws Exception {
+        HierarchicalStubV1_19_2_Zombie oldHandle = new HierarchicalStubV1_19_2_Zombie();
+        HierarchicalStubV1_19_2_Zombie replacementHandle = new HierarchicalStubV1_19_2_Zombie();
+
+        // seed the au field on LivingEntity with a non-null DataWatcherObject so findField
+        // (without the type filter) would return it and trigger a CCE on the passengers cast.
+        // with the fix in place, the List.class filter skips au and resolves Entity.passengers.
+        // vehicle is left null on both stubs so the production method's vehicle-follow block is skipped.
+        oldHandle.passengers = new ArrayList<Object>();
+
+        Method method = EntityFactoryV1_19_2.class.getDeclaredMethod(
+                "rewireModernVehicleAndPassengerReferencesInternal",
+                Object.class, Object.class);
+        method.setAccessible(true);
+
+        assertDoesNotThrow(() -> method.invoke(null, oldHandle, replacementHandle),
+                "rewireModernVehicleAndPassengerReferencesInternal must not throw when au shadows passengers/vehicle");
+    }
+
+    public static class HierarchicalStubV1_19_2_DataWatcherObject {
+    }
+
+    public static class HierarchicalStubV1_19_2_Entity {
+        public List<Object> passengers = new ArrayList<Object>();
+    }
+
+    public static class HierarchicalStubV1_19_2_LivingEntity extends HierarchicalStubV1_19_2_Entity {
+        public HierarchicalStubV1_19_2_DataWatcherObject au = new HierarchicalStubV1_19_2_DataWatcherObject();
+        public HierarchicalStubV1_19_2_Entity vehicle;
+    }
+
+    public static class HierarchicalStubV1_19_2_Zombie extends HierarchicalStubV1_19_2_LivingEntity {
     }
 }
