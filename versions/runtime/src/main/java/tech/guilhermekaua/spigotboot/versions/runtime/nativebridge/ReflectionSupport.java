@@ -300,6 +300,68 @@ public final class ReflectionSupport {
         return field;
     }
 
+    /**
+     * Resolves a declared field by walking the supertype chain, filtering candidates by an expected type.
+     *
+     * Iteration mirrors {@link #findField(Class, String...)} — for each class from leaf to base, each
+     * candidate name is attempted in order. A candidate only matches when the resolved field's declared
+     * type is assignable to {@code expectedType}. This protects hard-cast call sites from shadowing where
+     * a subclass declares a same-named field of an unrelated type (e.g. a static DataWatcher key named
+     * "ag" on EntityLiving while the real "passengers" List lives on Entity).
+     *
+     * @param type           the class to begin searching from (typically the runtime class of a target object)
+     * @param expectedType   the required field type; matches use {@link Class#isAssignableFrom(Class)}
+     * @param candidateNames field names to try, highest preference first
+     * @return the first accessible, type-compatible field, or {@code null} if none matched
+     */
+    public static @Nullable Field findFieldOfType(
+            @NotNull Class<?> type,
+            @NotNull Class<?> expectedType,
+            @NotNull String... candidateNames) {
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(expectedType, "expectedType cannot be null");
+        Objects.requireNonNull(candidateNames, "candidateNames cannot be null");
+
+        Class<?> current = type;
+        while (current != null) {
+            for (String candidateName : candidateNames) {
+                try {
+                    Field field = current.getDeclaredField(candidateName);
+                    if (expectedType.isAssignableFrom(field.getType())) {
+                        field.setAccessible(true);
+                        return field;
+                    }
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
+    /**
+     * Type-filtered variant of {@link #requireField(Class, String...)}.
+     *
+     * @param type           the class to begin searching from
+     * @param expectedType   the required field type
+     * @param candidateNames field names to try
+     * @return the resolved field; never null
+     * @throws IllegalStateException if no accessible, type-compatible field is found
+     */
+    public static @NotNull Field requireFieldOfType(
+            @NotNull Class<?> type,
+            @NotNull Class<?> expectedType,
+            @NotNull String... candidateNames) {
+        Field field = findFieldOfType(type, expectedType, candidateNames);
+        if (field == null) {
+            throw new IllegalStateException(
+                    "Unable to resolve field of type " + expectedType.getName()
+                            + " on " + type.getName()
+                            + " using candidates " + Arrays.toString(candidateNames));
+        }
+        return field;
+    }
+
     public static @Nullable Object readField(@NotNull Field field, @Nullable Object target) {
         Objects.requireNonNull(field, "field cannot be null");
         try {
