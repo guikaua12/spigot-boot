@@ -1254,19 +1254,19 @@ Max Concurrent: 2 (Waves 1-3); 4 (Wave FINAL)
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback → fix → re-run → present again → wait for okay.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (open file, grep for the new helper, inspect the migrated call site). For each "Must NOT Have": search codebase for forbidden patterns (e.g., `git diff --stat` on forbidden files — must be empty; `containsFailureSignal` signature unchanged; `findField`/`requireField` iteration order unchanged; no `EntityFactoryV1_13_2`/`V1_17_1`/`V1_21_1*`/`V1_8_8` diff). Verify evidence files exist in `.sisyphus/evidence/`. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `mvnw.cmd clean test` fresh (no incremental). Review all changed files for: `as any` / `@ts-ignore` equivalents (Java: unchecked-cast warnings, `@SuppressWarnings("unchecked")` without a narrow scope), empty catch blocks, `System.out.println` or `e.printStackTrace()` in production, commented-out code, unused imports. Check AI-slop hallmarks: tutorial-style comments ("This method does X"), over-abstraction (`findFieldOfTypeFactoryStrategy`), generic names (`data`, `result`, `item`, `temp`). Verify Javadocs per `AGENTS.md` Coding Style (public/protected APIs with `@param`/`@return`/`@throws`). Verify no `private final java.util.List<String>` fully-qualified inline types (use `import` per repo convention).
   Output: `Build [PASS/FAIL] | Lint [PASS/FAIL] | Tests [N pass/N fail] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Start from clean state (`git clean -fdx target/entity-matrix`). Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration: run `attach-existing-zombie` end-to-end (exercises T1's helper + T3's migration + T2's recorder fix together). Test edge cases: empty passenger list, zombie with a rider already, tracker rebound path on second `platform().get(zombie)` call. Save to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff (`git log --oneline <base>..HEAD` then `git show <hash>`). Verify 1:1 — everything in spec was built (no missing), nothing beyond spec was built (no creep). Check "Must NOT do" compliance — verify no diff on the forbidden file list. Detect cross-task contamination: Task 1 must not touch 1.16.5 files; Task 3 must not touch 1.19.2 files; etc. Flag any unaccounted changes (e.g., IDE-formatter noise, whitespace diffs, accidental import cleanups).
   Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 
