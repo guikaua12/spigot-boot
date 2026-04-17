@@ -40,18 +40,31 @@ import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity
 import tech.guilhermekaua.spigotboot.versions.runtime.lifecycle.AbstractRuntimeControlledEntity;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.LegacyFreshSpawnStrategy_1_8_to_1_12;
 
+import java.util.EnumSet;
+import java.util.function.Predicate;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class EntityFactoryV1_13_2Test {
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUSIONS = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORT = EnumSet.of(
+            CustomEntityBaseType.ZOMBIE,
+            CustomEntityBaseType.SKELETON
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUSIONS = EnumSet.of(CustomEntityBaseType.COW);
+
 
     @Test
     void shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors() {
@@ -60,11 +73,10 @@ class EntityFactoryV1_13_2Test {
     }
 
     @Test
-    void shouldAdvertiseZombieOnlySupportThroughMetadataRegistry() {
+    void shouldMatchTheExplicitSupportMatrixContract() {
         EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
 
-        assertTrue(factory.supports(CustomEntityBaseType.ZOMBIE));
-        assertFalse(factory.supports(CustomEntityBaseType.COW));
+        assertSupportMatrix(factory::supports, ADVERTISED_SUPPORT, PRESERVED_EXCLUSIONS);
     }
 
     @Test
@@ -220,6 +232,67 @@ class EntityFactoryV1_13_2Test {
 
         private int controllerTickCount() {
             return controllerTickCount[0];
+        }
+    }
+
+    private static void assertSupportMatrix(
+            @NotNull Predicate<CustomEntityBaseType> supportProbe,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            SupportExpectation expectation = classify(baseType, advertisedSupport, preservedExclusions);
+            boolean supported = supportProbe.test(baseType);
+
+            assertEquals(
+                    expectation.included(),
+                    supported,
+                    "Support matrix mismatch for " + baseType + ": " + expectation.rationale()
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
+    }
+
+    private static @NotNull SupportExpectation classify(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+            return new SupportExpectation(false, "permanent exclusion");
+        }
+        if (baseType.entityTypeOrNull() == null) {
+            return new SupportExpectation(false, "Bukkit EntityType is absent for this version");
+        }
+        if (advertisedSupport.contains(baseType)) {
+            return new SupportExpectation(true, "advertised version contract includes this base type");
+        }
+        if (preservedExclusions.contains(baseType)) {
+            return new SupportExpectation(false, "version-local preserved exclusion");
+        }
+        return new SupportExpectation(false, "advertised version contract excludes this base type");
+    }
+
+    private static final class SupportExpectation {
+        private final boolean included;
+        private final String rationale;
+
+        private SupportExpectation(boolean included, @NotNull String rationale) {
+            this.included = included;
+            this.rationale = rationale;
+        }
+
+        private boolean included() {
+            return included;
+        }
+
+        private @NotNull String rationale() {
+            return rationale;
         }
     }
 }

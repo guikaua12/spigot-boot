@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.v1_13_2.entity;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Zombie;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -81,6 +82,22 @@ class EntityFactoryV1_13_2ReplacementBridgeTest {
     }
 
     @Test
+    void allocateReplacementHandle_shouldAllocatePreparedReplacementTypeForSupportedSkeleton() {
+        EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
+        HandleAwareSkeleton entity = Mockito.mock(HandleAwareSkeleton.class);
+        SimpleReplacementHandle currentHandle = new SimpleReplacementHandle();
+
+        when(entity.getType()).thenReturn(EntityType.SKELETON);
+
+        LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement preparedReplacement =
+                factory.prepareReplacement(entity, currentHandle);
+        Object replacementHandle = factory.allocateReplacementHandle(preparedReplacement);
+
+        assertInstanceOf(SimpleReplacementHandle.class, replacementHandle);
+        assertNotSame(currentHandle, replacementHandle);
+    }
+
+    @Test
     void bindLifecycleToReplacement_shouldBindLifecycleAwareReplacementHandles() {
         EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
         HandleAwareZombie entity = Mockito.mock(HandleAwareZombie.class);
@@ -89,6 +106,29 @@ class EntityFactoryV1_13_2ReplacementBridgeTest {
         NativeEntityLifecycle<Zombie> lifecycle = Mockito.mock(NativeEntityLifecycle.class);
 
         when(entity.getType()).thenReturn(EntityType.ZOMBIE);
+
+        LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement preparedReplacement =
+                factory.prepareReplacement(entity, currentHandle);
+        Object replacementHandle = factory.allocateReplacementHandle(preparedReplacement);
+
+        factory.bindLifecycleToReplacement(replacementHandle, preparedReplacement, lifecycle);
+
+        LifecycleAwareNativeEntity lifecycleAwareNativeEntity = assertInstanceOf(
+                LifecycleAwareNativeEntity.class,
+                replacementHandle
+        );
+        assertSame(lifecycle, lifecycleAwareNativeEntity.spigotBootGetLifecycle());
+    }
+
+    @Test
+    void bindLifecycleToReplacement_shouldBindLifecycleAwareReplacementHandlesForSupportedSkeleton() {
+        EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
+        HandleAwareSkeleton entity = Mockito.mock(HandleAwareSkeleton.class);
+        LifecycleAwareReplacementHandle currentHandle = new LifecycleAwareReplacementHandle();
+        @SuppressWarnings("unchecked")
+        NativeEntityLifecycle<Skeleton> lifecycle = Mockito.mock(NativeEntityLifecycle.class);
+
+        when(entity.getType()).thenReturn(EntityType.SKELETON);
 
         LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement preparedReplacement =
                 factory.prepareReplacement(entity, currentHandle);
@@ -119,6 +159,17 @@ class EntityFactoryV1_13_2ReplacementBridgeTest {
     void rebindBukkitZombie_shouldDelegateToTheCraftWrapperHandleSetter() {
         EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
         HandleAwareZombie entity = Mockito.mock(HandleAwareZombie.class);
+        Object replacementHandle = new Object();
+
+        factory.rebindBukkitZombie(entity, replacementHandle);
+
+        verify(entity).setHandle(replacementHandle);
+    }
+
+    @Test
+    void rebindBukkitZombie_shouldDelegateToTheCraftWrapperHandleSetterForSupportedSkeleton() {
+        EntityFactoryV1_13_2 factory = new EntityFactoryV1_13_2();
+        HandleAwareSkeleton entity = Mockito.mock(HandleAwareSkeleton.class);
         Object replacementHandle = new Object();
 
         factory.rebindBukkitZombie(entity, replacementHandle);
@@ -203,6 +254,12 @@ class EntityFactoryV1_13_2ReplacementBridgeTest {
     }
 
     private interface HandleAwareZombie extends Zombie {
+        Object getHandle();
+
+        void setHandle(Object handle);
+    }
+
+    private interface HandleAwareSkeleton extends Skeleton {
         Object getHandle();
 
         void setHandle(Object handle);

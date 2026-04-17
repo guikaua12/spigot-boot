@@ -26,6 +26,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.versions.api.goal.CustomGoalKey;
+import tech.guilhermekaua.spigotboot.versions.api.goal.CustomGoalSpec;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalProfile;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalSelectorType;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalKey;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalSpec;
 
 import java.util.Objects;
 
@@ -42,6 +48,7 @@ public final class EntityTemplate<T extends Entity> {
     private final SpawnControllerFactory<T> controllerFactory;
     private final SpawnNetworkControllerFactory<T> networkControllerFactory;
     private final EntityInitializer<T> initializer;
+    private final GoalProfile<T> goalProfile;
 
     EntityTemplate(
             @Nullable CustomEntityId id,
@@ -49,7 +56,8 @@ public final class EntityTemplate<T extends Entity> {
             @NotNull Class<T> bukkitType,
             @NotNull SpawnControllerFactory<T> controllerFactory,
             @NotNull SpawnNetworkControllerFactory<T> networkControllerFactory,
-            @NotNull EntityInitializer<T> initializer
+            @NotNull EntityInitializer<T> initializer,
+            @NotNull GoalProfile<T> goalProfile
     ) {
         this.id = id;
         this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
@@ -60,6 +68,7 @@ public final class EntityTemplate<T extends Entity> {
                 "networkControllerFactory cannot be null"
         );
         this.initializer = Objects.requireNonNull(initializer, "initializer cannot be null");
+        this.goalProfile = requireCompatibleGoalProfile(bukkitType, goalProfile);
     }
 
     /**
@@ -114,6 +123,15 @@ public final class EntityTemplate<T extends Entity> {
      */
     public @NotNull EntityInitializer<T> initializer() {
         return initializer;
+    }
+
+    /**
+     * Returns the immutable managed goal profile captured by this template.
+     *
+     * @return the immutable goal profile
+     */
+    public @NotNull GoalProfile<T> goalProfile() {
+        return goalProfile;
     }
 
     /**
@@ -232,6 +250,17 @@ public final class EntityTemplate<T extends Entity> {
         return resolveBukkitType(baseType);
     }
 
+    private static <T extends Entity> @NotNull GoalProfile<T> requireCompatibleGoalProfile(
+            @NotNull Class<T> bukkitType,
+            @NotNull GoalProfile<T> goalProfile
+    ) {
+        GoalProfile<T> resolvedGoalProfile = Objects.requireNonNull(goalProfile, "goalProfile cannot be null");
+        if (!resolvedGoalProfile.entityType().equals(Objects.requireNonNull(bukkitType, "bukkitType cannot be null"))) {
+            throw new IllegalArgumentException("goalProfile entity type must match the template Bukkit type.");
+        }
+        return resolvedGoalProfile;
+    }
+
     /**
      * Builds immutable entity templates.
      *
@@ -244,6 +273,7 @@ public final class EntityTemplate<T extends Entity> {
         private SpawnControllerFactory<T> controllerFactory = SpawnControllerFactory.passThrough();
         private SpawnNetworkControllerFactory<T> networkControllerFactory = SpawnNetworkControllerFactory.passThrough();
         private EntityInitializer<T> initializer = EntityInitializer.noop();
+        private GoalProfile<T> goalProfile;
 
         private Builder(
                 @Nullable CustomEntityId id,
@@ -253,6 +283,7 @@ public final class EntityTemplate<T extends Entity> {
             this.id = id;
             this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
             this.bukkitType = Objects.requireNonNull(bukkitType, "bukkitType cannot be null");
+            this.goalProfile = GoalProfile.<T>builder(bukkitType).build();
         }
 
         /**
@@ -314,6 +345,77 @@ public final class EntityTemplate<T extends Entity> {
         }
 
         /**
+         * Replaces the entire immutable goal profile captured by the template.
+         *
+         * @param goalProfile the goal profile snapshot
+         * @return the builder
+         */
+        public @NotNull Builder<T> goalProfile(@NotNull GoalProfile<T> goalProfile) {
+            this.goalProfile = requireCompatibleGoalProfile(bukkitType, goalProfile);
+            return this;
+        }
+
+        /**
+         * Adds or replaces one managed vanilla goal entry in the template goal profile.
+         *
+         * @param goalSpec the goal specification
+         * @return the builder
+         */
+        public @NotNull Builder<T> addGoal(@NotNull VanillaGoalSpec goalSpec) {
+            GoalProfile.Builder<T> builder = copyGoalProfile(goalProfile);
+            builder.add(goalSpec);
+            return goalProfile(builder.build());
+        }
+
+        /**
+         * Adds or replaces one managed custom goal entry in the template goal profile.
+         *
+         * @param goalSpec the goal specification
+         * @return the builder
+         */
+        public @NotNull Builder<T> addGoal(@NotNull CustomGoalSpec goalSpec) {
+            GoalProfile.Builder<T> builder = copyGoalProfile(goalProfile);
+            builder.add(goalSpec);
+            return goalProfile(builder.build());
+        }
+
+        /**
+         * Adds or replaces one managed vanilla goal entry in the template goal profile.
+         *
+         * @param selectorType the selector that owns the goal
+         * @param key the managed vanilla goal key
+         * @param priority the selector priority
+         * @return the builder
+         */
+        public @NotNull Builder<T> addVanillaGoal(
+                @NotNull GoalSelectorType selectorType,
+                @NotNull VanillaGoalKey key,
+                int priority
+        ) {
+            GoalProfile.Builder<T> builder = copyGoalProfile(goalProfile);
+            builder.addVanilla(selectorType, key, priority);
+            return goalProfile(builder.build());
+        }
+
+        /**
+         * Adds or replaces one managed custom goal entry in the template goal profile.
+         *
+         * @param selectorType the selector that owns the goal
+         * @param key the managed custom goal key
+         * @param priority the selector priority
+         * @return the builder
+         */
+        public @NotNull Builder<T> addCustomGoal(
+                @NotNull GoalSelectorType selectorType,
+                @NotNull CustomGoalKey key,
+                int priority
+        ) {
+            GoalProfile.Builder<T> builder = copyGoalProfile(goalProfile);
+            builder.addCustom(selectorType, key, priority);
+            return goalProfile(builder.build());
+        }
+
+        /**
          * Creates the immutable template.
          *
          * @return the immutable template
@@ -325,8 +427,27 @@ public final class EntityTemplate<T extends Entity> {
                     bukkitType,
                     controllerFactory,
                     networkControllerFactory,
-                    initializer
+                    initializer,
+                    goalProfile
             );
+        }
+
+        private @NotNull GoalProfile.Builder<T> copyGoalProfile(@NotNull GoalProfile<T> goalProfile) {
+            GoalProfile<T> resolvedGoalProfile = requireCompatibleGoalProfile(bukkitType, goalProfile);
+            GoalProfile.Builder<T> builder = GoalProfile.builder(bukkitType);
+            for (VanillaGoalSpec goalSpec : resolvedGoalProfile.vanillaGoals(GoalSelectorType.NORMAL)) {
+                builder.add(goalSpec);
+            }
+            for (VanillaGoalSpec goalSpec : resolvedGoalProfile.vanillaGoals(GoalSelectorType.TARGET)) {
+                builder.add(goalSpec);
+            }
+            for (CustomGoalSpec goalSpec : resolvedGoalProfile.customGoals(GoalSelectorType.NORMAL)) {
+                builder.add(goalSpec);
+            }
+            for (CustomGoalSpec goalSpec : resolvedGoalProfile.customGoals(GoalSelectorType.TARGET)) {
+                builder.add(goalSpec);
+            }
+            return builder;
         }
     }
 }

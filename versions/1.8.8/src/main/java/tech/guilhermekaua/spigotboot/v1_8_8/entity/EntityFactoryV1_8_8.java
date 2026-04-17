@@ -95,6 +95,7 @@ public final class EntityFactoryV1_8_8
         LegacyFreshSpawnStrategy_1_8_to_1_12.Support,
         LegacyReplacementStrategy_1_8_to_1_12.Support {
     private static final MinecraftVersion VERSION = MinecraftVersion.of(1, 8, 8);
+    private static final String SUPPORTED_FAMILY = "1.8.8";
     private static final String HOOK_TICK = "tick";
     private static final String HOOK_MOVE = "move";
     private static final String HOOK_PUSH = "push";
@@ -137,10 +138,83 @@ public final class EntityFactoryV1_8_8
             EntityStrategyBundleSelector.requireLegacyFreshSpawnStrategy(ENTITY_STRATEGY_BUNDLE.freshSpawn());
     private static final LegacyReplacementStrategy_1_8_to_1_12 REPLACEMENT_STRATEGY =
             EntityStrategyBundleSelector.requireLegacyReplacementStrategy(ENTITY_STRATEGY_BUNDLE.replacement());
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUDED_BASE_TYPES = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUDED_BASE_TYPES =
+            EnumSet.noneOf(CustomEntityBaseType.class);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORTED_BASE_TYPES = EnumSet.of(
+            CustomEntityBaseType.ITEM,
+            CustomEntityBaseType.EXPERIENCE_ORB,
+            CustomEntityBaseType.LEASH_KNOT,
+            CustomEntityBaseType.PAINTING,
+            CustomEntityBaseType.ARROW,
+            CustomEntityBaseType.SNOWBALL,
+            CustomEntityBaseType.FIREBALL,
+            CustomEntityBaseType.SMALL_FIREBALL,
+            CustomEntityBaseType.ENDER_PEARL,
+            CustomEntityBaseType.EYE_OF_ENDER,
+            CustomEntityBaseType.EXPERIENCE_BOTTLE,
+            CustomEntityBaseType.ITEM_FRAME,
+            CustomEntityBaseType.WITHER_SKULL,
+            CustomEntityBaseType.TNT,
+            CustomEntityBaseType.FALLING_BLOCK,
+            CustomEntityBaseType.FIREWORK_ROCKET,
+            CustomEntityBaseType.ARMOR_STAND,
+            CustomEntityBaseType.COMMAND_BLOCK_MINECART,
+            CustomEntityBaseType.BOAT,
+            CustomEntityBaseType.MINECART,
+            CustomEntityBaseType.CHEST_MINECART,
+            CustomEntityBaseType.FURNACE_MINECART,
+            CustomEntityBaseType.TNT_MINECART,
+            CustomEntityBaseType.HOPPER_MINECART,
+            CustomEntityBaseType.SPAWNER_MINECART,
+            CustomEntityBaseType.CREEPER,
+            CustomEntityBaseType.SKELETON,
+            CustomEntityBaseType.SPIDER,
+            CustomEntityBaseType.GIANT,
+            CustomEntityBaseType.ZOMBIE,
+            CustomEntityBaseType.SLIME,
+            CustomEntityBaseType.GHAST,
+            CustomEntityBaseType.ZOMBIFIED_PIGLIN,
+            CustomEntityBaseType.ENDERMAN,
+            CustomEntityBaseType.CAVE_SPIDER,
+            CustomEntityBaseType.SILVERFISH,
+            CustomEntityBaseType.BLAZE,
+            CustomEntityBaseType.MAGMA_CUBE,
+            CustomEntityBaseType.ENDER_DRAGON,
+            CustomEntityBaseType.WITHER,
+            CustomEntityBaseType.BAT,
+            CustomEntityBaseType.WITCH,
+            CustomEntityBaseType.ENDERMITE,
+            CustomEntityBaseType.GUARDIAN,
+            CustomEntityBaseType.PIG,
+            CustomEntityBaseType.SHEEP,
+            CustomEntityBaseType.COW,
+            CustomEntityBaseType.CHICKEN,
+            CustomEntityBaseType.SQUID,
+            CustomEntityBaseType.WOLF,
+            CustomEntityBaseType.MOOSHROOM,
+            CustomEntityBaseType.SNOW_GOLEM,
+            CustomEntityBaseType.OCELOT,
+            CustomEntityBaseType.IRON_GOLEM,
+            CustomEntityBaseType.HORSE,
+            CustomEntityBaseType.RABBIT,
+            CustomEntityBaseType.VILLAGER,
+            CustomEntityBaseType.END_CRYSTAL,
+            CustomEntityBaseType.POTION,
+            CustomEntityBaseType.EGG,
+            CustomEntityBaseType.FISHING_BOBBER,
+            CustomEntityBaseType.LIGHTNING_BOLT
+    );
+    private static final Map<CustomEntityBaseType, EntityMetadata> METADATA_REGISTRY = createMetadataRegistry();
 
     private final GeneratedNativeEntityClassFactory classFactory = new GeneratedNativeEntityClassFactory();
     private final EntityHookBinderV1_8_8 hookBinder = new EntityHookBinderV1_8_8();
-    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
+    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = METADATA_REGISTRY;
     private final Map<CustomEntityBaseType, ResolvedSpawnMetadata> spawnMetadataRegistry =
             new LinkedHashMap<CustomEntityBaseType, ResolvedSpawnMetadata>();
     private final Map<Class<?>, ResolvedEntityTypeMetadata> generatedTypes =
@@ -176,7 +250,7 @@ public final class EntityFactoryV1_8_8
     @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return metadataRegistry.containsKey(baseType);
+        return ADVERTISED_SUPPORTED_BASE_TYPES.contains(baseType);
     }
 
     @Override
@@ -198,6 +272,7 @@ public final class EntityFactoryV1_8_8
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
+        requireAdvertisedSupportedBaseType(resolveBaseType(entity), "attach");
         return REPLACEMENT_STRATEGY.attach(this, entity, lifecycle);
     }
 
@@ -354,13 +429,15 @@ public final class EntityFactoryV1_8_8
     }
 
     @Override
-    public <T extends Entity> @NotNull LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement prepareReplacement(
+    public <T extends Entity> LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement prepareReplacement(
             @NotNull T entity,
             @NotNull Object currentNativeHandle
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
-        EntityMetadata metadata = requireMetadata(resolveBaseType(entity));
+        CustomEntityBaseType baseType = resolveBaseType(entity);
+        requireAdvertisedSupportedBaseType(baseType, "replacement");
+        EntityMetadata metadata = requireMetadata(baseType);
         return new LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement(
                 resolveGeneratedTypeMetadata(metadata, currentNativeHandle.getClass())
         );
@@ -712,10 +789,18 @@ public final class EntityFactoryV1_8_8
         EntityMetadata metadata = metadataRegistry.get(baseType);
         if (metadata == null) {
             throw new UnsupportedOperationException(
-                    "Minecraft 1.8.8 does not support spawn and attach for base type '" + baseType + "'."
+                    "Minecraft " + SUPPORTED_FAMILY + " does not support spawn and attach for base type '" + baseType + "'."
             );
         }
         return metadata;
+    }
+
+    private static void requireAdvertisedSupportedBaseType(@NotNull CustomEntityBaseType baseType, @NotNull String action) {
+        if (!ADVERTISED_SUPPORTED_BASE_TYPES.contains(baseType)) {
+            throw new UnsupportedOperationException(
+                    "Minecraft " + SUPPORTED_FAMILY + " does not support " + action + " for base type '" + baseType + "'."
+            );
+        }
     }
 
     private static @NotNull CustomEntityBaseType resolveBaseType(@NotNull Entity entity) {
@@ -730,20 +815,30 @@ public final class EntityFactoryV1_8_8
 
     private static @NotNull Map<CustomEntityBaseType, EntityMetadata> createMetadataRegistry() {
         Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
-        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
-            EntityType entityType = baseType.entityTypeOrNull();
-            if (entityType == null || entityType.getEntityClass() == null) {
-                continue;
-            }
-            if (baseType == CustomEntityBaseType.UNKNOWN
-                    || baseType == CustomEntityBaseType.PLAYER
-                    || baseType == CustomEntityBaseType.WEATHER
-                    || baseType == CustomEntityBaseType.COMPLEX_PART) {
-                continue;
-            }
-            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+        for (CustomEntityBaseType baseType : ADVERTISED_SUPPORTED_BASE_TYPES) {
+            requireExplicitlyAllowedBaseType(baseType);
+            metadata.put(baseType, new EntityMetadata(baseType, requireEntityType(baseType)));
         }
         return metadata;
+    }
+
+    private static void requireExplicitlyAllowedBaseType(@NotNull CustomEntityBaseType baseType) {
+        if (PERMANENT_EXCLUDED_BASE_TYPES.contains(baseType) || PRESERVED_EXCLUDED_BASE_TYPES.contains(baseType)) {
+            throw new IllegalStateException(
+                    "Minecraft " + SUPPORTED_FAMILY + " cannot advertise support for excluded base type '" + baseType + "'."
+            );
+        }
+    }
+
+    private static @NotNull EntityType requireEntityType(@NotNull CustomEntityBaseType baseType) {
+        EntityType entityType = baseType.entityTypeOrNull();
+        if (entityType == null || entityType.getEntityClass() == null) {
+            throw new IllegalStateException(
+                    "Minecraft " + SUPPORTED_FAMILY + " cannot advertise support for base type '" + baseType
+                            + "' because Bukkit EntityType is unavailable."
+            );
+        }
+        return entityType;
     }
 
     private static @NotNull String generatedClassName(

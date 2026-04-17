@@ -22,8 +22,15 @@
  */
 package tech.guilhermekaua.spigotboot.v1_21_11.entity;
 
+import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalKey;
+import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.bootstrap.RuntimeServerFlavor;
 import tech.guilhermekaua.spigotboot.versions.runtime.bootstrap.VersionRuntimeProfile;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.EntityFreshSpawnPath;
@@ -39,6 +46,9 @@ import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperReplacementS
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperTrackingBindingStrategy_1_21_plus;
 
 import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.function.Predicate;
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +59,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpigotVersionAdapterV1_21_11Test {
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUSIONS = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUSIONS = EnumSet.noneOf(CustomEntityBaseType.class);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORT = createAdvertisedSupport();
 
     @Test
     void shouldInstantiateWithoutResolvingNativeClasses() {
@@ -59,6 +77,15 @@ class SpigotVersionAdapterV1_21_11Test {
         assertTrue(adapter.supports(MinecraftVersion.of(1, 21, 0)));
         assertTrue(adapter.supports(MinecraftVersion.of(1, 21, 11)));
         assertFalse(adapter.supports(MinecraftVersion.of(1, 20, 6)));
+    }
+
+    @Test
+    void shouldMatchTheExplicitSupportMatrixContract() {
+        SpigotVersionAdapterV1_21_11 adapter = assertDoesNotThrow(SpigotVersionAdapterV1_21_11::new);
+
+        wireEntrypoint(adapter, allocateFactoryWithoutConstructor());
+
+        assertSupportMatrix(adapter::supports, ADVERTISED_SUPPORT, PRESERVED_EXCLUSIONS);
     }
 
     @Test
@@ -126,6 +153,20 @@ class SpigotVersionAdapterV1_21_11Test {
     }
 
     @Test
+    void shouldAdvertiseLatestGoalSupportOnlyThroughTheInternalRuntimeProviderSeam() {
+        SpigotVersionAdapterV1_21_11 adapter = assertDoesNotThrow(SpigotVersionAdapterV1_21_11::new);
+
+        VersionGoalSupportProvider provider = assertInstanceOf(VersionGoalSupportProvider.class, adapter);
+        VersionGoalSupportMetadata metadata = provider.entityGoalSupportMetadata();
+
+        assertEquals(EnumSet.allOf(VanillaGoalKey.class), metadata.supportedVanillaGoalKeys());
+        assertTrue(metadata.attachedManagedSnapshotAvailable());
+        assertTrue(metadata.spawnedExecutorFactoryAvailable());
+        assertTrue(metadata.attachedExecutorFactoryAvailable());
+        assertTrue(metadata.specified());
+    }
+
+    @Test
     void shouldExposeLatestPaperOverlayOnlyWhenTheRuntimeProfileProbesNeedIt() {
         SpigotVersionAdapterV1_21_11 adapter = assertDoesNotThrow(SpigotVersionAdapterV1_21_11::new);
 
@@ -155,5 +196,99 @@ class SpigotVersionAdapterV1_21_11Test {
         assertEquals("latest-1_21-x-spigot", spigotSupport.id());
         assertEquals("latest-1_21-x-paper-overlay", paperChunkSupport.id());
         assertEquals("latest-1_21-x-paper-overlay", paperSupport.id());
+    }
+
+    private static @NotNull EnumSet<CustomEntityBaseType> createAdvertisedSupport() {
+        EnumSet<CustomEntityBaseType> advertisedSupport = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+                continue;
+            }
+            EntityType entityType = baseType.entityTypeOrNull();
+            if (entityType == null || entityType.getEntityClass() == null) {
+                continue;
+            }
+            advertisedSupport.add(baseType);
+        }
+        return advertisedSupport;
+    }
+
+    private static void assertSupportMatrix(
+            @NotNull Predicate<CustomEntityBaseType> supportProbe,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            SupportExpectation expectation = classify(baseType, advertisedSupport, preservedExclusions);
+            boolean supported = supportProbe.test(baseType);
+
+            assertEquals(
+                    expectation.included(),
+                    supported,
+                    "Support matrix mismatch for " + baseType + ": " + expectation.rationale()
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
+    }
+
+    private static @NotNull SupportExpectation classify(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+            return new SupportExpectation(false, "permanent exclusion");
+        }
+        if (baseType.entityTypeOrNull() == null) {
+            return new SupportExpectation(false, "Bukkit EntityType is absent for this version");
+        }
+        if (advertisedSupport.contains(baseType)) {
+            return new SupportExpectation(true, "advertised version contract includes this base type");
+        }
+        if (preservedExclusions.contains(baseType)) {
+            return new SupportExpectation(false, "version-local preserved exclusion");
+        }
+        return new SupportExpectation(false, "advertised version contract excludes this base type");
+    }
+
+    private static final class SupportExpectation {
+        private final boolean included;
+        private final String rationale;
+
+        private SupportExpectation(boolean included, @NotNull String rationale) {
+            this.included = included;
+            this.rationale = rationale;
+        }
+
+        private boolean included() {
+            return included;
+        }
+
+        private @NotNull String rationale() {
+            return rationale;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static @NotNull EntityFactoryV1_21_11 allocateFactoryWithoutConstructor() {
+        return (EntityFactoryV1_21_11) ReflectionSupport.allocateInstance(EntityFactoryV1_21_11.class);
+    }
+
+    private static void wireEntrypoint(
+            @NotNull SpigotVersionAdapterV1_21_11 adapter,
+            @NotNull EntityFactoryV1_21_11 entrypoint
+    ) {
+        try {
+            Field field = SpigotVersionAdapterV1_21_11.class.getDeclaredField("entrypoint");
+            field.setAccessible(true);
+            field.set(adapter, entrypoint);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 }

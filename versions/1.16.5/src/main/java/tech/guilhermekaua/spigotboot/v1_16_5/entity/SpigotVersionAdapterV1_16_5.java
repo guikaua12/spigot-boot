@@ -35,12 +35,15 @@ import tech.guilhermekaua.spigotboot.versions.api.spi.VersionAdapter;
 import tech.guilhermekaua.spigotboot.versions.runtime.bootstrap.VersionRuntimeProfile;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.VersionCapabilities;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionBindings;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionTransportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataContract;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.ModernTransportSupport;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.ReflectiveModernTransportSupport;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityMetadataFamily;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityTransportFamily;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperFreshSpawnStrategy_1_21_plus;
@@ -59,6 +62,7 @@ public final class SpigotVersionAdapterV1_16_5
         VersionNetworkMetadataProvider,
         VersionTransportProvider,
         VersionMetadataProvider,
+        VersionGoalSupportProvider,
         PaperTrackingBindingStrategy_1_21_plus.Provider,
         PaperFreshSpawnStrategy_1_21_plus.Provider,
         PaperReplacementStrategy_1_21_plus.Provider {
@@ -94,6 +98,35 @@ public final class SpigotVersionAdapterV1_16_5
     @Override
     public @NotNull VersionBindings entityBindings() {
         return EntityFactoryV1_16_5.entityBindings();
+    }
+
+    @Override
+    public @NotNull VersionGoalSupportMetadata entityGoalSupportMetadata() {
+        return EntityGoalSupportV1_16_5.metadata();
+    }
+
+    @Override
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createSpawnGoalMutationExecutor(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        return EntityGoalSupportV1_16_5.createSpawnExecutor(template, minecraftVersion);
+    }
+
+    @Override
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createAttachedGoalMutationExecutor(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull T entity,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        return EntityGoalSupportV1_16_5.createAttachedExecutor(baseType, entity, minecraftVersion);
     }
 
     @Override

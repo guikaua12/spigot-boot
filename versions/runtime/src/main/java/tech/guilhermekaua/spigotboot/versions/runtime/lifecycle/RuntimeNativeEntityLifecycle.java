@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.versions.api.EntityTemplate;
 import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.versions.api.SpawnOptions;
 import tech.guilhermekaua.spigotboot.versions.api.SpawnedEntity;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.controller.PassThroughEntityController;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransport;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransportResolver;
@@ -92,12 +93,41 @@ public class RuntimeNativeEntityLifecycle<T extends Entity>
             @NotNull EntityTransport transport,
             @NotNull EntityPublicationBackend publicationBackend
     ) {
+        this(
+                template,
+                spawnOptions,
+                minecraftVersion,
+                transport,
+                publicationBackend,
+                RuntimeGoalMutationExecutor.noop(template.goalProfile())
+        );
+    }
+
+    /**
+     * Creates a new spawned runtime lifecycle with explicit internal goal-management orchestration.
+     *
+     * @param template the entity template
+     * @param spawnOptions the immutable spawn options
+     * @param minecraftVersion the resolved Minecraft version
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     * @param goalMutationExecutor the shared runtime goal executor seam
+     */
+    public RuntimeNativeEntityLifecycle(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend,
+            @NotNull RuntimeGoalMutationExecutor<T> goalMutationExecutor
+    ) {
         super(
                 template.baseType(),
                 minecraftVersion,
                 PassThroughEntityController.instance(),
                 transport,
-                publicationBackend
+                publicationBackend,
+                goalMutationExecutor
         );
         this.template = Objects.requireNonNull(template, "template cannot be null");
         this.spawnOptions = Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");

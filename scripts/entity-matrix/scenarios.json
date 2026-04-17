@@ -1,0 +1,58 @@
+{
+  "scenarios": [
+    {
+      "id": "orbit",
+      "timeoutSeconds": 180,
+      "expectedAssertionKeys": [
+        "pass",
+        "spawnCount",
+        "duplicateRegistrationErrors",
+        "movementSyncObserved"
+      ]
+    },
+    {
+      "id": "deathfx-cow",
+      "timeoutSeconds": 180,
+      "expectedAssertionKeys": [
+        "pass",
+        "aiReactedAfterHit",
+        "deathEffectCount",
+        "duplicateRegistrationErrors"
+      ]
+    },
+    {
+      "id": "metadata-dirty-zombie",
+      "timeoutSeconds": 180,
+      "expectedAssertionKeys": [
+        "pass",
+        "metadataInitCount",
+        "metadataDeltaCount",
+        "attributeInitCount",
+        "equipmentInitCount",
+        "effectInitCount"
+      ]
+    },
+    {
+      "id": "viewer-cycle-zombie",
+      "timeoutSeconds": 180,
+      "expectedAssertionKeys": [
+        "pass",
+        "viewerAddCount",
+        "viewerRemoveCount",
+        "spawnCount",
+        "destroyCount"
+      ]
+    },
+    {
+      "id": "attach-existing-zombie",
+      "timeoutSeconds": 180,
+      "expectedAssertionKeys": [
+        "pass",
+        "attachCount",
+        "duplicateSpawnCount",
+        "entityIdStable",
+        "trackerRebound"
+      ]
+    }
+  ]
+}

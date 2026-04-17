@@ -1,0 +1,77 @@
+===== TASK 5 — FULL BUILD SUREFIRE SUMMARY =====
+Date: 2026-04-17
+Branch: feat/nms2 (commits 00bae6d, e204703, 840f5a4, c0770e6)
+
+=== Per-Module Test Counts ===
+
+Module                              | Tests | Fail | Err | Skip | Status
+------------------------------------|-------|------|-----|------|---------
+spigot-boot (root pom)              |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-utils                   |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-core                    |  302  |  0   |  0  |  0   | SUCCESS
+spigot-boot-commands                |   52  |  0   |  0  |  0   | SUCCESS
+spigot-boot-platform-spigot         |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-core-spigot             |    1  |  0   |  0  |  0   | SUCCESS
+spigot-boot-commands-spigot         |   10  |  0   |  4  |  0   | PRE-EXISTING FAILURE (*)
+spigot-boot-config                  |  143  |  0   |  0  |  0   | SUCCESS
+spigot-boot-config-spigot           |  106  |  0   |  0  |  0   | SUCCESS
+spigot-boot-commands-config-spigot  |    7  |  0   |  0  |  0   | SUCCESS
+spigot-boot-plugin-messaging-spigot |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-placeholder-spigot      |   54  |  0   | 13  |  0   | PRE-EXISTING FAILURE (**)
+spigot-boot-data                    |   48  |  0   |  0  |  0   | SUCCESS
+spigot-boot-modules (pom)           |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-data-jdbc               |    6  |  0   |  0  |  0   | SUCCESS
+spigot-boot-data-orm-lite           |   -   |  -   |  -  |  -   | SUCCESS (no tests)
+spigot-boot-versions-api            |   20  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-runtime        |  113  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-v1_8_8         |   17  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-v1_13_2        |   29  |  2   |  0  |  0   | PRE-EXISTING FAILURE (***)
+spigot-boot-versions-v1_16_5        |   24  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-v1_17_1        |   21  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-v1_19_2        |   37  |  0   |  0  |  0   | SUCCESS
+spigot-boot-versions-v1_21_11       |   24  |  0   |  0  |  0   | SUCCESS
+test-plugin                         |   14  |  0   |  2  |  0   | PRE-EXISTING FAILURE (****)
+
+=== TOTALS ===
+Total tests: 1028
+Total failures: 2 (all pre-existing)
+Total errors: 19 (all pre-existing)
+Total skipped: 0
+
+=== REGRESSION CANARY ===
+VersionsSharedDependencyIntegrationTest: 2 tests, 0 failures, 0 errors — PASS
+
+=== PRE-EXISTING FAILURE DETAILS ===
+
+(*) commands-spigot: 4 errors
+  - BukkitCommandRegistrarTest: 2 errors — "No jar file selected" (MockBukkit.load)
+  - SpigotBootCommandTest: 2 errors — "No jar file selected" (MockBukkit.load)
+  T1-T4 commits did NOT touch platform-spigot/commands-spigot/ (verified via git log)
+
+(**) placeholder-spigot: 13 errors
+  - PlaceholderModuleTest: 4 errors — "No jar file selected" (MockBukkit.load)
+  - PlaceholderMetadataTest: 3 errors — Mockito issue
+  - PAPIExpansionTest: 6 errors — Mockito issue
+  T1-T4 commits did NOT touch platform-spigot/placeholder/ (verified via git log)
+
+(***) versions-v1_13_2: 2 failures
+  - EntityFactoryV1_13_2Test.shouldMatchTheExplicitSupportMatrixContract — ITEM support matrix mismatch
+  - SpigotVersionAdapterV1_13_2Test.shouldMatchTheExplicitSupportMatrixContract — ITEM support matrix mismatch
+  T1-T4 commits did NOT touch versions/1.13.2/ (verified via git log)
+  Module has 338 lines of uncommitted wip changes unrelated to T1-T4.
+
+(****) test-plugin: 2 errors
+  - AutoDiscoveryIntegrationTest.setUp: "No jar file selected" (MockBukkit.load)
+  Documented as pre-existing in T2 learnings notepad.
+
+=== NON-PRE-EXISTING REGRESSIONS FROM T1-T4 ===
+NONE. Zero regressions introduced by commits 00bae6d, e204703, 840f5a4, c0770e6.
+
+=== EVIDENCE FILES ===
+- task-5-full-build.txt: Initial `mvnw.cmd clean test` run (stopped at commands-spigot)
+- task-5-resumed-build.txt: Resumed from config module (stopped at placeholder)
+- task-5-versions-clean.txt: Clean test of all version modules (all pass)
+- task-5-testplugin.txt: test-plugin module (only AutoDiscoveryIntegrationTest fails)
+- task-5-data-modules.txt: data + data-jdbc + data-orm-lite (all pass)
+- task-5-pmc.txt: plugin-messaging module (pass, no tests)
+- task-5-surefire-summary.txt: This file

@@ -1,0 +1,1 @@
+{"scenario":"metadata-dirty-zombie","server":"spigot-1.16.5","events":[{"event":"metadata-initialized","details":{"contractId":"modern-synched-entity-data-1_14-to-1_16_5"}},{"event":"metadata-delta","details":{"dirtyWatcherItems":1}}]}

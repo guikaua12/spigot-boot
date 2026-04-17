@@ -1,0 +1,82 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 26 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-utils                                                  [jar]
+[INFO] spigot-boot-core                                                   [jar]
+[INFO] spigot-boot-commands                                               [jar]
+[INFO] spigot-boot-platform-spigot                                        [pom]
+[INFO] spigot-boot-core-spigot                                            [jar]
+[INFO] spigot-boot-commands-spigot                                        [jar]
+[INFO] spigot-boot-config                                                 [jar]
+[INFO] spigot-boot-config-spigot                                          [jar]
+[INFO] spigot-boot-plugin-messaging-spigot                                [jar]
+[INFO] spigot-boot-placeholder-spigot                                     [jar]
+[INFO] tech.guilhermekaua.spigot-boot                                     [jar]
+[INFO] spigot-boot-data                                                   [jar]
+[INFO] spigot-boot-modules                                                [pom]
+[INFO] spigot-boot-data-orm-lite                                          [jar]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_8_8                                        [jar]
+[INFO] spigot-boot-versions-v1_13_2                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] spigot-boot-versions-v1_17_1                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] spigot-boot-versions-v1_21_11                                      [jar]
+[INFO] spigot-boot-versions                                               [jar]
+[INFO] test-plugin                                                        [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                        [1/26]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\target
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ FAILURE [  1.752 s]
+[INFO] spigot-boot-utils .................................. SKIPPED
+[INFO] spigot-boot-core ................................... SKIPPED
+[INFO] spigot-boot-commands ............................... SKIPPED
+[INFO] spigot-boot-platform-spigot ........................ SKIPPED
+[INFO] spigot-boot-core-spigot ............................ SKIPPED
+[INFO] spigot-boot-commands-spigot ........................ SKIPPED
+[INFO] spigot-boot-config ................................. SKIPPED
+[INFO] spigot-boot-config-spigot .......................... SKIPPED
+[INFO] spigot-boot-plugin-messaging-spigot ................ SKIPPED
+[INFO] spigot-boot-placeholder-spigot ..................... SKIPPED
+[INFO] tech.guilhermekaua.spigot-boot ..................... SKIPPED
+[INFO] spigot-boot-data ................................... SKIPPED
+[INFO] spigot-boot-modules ................................ SKIPPED
+[INFO] spigot-boot-data-orm-lite .......................... SKIPPED
+[INFO] spigot-boot-versions-parent ........................ SKIPPED
+[INFO] spigot-boot-versions-api ........................... SKIPPED
+[INFO] spigot-boot-versions-runtime ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_8_8 ........................ SKIPPED
+[INFO] spigot-boot-versions-v1_13_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_16_5 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_17_1 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_19_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_21_11 ...................... SKIPPED
+[INFO] spigot-boot-versions ............................... SKIPPED
+[INFO] test-plugin ........................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.598 s
+[INFO] Finished at: 2026-04-17T15:00:03-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-clean-plugin:3.2.0:clean (default-clean) on project spigot-boot: Failed to clean project: Failed to delete C:\Users\Guilherme\IdeaProjects\spigot-boot\target\entity-matrix\spigot-1.16.5\attach-existing-zombie\server.log -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

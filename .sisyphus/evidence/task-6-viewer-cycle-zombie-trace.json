@@ -1,0 +1,1 @@
+{"scenario":"viewer-cycle-zombie","server":"spigot-1.16.5","events":[{"event":"headless-viewer-added","details":{"viewer":"matrix-runner"}},{"event":"headless-viewer-removed","details":{"viewer":"matrix-runner"}},{"event":"unbind","details":{"trackedViewers":0}}]}

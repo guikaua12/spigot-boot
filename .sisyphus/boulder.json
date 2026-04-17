@@ -1,0 +1,57 @@
+{
+  "active_plan": "C:\\Users\\Guilherme\\IdeaProjects\\spigot-boot\\.sisyphus\\plans\\fix-attach-existing-zombie-classcast.md",
+  "started_at": "2026-04-16T23:01:24.483Z",
+  "session_ids": [
+    "ses_2679c882dffejk1atMrKd1k1lL",
+    "ses_26347a0b2ffeJ1rGzBrNWYe7jr",
+    "ses_2634767c2ffe3JO6p3Av1AabtA",
+    "ses_263472f65ffe9W6RDdUTQoUjbo",
+    "ses_26346ef08ffeNvv7ytR2MyLc8Z"
+  ],
+  "session_origins": {
+    "ses_2679c882dffejk1atMrKd1k1lL": "direct",
+    "ses_26347a0b2ffeJ1rGzBrNWYe7jr": "appended",
+    "ses_2634767c2ffe3JO6p3Av1AabtA": "appended",
+    "ses_263472f65ffe9W6RDdUTQoUjbo": "appended",
+    "ses_26346ef08ffeNvv7ytR2MyLc8Z": "appended"
+  },
+  "plan_name": "fix-attach-existing-zombie-classcast",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Add `findFieldOfType` + `requireFieldOfType` helpers to `ReflectionSupport` with a first-of-its-kind hierarchy unit test",
+      "session_id": "ses_26775bfc3ffe03htVPJ3fiHP1H",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-16T23:20:20.788Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Migrate `EntityFactoryV1_16_5.rewireModernVehicleAndPassengerReferencesInternal` passengers/vehicle lookups to `requireFieldOfType` and add a hierarchical-stub regression test",
+      "session_id": "ses_26753ce82ffe4Jw7crTmzUjRl5",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-17T00:11:55.294Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Run the full Maven build + test suite across all modules and verify zero regressions",
+      "session_id": "ses_263532014ffewsggQpFzw0xCQg",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-17T18:31:56.329Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_26346ef08ffeNvv7ytR2MyLc8Z",
+      "agent": "explore",
+      "updated_at": "2026-04-17T18:34:27.772Z"
+    }
+  }
+}

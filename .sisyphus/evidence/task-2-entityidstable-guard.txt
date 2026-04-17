@@ -1,0 +1,533 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 26 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-utils                                                  [jar]
+[INFO] spigot-boot-core                                                   [jar]
+[INFO] spigot-boot-commands                                               [jar]
+[INFO] spigot-boot-platform-spigot                                        [pom]
+[INFO] spigot-boot-core-spigot                                            [jar]
+[INFO] spigot-boot-commands-spigot                                        [jar]
+[INFO] spigot-boot-config                                                 [jar]
+[INFO] spigot-boot-config-spigot                                          [jar]
+[INFO] spigot-boot-plugin-messaging-spigot                                [jar]
+[INFO] spigot-boot-placeholder-spigot                                     [jar]
+[INFO] tech.guilhermekaua.spigot-boot                                     [jar]
+[INFO] spigot-boot-data                                                   [jar]
+[INFO] spigot-boot-modules                                                [pom]
+[INFO] spigot-boot-data-orm-lite                                          [jar]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_8_8                                        [jar]
+[INFO] spigot-boot-versions-v1_13_2                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] spigot-boot-versions-v1_17_1                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] spigot-boot-versions-v1_21_11                                      [jar]
+[INFO] spigot-boot-versions                                               [jar]
+[INFO] test-plugin                                                        [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                        [1/26]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-utils >----------
+[INFO] Building spigot-boot-utils 2.0.2                                  [2/26]
+[INFO]   from utils\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-utils ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\utils\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-utils ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-utils ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\utils\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-utils ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-utils ---
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-core >-----------
+[INFO] Building spigot-boot-core 2.0.2                                   [3/26]
+[INFO]   from core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-core ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-core ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-core ---
+[INFO] Copying 2 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-core ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-core ---
+[INFO] 
+[INFO] --------< tech.guilhermekaua.spigot-boot:spigot-boot-commands >---------
+[INFO] Building spigot-boot-commands 2.0.2                               [4/26]
+[INFO]   from commands\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-commands ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-commands ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-commands ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\commands\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-commands ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-commands ---
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-platform-spigot >-----
+[INFO] Building spigot-boot-platform-spigot 2.0.2                        [5/26]
+[INFO]   from platform-spigot\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-platform-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -------< tech.guilhermekaua.spigot-boot:spigot-boot-core-spigot >-------
+[INFO] Building spigot-boot-core-spigot 2.0.2                            [6/26]
+[INFO]   from platform-spigot\core-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-core-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-core-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-core-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\core-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-core-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-core-spigot ---
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-commands-spigot >-----
+[INFO] Building spigot-boot-commands-spigot 2.0.2                        [7/26]
+[INFO]   from platform-spigot\commands-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-commands-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-commands-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-commands-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\commands-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-commands-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-commands-spigot ---
+[INFO] 
+[INFO] ---------< tech.guilhermekaua.spigot-boot:spigot-boot-config >----------
+[INFO] Building spigot-boot-config 2.0.2                                 [8/26]
+[INFO]   from config\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-config ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\config\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-config ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-config ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\config\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-config ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-config ---
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-config-spigot >------
+[INFO] Building spigot-boot-config-spigot 2.0.2                          [9/26]
+[INFO]   from platform-spigot\config-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-config-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-config-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-config-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\config-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-config-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-config-spigot ---
+[INFO] 
+[INFO] --< tech.guilhermekaua.spigot-boot:spigot-boot-plugin-messaging-spigot >--
+[INFO] Building spigot-boot-plugin-messaging-spigot 2.0.2               [10/26]
+[INFO]   from platform-spigot\pmc\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---< tech.guilhermekaua.spigot-boot:spigot-boot-placeholder-spigot >----
+[INFO] Building spigot-boot-placeholder-spigot 2.0.2                    [11/26]
+[INFO]   from platform-spigot\placeholder\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-placeholder-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-placeholder-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-placeholder-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\placeholder\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-placeholder-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-placeholder-spigot ---
+[INFO] 
+[INFO] --< tech.guilhermekaua.spigot-boot:spigot-boot-annotation-processor-spigot >--
+[INFO] Building tech.guilhermekaua.spigot-boot 2.0.2                    [12/26]
+[INFO]   from platform-spigot\annotation-processor\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-annotation-processor-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-annotation-processor-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-annotation-processor-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\annotation-processor\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-annotation-processor-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-annotation-processor-spigot ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-data >-----------
+[INFO] Building spigot-boot-data 2.0.2                                  [13/26]
+[INFO]   from data\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-data ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\data\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-data ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-data ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\data\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-data ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-data ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------< tech.guilhermekaua.spigot-boot:spigot-boot-modules >---------
+[INFO] Building spigot-boot-modules 2.0.2                               [14/26]
+[INFO]   from modules\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-modules ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-data-orm-lite >------
+[INFO] Building spigot-boot-data-orm-lite 2.0.2                         [15/26]
+[INFO]   from modules\data-orm-lite\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-data-orm-lite ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-data-orm-lite ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-data-orm-lite ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-orm-lite\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-data-orm-lite ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-data-orm-lite ---
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-parent >-----
+[INFO] Building spigot-boot-versions-parent 2.0.2                       [16/26]
+[INFO]   from versions\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-parent ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-versions-api >-------
+[INFO] Building spigot-boot-versions-api 2.0.2                          [17/26]
+[INFO]   from versions\api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-api ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-runtime >-----
+[INFO] Building spigot-boot-versions-runtime 2.0.2                      [18/26]
+[INFO]   from versions\runtime\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-runtime ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-runtime ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-runtime ---
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_8_8 >-----
+[INFO] Building spigot-boot-versions-v1_8_8 2.0.2                       [19/26]
+[INFO]   from versions\1.8.8\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_8_8 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_8_8 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_8_8 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.8.8\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_8_8 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_8_8 ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_13_2 >-----
+[INFO] Building spigot-boot-versions-v1_13_2 2.0.2                      [20/26]
+[INFO]   from versions\1.13.2\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_13_2 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_13_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_13_2 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.13.2\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_13_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_13_2 ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_16_5 >-----
+[INFO] Building spigot-boot-versions-v1_16_5 2.0.2                      [21/26]
+[INFO]   from versions\1.16.5\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_16_5 ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_17_1 >-----
+[INFO] Building spigot-boot-versions-v1_17_1 2.0.2                      [22/26]
+[INFO]   from versions\1.17.1\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_17_1 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_17_1 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_17_1 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.17.1\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_17_1 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_17_1 ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_19_2 >-----
+[INFO] Building spigot-boot-versions-v1_19_2 2.0.2                      [23/26]
+[INFO]   from versions\1.19.2\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_19_2 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.19.2\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_19_2 ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_21_11 >----
+[INFO] Building spigot-boot-versions-v1_21_11 2.0.2                     [24/26]
+[INFO]   from versions\1.21.11\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_21_11 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_21_11 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_21_11 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.21.11\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_21_11 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_21_11 ---
+[INFO] 
+[INFO] --------< tech.guilhermekaua.spigot-boot:spigot-boot-versions >---------
+[INFO] Building spigot-boot-versions 2.0.2                              [25/26]
+[INFO]   from versions\shared\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\shared\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\shared\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:test-plugin >-------------
+[INFO] Building test-plugin 2.0.2                                       [26/26]
+[INFO]   from test-plugin\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ test-plugin ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ test-plugin ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ test-plugin ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ test-plugin ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ test-plugin ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.testPlugin.services.EntityDemoServiceRecorderContractTest - 0.126 s
+[INFO]    '-- [OK] entityIdStable_false_stillFlunksScenario - 0.097 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.503 s]
+[INFO] spigot-boot-utils .................................. SUCCESS [  0.398 s]
+[INFO] spigot-boot-core ................................... SUCCESS [  0.193 s]
+[INFO] spigot-boot-commands ............................... SUCCESS [  0.114 s]
+[INFO] spigot-boot-platform-spigot ........................ SUCCESS [  0.390 s]
+[INFO] spigot-boot-core-spigot ............................ SUCCESS [  0.193 s]
+[INFO] spigot-boot-commands-spigot ........................ SUCCESS [  0.171 s]
+[INFO] spigot-boot-config ................................. SUCCESS [  0.131 s]
+[INFO] spigot-boot-config-spigot .......................... SUCCESS [  0.186 s]
+[INFO] spigot-boot-plugin-messaging-spigot ................ SUCCESS [  0.078 s]
+[INFO] spigot-boot-placeholder-spigot ..................... SUCCESS [  0.227 s]
+[INFO] tech.guilhermekaua.spigot-boot ..................... SUCCESS [  0.102 s]
+[INFO] spigot-boot-data ................................... SUCCESS [  0.051 s]
+[INFO] spigot-boot-modules ................................ SUCCESS [  0.018 s]
+[INFO] spigot-boot-data-orm-lite .......................... SUCCESS [  0.105 s]
+[INFO] spigot-boot-versions-parent ........................ SUCCESS [  0.017 s]
+[INFO] spigot-boot-versions-api ........................... SUCCESS [  0.133 s]
+[INFO] spigot-boot-versions-runtime ....................... SUCCESS [  0.200 s]
+[INFO] spigot-boot-versions-v1_8_8 ........................ SUCCESS [  0.173 s]
+[INFO] spigot-boot-versions-v1_13_2 ....................... SUCCESS [  0.162 s]
+[INFO] spigot-boot-versions-v1_16_5 ....................... SUCCESS [  0.138 s]
+[INFO] spigot-boot-versions-v1_17_1 ....................... SUCCESS [  0.130 s]
+[INFO] spigot-boot-versions-v1_19_2 ....................... SUCCESS [  0.113 s]
+[INFO] spigot-boot-versions-v1_21_11 ...................... SUCCESS [  0.104 s]
+[INFO] spigot-boot-versions ............................... SUCCESS [  0.071 s]
+[INFO] test-plugin ........................................ SUCCESS [  1.745 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.441 s
+[INFO] Finished at: 2026-04-16T20:22:19-03:00
+[INFO] ------------------------------------------------------------------------

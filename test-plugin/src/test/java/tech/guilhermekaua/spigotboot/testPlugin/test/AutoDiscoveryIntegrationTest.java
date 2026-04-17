@@ -12,6 +12,10 @@ import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
+import tech.guilhermekaua.spigotboot.testPlugin.services.EntityDemoService;
+import tech.guilhermekaua.spigotboot.testPlugin.services.EntityMatrixAutorunService;
+
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +45,15 @@ class AutoDiscoveryIntegrationTest {
         assertNotNull(ctx.getBean(Plugin.class));
         assertNotNull(ctx.getBean(ConfigRegistry.class));
         assertNotNull(ctx.getBean(OrmLiteRepositoryRegistry.class));
+        assertNotNull(ctx.getBean(EntityMatrixAutorunService.class));
+
+        EntityDemoService entityDemoService = ctx.getBean(EntityDemoService.class);
+        assertNotNull(entityDemoService);
+        assertTrue(entityDemoService.scenarioIds().containsAll(Arrays.asList(
+                "attach-existing-zombie",
+                "deathfx-passive-family",
+                "viewer-cycle-special-family"
+        )));
     }
 
     @Test

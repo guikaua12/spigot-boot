@@ -1,0 +1,41 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 1 modules
+[INFO] Installing Central Publishing features
+[INFO] 
+[INFO] --< tech.guilhermekaua.spigot-boot:spigot-boot-plugin-messaging-spigot >--
+[INFO] Building spigot-boot-plugin-messaging-spigot 2.0.2
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 25 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/platform-spigot/pmc/src/main/java/tech/guilhermekaua/spigotboot/messaging/bungee/handler/impl/GetServersHandler.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/platform-spigot/pmc/src/main/java/tech/guilhermekaua/spigotboot/messaging/bungee/handler/impl/GetServersHandler.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No tests to run.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.322 s
+[INFO] Finished at: 2026-04-17T15:06:34-03:00
+[INFO] ------------------------------------------------------------------------

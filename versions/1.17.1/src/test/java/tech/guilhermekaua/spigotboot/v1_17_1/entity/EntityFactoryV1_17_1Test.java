@@ -23,26 +23,51 @@
 package tech.guilhermekaua.spigotboot.v1_17_1.entity;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Skeleton;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity;
+import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.GeneratedNativeEntityClassFactory;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperFreshSpawnStrategy_1_21_plus;
+import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperReplacementStrategy_1_21_plus;
 
+import java.util.EnumSet;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class EntityFactoryV1_17_1Test {
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUSIONS = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORT = EnumSet.of(
+            CustomEntityBaseType.ZOMBIE,
+            CustomEntityBaseType.SKELETON
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUSIONS = EnumSet.of(CustomEntityBaseType.COW);
+
 
     @Test
     void shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors() {
@@ -51,11 +76,57 @@ class EntityFactoryV1_17_1Test {
     }
 
     @Test
-    void shouldAdvertiseZombieOnlySupportThroughMetadataRegistry() {
+    void shouldMatchTheExplicitSupportMatrixContract() {
         EntityFactoryV1_17_1 factory = new EntityFactoryV1_17_1();
 
-        assertTrue(factory.supports(CustomEntityBaseType.ZOMBIE));
-        assertFalse(factory.supports(CustomEntityBaseType.COW));
+        assertSupportMatrix(factory::supports, ADVERTISED_SUPPORT, PRESERVED_EXCLUSIONS);
+    }
+
+    @Test
+    void prepareReplacement_shouldAllowSupportedSkeletonAttachParity() {
+        EntityFactoryV1_17_1 factory = new EntityFactoryV1_17_1();
+        HandleAwareSkeleton entity = Mockito.mock(HandleAwareSkeleton.class);
+        LifecycleAwareReplacementHandle currentHandle = new LifecycleAwareReplacementHandle();
+        @SuppressWarnings("unchecked")
+        NativeEntityLifecycle<Skeleton> lifecycle = Mockito.mock(NativeEntityLifecycle.class);
+
+        when(entity.getType()).thenReturn(EntityType.SKELETON);
+
+        PaperReplacementStrategy_1_21_plus.PreparedReplacement preparedReplacement = factory.prepareReplacement(entity, currentHandle);
+        Object replacementHandle = factory.allocateReplacementHandle(preparedReplacement);
+
+        assertInstanceOf(LifecycleAwareReplacementHandle.class, replacementHandle);
+        assertNotSame(currentHandle, replacementHandle);
+
+        factory.bindLifecycleToReplacement(replacementHandle, preparedReplacement, lifecycle);
+
+        LifecycleAwareNativeEntity lifecycleAwareNativeEntity = assertInstanceOf(
+                LifecycleAwareNativeEntity.class,
+                replacementHandle
+        );
+        assertSame(lifecycle, lifecycleAwareNativeEntity.spigotBootGetLifecycle());
+
+        factory.rebindBukkitZombie(entity, replacementHandle);
+
+        verify(entity).setHandle(replacementHandle);
+    }
+
+    @Test
+    void prepareReplacement_shouldRejectPreservedCowAttachParity() {
+        EntityFactoryV1_17_1 factory = new EntityFactoryV1_17_1();
+        HandleAwareEntity entity = Mockito.mock(HandleAwareEntity.class);
+
+        when(entity.getType()).thenReturn(EntityType.COW);
+
+        UnsupportedOperationException exception = assertThrows(
+                UnsupportedOperationException.class,
+                () -> factory.prepareReplacement(entity, new LifecycleAwareReplacementHandle())
+        );
+
+        assertEquals(
+                "Minecraft 1.17-1.18.2 does not support attach for base type 'COW'.",
+                exception.getMessage()
+        );
     }
 
     @Test
@@ -264,6 +335,95 @@ class EntityFactoryV1_17_1Test {
 
         public int tickCount() {
             return tickCount;
+        }
+    }
+
+    private interface HandleAwareEntity extends Entity {
+        void setHandle(@NotNull Object handle);
+    }
+
+    private interface HandleAwareSkeleton extends Skeleton {
+        void setHandle(@NotNull Object handle);
+    }
+
+    @SuppressWarnings("unused")
+    private static final class LifecycleAwareReplacementHandle implements LifecycleAwareNativeEntity {
+        private NativeEntityLifecycle<?> lifecycle;
+
+        @Override
+        public void spigotBootBindLifecycle(@NotNull NativeEntityLifecycle<?> lifecycle) {
+            this.lifecycle = lifecycle;
+        }
+
+        @Override
+        public NativeEntityLifecycle<?> spigotBootGetLifecycle() {
+            return lifecycle;
+        }
+
+        @Override
+        public Object spigotBootInvokeBase(@NotNull String hookName, Object[] arguments) {
+            return null;
+        }
+    }
+
+    private static void assertSupportMatrix(
+            Predicate<CustomEntityBaseType> supportProbe,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            SupportExpectation expectation = classify(baseType, advertisedSupport, preservedExclusions);
+            boolean supported = supportProbe.test(baseType);
+
+            assertEquals(
+                    expectation.included(),
+                    supported,
+                    "Support matrix mismatch for " + baseType + ": " + expectation.rationale()
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
+    }
+
+    private static @NotNull SupportExpectation classify(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+            return new SupportExpectation(false, "permanent exclusion");
+        }
+        if (baseType.entityTypeOrNull() == null) {
+            return new SupportExpectation(false, "Bukkit EntityType is absent for this version");
+        }
+        if (advertisedSupport.contains(baseType)) {
+            return new SupportExpectation(true, "advertised version contract includes this base type");
+        }
+        if (preservedExclusions.contains(baseType)) {
+            return new SupportExpectation(false, "version-local preserved exclusion");
+        }
+        return new SupportExpectation(false, "advertised version contract excludes this base type");
+    }
+
+    private static final class SupportExpectation {
+        private final boolean included;
+        private final String rationale;
+
+        private SupportExpectation(boolean included, @NotNull String rationale) {
+            this.included = included;
+            this.rationale = rationale;
+        }
+
+        private boolean included() {
+            return included;
+        }
+
+        private @NotNull String rationale() {
+            return rationale;
         }
     }
 }

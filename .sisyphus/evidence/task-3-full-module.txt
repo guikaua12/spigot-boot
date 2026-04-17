@@ -1,0 +1,320 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 5 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                         [1/5]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-parent >-----
+[INFO] Building spigot-boot-versions-parent 2.0.2                         [2/5]
+[INFO]   from versions\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-parent ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-versions-api >-------
+[INFO] Building spigot-boot-versions-api 2.0.2                            [3/5]
+[INFO]   from versions\api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.ControlledEntityGoalManagerTest - 1.259 s
+[INFO]    +-- [OK] shouldExposeNonNullDefaultGoalManager - 1.223 s
+[INFO]    +-- [OK] shouldFailFastForUnsupportedDefaultMutations - 0.009 s
+[INFO]    '-- [OK] shouldInspectOnlyEmptyManagedRecognizedSetByDefault - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseTypeTest - 0.030 s
+[INFO]    +-- [OK] shouldResolveEveryAvailableBukkitEntityTypeToLogicalBaseType - 0.024 s
+[INFO]    '-- [OK] shouldResolveLegacyAliasesAndUnavailableFutureTypesLazily - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.EntityNetworkControllerTest - 0.010 s
+[INFO]    +-- [OK] shouldApplyRelativeAbsoluteRotationAndVelocityThresholds - 0.002 s
+[INFO]    '-- [OK] passThroughFactoryShouldReturnTheSharedInstance - 0.005 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.EntityTemplateTest - 0.014 s
+[INFO]    +-- [OK] shouldBuildLogicalTemplatesWithoutMandatoryRegistrationOrControllerFactory - 0.003 s
+[INFO]    +-- [OK] shouldAllowReplacingTheFullTemplateGoalProfile - 0 s
+[INFO]    +-- [OK] shouldBuildRegisteredTemplatesFromBukkitEntityType - 0.005 s
+[INFO]    '-- [OK] shouldCarryTemplateTimeGoalConfigurationIntoBuiltTemplates - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.goal.GoalApiContractTest - 0.011 s
+[INFO]    +-- [OK] shouldExposeExplicitUnsupportedGoalExceptions - 0.001 s
+[INFO]    +-- [OK] shouldBuildImmutableProfilesForBothSelectorTypes - 0.002 s
+[INFO]    +-- [OK] shouldExposeUnsupportedGoalFailuresForNonAiArmorStands - 0.001 s
+[INFO]    +-- [OK] shouldReplaceManagedEntriesByKeyInsideTheSameSelector - 0.001 s
+[INFO]    +-- [OK] shouldExposeTheFrozenVanillaGoalCatalog - 0.001 s
+[INFO]    '-- [OK] shouldRepresentSupportedButAbsentRemovalWithZeroRemovals - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.api.SpawnBuilderGoalProfileTest - 0.138 s
+[INFO]    +-- [OK] shouldAllowReplacingTheSpawnGoalProfileAndPreserveSpawnOptionsBehavior - 0.133 s
+[INFO]    +-- [OK] shouldMergeSpawnOverridesByStableKeyWithoutMutatingTheSourceTemplate - 0.002 s
+[INFO]    '-- [OK] shouldAppendSpawnGoalsWithoutMutatingTheSourceTemplate - 0.002 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-runtime >-----
+[INFO] Building spigot-boot-versions-runtime 2.0.2                        [4/5]
+[INFO]   from versions\runtime\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-runtime ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-runtime ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-runtime ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.EntityGoalSupportBundleSelectorTest - 0.057 s
+[INFO]    +-- [OK] shouldSelectLegacyFamilyFor1_8_8WhenProviderIsPresent - 0.025 s
+[INFO]    +-- [OK] shouldSelectLatestFamilyFor1_21_11WhenProviderIsPresent - 0 s
+[INFO]    +-- [OK] shouldSelectTransitionalFamilyFor1_13_2WhenProviderIsPresent - 0.001 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedWhenProviderIsAbsent - 0.001 s
+[INFO]    '-- [OK] shouldSelectModernFamilyFor1_16_5WhenProviderIsPresent - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.EntityNetworkRuntimeBundleSelectorTest - 0.013 s
+[INFO]    +-- [OK] shouldSelectLegacyFamiliesFor1_8_8 - 0.006 s
+[INFO]    +-- [OK] shouldSelectTransitionalMetadataFamilyFor1_13_2 - 0.001 s
+[INFO]    +-- [OK] shouldSplit1_19_2SpigotAndPaperPublicationFamilies - 0 s
+[INFO]    +-- [OK] shouldSelectLatestFamiliesFor1_21_11Paper - 0 s
+[INFO]    +-- [OK] shouldSelectMidEraModernFamiliesFor1_16_5 - 0.002 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedFamiliesWithoutRuntimeMetadata - 0 s
+[INFO]    '-- [OK] shouldSelectSectionManagerFamiliesFor1_17_1 - 0.001 s
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.EntityPublicationFamilyTest - 1.170 s
+[INFO]    +-- [OK] shouldDispatchPaperChunkSystemReplacementThroughPublicationBackend - 1.030 s
+[INFO]    +-- [OK] shouldDispatchLegacyReplacementThroughLegacyPublicationBackend - 0.002 s
+[INFO]    +-- [OK] shouldDispatchEntitiesByUuidReplacementThroughPublicationBackend - 0.001 s
+[INFO]    +-- [OK] shouldResolveExplicitBackendForEveryPublicationFamily - 0.001 s
+[INFO]    +-- [OK] shouldFallbackToCustomSpawnReasonOverloadWhenModernWorldAddRequiresIt - 0.125 s
+[INFO]    +-- [OK] shouldDispatchSectionManagerReplacementThroughPublicationBackend - 0.002 s
+[INFO]    +-- [OK] shouldPreferModernFreshAddMethodDuringFreshPublication - 0.002 s
+[INFO]    +-- [OK] shouldUseLegacyAddEntityMethodDuringFreshPublication - 0 s
+[INFO]    '-- [OK] shouldDispatchPaperMoonriseReplacementThroughPublicationBackend - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.EntityTransportContractTest - 0.196 s
+[INFO]    +-- [OK] shouldDispatchRelativeMovementAndMetadataDeltaInExpectedOrder - 0.185 s
+[INFO]    +-- [OK] shouldDispatchLateViewerSnapshotAndDestroyInExpectedOrder - 0.004 s
+[INFO]    +-- [OK] shouldDeclareEverySemanticTransportOperationAndKeepItInsideRuntimePackages - 0.002 s
+[INFO]    '-- [OK] shouldPreferAbsoluteSyncOverRelativeSyncDuringTickDispatch - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.EntityViewerLifecycleTest - 0.041 s
+[INFO]    +-- [OK] shouldDestroyEachViewerExactlyOnceAcrossRemoveAndUnbindForSpawnedAndAttachedLifecycles - 0.027 s
+[INFO]    +-- [OK] shouldGiveLateViewerFullSnapshotAndKeepPendingDeltaParityForSpawnedAndAttachedLifecycles - 0.009 s
+[INFO]    '-- [OK] shouldRefreshBindStateForSpawnedAndAttachedLifecycles - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.LegacyTrackerHookSupportTest - 0.012 s
+[INFO]    +-- [OK] shouldRouteLegacyTrackerTickAndViewerCallbacksThroughRuntimeTransportPipeline - 0.005 s
+[INFO]    +-- [OK] shouldKeepLegacyViewabilityLogicInsideSharedBackend - 0.002 s
+[INFO]    '-- [OK] shouldBindLegacyHookThroughTrackingStrategySupportBridge - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.lifecycle.ControlledEntityGoalManagerRuntimeContractTest - 0.011 s
+[INFO]    +-- [OK] shouldReplaceDuplicateManagedEntriesAndReturnZeroWhenRemovingAgain - 0.004 s
+[INFO]    +-- [OK] shouldAddOneNormalAndOneTargetZombieGoalThenRemoveBothByStableKey - 0.002 s
+[INFO]    +-- [OK] shouldExposeSharedGoalManagerContractFromSpawnedAndAttachedRuntimeHandles - 0.002 s
+[INFO]    '-- [OK] shouldUpdateManagedSnapshotImmediatelyButApplyAttachedMutationsOnNextSafeTick - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.lifecycle.RuntimeNativeEntityLifecycleTest - 0.043 s
+[INFO]    +-- [OK] shouldCreateAndTickSpawnedNetworkController - 0.005 s
+[INFO]    +-- [OK] shouldReflectRemovalStateForNonLivingEntitiesFromValidity - 0.001 s
+[INFO]    +-- [OK] shouldPreferContextOverrideOverConvenienceOverride - 0.001 s
+[INFO]    +-- [OK] shouldUseControllerSetDuringInitializerForSpawnCallback - 0.001 s
+[INFO]    +-- [OK] shouldStopForwardingTickBaseAfterExplicitRemoval - 0.001 s
+[INFO]    +-- [OK] shouldInstallSpawnedControllerAndRunSpawnTickRemoveHooks - 0.003 s
+[INFO]    +-- [OK] shouldPassRuntimeAttachedLifecycleThroughPaperReplacementStrategy - 0.007 s
+[INFO]    +-- [OK] shouldOnlyRunBaseWhenControllerInvokesIt - 0.001 s
+[INFO]    +-- [OK] shouldForwardMutatedArgumentsIntoBaseInvocation - 0.003 s
+[INFO]    +-- [OK] shouldRunScheduledRepairOnNextHookWhenNoSchedulerIsAvailable - 0.001 s
+[INFO]    +-- [OK] shouldPreserveStateAcrossControllerSwaps - 0.002 s
+[INFO]    +-- [OK] shouldPassRuntimeAttachedLifecycleThroughLegacyReplacementStrategy - 0.004 s
+[INFO]    +-- [OK] shouldPassRuntimeNativeLifecycleThroughPaperLikeFreshSpawnStrategy - 0.004 s
+[INFO]    '-- [OK] shouldPassRuntimeNativeLifecycleThroughLegacyFreshSpawnStrategy - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.ModernTrackerHookSupportTest - 0.013 s
+[INFO]    +-- [OK] shouldPreserveBroadcastConsumerAndPassengerVehicleStateFromTheTrackerStateHandle - 0.003 s
+[INFO]    +-- [OK] shouldRoutePairingTransitionsAndStateTicksThroughTheRuntimeTransportPipeline - 0.005 s
+[INFO]    '-- [OK] shouldLetInstalledTrackerHooksOwnNetworkTickDispatch - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.GeneratedNativeEntityClassFactoryTest - 0.116 s
+[INFO]    +-- [OK] shouldGenerateAndRouteAllConfiguredHookCategories - 0.099 s
+[INFO]    '-- [OK] shouldAllowNestedRemoveOverloadsToReachBaseWhileDispatchingControllerOnce - 0.015 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupportFindFieldHierarchyTest - 0.011 s
+[INFO]    +-- [OK] requireFieldOfType_throwsWhenNoMatch - 0.002 s
+[INFO]    +-- [OK] findFieldOfType_walksFullSuperclassChain - 0.002 s
+[INFO]    +-- [OK] findFieldOfType_setsAccessibleOnReturnedField - 0.001 s
+[INFO]    +-- [OK] findFieldOfType_returnsChildFieldWhenChildShadowsWithCorrectType - 0 s
+[INFO]    +-- [OK] findFieldOfType_secondCandidateNameWinsWhenFirstMissing - 0.001 s
+[INFO]    +-- [OK] findFieldOfType_returnsNullWhenNoNameMatches - 0 s
+[INFO]    +-- [OK] findFieldOfType_returnsNullWhenNameMatchesButTypeIncompatible - 0 s
+[INFO]    +-- [OK] findFieldOfType_returnsParentFieldWhenChildShadowsWithWrongType - 0 s
+[INFO]    '-- [OK] findFieldOfType_reproducesOriginalBugWithDataWatcherObjectShadowing - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.network.transport.ModernPacketTransportV1_14PlusTest - 0.033 s
+[INFO]    +-- [OK] shouldResolveOneSharedBackendPerModernFamilyAndOnlySplitProbeDrivenPaperOverlays - 0.006 s
+[INFO]    '-- [OK] shouldRouteViewerSnapshotsAndTrackedTicksThroughTheSharedModernBackend - 0.024 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.NetworkMetadataContractTest - 0.010 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedNetworkMetadataContractWhenAdapterDoesNotPublishOne - 0.001 s
+[INFO]    +-- [OK] shouldResolveDedicatedNetworkMetadataContractSeparatelyFromFamilySelection - 0 s
+[INFO]    '-- [OK] shouldKeepVersionFactoryTypeMetadataSeparateFromNetworkMetadataContract - 0.007 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.RuntimeProfileSelectionTest - 0.015 s
+[INFO]    +-- [OK] shouldRejectOverlappingExactProfileMatchesWithStableMessage - 0.004 s
+[INFO]    +-- [OK] shouldDetectPaperFlavorFromClassLoaderMarkersSafely - 0.002 s
+[INFO]    +-- [OK] shouldResolveExactlyOneFamilyRangeAdapterForPlannedProfiles - 0.002 s
+[INFO]    +-- [OK] shouldPreferFlavorNeutralRangeOverLowerPriorityFallback - 0 s
+[INFO]    +-- [OK] shouldUseClassLoaderMarkersForChunkSystemAndMoonriseDetection - 0.002 s
+[INFO]    +-- [OK] shouldPreferExactProfileMatchOverFlavorNeutralAndFallbackAdapters - 0.001 s
+[INFO]    '-- [OK] shouldResolveDefaultFeatureProbeFlagsForPlannedPaperFamilies - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.RuntimeSupportMatrixTest - 0.027 s
+[INFO]    +-- [OK] shouldDeclareRuntimeReleaseCriteriaForEveryClaimedProfile - 0.006 s
+[INFO]    +-- [OK] shouldPinFinalExplicitEntitySupportMatricesForRepresentativeClaimedVersions - 0.005 s
+[INFO]    +-- [OK] shouldDefineSupportMatrixClassificationPrecedence - 0.001 s
+[INFO]    +-- [OK] shouldMatchSharedBroadSupportMatrixPatternWithPreservedExclusions - 0 s
+[INFO]    +-- [OK] shouldRejectUndeclaredProfilesEvenWhenBackendsExist - 0.004 s
+[INFO]    +-- [OK] shouldResolveRepresentativeClaimedProfilesWhenBackendsAreFullyWired - 0.004 s
+[INFO]    +-- [OK] shouldFailFastWhenClaimedProfileIsPartiallyWired - 0.002 s
+[INFO]    '-- [OK] shouldMatchSharedZombieOnlySupportMatrixPattern - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.SpigotVersionBootstrapTest - 0.019 s
+[INFO]    +-- [OK] shouldDiscoverServiceLoadedAdaptersFromRuntimeClassLoaderWhenContextClassLoaderCannotSeeThem - 0.005 s
+[INFO]    +-- [OK] shouldKeepPaperWorldAndTrackingStrategiesSelectorDrivenForLegacyVersionMetadata - 0.002 s
+[INFO]    +-- [OK] shouldDiscoverServiceLoadedAdapters - 0.002 s
+[INFO]    +-- [OK] shouldKeepLegacyWorldAndTrackingStrategiesSelectorDrivenForModernVersionMetadata - 0.001 s
+[INFO]    +-- [OK] shouldResolvePlatformFromExplicitlyRegisteredAdapters - 0.001 s
+[INFO]    +-- [OK] shouldRejectProfilesThatAreNotExplicitlyDeclaredAsSupported - 0.002 s
+[INFO]    +-- [OK] shouldSelectDeterministicFamilyRangeAdapterForPlannedVersions - 0 s
+[INFO]    +-- [OK] shouldRejectUnsupportedVersions - 0.002 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedStrategyBundleForPlainBootstrapAdapter - 0 s
+[INFO]    +-- [OK] shouldSelectLegacyAdapterForLegacyVersion - 0 s
+[INFO]    '-- [OK] shouldExposePaperLikeStrategyBundleForModernMetadataAdapter - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.VersionedEntityPlatformTest - 0.199 s
+[INFO]    +-- [OK] shouldCacheAttachedEntitiesByBukkitIdentity - 0.121 s
+[INFO]    +-- [OK] shouldExposeRuntimeMetadataFromAdaptersThatProvideIt - 0 s
+[INFO]    +-- [OK] shouldComposeNetworkRuntimeBundleFromRuntimeProfileAndMetadata - 0 s
+[INFO]    +-- [OK] shouldKeepPaperLikeStrategyBundleStableAndExecuteSharedFreshSpawnAndReplacement - 0.051 s
+[INFO]    +-- [OK] shouldKeepLegacyFreshSpawnSeparateFromReplacementAndAttachPaths - 0.002 s
+[INFO]    +-- [OK] shouldMatchTheFinalExplicitSupportMatrixForRepresentativeVersionedPlatforms - 0.004 s
+[INFO]    +-- [OK] shouldSpawnTemplatesThroughSharedLifecycleWithoutMandatoryRegistration - 0.002 s
+[INFO]    +-- [OK] shouldRegisterTemplatesAndLookupById - 0.002 s
+[INFO]    +-- [OK] shouldKeepPaperFreshSpawnSeparateFromReplacementAndAttachPaths - 0 s
+[INFO]    +-- [OK] shouldComposeLegacyStrategyBundleFromCapabilityMetadata - 0 s
+[INFO]    +-- [OK] shouldSpawnOneOffEntitiesWithoutRegistrationCeremony - 0.001 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedRuntimeMetadataForPlainAdapters - 0.002 s
+[INFO]    +-- [OK] shouldKeepLegacyStrategyBundleStableAndExecuteSharedSpawnAndReplacement - 0.001 s
+[INFO]    +-- [OK] shouldDelegateThroughUnspecifiedStrategyBundleForPlainAdapters - 0.002 s
+[INFO]    +-- [OK] shouldKeepLegacyPreparationFallbackBehindTheSelectedSharedStrategy - 0 s
+[INFO]    +-- [OK] shouldEvictRemovedAttachedEntitiesAndAttachAgain - 0.002 s
+[INFO]    '-- [OK] shouldRejectTemplateRegistrationAndSpawnOutsideTheExplicitSupportMatrix - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.VersionedPlatformGoalSupportResolutionTest - 0.065 s
+[INFO]    +-- [OK] shouldFallbackToUnspecifiedBundleAndNoopExecutorsWhenProviderIsAbsent - 0.060 s
+[INFO]    '-- [OK] shouldResolveGoalSupportFromOptionalAdapterProviderWithoutPublicApiConditionals - 0.003 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 113, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_16_5 >-----
+[INFO] Building spigot-boot-versions-v1_16_5 2.0.2                        [5/5]
+[INFO]   from versions\1.16.5\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 4 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5ReplacementBridgeTest - 1.538 s
+[INFO]    +-- [OK] bindLifecycleToReplacement_shouldBindLifecycleAwareReplacementHandles - 1.409 s
+[INFO]    +-- [OK] allocateReplacementHandle_shouldAllocatePreparedReplacementType - 0.003 s
+[INFO]    +-- [OK] rewireModernVehicleAndPassengerReferences_shouldRewritePassengerOwnership - 0.003 s
+[INFO]    +-- [OK] resolveReplacementTrackingHandles_shouldResolveChunkTrackerEntryAndState - 0.004 s
+[INFO]    +-- [OK] replaceWorldReferences_shouldRewriteEntitiesByUuidWorldState - 0.004 s
+[INFO]    +-- [OK] rebindModernBukkitBridge_shouldMoveTheBukkitWrapperReferenceToTheReplacementHandle - 0.034 s
+[INFO]    +-- [OK] rebindBukkitZombie_shouldDelegateToTheCraftWrapperHandleSetter - 0.006 s
+[INFO]    +-- [OK] rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_picksListFieldNotDataWatcherField - 0.001 s
+[INFO]    +-- [OK] resolveCurrentNativeHandle_shouldUseBukkitHandleAccessor - 0.042 s
+[INFO]    +-- [OK] markModernEntityRemoved_shouldFlagTheOldHandleAsRemoved - 0.001 s
+[INFO]    '-- [OK] rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_doesNotThrowClassCastException - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5Test - 0.273 s
+[INFO]    +-- [OK] bindLifecycleToNativeEntity_shouldBindTheGeneratedBridgeAndDispatchTickHooks - 0.261 s
+[INFO]    +-- [OK] shouldAdvertiseZombieOnlySupportThroughMetadataRegistry - 0 s
+[INFO]    +-- [OK] resolveTrackingHandles_shouldExposeTrackedEntityStateWhenTrackerMapContainsHandle - 0.001 s
+[INFO]    +-- [OK] shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors - 0 s
+[INFO]    +-- [OK] resolveNativeWorldHandle_shouldUseTheBukkitWorldHandleAccessor - 0 s
+[INFO]    '-- [OK] createNativeEntity_shouldGenerateLifecycleAwareBridgeSubclassUsingTheCoordinateConstructor - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityHookBinderV1_16_5Test - 0.004 s
+[INFO]    '-- [OK] hookSpecs_shouldSkipPrivateEntityFallbacksAndKeepSearchingForOverridableHooks - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.SpigotVersionAdapterV1_16_5Test - 0.019 s
+[INFO]    +-- [OK] shouldExposeStableModernTrackingSupportThroughTheSharedStrategyBridge - 0.010 s
+[INFO]    +-- [OK] shouldExposePaperLikeMetadataWithoutResolvingNativeClasses - 0.001 s
+[INFO]    +-- [OK] shouldExposeStablePaperFreshSpawnSupportThroughTheSharedStrategyBridge - 0.001 s
+[INFO]    +-- [OK] shouldExposeStablePaperReplacementSupportThroughTheSharedStrategyBridge - 0.002 s
+[INFO]    +-- [OK] shouldExposeSharedModernTransportAndMetadataContractsWithoutResolvingNativeClasses - 0.001 s
+[INFO]    '-- [OK] shouldInstantiateWithoutResolvingNativeClasses - 0.002 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 24, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.323 s]
+[INFO] spigot-boot-versions-parent ........................ SUCCESS [  0.018 s]
+[INFO] spigot-boot-versions-api ........................... SUCCESS [  2.800 s]
+[INFO] spigot-boot-versions-runtime ....................... SUCCESS [  3.361 s]
+[INFO] spigot-boot-versions-v1_16_5 ....................... SUCCESS [  4.976 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  12.001 s
+[INFO] Finished at: 2026-04-16T21:08:23-03:00
+[INFO] ------------------------------------------------------------------------

@@ -1,0 +1,89 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 4 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                         [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-parent >-----
+[INFO] Building spigot-boot-versions-parent 2.0.2                         [2/4]
+[INFO]   from versions\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-parent ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-versions-api >-------
+[INFO] Building spigot-boot-versions-api 2.0.2                            [3/4]
+[INFO]   from versions\api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-api ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-runtime >-----
+[INFO] Building spigot-boot-versions-runtime 2.0.2                        [4/4]
+[INFO]   from versions\runtime\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-runtime ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-runtime ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-runtime ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupportFindFieldHierarchyTest - 0.060 s
+[INFO]    '-- [OK] requireFieldOfType_throwsWhenNoMatch - 0.028 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.425 s]
+[INFO] spigot-boot-versions-parent ........................ SUCCESS [  0.021 s]
+[INFO] spigot-boot-versions-api ........................... SUCCESS [  0.620 s]
+[INFO] spigot-boot-versions-runtime ....................... SUCCESS [  1.382 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.118 s
+[INFO] Finished at: 2026-04-16T20:11:40-03:00
+[INFO] ------------------------------------------------------------------------

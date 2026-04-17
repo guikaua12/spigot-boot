@@ -144,10 +144,20 @@ public final class EntityFactoryV1_21_11
             EntityStrategyBundleSelector.requirePaperFreshSpawnStrategy(ENTITY_STRATEGY_BUNDLE.freshSpawn());
     private static final PaperReplacementStrategy_1_21_plus REPLACEMENT_STRATEGY =
             EntityStrategyBundleSelector.requirePaperReplacementStrategy(ENTITY_STRATEGY_BUNDLE.replacement());
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUDED_BASE_TYPES = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUDED_BASE_TYPES =
+            EnumSet.noneOf(CustomEntityBaseType.class);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORTED_BASE_TYPES = createAdvertisedSupportedBaseTypes();
+    private static final Map<CustomEntityBaseType, EntityMetadata> METADATA_REGISTRY = createMetadataRegistry();
 
     private final GeneratedNativeEntityClassFactory classFactory = new GeneratedNativeEntityClassFactory();
     private final EntityHookBinderV1_21_11 hookBinder = new EntityHookBinderV1_21_11();
-    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
+    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = METADATA_REGISTRY;
     private final Map<CustomEntityBaseType, ResolvedSpawnMetadata> spawnMetadataRegistry =
             new LinkedHashMap<CustomEntityBaseType, ResolvedSpawnMetadata>();
     private final Map<Class<?>, ResolvedEntityTypeMetadata> generatedTypes =
@@ -183,7 +193,7 @@ public final class EntityFactoryV1_21_11
     @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return metadataRegistry.containsKey(baseType);
+        return ADVERTISED_SUPPORTED_BASE_TYPES.contains(baseType);
     }
 
     @Override
@@ -251,6 +261,7 @@ public final class EntityFactoryV1_21_11
         controlledEntity.bindHookBinder((NativeHookBinder) hookBinder);
         classFactory.installInterceptor(nativeEntity, resolvedMetadata.hookSpecs());
         classFactory.bindLifecycle(nativeEntity, lifecycle);
+        LatestEntityGoalSupportV1_21_11.bindNativeHandle(lifecycle, nativeEntity);
     }
 
     private static @NotNull AbstractRuntimeControlledEntity<?> requireRuntimeLifecycle(
@@ -274,7 +285,7 @@ public final class EntityFactoryV1_21_11
     }
 
     @Override
-    public <T extends Entity> @NotNull PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn prepareFreshSpawn(
+    public <T extends Entity> PaperFreshSpawnStrategy_1_21_plus.PreparedSpawn prepareFreshSpawn(
             @NotNull EntityTemplate<T> template,
             @NotNull SpawnOptions spawnOptions
     ) {
@@ -354,7 +365,7 @@ public final class EntityFactoryV1_21_11
     }
 
     @Override
-    public <T extends Entity> @NotNull PaperReplacementStrategy_1_21_plus.PreparedReplacement prepareReplacement(
+    public <T extends Entity> PaperReplacementStrategy_1_21_plus.PreparedReplacement prepareReplacement(
             @NotNull T entity,
             @NotNull Object currentNativeHandle
     ) {
@@ -730,20 +741,31 @@ public final class EntityFactoryV1_21_11
 
     private static @NotNull Map<CustomEntityBaseType, EntityMetadata> createMetadataRegistry() {
         Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
+        for (CustomEntityBaseType baseType : ADVERTISED_SUPPORTED_BASE_TYPES) {
+            EntityType entityType = baseType.entityTypeOrNull();
+            if (entityType == null) {
+                throw new IllegalStateException(
+                        "Minecraft 1.21.11 advertised base type '" + baseType + "' does not expose a Bukkit EntityType."
+                );
+            }
+            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+        }
+        return metadata;
+    }
+
+    private static @NotNull EnumSet<CustomEntityBaseType> createAdvertisedSupportedBaseTypes() {
+        EnumSet<CustomEntityBaseType> supportedBaseTypes = EnumSet.noneOf(CustomEntityBaseType.class);
         for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
             EntityType entityType = baseType.entityTypeOrNull();
             if (entityType == null || entityType.getEntityClass() == null) {
                 continue;
             }
-            if (baseType == CustomEntityBaseType.UNKNOWN
-                    || baseType == CustomEntityBaseType.PLAYER
-                    || baseType == CustomEntityBaseType.WEATHER
-                    || baseType == CustomEntityBaseType.COMPLEX_PART) {
+            if (PERMANENT_EXCLUDED_BASE_TYPES.contains(baseType) || PRESERVED_EXCLUDED_BASE_TYPES.contains(baseType)) {
                 continue;
             }
-            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+            supportedBaseTypes.add(baseType);
         }
-        return metadata;
+        return supportedBaseTypes;
     }
 
     private static @NotNull String generatedClassName(

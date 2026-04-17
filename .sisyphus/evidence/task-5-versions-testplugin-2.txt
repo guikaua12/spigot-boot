@@ -1,0 +1,658 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 26 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-utils                                                  [jar]
+[INFO] spigot-boot-core                                                   [jar]
+[INFO] spigot-boot-commands                                               [jar]
+[INFO] spigot-boot-platform-spigot                                        [pom]
+[INFO] spigot-boot-core-spigot                                            [jar]
+[INFO] spigot-boot-commands-spigot                                        [jar]
+[INFO] spigot-boot-config                                                 [jar]
+[INFO] spigot-boot-config-spigot                                          [jar]
+[INFO] spigot-boot-plugin-messaging-spigot                                [jar]
+[INFO] spigot-boot-placeholder-spigot                                     [jar]
+[INFO] tech.guilhermekaua.spigot-boot                                     [jar]
+[INFO] spigot-boot-data                                                   [jar]
+[INFO] spigot-boot-modules                                                [pom]
+[INFO] spigot-boot-data-orm-lite                                          [jar]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_8_8                                        [jar]
+[INFO] spigot-boot-versions-v1_13_2                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] spigot-boot-versions-v1_17_1                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] spigot-boot-versions-v1_21_11                                      [jar]
+[INFO] spigot-boot-versions                                               [jar]
+[INFO] test-plugin                                                        [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                        [1/26]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-utils >----------
+[INFO] Building spigot-boot-utils 2.0.2                                  [2/26]
+[INFO]   from utils\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-utils ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\utils\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-utils ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-utils ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\utils\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-utils ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-utils ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-core >-----------
+[INFO] Building spigot-boot-core 2.0.2                                   [3/26]
+[INFO]   from core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-core ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-core ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-core ---
+[INFO] Copying 2 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-core ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-core ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextLifecyclePackageScanTest - 0.057 s
+[INFO]    +-- [OK] minimizePackageRoots_ignoresBlankEntries - 0.024 s
+[INFO]    +-- [OK] minimizePackageRoots_filtersNestedPackages - 0.001 s
+[INFO]    +-- [OK] minimizePackageRoots_handlesParentAppearingAfterChild - 0.001 s
+[INFO]    '-- [OK] minimizePackageRoots_keepsSiblingRoots - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.module.ModuleDiscoveryTest - 0.052 s
+[INFO]    +-- [OK] discover_findsMarkerFilesFromTestClasspath - 0.008 s
+[INFO]    +-- [OK] discover_skipsClassNotFound - 0.039 s
+[INFO]    '-- [OK] discover_returnsEmptyForClassloaderWithoutMarkers - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.SpigotBootBuilderTest - 0.033 s
+[INFO]    +-- [OK] resolveModules_autoDiscoverSortsByOrder - 0.013 s
+[INFO]    +-- [OK] resolveModules_noModulesReturnsEmptyList - 0 s
+[INFO]    +-- [OK] resolveModules_explicitOrderOverridesAnnotation - 0 s
+[INFO]    +-- [OK] resolveModules_autoDiscoverFindsModules - 0.002 s
+[INFO]    +-- [OK] resolveModules_autoDiscoverWithExplicitOrderOverride - 0.002 s
+[INFO]    +-- [OK] resolveModules_autoDiscoverWithAdditionalModule - 0.002 s
+[INFO]    +-- [OK] resolveModules_excludeWithoutAutoDiscover - 0 s
+[INFO]    +-- [OK] resolveModules_explicitModulesPreservesAll - 0.001 s
+[INFO]    +-- [OK] resolveModules_deduplicatesWithoutAutoDiscover - 0.001 s
+[INFO]    +-- [OK] resolveModules_sortsByOrderAnnotation - 0 s
+[INFO]    +-- [OK] resolveModules_excludeRemovesModules - 0 s
+[INFO]    '-- [OK] resolveModules_bulkAndPerModuleAccumulate - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.component.proxy.decider.MethodHandlerDrivenProxyDeciderTest - 0.025 s
+[INFO]    +-- [OK] shouldReturnFalseWhenNoRegisteredMethodHandlerCouldApply - 0.011 s
+[INFO]    +-- [OK] shouldReturnFalseForServiceAnnotatedClassWithoutAsyncMethod - 0.002 s
+[INFO]    +-- [OK] shouldReturnTrueForAsyncAnnotatedMethod - 0.005 s
+[INFO]    '-- [OK] shouldReturnTrueWhenAtLeastOneRegisteredMethodHandlerCouldApply - 0.005 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.component.proxy.MethodHandlerChainTest - 0.084 s
+[INFO]    +-- [OK] shouldNormalizeShortCircuitedSelfReturnBackToProxy - 0.076 s
+[INFO]    +-- [OK] shouldRunEqualOrderHandlersInRegistrationOrder - 0.002 s
+[INFO]    +-- [OK] shouldAllowHandlersToShortCircuitWithoutInvokingNext - 0.002 s
+[INFO]    '-- [OK] shouldRunMatchingHandlersInAscendingAnnotationOrder - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.component.proxy.SelectiveProxyingTest - 0.014 s
+[INFO]    +-- [OK] beanWithAnnotatedMethodShouldBeProxiedAndIntercepted - 0.009 s
+[INFO]    +-- [OK] selfInvocationShouldBypassMethodHandlerProxy - 0.002 s
+[INFO]    '-- [OK] beanWithoutAnnotatedMethodShouldNotBeProxied - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.component.registry.genericcollection.ComponentScannedGenericCollectionResolutionTest - 0.039 s
+[INFO]    +-- [OK] componentScan_injectsParameterizedInterfaceCollectionsIntoScannedComponents - 0.026 s
+[INFO]    '-- [OK] beanMethodParameters_resolveParameterizedInterfaceCollectionsFromScannedComponents - 0.011 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.BeanAwareConditionIntegrationTest - 0.033 s
+[INFO]    +-- [OK] conditionalOnMissingBean_beanMethodLevel_registersWhenAbsent - 0.017 s
+[INFO]    +-- [OK] conditionalOnBean_assignableTypeMatching_matchesSubtype - 0.004 s
+[INFO]    +-- [OK] conditionalOnBean_beanMethodLevel_skipsWhenAbsent - 0.002 s
+[INFO]    +-- [OK] conditionalOnBean_beanAbsent_skips - 0 s
+[INFO]    +-- [OK] conditionalOnBean_beanMethodLevel_registersWhenPresent - 0.002 s
+[INFO]    +-- [OK] conditionalOnMissingBean_beanMethodLevel_skipsWhenPresent - 0.001 s
+[INFO]    +-- [OK] conditionalOnMissingBean_beanAbsent_doesNotSkip - 0 s
+[INFO]    +-- [OK] conditionalOnMissingBean_beanPresent_skips - 0 s
+[INFO]    +-- [OK] conditionalOnBean_orderDependent_beanNotYetRegistered_skips - 0 s
+[INFO]    '-- [OK] conditionalOnBean_beanPresent_doesNotSkip - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.ConditionEvaluatorTest - 0.014 s
+[INFO]    +-- [OK] shouldSkip_noAnnotation_returnsFalse - 0 s
+[INFO]    +-- [OK] shouldSkip_conditionThrows_propagatesException - 0.003 s
+[INFO]    +-- [OK] shouldSkip_emptyConditionArray_returnsFalse - 0.001 s
+[INFO]    +-- [OK] shouldSkip_noDefaultConstructor_throwsRuntimeException - 0.001 s
+[INFO]    +-- [OK] shouldSkip_singleTrueCondition_returnsFalse - 0 s
+[INFO]    +-- [OK] shouldSkip_multipleAllTrue_returnsFalse - 0 s
+[INFO]    +-- [OK] shouldSkip_multipleWithFailure_returnsTrue_shortCircuits - 0.002 s
+[INFO]    +-- [OK] shouldSkip_singleFalseCondition_returnsTrue - 0.001 s
+[INFO]    '-- [OK] shouldSkip_metaAnnotation_evaluatesCondition - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.ConditionLifecycleIntegrationTest - 0.006 s
+[INFO]    +-- [OK] configurationWithFailingCondition_allBeanMethodsSkipped - 0.001 s
+[INFO]    +-- [OK] componentWithPassingCondition_registeredNormally - 0.001 s
+[INFO]    +-- [OK] componentWithFailingCondition_notRegistered - 0.001 s
+[INFO]    '-- [OK] beanMethodWithFailingCondition_onlyThatMethodSkipped - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.ConditionLoggingTest - 0.024 s
+[INFO]    +-- [OK] shouldLogFineWhenConditionFailsWithDebugLevel - 0.006 s
+[INFO]    +-- [OK] shouldNotLogWhenConditionPasses - 0.002 s
+[INFO]    +-- [OK] shouldNotLogWhenConditionFailsWithSilentLevel - 0 s
+[INFO]    +-- [OK] shouldLogInfoWhenConditionFailsWithInfoLevel - 0.002 s
+[INFO]    +-- [OK] debugReportPrintsFormattedOutput - 0.005 s
+[INFO]    +-- [OK] shouldLogWarningWhenConditionFailsWithWarningLevel - 0.001 s
+[INFO]    +-- [OK] shouldNotLogWhenSourceIsNull - 0.001 s
+[INFO]    '-- [OK] debugReportRecordsBothMatchesAndSkips - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.OnBeanConditionTest - 0.011 s
+[INFO]    +-- [OK] matches_namePresent_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_proxyClassInRegistry_unwrapsAndMatches - 0.002 s
+[INFO]    +-- [OK] matches_emptyValueAndName_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_bothSpecified_typePresentNameAbsent_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_multipleTypesOneAbsent_returnsFalse - 0.001 s
+[INFO]    +-- [OK] matches_noAnnotation_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_singleTypePresent_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_bothSpecified_typeAbsentNamePresent_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_assignableType_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_bothSpecified_bothAbsent_returnsFalse - 0.001 s
+[INFO]    +-- [OK] matches_nameAbsent_returnsFalse - 0.001 s
+[INFO]    +-- [OK] matches_multipleTypesAllPresent_returnsTrue - 0 s
+[INFO]    '-- [OK] matches_singleTypeAbsent_returnsFalse - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.OnClassConditionIntegrationTest - 0.007 s
+[INFO]    +-- [OK] shouldSkip_conditionalOnClassMissing_returnsTrue - 0.001 s
+[INFO]    +-- [OK] shouldSkip_noConditionalOnClass_returnsFalse - 0 s
+[INFO]    +-- [OK] shouldSkip_conditionalOnClassPresent_returnsFalse - 0.001 s
+[INFO]    +-- [OK] shouldSkip_multipleClassesOneMissing_returnsTrue - 0.001 s
+[INFO]    '-- [OK] shouldSkip_multipleClassesAllPresent_returnsFalse - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.OnClassConditionTest - 0.006 s
+[INFO]    +-- [OK] matches_multipleClassesAllPresent_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_noAnnotation_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_singleClassAbsent_returnsFalse - 0.002 s
+[INFO]    +-- [OK] matches_emptyValue_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_multipleClassesOneAbsent_returnsFalse - 0 s
+[INFO]    '-- [OK] matches_singleClassPresent_returnsTrue - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.condition.OnMissingBeanConditionTest - 0.011 s
+[INFO]    +-- [OK] matches_singleTypePresent_returnsFalse - 0 s
+[INFO]    +-- [OK] matches_multipleTypesOnePresent_returnsFalse - 0 s
+[INFO]    +-- [OK] matches_namePresent_returnsFalse - 0.001 s
+[INFO]    +-- [OK] matches_emptyValueAndName_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_bothSpecified_typePresentNameAbsent_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_noAnnotation_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_bothSpecified_bothPresent_returnsFalse - 0 s
+[INFO]    +-- [OK] matches_bothSpecified_typeAbsentNamePresent_returnsTrue - 0 s
+[INFO]    +-- [OK] matches_singleTypeAbsent_returnsTrue - 0.001 s
+[INFO]    +-- [OK] matches_assignableTypePresent_returnsFalse - 0 s
+[INFO]    +-- [OK] matches_proxyClassInRegistry_unwrapsAndMatches_returnsFalse - 0.002 s
+[INFO]    +-- [OK] matches_multipleTypesAllAbsent_returnsTrue - 0 s
+[INFO]    '-- [OK] matches_nameAbsent_returnsTrue - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.configuration.ConfigurationProcessorTest - 0.041 s
+[INFO]    +-- [OK] testConfigProxyPassesNonBeanMethodsToRealObject - 0.006 s
+[INFO]    +-- [OK] testQualifiedBeans - 0.005 s
+[INFO]    +-- [OK] testBeanMethodResultRunsMethodHandlerInterception - 0.006 s
+[INFO]    +-- [OK] testBeanOnlyCreatedOnFirstAccess - 0.001 s
+[INFO]    +-- [OK] testConfigurationClassProxyDirectCreation - 0.001 s
+[INFO]    +-- [OK] testBeanMethodWithDependenciesCallingInternalBean - 0.001 s
+[INFO]    +-- [OK] testConfigurationProxyConstructorInjection - 0.003 s
+[INFO]    +-- [OK] testInterBeanMethodCallUsesSameInstance - 0.003 s
+[INFO]    +-- [OK] testInternalBeanMethodCallCachesAndReturnsProcessedInstance - 0.003 s
+[INFO]    +-- [OK] testBeanCachedAfterFirstAccess - 0.001 s
+[INFO]    +-- [OK] testBeanMethodResultReceivesFieldInjection - 0.002 s
+[INFO]    +-- [OK] testBeanFactoryMethodReturningNullFailsFast - 0.002 s
+[INFO]    +-- [OK] testBeanMethodWithDependencies - 0.002 s
+[INFO]    +-- [OK] testBeanMethodRegisteredAsLazyDefinition - 0.001 s
+[INFO]    +-- [OK] testConfigProxyRoutesBeanMethodsToDependencyManager - 0 s
+[INFO]    '-- [OK] testInterBeanMethodCallUsesSameInstanceCallingInternalBean - 0.001 s
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.injector.CustomInjectorRegistryFactoryTest - 0.995 s
+[INFO]    +-- [OK] testFactoryAppliesCustomizersInOrder - 0.976 s
+[INFO]    +-- [OK] testFactoryContinuesWhenCustomizerResolutionFails - 0.005 s
+[INFO]    +-- [OK] testFactoryAppliesMultipleUnqualifiedCustomizers - 0.003 s
+[INFO]    +-- [OK] testFactoryResolvesCustomizerFromDefinitionAndAppliesIt - 0.003 s
+[INFO]    '-- [OK] testFactoryContinuesWhenCustomizerThrows - 0.005 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.injector.CustomInjectorTest - 0.025 s
+[INFO]    +-- [OK] testSetterInjectionWithoutInjectAnnotation - 0.004 s
+[INFO]    +-- [OK] testCustomInjectorPrecedence - 0.002 s
+[INFO]    +-- [OK] testCustomInjectorRegistration - 0 s
+[INFO]    +-- [OK] testCustomInjectorRegistryOrder - 0.003 s
+[INFO]    +-- [OK] testFieldInjectionWithoutInjectAnnotation - 0 s
+[INFO]    +-- [OK] testCustomInjectorWithFallbackToDefaultResolution - 0.001 s
+[INFO]    +-- [OK] testCustomInjectorSetterInjection - 0.001 s
+[INFO]    +-- [OK] testCustomInjectorNotHandledFallsThrough - 0.001 s
+[INFO]    +-- [OK] testInjectionResultHandledWithValue - 0 s
+[INFO]    +-- [OK] testInjectionPointFromField - 0 s
+[INFO]    +-- [OK] testInjectionPointWithQualifier - 0.001 s
+[INFO]    +-- [OK] testCustomInjectorCanInjectNull - 0.001 s
+[INFO]    +-- [OK] testInjectionPointFromParameter - 0 s
+[INFO]    +-- [OK] testInjectionResultHandledWithNull - 0 s
+[INFO]    +-- [OK] testCustomInjectorFieldInjection - 0 s
+[INFO]    +-- [OK] testInjectionResultNotHandled - 0 s
+[INFO]    '-- [OK] testCustomInjectorConstructorInjection - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.injector.DefaultCustomInjectorRegistryTest - 0.005 s
+[INFO]    +-- [OK] testGetInjectorsSortedAndStableForSameOrder - 0.002 s
+[INFO]    +-- [OK] testUnregisterRemovesInjector - 0.001 s
+[INFO]    +-- [OK] testGetInjectorsIsUnmodifiable - 0 s
+[INFO]    +-- [OK] testCustomInjectorSupportedReturnsTrueWhenAnySupports - 0 s
+[INFO]    +-- [OK] testClearResetsRegistry - 0.001 s
+[INFO]    '-- [OK] testRegisterNullThrows - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.manager.DependencyManagerCollectionInjectionTest - 0.013 s
+[INFO]    +-- [OK] testCollectionFieldInjection - 0.001 s
+[INFO]    +-- [OK] testListFieldInjectionViaInjectDependencies - 0.001 s
+[INFO]    +-- [OK] testCollectionInjectionIgnoresQualifiers - 0.001 s
+[INFO]    +-- [OK] testSetConstructorInjection - 0.002 s
+[INFO]    +-- [OK] testSetFieldInjection - 0.001 s
+[INFO]    +-- [OK] testListFieldInjection - 0.002 s
+[INFO]    +-- [OK] testListSetterInjection - 0.002 s
+[INFO]    +-- [OK] testEmptyCollectionInjection - 0 s
+[INFO]    +-- [OK] testListConstructorInjection - 0.001 s
+[INFO]    '-- [OK] testCollectionInjectionWithSingleBean - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.manager.DependencyManagerTest - 0.065 s
+[INFO]    +-- [OK] testResolveUnregisteredTypeReturnsNull - 0.004 s
+[INFO]    +-- [OK] testNotResolveWithTwoDependenciesAndNoPrimary - 0.002 s
+[INFO]    +-- [OK] testReloadWithNullInstance - 0.033 s
+[INFO]    +-- [OK] testRegisterInterfaceWithoutResolver - 0.001 s
+[INFO]    +-- [OK] testRegisterInstance - 0 s
+[INFO]    +-- [OK] testSingletonBehavior - 0.001 s
+[INFO]    +-- [OK] testSetterInjectionViaResolve - 0 s
+[INFO]    +-- [OK] testRegisterAlreadyRegistered - 0.001 s
+[INFO]    +-- [OK] testSetterInjectionViaInjectDependencies - 0 s
+[INFO]    +-- [OK] testRegisterInterfaceWithResolver - 0 s
+[INFO]    +-- [OK] testFieldInjectionViaInjectDependencies - 0.001 s
+[INFO]    +-- [OK] testReloadDependencies - 0.003 s
+[INFO]    +-- [OK] testConstructorInjectionWithQualifier - 0.001 s
+[INFO]    +-- [OK] testReloadCallbackException - 0.004 s
+[INFO]    +-- [OK] testConstructorInjection - 0.001 s
+[INFO]    +-- [OK] testResolveWithTwoDependenciesAndQualifier - 0.001 s
+[INFO]    +-- [OK] testClearDependencies - 0.001 s
+[INFO]    +-- [OK] testFieldInjectionViaResolve - 0 s
+[INFO]    +-- [OK] testResolveWithTwoDependenciesAndPrimary - 0.001 s
+[INFO]    +-- [OK] testProxyDeciderConsultedOnlyOncePerBeanCreation - 0 s
+[INFO]    +-- [OK] testRegisterSameClassDifferentQualifier - 0.001 s
+[INFO]    +-- [OK] testRegisterAndResolve - 0.001 s
+[INFO]    +-- [OK] testCircularDependency - 0.001 s
+[INFO]    '-- [OK] testReloadWithNullCallback - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.registry.BeanDefinitionRegistryTest - 0.007 s
+[INFO]    +-- [OK] shouldRejectDuplicateDefinitionsForSameRequestedTypeAndQualifier - 0.002 s
+[INFO]    +-- [OK] registerAndRetrieveDefinitions - 0.001 s
+[INFO]    +-- [OK] streamEntriesShouldFlattenAllDefinitions - 0.001 s
+[INFO]    +-- [OK] asMapViewShouldBeUnmodifiable - 0.001 s
+[INFO]    +-- [OK] shouldAllowSameImplementationWithDifferentQualifier - 0.001 s
+[INFO]    '-- [OK] shouldAllowSameDefinitionUnderDifferentRequestedTypes - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.context.dependency.registry.BeanInstanceRegistryTest - 0 s
+[INFO]    +-- [OK] shouldStoreAndRetrieveInstancesByDefinitionEquality - 0 s
+[INFO]    '-- [OK] clearShouldRemoveAllInstances - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.cooldown.DefaultCooldownManagerTest - 0.013 s
+[INFO]    +-- [OK] zeroDurationDoesNotCreateActiveCooldown - 0.005 s
+[INFO]    +-- [OK] clearRemovesSingleKey - 0 s
+[INFO]    +-- [OK] negativeDurationIsRejected - 0.001 s
+[INFO]    +-- [OK] restartingSameKeyOverwritesExpiry - 0.001 s
+[INFO]    +-- [OK] clearAllRemovesAllKeys - 0.001 s
+[INFO]    +-- [OK] expiredCooldownIsRemovedWhenRead - 0.001 s
+[INFO]    +-- [OK] missingKeyIsInactive - 0.001 s
+[INFO]    '-- [OK] positiveDurationStartsActiveCooldown - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.exceptions.CycleDetectedExceptionTest - 0.002 s
+[INFO]    +-- [OK] constructor should handle null initial prefix - 0.001 s
+[INFO]    '-- [OK] formatCycle should handle null initial prefix - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.service.AsyncMethodHandlerTest - 0.038 s
+[INFO]    +-- [OK] shouldUseDefaultExecutorBeanWhenAsyncValueIsBlank - 0.014 s
+[INFO]    +-- [OK] shouldRejectMethodsThatDoNotReturnCompletableFuture - 0.004 s
+[INFO]    +-- [OK] shouldResolveNamedExecutorFromInterfaceInheritedThroughSuperclass - 0.004 s
+[INFO]    +-- [OK] shouldInvokeNextHandlerInsideExecutorThread - 0.004 s
+[INFO]    +-- [OK] shouldFailFastWhenNamedExecutorBeanIsMissing - 0.002 s
+[INFO]    +-- [OK] shouldResolveNamedExecutorFromInterfaceAnnotation - 0.003 s
+[INFO]    '-- [OK] shouldResolveNamedExecutorFromDeeplyNestedProxyImplementationMethod - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.utils.BeanUtilsTest - 0.023 s
+[INFO]    +-- [OK] testGetAllDependencies_SetterInjection - 0.001 s
+[INFO]    +-- [OK] testDetectCircularDependencies_EmptyDependencyMap - 0 s
+[INFO]    +-- [OK] testGetQualifier_WithQualifierAnnotation - 0 s
+[INFO]    +-- [OK] testGetQualifier_NullElement - 0.001 s
+[INFO]    +-- [OK] testDetectCircularDependencies_SimpleCircular - 0.002 s
+[INFO]    +-- [OK] testFindInjectConstructor_MultipleConstructors - 0 s
+[INFO]    +-- [OK] testGetIsPrimary_NullElement - 0 s
+[INFO]    +-- [OK] testGetQualifier_WithoutQualifierAnnotation - 0 s
+[INFO]    +-- [OK] testCreateDependencyReloadCallback - 0.005 s
+[INFO]    +-- [OK] testGetAllDependencies_MixedInjection - 0.001 s
+[INFO]    +-- [OK] testDetectCircularDependencies_NonCircular - 0.001 s
+[INFO]    +-- [OK] testDetectCircularDependencies_ComplexCircular - 0 s
+[INFO]    +-- [OK] testCreateDependencyReloadCallback_NullClass - 0.001 s
+[INFO]    +-- [OK] testGetAllDependencies_FieldInjection - 0.001 s
+[INFO]    +-- [OK] testDetectCircularDependencies_MixedInjectionTypes - 0 s
+[INFO]    +-- [OK] testFindInjectConstructor_SingleConstructor - 0.001 s
+[INFO]    +-- [OK] testGetIsPrimary_WithPrimaryAnnotation - 0 s
+[INFO]    +-- [OK] testDetectCircularDependencies_SelfDependency - 0.001 s
+[INFO]    +-- [OK] testCircularDependencyMessage - 0 s
+[INFO]    +-- [OK] testGetAllDependencies_ConstructorInjection - 0.001 s
+[INFO]    +-- [OK] testGetIsPrimary_WithoutPrimaryAnnotation - 0 s
+[INFO]    +-- [OK] testDetectCircularDependencies_NullParameters - 0 s
+[INFO]    +-- [OK] testCreateDependencyReloadCallback_NoReloadMethods - 0 s
+[INFO]    '-- [OK] testDetectCircularDependencies_InterfaceClass - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.utils.ClassUtilsTest - 0.004 s
+[INFO]    +-- [OK] isPresent_separatesCacheByClassLoader - 0.001 s
+[INFO]    +-- [OK] isPresent_returnsFalse_whenClassDoesNotExist - 0.001 s
+[INFO]    +-- [OK] isPresent_throwsNullPointerException_whenClassLoaderIsNull - 0.001 s
+[INFO]    +-- [OK] isPresent_returnsTrue_whenClassExists - 0 s
+[INFO]    +-- [OK] isPresent_throwsNullPointerException_whenClassNameIsNull - 0.001 s
+[INFO]    +-- [OK] isPresent_cachesResult_sameClassLoaderSameClass - 0 s
+[INFO]    '-- [OK] clearCache_emptiesAllEntries - 0 s
+[INFO] .--tech.guilhermekaua.spigotboot.core.test.utils.DependencyGraphTest - 0.029 s
+[INFO] +-----DependencyGraphTest Subset Operations - 0.005 s
+[INFO] |     +-- [OK] topologicalOrderSubset orders subset correctly - 0.003 s
+[INFO] |     '-- [OK] empty subset returns empty list - 0 s
+[INFO] +-----DependencyGraphTest Reverse Dependencies - 0.002 s
+[INFO] |     +-- [OK] getReverseDependencies returns correct map - 0 s
+[INFO] |     +-- [OK] getTransitiveDependents returns all indirect dependents - 0.001 s
+[INFO] |     '-- [OK] getTransitiveDependents does not include the node itself - 0 s
+[INFO] +-----DependencyGraphTest Cycle Detection - 0.005 s
+[INFO] |     +-- [OK] CycleDetectedException contains readable cycle path - 0.001 s
+[INFO] |     +-- [OK] detects self-cycle - 0.001 s
+[INFO] |     +-- [OK] detects simple two-node cycle - 0 s
+[INFO] |     +-- [OK] detects three-node cycle - 0 s
+[INFO] |     +-- [OK] topologicalOrder throws on cycle - 0.001 s
+[INFO] |     '-- [OK] no cycle in acyclic graph - 0.001 s
+[INFO] +-----DependencyGraphTest Topological Sort - Acyclic Graphs - 0.004 s
+[INFO] |     +-- [OK] linear chain orders dependencies first - 0 s
+[INFO] |     +-- [OK] disconnected components are all included - 0 s
+[INFO] |     +-- [OK] diamond dependency graph orders correctly - 0.001 s
+[INFO] |     +-- [OK] single node returns that node - 0 s
+[INFO] |     '-- [OK] works with arbitrary node values - 0 s
+[INFO] '-----DependencyGraphTest Basic Operations - 0.006 s
+[INFO]       +-- [OK] addEdge creates both forward and reverse edges - 0 s
+[INFO]       +-- [OK] addNode adds a node without edges - 0.001 s
+[INFO]       +-- [OK] empty graph has no nodes - 0 s
+[INFO]       +-- [OK] addEdge implicitly adds nodes - 0 s
+[INFO]       '-- [OK] clear removes all nodes and edges - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.utils.NumberUtilsTest - 0.007 s
+[INFO]    +-- [OK] shouldFormatNumber - 0.005 s
+[INFO]    +-- [OK] shouldParseNumber - 0 s
+[INFO]    +-- [OK] shouldParseNumberFormatted - 0 s
+[INFO]    +-- [OK] shouldNotParseNegativeNumber - 0 s
+[INFO]    '-- [OK] shouldNotParseInvalidNumber - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.utils.TimestringTest - 0.021 s
+[INFO]    +-- [OK] testCombinedDurationsNoSpaces - 0.002 s
+[INFO]    +-- [OK] testVerySmallValues - 0 s
+[INFO]    +-- [OK] testMicroseconds - 0.001 s
+[INFO]    +-- [OK] testCombinedDurations - 0.001 s
+[INFO]    +-- [OK] testScientificNotation - 0.001 s
+[INFO]    +-- [OK] testNanoseconds - 0.001 s
+[INFO]    +-- [OK] testDurationLongTruncation - 0 s
+[INFO]    +-- [OK] testHours - 0 s
+[INFO]    +-- [OK] testWeeks - 0 s
+[INFO]    +-- [OK] testYears - 0 s
+[INFO]    +-- [OK] testDays - 0 s
+[INFO]    +-- [OK] testDurationLong - 0 s
+[INFO]    +-- [OK] testUnderscoresInNumbers - 0 s
+[INFO]    +-- [OK] testDecimalValues - 0.001 s
+[INFO]    +-- [OK] testPluralForms - 0 s
+[INFO]    +-- [OK] testWhitespaceHandling - 0.001 s
+[INFO]    +-- [OK] testCaseInsensitivity - 0.001 s
+[INFO]    +-- [OK] testEmptyString - 0 s
+[INFO]    +-- [OK] testMinutes - 0 s
+[INFO]    +-- [OK] testNullFormat - 0 s
+[INFO]    +-- [OK] testUnknownUnit - 0 s
+[INFO]    +-- [OK] testNegativeValues - 0 s
+[INFO]    +-- [OK] testMilliseconds - 0.001 s
+[INFO]    +-- [OK] testZeroDuration - 0 s
+[INFO]    +-- [OK] testPartiallyValidInput - 0.001 s
+[INFO]    +-- [OK] testInvalidInput - 0.001 s
+[INFO]    +-- [OK] testMonths - 0 s
+[INFO]    +-- [OK] testSeconds - 0.001 s
+[INFO]    +-- [OK] testVeryLargeValues - 0 s
+[INFO]    +-- [OK] testNullInput - 0.001 s
+[INFO]    +-- [OK] testBlankString - 0 s
+[INFO]    '-- [OK] testCommasInNumbers - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.core.test.validation.ValidatorTest - 0.050 s
+[INFO]    +-- [OK] testInheritedNotNullViolation - 0.021 s
+[INFO]    +-- [OK] testFormatErrors - 0.007 s
+[INFO]    +-- [OK] testMinViolation - 0.002 s
+[INFO]    +-- [OK] testValidateOrThrow_invalid - 0.002 s
+[INFO]    +-- [OK] testNotNullViolation - 0 s
+[INFO]    +-- [OK] testValidateOrThrow_valid - 0.001 s
+[INFO]    +-- [OK] testInheritedValidTriggersNestedValidation - 0.002 s
+[INFO]    +-- [OK] testGrandParentFieldIsValidated - 0.001 s
+[INFO]    +-- [OK] testRangeViolation - 0.006 s
+[INFO]    '-- [OK] testValidObject - 0.001 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 302, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --------< tech.guilhermekaua.spigot-boot:spigot-boot-commands >---------
+[INFO] Building spigot-boot-commands 2.0.2                               [4/26]
+[INFO]   from commands\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-commands ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-commands ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-commands ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\commands\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-commands ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-commands ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandCooldownInterceptorTest - 1.133 s
+[INFO]    +-- [OK] invalidFixedCooldownFailsValidation - 1.007 s
+[INFO]    +-- [OK] missingPolicyBeanFailsValidation - 0.008 s
+[INFO]    +-- [OK] differentSendersDoNotShareCooldown - 0.016 s
+[INFO]    +-- [OK] handlerExceptionsDoNotConsumeCooldown - 0.021 s
+[INFO]    +-- [OK] bindingFailuresDoNotConsumeCooldown - 0.010 s
+[INFO]    +-- [OK] customCommandMessagesCanOverrideCooldownMessage - 0.006 s
+[INFO]    +-- [OK] failingLaterAfterInterceptorDoesNotConsumeCooldown - 0.007 s
+[INFO]    +-- [OK] customPolicyCanInspectSenderAndShortenVipCooldown - 0.006 s
+[INFO]    +-- [OK] typeLevelCooldownAppliesToNestedCommandsAndMethodLevelWins - 0.009 s
+[INFO]    +-- [OK] differentMethodsDoNotShareCooldown - 0.004 s
+[INFO]    +-- [OK] customPolicyReturningZeroDisablesCooldown - 0.003 s
+[INFO]    '-- [OK] secondExecutionFromSameSenderIsBlockedWithDefaultRemainingMessage - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandDispatcherTest - 0.043 s
+[INFO]    +-- [OK] dispatchesNonStaticInnerCommandGroup - 0.005 s
+[INFO]    +-- [OK] dispatchesNestedStaticCommandGroupUsingRootAndRouteAliases - 0.010 s
+[INFO]    +-- [OK] completionSkipsProtectedRoutesForUnauthorizedSender - 0.004 s
+[INFO]    +-- [OK] dispatchBindsGreedyStringAndSender - 0.004 s
+[INFO]    +-- [OK] compilesNestedAndLeafAliasesIntoCartesianRoutes - 0.003 s
+[INFO]    +-- [OK] dispatchesNestedCommandGroupWithConstructorAndFieldInjection - 0.009 s
+[INFO]    '-- [OK] dispatchesNestedDefaultCommandAtExactPrefix - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandHandlerIntrospectorTest - 0.004 s
+[INFO]    '-- [OK] rejectsNestedCatchUnknownHandlers - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandInterceptorExecutionTest - 0.059 s
+[INFO]    +-- [OK] annotationInterceptorCanStopDirectCommandExecution - 0.007 s
+[INFO]    +-- [OK] annotationInterceptorCanStopDefaultAndUnknownHandlers - 0.003 s
+[INFO]    +-- [OK] beforeRunsForwardAndAfterRunsInReverseOrder - 0.004 s
+[INFO]    +-- [OK] validationFailsWhenResolvedAnnotationBeanHasWrongRuntimeType - 0.003 s
+[INFO]    +-- [OK] bindingFailuresTriggerOnErrorAndKeepDefaultBindingMessage - 0.002 s
+[INFO]    +-- [OK] validationFailsWhenBeanImplementsBothInterceptorInterfaces - 0.004 s
+[INFO]    +-- [OK] sameAnnotationInterceptorBeanCanRunForDifferentMatchedAnnotations - 0.004 s
+[INFO]    +-- [OK] validationFailsWhenAnnotationInterceptorBeanIsMissing - 0.003 s
+[INFO]    +-- [OK] afterFailuresTriggerOnErrorAndPreserveGenericErrorHandling - 0.004 s
+[INFO]    +-- [OK] differentAnnotationInterceptorsComposeOnOneCommand - 0.004 s
+[INFO]    +-- [OK] afterFailuresDoNotStopRemainingAfterInterceptors - 0.002 s
+[INFO]    +-- [OK] globalInterceptorCanStopExecutionBeforeBinding - 0.001 s
+[INFO]    +-- [OK] nearestScopeWinsForTypeAndMethodInterceptorAnnotations - 0.005 s
+[INFO]    '-- [OK] errorsRunInReverseOrderAcrossMergedInterceptorChain - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandMessagesProviderTest - 0.003 s
+[INFO]    '-- [OK] selectsPrimaryConcreteMessageBean - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandPatternParserTest - 0.012 s
+[INFO]    +-- [OK] rejectsTrailingEmptyAlias - 0.001 s
+[INFO]    +-- [OK] rejectsMixedLiteralAndRequiredArgument - 0.001 s
+[INFO]    +-- [OK] rejectsLeadingEmptyAlias - 0.001 s
+[INFO]    +-- [OK] expandAliasesBuildsCartesianProduct - 0 s
+[INFO]    +-- [OK] rejectsConsecutivePipes - 0.003 s
+[INFO]    +-- [OK] rejectsMixedLiteralAndOptionalArgument - 0.001 s
+[INFO]    +-- [OK] parseRequiredAndOptionalArguments - 0.002 s
+[INFO]    +-- [OK] rejectsRequiredArgumentAfterOptionalArgument - 0.001 s
+[INFO]    '-- [OK] rejectsMalformedBracketInAlias - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandReplacementRegistryTest - 0.012 s
+[INFO]    +-- [OK] defaultRegistryEvaluatesSupplierForEachReplacement - 0.002 s
+[INFO]    +-- [OK] registerSupplierResolvesPercentPlaceholders - 0.002 s
+[INFO]    +-- [OK] customizerFactorySupportsSupplierRegistration - 0.003 s
+[INFO]    '-- [OK] routeFactoryAppliesPercentPlaceholdersToRootAndSubcommandPatterns - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandRouteValidatorTest - 0.003 s
+[INFO]    '-- [OK] rejectsAmbiguousLiteralAndArgumentCrossOverloads - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.CommandTextResolverChainTest - 0.006 s
+[INFO]    +-- [OK] resolverChainRunsAfterReplacementAndHonorsOrder - 0.002 s
+[INFO]    +-- [OK] legacyCreateOverloadStillWorksWithoutRuntimeContext - 0.001 s
+[INFO]    '-- [OK] createWithContextProvidesRuntimeContextToResolvers - 0.001 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-platform-spigot >-----
+[INFO] Building spigot-boot-platform-spigot 2.0.2                        [5/26]
+[INFO]   from platform-spigot\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-platform-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -------< tech.guilhermekaua.spigot-boot:spigot-boot-core-spigot >-------
+[INFO] Building spigot-boot-core-spigot 2.0.2                            [6/26]
+[INFO]   from platform-spigot\core-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-core-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-core-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-core-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\core-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-core-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-core-spigot ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.core.spigot.test.utils.ColorUtilTest - 0.064 s
+[INFO]    '-- [OK] testColored - 0.041 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-commands-spigot >-----
+[INFO] Building spigot-boot-commands-spigot 2.0.2                        [7/26]
+[INFO]   from platform-spigot\commands-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-commands-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-commands-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-commands-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\commands-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-commands-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-commands-spigot ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.BukkitCommandPlatformSupportTest - 1.242 s
+[INFO]    +-- [OK] createSenderRejectsNonBukkitSender - 0.714 s
+[INFO]    +-- [OK] senderTypeDetectionMatchesBukkitSenderHierarchy - 0.001 s
+[INFO]    '-- [OK] createSenderWrapsBukkitSenderAndUnwrapsSpecificTypes - 0.501 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.BukkitCommandRegistrarTest - 0.285 s
+[INFO]    +-- [XX] unregisterRemovesCommandsWhenKnownCommandsIteratorDoesNotSupportRemoval - 0.269 s
+[INFO]    '-- [XX] registerAndUnregisterRootCommandAndAlias - 0.013 s
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.BukkitOfflinePlayerArgumentResolverTest - 1.246 s
+[INFO]    +-- [OK] resolveFallsBackToDirectOfflineLookupWithoutScanningOfflinePlayers - 0.262 s
+[INFO]    +-- [OK] resolveRejectsUnknownOfflinePlayerAfterDirectLookup - 0.004 s
+[INFO]    '-- [OK] resolveReturnsOnlinePlayerWithoutScanningOfflinePlayers - 0.425 s
+[INFO] ---tech.guilhermekaua.spigotboot.commands.test.SpigotBootCommandTest - 0.017 s
+[INFO]    +-- [XX] tabCompleteUsesBukkitResolversAndCompletionCustomizer - 0.009 s
+[INFO]    '-- [XX] executesWithBukkitSenderBindingAndPlayerArgumentResolution - 0.007 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   BukkitCommandRegistrarTest.registerAndUnregisterRootCommandAndAlias:69 ╗ IllegalState No jar file selected
+[ERROR]   BukkitCommandRegistrarTest.unregisterRemovesCommandsWhenKnownCommandsIteratorDoesNotSupportRemoval:94 ╗ IllegalState No jar file selected
+[ERROR]   SpigotBootCommandTest.executesWithBukkitSenderBindingAndPlayerArgumentResolution:61 ╗ IllegalState No jar file selected
+[ERROR]   SpigotBootCommandTest.tabCompleteUsesBukkitResolversAndCompletionCustomizer:82 ╗ IllegalState No jar file selected
+[INFO] 
+[ERROR] Tests run: 10, Failures: 0, Errors: 4, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.321 s]
+[INFO] spigot-boot-utils .................................. SUCCESS [  0.342 s]
+[INFO] spigot-boot-core ................................... SUCCESS [  3.008 s]
+[INFO] spigot-boot-commands ............................... SUCCESS [  2.151 s]
+[INFO] spigot-boot-platform-spigot ........................ SUCCESS [  0.411 s]
+[INFO] spigot-boot-core-spigot ............................ SUCCESS [  1.070 s]
+[INFO] spigot-boot-commands-spigot ........................ FAILURE [  3.780 s]
+[INFO] spigot-boot-config ................................. SKIPPED
+[INFO] spigot-boot-config-spigot .......................... SKIPPED
+[INFO] spigot-boot-plugin-messaging-spigot ................ SKIPPED
+[INFO] spigot-boot-placeholder-spigot ..................... SKIPPED
+[INFO] tech.guilhermekaua.spigot-boot ..................... SKIPPED
+[INFO] spigot-boot-data ................................... SKIPPED
+[INFO] spigot-boot-modules ................................ SKIPPED
+[INFO] spigot-boot-data-orm-lite .......................... SKIPPED
+[INFO] spigot-boot-versions-parent ........................ SKIPPED
+[INFO] spigot-boot-versions-api ........................... SKIPPED
+[INFO] spigot-boot-versions-runtime ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_8_8 ........................ SKIPPED
+[INFO] spigot-boot-versions-v1_13_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_16_5 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_17_1 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_19_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_21_11 ...................... SKIPPED
+[INFO] spigot-boot-versions ............................... SKIPPED
+[INFO] test-plugin ........................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11.566 s
+[INFO] Finished at: 2026-04-17T15:00:41-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.3:test (default-test) on project spigot-boot-commands-spigot: 
+[ERROR] 
+[ERROR] See C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\commands-spigot\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :spigot-boot-commands-spigot

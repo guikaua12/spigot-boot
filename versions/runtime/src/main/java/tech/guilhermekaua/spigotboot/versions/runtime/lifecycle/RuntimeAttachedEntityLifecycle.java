@@ -27,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.versions.api.EntityController;
 import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalProfile;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransport;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransportResolver;
 import tech.guilhermekaua.spigotboot.versions.runtime.publication.EntityPublicationBackend;
@@ -81,6 +83,52 @@ public class RuntimeAttachedEntityLifecycle<T extends Entity> extends AbstractRu
             @NotNull EntityTransport transport,
             @NotNull EntityPublicationBackend publicationBackend
     ) {
-        super(baseType, minecraftVersion, initialController, transport, publicationBackend);
+        this(
+                baseType,
+                minecraftVersion,
+                initialController,
+                transport,
+                publicationBackend,
+                RuntimeGoalMutationExecutor.noop(emptyManagedGoals()),
+                false
+        );
+    }
+
+    /**
+     * Creates a new attached runtime lifecycle with explicit managed-goal snapshot and executor seams.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     * @param goalMutationExecutor the shared runtime goal executor seam
+     */
+    public RuntimeAttachedEntityLifecycle(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend,
+            @NotNull RuntimeGoalMutationExecutor<T> goalMutationExecutor
+    ) {
+        this(baseType, minecraftVersion, initialController, transport, publicationBackend, goalMutationExecutor, true);
+    }
+
+    private RuntimeAttachedEntityLifecycle(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend,
+            @NotNull RuntimeGoalMutationExecutor<T> goalMutationExecutor,
+            boolean ignored
+    ) {
+        super(baseType, minecraftVersion, initialController, transport, publicationBackend, goalMutationExecutor);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity> @NotNull GoalProfile<T> emptyManagedGoals() {
+        return GoalProfile.<T>builder((Class<T>) Entity.class.asSubclass(Entity.class)).build();
     }
 }

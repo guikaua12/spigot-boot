@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.versions.api;
 
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalManager;
 
 /**
  * Represents a live hooked entity whose native lifecycle is delegated through a controller.
@@ -96,6 +97,18 @@ public interface ControlledEntity<T extends Entity> {
      */
     default @NotNull EntityNetworkState networkState() {
         return new EntityNetworkState();
+    }
+
+    /**
+     * Returns the live managed-goal contract for this entity.
+     *
+     * <p>The default implementation exposes a safe placeholder manager so existing runtime implementations do
+     * not need to override this method until live goal orchestration support is wired in.</p>
+     *
+     * @return the live managed-goal contract
+     */
+    default @NotNull GoalManager<T> goalManager() {
+        return GoalManager.unsupported(this);
     }
 
     /**

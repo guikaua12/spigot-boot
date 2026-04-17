@@ -1,0 +1,122 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 5 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                         [1/5]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-parent >-----
+[INFO] Building spigot-boot-versions-parent 2.0.2                         [2/5]
+[INFO]   from versions\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-parent ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-versions-api >-------
+[INFO] Building spigot-boot-versions-api 2.0.2                            [3/5]
+[INFO]   from versions\api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-api ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-runtime >-----
+[INFO] Building spigot-boot-versions-runtime 2.0.2                        [4/5]
+[INFO]   from versions\runtime\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-runtime ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-runtime ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-runtime ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-runtime ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_19_2 >-----
+[INFO] Building spigot-boot-versions-v1_19_2 2.0.2                        [5/5]
+[INFO]   from versions\1.19.2\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_19_2 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.19.2\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_19_2 ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.v1_19_2.entity.EntityFactoryV1_19_2ReplacementBridgeTest - 1.869 s
+[INFO]    +-- [OK] rewireModernVehicleAndPassengerReferences_shouldRewritePassengerOwnership - 0.137 s
+[INFO]    +-- [OK] rewireVehicleAndPassengerReferencesModern_hierarchicalStub_picksCorrectFieldDespiteAuCollision - 0.002 s
+[INFO]    +-- [OK] rewireVehicleAndPassengerReferencesModern_hierarchicalStub_doesNotThrowClassCastException - 0.011 s
+[INFO]    +-- [OK] rebindModernBukkitBridge_shouldMoveTheBukkitWrapperReferenceToTheReplacementHandle - 1.176 s
+[INFO]    +-- [OK] rebindBukkitZombie_shouldDelegateToTheCraftWrapperHandleSetter - 0.147 s
+[INFO]    +-- [OK] prepareReplacement_shouldRejectPreservedCowAttachParity - 0.095 s
+[INFO]    +-- [OK] resolveCurrentNativeHandle_shouldUseBukkitHandleAccessor - 0.047 s
+[INFO]    +-- [OK] bindLifecycleToReplacement_shouldBindTheGeneratedBridgeAndDispatchTickHooks - 0.194 s
+[INFO]    +-- [OK] allocateReplacementHandle_shouldCreateLifecycleAwareBridgeSubclassForSupportedEntities - 0.004 s
+[INFO]    +-- [OK] resolveReplacementTrackingHandles_shouldFallbackToTrackerFieldWhenMethodAccessorsAreMissing - 0.003 s
+[INFO]    +-- [OK] replaceWorldReferences_shouldRewriteSectionManagerState - 0.003 s
+[INFO]    '-- [OK] replaceWorldReferences_shouldRewritePaperChunkSystemState - 0.008 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.528 s]
+[INFO] spigot-boot-versions-parent ........................ SUCCESS [  0.030 s]
+[INFO] spigot-boot-versions-api ........................... SUCCESS [  0.738 s]
+[INFO] spigot-boot-versions-runtime ....................... SUCCESS [  0.213 s]
+[INFO] spigot-boot-versions-v1_19_2 ....................... SUCCESS [  3.208 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  5.475 s
+[INFO] Finished at: 2026-04-16T20:56:21-03:00
+[INFO] ------------------------------------------------------------------------

@@ -22,10 +22,18 @@
  */
 package tech.guilhermekaua.spigotboot.v1_21_11.entity;
 
+import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseType;
+import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
 
+import java.lang.reflect.Field;
 import java.util.LinkedHashSet;
+import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,11 +44,57 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EntityFactoryV1_21_11Test {
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUSIONS = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUSIONS = EnumSet.noneOf(CustomEntityBaseType.class);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORT = createAdvertisedSupport();
 
     @Test
     void shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors() {
         assertNotNull(EntityFactoryV1_21_11.entityCapabilities());
         assertNotNull(EntityFactoryV1_21_11.entityBindings());
+    }
+
+    @Test
+    void shouldMatchTheExplicitLatestSupportMatrixContract() {
+        EntityFactoryV1_21_11 factory = allocateFactoryWithoutConstructor();
+
+        assertSupportMatrix(factory::supports, ADVERTISED_SUPPORT, PRESERVED_EXCLUSIONS);
+    }
+
+    @Test
+    void metadataRegistry_shouldMatchTheExplicitLatestSupportContractExactly() {
+        assertEquals(ADVERTISED_SUPPORT, readMetadataRegistry().keySet());
+    }
+
+    @Test
+    void shouldDocumentRepresentativeHostilePassiveAndSpecialCaseFamiliesExplicitly() {
+        EntityFactoryV1_21_11 factory = allocateFactoryWithoutConstructor();
+
+        assertTrue(factory.supports(CustomEntityBaseType.ZOMBIE));
+        assertTrue(factory.supports(CustomEntityBaseType.SKELETON));
+        assertTrue(factory.supports(CustomEntityBaseType.CREEPER));
+        assertTrue(factory.supports(CustomEntityBaseType.ENDERMAN));
+
+        assertTrue(factory.supports(CustomEntityBaseType.COW));
+        assertTrue(factory.supports(CustomEntityBaseType.VILLAGER));
+        assertTrue(factory.supports(CustomEntityBaseType.SHEEP));
+
+        assertTrue(factory.supports(CustomEntityBaseType.ARMOR_STAND));
+        assertTrue(factory.supports(CustomEntityBaseType.BOAT));
+        assertTrue(factory.supports(CustomEntityBaseType.ITEM_FRAME));
+        assertTrue(factory.supports(CustomEntityBaseType.FIREBALL));
+        assertTrue(factory.supports(CustomEntityBaseType.LIGHTNING_BOLT));
+        assertTrue(factory.supports(CustomEntityBaseType.ENDER_DRAGON));
+
+        assertFalse(factory.supports(CustomEntityBaseType.UNKNOWN));
+        assertFalse(factory.supports(CustomEntityBaseType.PLAYER));
+        assertFalse(factory.supports(CustomEntityBaseType.WEATHER));
+        assertFalse(factory.supports(CustomEntityBaseType.COMPLEX_PART));
     }
 
     @Test
@@ -222,5 +276,97 @@ class EntityFactoryV1_21_11Test {
     }
 
     private static final class StubNavigatingMobs extends LinkedHashSet<StubEntity> {
+    }
+
+    @SuppressWarnings("unchecked")
+    private static @NotNull EntityFactoryV1_21_11 allocateFactoryWithoutConstructor() {
+        return (EntityFactoryV1_21_11) ReflectionSupport.allocateInstance(EntityFactoryV1_21_11.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static @NotNull Map<CustomEntityBaseType, Object> readMetadataRegistry() {
+        try {
+            Field field = EntityFactoryV1_21_11.class.getDeclaredField("METADATA_REGISTRY");
+            field.setAccessible(true);
+            return (Map<CustomEntityBaseType, Object>) field.get(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static @NotNull EnumSet<CustomEntityBaseType> createAdvertisedSupport() {
+        EnumSet<CustomEntityBaseType> supportedBaseTypes = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+                continue;
+            }
+            EntityType entityType = baseType.entityTypeOrNull();
+            if (entityType == null || entityType.getEntityClass() == null) {
+                continue;
+            }
+            supportedBaseTypes.add(baseType);
+        }
+        return supportedBaseTypes;
+    }
+
+    private static void assertSupportMatrix(
+            @NotNull Predicate<CustomEntityBaseType> supportProbe,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            SupportExpectation expectation = classify(baseType, advertisedSupport, preservedExclusions);
+            boolean supported = supportProbe.test(baseType);
+
+            assertEquals(
+                    expectation.included(),
+                    supported,
+                    "Support matrix mismatch for " + baseType + ": " + expectation.rationale()
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
+    }
+
+    private static @NotNull SupportExpectation classify(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+            return new SupportExpectation(false, "permanent exclusion");
+        }
+        if (baseType.entityTypeOrNull() == null) {
+            return new SupportExpectation(false, "Bukkit EntityType is absent for this version");
+        }
+        if (advertisedSupport.contains(baseType)) {
+            return new SupportExpectation(true, "advertised version contract includes this base type");
+        }
+        if (preservedExclusions.contains(baseType)) {
+            return new SupportExpectation(false, "version-local preserved exclusion");
+        }
+        return new SupportExpectation(false, "advertised version contract excludes this base type");
+    }
+
+    private static final class SupportExpectation {
+        private final boolean included;
+        private final String rationale;
+
+        private SupportExpectation(boolean included, @NotNull String rationale) {
+            this.included = included;
+            this.rationale = rationale;
+        }
+
+        private boolean included() {
+            return included;
+        }
+
+        private @NotNull String rationale() {
+            return rationale;
+        }
     }
 }

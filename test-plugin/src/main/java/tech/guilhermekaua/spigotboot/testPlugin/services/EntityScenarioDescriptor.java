@@ -74,6 +74,17 @@ final class EntityScenarioDescriptor {
         register(descriptors, "deathfx-cow", "pass", "aiReactedAfterHit", "deathEffectCount", "duplicateRegistrationErrors");
         register(
                 descriptors,
+                "deathfx-passive-family",
+                "pass",
+                "passCount",
+                "failCount",
+                "selectedBaseType",
+                "aiReactedAfterHit",
+                "deathEffectCount",
+                "duplicateRegistrationErrors"
+        );
+        register(
+                descriptors,
                 "metadata-dirty-zombie",
                 "pass",
                 "metadataInitCount",
@@ -93,9 +104,25 @@ final class EntityScenarioDescriptor {
         );
         register(
                 descriptors,
+                "viewer-cycle-special-family",
+                "pass",
+                "passCount",
+                "failCount",
+                "selectedBaseType",
+                "viewerAddCount",
+                "viewerRemoveCount",
+                "spawnCount",
+                "destroyCount"
+        );
+        register(
+                descriptors,
                 "attach-existing-zombie",
                 "pass",
+                "passCount",
+                "failCount",
+                "selectedBaseType",
                 "attachCount",
+                "controllerTickObserved",
                 "duplicateSpawnCount",
                 "entityIdStable",
                 "trackerRebound"

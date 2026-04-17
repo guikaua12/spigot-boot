@@ -48,6 +48,12 @@
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-config</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config-spigot</artifactId>
             <version>${project.version}</version>
         </dependency>

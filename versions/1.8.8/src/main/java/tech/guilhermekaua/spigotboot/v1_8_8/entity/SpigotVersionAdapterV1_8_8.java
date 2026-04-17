@@ -35,8 +35,11 @@ import tech.guilhermekaua.spigotboot.versions.api.SpawnedEntity;
 import tech.guilhermekaua.spigotboot.versions.api.spi.VersionAdapter;
 import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.VersionCapabilities;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionBindings;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.EntityVersionLegacyTransportProvider;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataContract;
@@ -60,6 +63,7 @@ public final class SpigotVersionAdapterV1_8_8
         implements VersionAdapter,
         VersionMetadataProvider,
         VersionNetworkMetadataProvider,
+        VersionGoalSupportProvider,
         EntityVersionLegacyTransportProvider,
         LegacyFreshSpawnStrategy_1_8_to_1_12.Provider,
         LegacyReplacementStrategy_1_8_to_1_12.Provider {
@@ -286,6 +290,35 @@ public final class SpigotVersionAdapterV1_8_8
     @Override
     public @NotNull EntityNetworkMetadataContract entityNetworkMetadataContract() {
         return NETWORK_METADATA_CONTRACT;
+    }
+
+    @Override
+    public @NotNull VersionGoalSupportMetadata entityGoalSupportMetadata() {
+        return LegacyGoalSupportV1_8_8.goalSupportMetadata();
+    }
+
+    @Override
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createSpawnGoalMutationExecutor(
+            @NotNull EntityTemplate<T> template,
+            @NotNull SpawnOptions spawnOptions,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(template, "template cannot be null");
+        Objects.requireNonNull(spawnOptions, "spawnOptions cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        return LegacyGoalSupportV1_8_8.createSpawnExecutor(template);
+    }
+
+    @Override
+    public <T extends Entity> @NotNull RuntimeGoalMutationExecutor<T> createAttachedGoalMutationExecutor(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull T entity,
+            @NotNull MinecraftVersion minecraftVersion
+    ) {
+        Objects.requireNonNull(baseType, "baseType cannot be null");
+        Objects.requireNonNull(entity, "entity cannot be null");
+        Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
+        return LegacyGoalSupportV1_8_8.createAttachedExecutor(entity);
     }
 
     @Override

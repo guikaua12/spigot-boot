@@ -1,0 +1,123 @@
+{
+  "servers": [
+    {
+      "id": "spigot-1.8.8",
+      "serverType": "spigot",
+      "minecraftVersion": "1.8.8",
+      "javaMajor": 8,
+      "javaExecutable": ".tools/entity-matrix/jdks/8/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/8",
+      "serverHome": ".tools/entity-matrix/spigot-1.8.8",
+      "serverJar": ".tools/entity-matrix/spigot-1.8.8/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/spigot-1.8.8",
+      "provisioning": {
+        "strategy": "buildtools",
+        "buildToolsJar": ".tools/entity-matrix/buildtools/BuildTools.jar",
+        "buildToolsUrl": "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar",
+        "artifactPattern": "spigot-1.8.8*.jar"
+      }
+    },
+    {
+      "id": "spigot-1.13.2",
+      "serverType": "spigot",
+      "minecraftVersion": "1.13.2",
+      "javaMajor": 8,
+      "javaExecutable": ".tools/entity-matrix/jdks/8/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/8",
+      "serverHome": ".tools/entity-matrix/spigot-1.13.2",
+      "serverJar": ".tools/entity-matrix/spigot-1.13.2/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/spigot-1.13.2",
+      "provisioning": {
+        "strategy": "buildtools",
+        "buildToolsJar": ".tools/entity-matrix/buildtools/BuildTools.jar",
+        "buildToolsUrl": "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar",
+        "artifactPattern": "spigot-1.13.2*.jar"
+      }
+    },
+    {
+      "id": "spigot-1.16.5",
+      "serverType": "spigot",
+      "minecraftVersion": "1.16.5",
+      "javaMajor": 8,
+      "javaExecutable": ".tools/entity-matrix/jdks/8/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/8",
+      "serverHome": ".tools/entity-matrix/spigot-1.16.5",
+      "serverJar": ".tools/entity-matrix/spigot-1.16.5/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/spigot-1.16.5",
+      "provisioning": {
+        "strategy": "buildtools",
+        "buildToolsJar": ".tools/entity-matrix/buildtools/BuildTools.jar",
+        "buildToolsUrl": "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar",
+        "artifactPattern": "spigot-1.16.5*.jar"
+      }
+    },
+    {
+      "id": "spigot-1.17.1",
+      "serverType": "spigot",
+      "minecraftVersion": "1.17.1",
+      "javaMajor": 17,
+      "javaExecutable": ".tools/entity-matrix/jdks/17/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/17",
+      "serverHome": ".tools/entity-matrix/spigot-1.17.1",
+      "serverJar": ".tools/entity-matrix/spigot-1.17.1/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/spigot-1.17.1",
+      "provisioning": {
+        "strategy": "buildtools",
+        "buildToolsJar": ".tools/entity-matrix/buildtools/BuildTools.jar",
+        "buildToolsUrl": "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar",
+        "artifactPattern": "spigot-1.17.1*.jar"
+      }
+    },
+    {
+      "id": "spigot-1.19.2",
+      "serverType": "spigot",
+      "minecraftVersion": "1.19.2",
+      "javaMajor": 17,
+      "javaExecutable": ".tools/entity-matrix/jdks/17/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/17",
+      "serverHome": ".tools/entity-matrix/spigot-1.19.2",
+      "serverJar": ".tools/entity-matrix/spigot-1.19.2/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/spigot-1.19.2",
+      "provisioning": {
+        "strategy": "buildtools",
+        "buildToolsJar": ".tools/entity-matrix/buildtools/BuildTools.jar",
+        "buildToolsUrl": "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar",
+        "artifactPattern": "spigot-1.19.2*.jar"
+      }
+    },
+    {
+      "id": "paper-1.19.2",
+      "serverType": "paper",
+      "minecraftVersion": "1.19.2",
+      "javaMajor": 17,
+      "javaExecutable": ".tools/entity-matrix/jdks/17/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/17",
+      "serverHome": ".tools/entity-matrix/paper-1.19.2",
+      "serverJar": ".tools/entity-matrix/paper-1.19.2/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/paper-1.19.2",
+      "provisioning": {
+        "strategy": "paper",
+        "project": "paper",
+        "version": "1.19.2",
+        "downloadsApi": "https://api.papermc.io/v2/projects/paper/versions/1.19.2/builds"
+      }
+    },
+    {
+      "id": "paper-1.21.11",
+      "serverType": "paper",
+      "minecraftVersion": "1.21.11",
+      "javaMajor": 21,
+      "javaExecutable": ".tools/entity-matrix/jdks/21/bin/java.exe",
+      "javaHome": ".tools/entity-matrix/jdks/21",
+      "serverHome": ".tools/entity-matrix/paper-1.21.11",
+      "serverJar": ".tools/entity-matrix/paper-1.21.11/server.jar",
+      "downloadCache": ".tools/entity-matrix/downloads/paper-1.21.11",
+      "provisioning": {
+        "strategy": "paper",
+        "project": "paper",
+        "version": "1.21.11",
+        "downloadsApi": "https://api.papermc.io/v2/projects/paper/versions/1.21.11/builds"
+      }
+    }
+  ]
+}

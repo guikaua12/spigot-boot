@@ -32,11 +32,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.versions.api.*;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalManager;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalProfile;
 import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.controller.ControllerMethodResolver;
 import tech.guilhermekaua.spigotboot.versions.runtime.controller.LogicalEntityHook;
 import tech.guilhermekaua.spigotboot.versions.runtime.controller.PassThroughEntityController;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalManager;
+import tech.guilhermekaua.spigotboot.versions.runtime.goal.RuntimeGoalMutationExecutor;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransport;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransportPipeline;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.EntityTransportResolver;
@@ -66,6 +70,7 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
     private final MinecraftVersion minecraftVersion;
     private final SimpleCustomEntityState state;
     private final EntityNetworkState networkState;
+    private final GoalManager<T> goalManager;
     private final EntityTransportPipeline transportPipeline;
     private final EntityPublicationBackend publicationBackend;
     private final AtomicBoolean removed;
@@ -123,10 +128,55 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
             @NotNull EntityTransport transport,
             @NotNull EntityPublicationBackend publicationBackend
     ) {
+        this(
+                baseType,
+                minecraftVersion,
+                initialController,
+                transport,
+                publicationBackend,
+                RuntimeGoalMutationExecutor.noop(emptyManagedGoals()),
+                false
+        );
+    }
+
+    /**
+     * Creates a new runtime-controlled entity with explicit goal-management orchestration.
+     *
+     * @param baseType the logical base type
+     * @param minecraftVersion the resolved Minecraft version
+     * @param initialController the initial logical controller
+     * @param transport the internal semantic transport backend
+     * @param publicationBackend the internal publication backend
+     * @param goalMutationExecutor the shared runtime goal executor seam
+     */
+    protected AbstractRuntimeControlledEntity(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend,
+            @NotNull RuntimeGoalMutationExecutor<T> goalMutationExecutor
+    ) {
+        this(baseType, minecraftVersion, initialController, transport, publicationBackend, goalMutationExecutor, true);
+    }
+
+    private AbstractRuntimeControlledEntity(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull MinecraftVersion minecraftVersion,
+            @NotNull EntityController<T> initialController,
+            @NotNull EntityTransport transport,
+            @NotNull EntityPublicationBackend publicationBackend,
+            @NotNull RuntimeGoalMutationExecutor<T> goalMutationExecutor,
+            boolean ignored
+    ) {
         this.baseType = Objects.requireNonNull(baseType, "baseType cannot be null");
         this.minecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion cannot be null");
         this.state = new SimpleCustomEntityState();
         this.networkState = new EntityNetworkState();
+        this.goalManager = new RuntimeGoalManager<T>(this, Objects.requireNonNull(
+                goalMutationExecutor,
+                "goalMutationExecutor cannot be null"
+        ));
         this.transportPipeline = new EntityTransportPipeline(Objects.requireNonNull(transport, "transport cannot be null"));
         this.publicationBackend = Objects.requireNonNull(publicationBackend, "publicationBackend cannot be null");
         this.removed = new AtomicBoolean(false);
@@ -221,6 +271,11 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
     @Override
     public @NotNull EntityNetworkState networkState() {
         return networkState;
+    }
+
+    @Override
+    public @NotNull GoalManager<T> goalManager() {
+        return goalManager;
     }
 
     @Override
@@ -582,5 +637,10 @@ public abstract class AbstractRuntimeControlledEntity<T extends Entity>
         if (incrementAbsoluteSyncCounter) {
             networkState.incrementTicksSinceAbsoluteSync();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity> @NotNull GoalProfile<T> emptyManagedGoals() {
+        return GoalProfile.<T>builder((Class<T>) Entity.class.asSubclass(Entity.class)).build();
     }
 }

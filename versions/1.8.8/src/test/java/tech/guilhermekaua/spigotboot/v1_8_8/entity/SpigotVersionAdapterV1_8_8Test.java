@@ -22,13 +22,19 @@
  */
 package tech.guilhermekaua.spigotboot.v1_8_8.entity;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.versions.api.CustomEntityBaseType;
 import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalKey;
+import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.EntityFreshSpawnPath;
 import tech.guilhermekaua.spigotboot.versions.runtime.capability.EntityWorldRegistrationMode;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.EntityVersionLegacyTransportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.NativeEntityConstructorShape;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataContract;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.transport.LegacyTransportSupport;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.LegacyFreshSpawnStrategy_1_8_to_1_12;
@@ -36,6 +42,9 @@ import tech.guilhermekaua.spigotboot.versions.runtime.strategy.LegacyReplacement
 import tech.guilhermekaua.spigotboot.versions.runtime.tracker.legacy.LegacyTrackerHookSupport;
 
 import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.function.Predicate;
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,6 +55,77 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpigotVersionAdapterV1_8_8Test {
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUSIONS = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final EnumSet<CustomEntityBaseType> PRESERVED_EXCLUSIONS = EnumSet.noneOf(CustomEntityBaseType.class);
+    private static final EnumSet<CustomEntityBaseType> ADVERTISED_SUPPORT = EnumSet.of(
+            CustomEntityBaseType.ITEM,
+            CustomEntityBaseType.EXPERIENCE_ORB,
+            CustomEntityBaseType.LEASH_KNOT,
+            CustomEntityBaseType.PAINTING,
+            CustomEntityBaseType.ARROW,
+            CustomEntityBaseType.SNOWBALL,
+            CustomEntityBaseType.FIREBALL,
+            CustomEntityBaseType.SMALL_FIREBALL,
+            CustomEntityBaseType.ENDER_PEARL,
+            CustomEntityBaseType.EYE_OF_ENDER,
+            CustomEntityBaseType.EXPERIENCE_BOTTLE,
+            CustomEntityBaseType.ITEM_FRAME,
+            CustomEntityBaseType.WITHER_SKULL,
+            CustomEntityBaseType.TNT,
+            CustomEntityBaseType.FALLING_BLOCK,
+            CustomEntityBaseType.FIREWORK_ROCKET,
+            CustomEntityBaseType.ARMOR_STAND,
+            CustomEntityBaseType.COMMAND_BLOCK_MINECART,
+            CustomEntityBaseType.BOAT,
+            CustomEntityBaseType.MINECART,
+            CustomEntityBaseType.CHEST_MINECART,
+            CustomEntityBaseType.FURNACE_MINECART,
+            CustomEntityBaseType.TNT_MINECART,
+            CustomEntityBaseType.HOPPER_MINECART,
+            CustomEntityBaseType.SPAWNER_MINECART,
+            CustomEntityBaseType.CREEPER,
+            CustomEntityBaseType.SKELETON,
+            CustomEntityBaseType.SPIDER,
+            CustomEntityBaseType.GIANT,
+            CustomEntityBaseType.ZOMBIE,
+            CustomEntityBaseType.SLIME,
+            CustomEntityBaseType.GHAST,
+            CustomEntityBaseType.ZOMBIFIED_PIGLIN,
+            CustomEntityBaseType.ENDERMAN,
+            CustomEntityBaseType.CAVE_SPIDER,
+            CustomEntityBaseType.SILVERFISH,
+            CustomEntityBaseType.BLAZE,
+            CustomEntityBaseType.MAGMA_CUBE,
+            CustomEntityBaseType.ENDER_DRAGON,
+            CustomEntityBaseType.WITHER,
+            CustomEntityBaseType.BAT,
+            CustomEntityBaseType.WITCH,
+            CustomEntityBaseType.ENDERMITE,
+            CustomEntityBaseType.GUARDIAN,
+            CustomEntityBaseType.PIG,
+            CustomEntityBaseType.SHEEP,
+            CustomEntityBaseType.COW,
+            CustomEntityBaseType.CHICKEN,
+            CustomEntityBaseType.SQUID,
+            CustomEntityBaseType.WOLF,
+            CustomEntityBaseType.MOOSHROOM,
+            CustomEntityBaseType.SNOW_GOLEM,
+            CustomEntityBaseType.OCELOT,
+            CustomEntityBaseType.IRON_GOLEM,
+            CustomEntityBaseType.HORSE,
+            CustomEntityBaseType.RABBIT,
+            CustomEntityBaseType.VILLAGER,
+            CustomEntityBaseType.END_CRYSTAL,
+            CustomEntityBaseType.POTION,
+            CustomEntityBaseType.EGG,
+            CustomEntityBaseType.FISHING_BOBBER,
+            CustomEntityBaseType.LIGHTNING_BOLT
+    );
 
     @Test
     void shouldInstantiateWithoutResolvingNativeClasses() {
@@ -56,6 +136,15 @@ class SpigotVersionAdapterV1_8_8Test {
         assertTrue(adapter.supports(MinecraftVersion.of(1, 8, 8)));
         assertTrue(adapter.supports(MinecraftVersion.of(1, 12, 2)));
         assertFalse(adapter.supports(MinecraftVersion.of(1, 13, 0)));
+    }
+
+    @Test
+    void shouldMatchTheExplicitSupportMatrixContract() {
+        SpigotVersionAdapterV1_8_8 adapter = assertDoesNotThrow(SpigotVersionAdapterV1_8_8::new);
+
+        wireEntrypoint(adapter, allocateFactoryWithoutConstructor());
+
+        assertSupportMatrix(adapter::supports, ADVERTISED_SUPPORT, PRESERVED_EXCLUSIONS);
     }
 
     @Test
@@ -150,5 +239,109 @@ class SpigotVersionAdapterV1_8_8Test {
         assertNotNull(support);
         assertSame(support, transportProvider.legacyTransportSupport());
         assertEquals("legacy-packet-transport-1.8.8-1.12.2", support.id());
+    }
+
+    @Test
+    void shouldExposeLegacyGoalSupportMetadataThroughTheSharedProviderSeam() {
+        SpigotVersionAdapterV1_8_8 adapter = assertDoesNotThrow(SpigotVersionAdapterV1_8_8::new);
+        VersionGoalSupportProvider provider = assertInstanceOf(VersionGoalSupportProvider.class, adapter);
+
+        VersionGoalSupportMetadata metadata = provider.entityGoalSupportMetadata();
+
+        assertTrue(metadata.specified());
+        assertEquals(
+                EnumSet.of(
+                        VanillaGoalKey.FLOAT,
+                        VanillaGoalKey.MELEE_ATTACK,
+                        VanillaGoalKey.RANDOM_STROLL_LAND,
+                        VanillaGoalKey.LOOK_AT_PLAYER,
+                        VanillaGoalKey.RANDOM_LOOK_AROUND,
+                        VanillaGoalKey.HURT_BY_TARGET,
+                        VanillaGoalKey.NEAREST_ATTACKABLE_TARGET
+                ),
+                metadata.supportedVanillaGoalKeys()
+        );
+        assertTrue(metadata.attachedManagedSnapshotAvailable());
+        assertTrue(metadata.spawnedExecutorFactoryAvailable());
+        assertTrue(metadata.attachedExecutorFactoryAvailable());
+    }
+
+    private static void assertSupportMatrix(
+            @NotNull Predicate<CustomEntityBaseType> supportProbe,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            SupportExpectation expectation = classify(baseType, advertisedSupport, preservedExclusions);
+            boolean supported = supportProbe.test(baseType);
+
+            assertEquals(
+                    expectation.included(),
+                    supported,
+                    "Support matrix mismatch for " + baseType + ": " + expectation.rationale()
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
+    }
+
+    private static @NotNull SupportExpectation classify(
+            @NotNull CustomEntityBaseType baseType,
+            @NotNull EnumSet<CustomEntityBaseType> advertisedSupport,
+            @NotNull EnumSet<CustomEntityBaseType> preservedExclusions
+    ) {
+        if (PERMANENT_EXCLUSIONS.contains(baseType)) {
+            return new SupportExpectation(false, "permanent exclusion");
+        }
+        if (baseType.entityTypeOrNull() == null) {
+            return new SupportExpectation(false, "Bukkit EntityType is absent for this version");
+        }
+        if (advertisedSupport.contains(baseType)) {
+            return new SupportExpectation(true, "advertised version contract includes this base type");
+        }
+        if (preservedExclusions.contains(baseType)) {
+            return new SupportExpectation(false, "version-local preserved exclusion");
+        }
+        return new SupportExpectation(false, "advertised version contract excludes this base type");
+    }
+
+    private static final class SupportExpectation {
+        private final boolean included;
+        private final String rationale;
+
+        private SupportExpectation(boolean included, @NotNull String rationale) {
+            this.included = included;
+            this.rationale = rationale;
+        }
+
+        private boolean included() {
+            return included;
+        }
+
+        private @NotNull String rationale() {
+            return rationale;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static @NotNull EntityFactoryV1_8_8 allocateFactoryWithoutConstructor() {
+        return (EntityFactoryV1_8_8) ReflectionSupport.allocateInstance(EntityFactoryV1_8_8.class);
+    }
+
+    private static void wireEntrypoint(
+            @NotNull SpigotVersionAdapterV1_8_8 adapter,
+            @NotNull EntityFactoryV1_8_8 entrypoint
+    ) {
+        try {
+            Field field = SpigotVersionAdapterV1_8_8.class.getDeclaredField("entrypoint");
+            field.setAccessible(true);
+            field.set(adapter, entrypoint);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 }

@@ -25,9 +25,16 @@ package tech.guilhermekaua.spigotboot.versions.api;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.versions.api.goal.CustomGoalKey;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalProfile;
+import tech.guilhermekaua.spigotboot.versions.api.goal.GoalSelectorType;
+import tech.guilhermekaua.spigotboot.versions.api.goal.VanillaGoalKey;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EntityTemplateTest {
 
@@ -38,6 +45,12 @@ class EntityTemplateTest {
         assertNull(template.id());
         assertSame(CustomEntityBaseType.ZOMBIE, template.baseType());
         assertSame(Zombie.class, template.bukkitType());
+        assertNotNull(template.goalProfile());
+        assertSame(Zombie.class, template.goalProfile().entityType());
+        assertEquals(0, template.goalProfile().vanillaGoals(GoalSelectorType.NORMAL).size());
+        assertEquals(0, template.goalProfile().vanillaGoals(GoalSelectorType.TARGET).size());
+        assertEquals(0, template.goalProfile().customGoals(GoalSelectorType.NORMAL).size());
+        assertEquals(0, template.goalProfile().customGoals(GoalSelectorType.TARGET).size());
     }
 
     @Test
@@ -52,5 +65,42 @@ class EntityTemplateTest {
         assertSame(templateId, template.id());
         assertSame(CustomEntityBaseType.ZOMBIE, template.baseType());
         assertSame(Zombie.class, template.bukkitType());
+    }
+
+    @Test
+    void shouldCarryTemplateTimeGoalConfigurationIntoBuiltTemplates() {
+        CustomGoalKey customGoalKey = CustomGoalKey.of("test", "follow-owner");
+
+        EntityTemplate<Zombie> template = EntityTemplate.<Zombie>builder(CustomEntityBaseType.ZOMBIE)
+                .addVanillaGoal(GoalSelectorType.NORMAL, VanillaGoalKey.FLOAT, 0)
+                .addCustomGoal(GoalSelectorType.TARGET, customGoalKey, 2)
+                .build();
+
+        assertEquals(1, template.goalProfile().vanillaGoals(GoalSelectorType.NORMAL).size());
+        assertEquals(VanillaGoalKey.FLOAT, template.goalProfile().vanillaGoals(GoalSelectorType.NORMAL).get(0).key());
+        assertEquals(1, template.goalProfile().customGoals(GoalSelectorType.TARGET).size());
+        assertEquals(customGoalKey, template.goalProfile().customGoals(GoalSelectorType.TARGET).get(0).key());
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> template.goalProfile().vanillaGoals(GoalSelectorType.NORMAL).add(null)
+        );
+    }
+
+    @Test
+    void shouldAllowReplacingTheFullTemplateGoalProfile() {
+        GoalProfile<Zombie> goalProfile = GoalProfile.<Zombie>builder(Zombie.class)
+                .addVanilla(GoalSelectorType.TARGET, VanillaGoalKey.HURT_BY_TARGET, 3)
+                .build();
+
+        EntityTemplate<Zombie> template = EntityTemplate.<Zombie>builder(CustomEntityBaseType.ZOMBIE)
+                .goalProfile(goalProfile)
+                .build();
+
+        assertSame(goalProfile, template.goalProfile());
+        assertEquals(1, template.goalProfile().vanillaGoals(GoalSelectorType.TARGET).size());
+        assertEquals(
+                VanillaGoalKey.HURT_BY_TARGET,
+                template.goalProfile().vanillaGoals(GoalSelectorType.TARGET).get(0).key()
+        );
     }
 }

@@ -1,0 +1,793 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 21 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot-config                                                 [jar]
+[INFO] spigot-boot-config-spigot                                          [jar]
+[INFO] spigot-boot-commands-config-spigot                                 [jar]
+[INFO] spigot-boot-plugin-messaging-spigot                                [jar]
+[INFO] spigot-boot-placeholder-spigot                                     [jar]
+[INFO] tech.guilhermekaua.spigot-boot                                     [jar]
+[INFO] spigot-boot-data                                                   [jar]
+[INFO] spigot-boot-modules                                                [pom]
+[INFO] spigot-boot-data-jdbc                                              [jar]
+[INFO] spigot-boot-data-orm-lite                                          [jar]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_8_8                                        [jar]
+[INFO] spigot-boot-versions-v1_13_2                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] spigot-boot-versions-v1_17_1                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] spigot-boot-versions-v1_21_11                                      [jar]
+[INFO] spigot-boot-versions                                               [jar]
+[INFO] test-plugin                                                        [jar]
+[INFO] 
+[INFO] ---------< tech.guilhermekaua.spigot-boot:spigot-boot-config >----------
+[INFO] Building spigot-boot-config 2.0.2                                 [1/21]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-config ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\config\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-config ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 57 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-config ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\config\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-config ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 14 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-config ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] .--Binder + Reference Integration - 0.192 s
+[INFO] +-----Folder config item references - 0.120 s
+[INFO] |     +-- [OK] resolves folder config item root reference - 0.094 s
+[INFO] |     '-- [OK] resolves folder config item path reference - 0.004 s
+[INFO] '-----Field binding with references - 0.029 s
+[INFO]       +-- [OK] keeps non-reference values unchanged - 0.002 s
+[INFO]       +-- [OK] resolves nested object reference - 0.002 s
+[INFO]       +-- [OK] resolves string reference to string field - 0.001 s
+[INFO]       +-- [OK] resolves path reference - 0.001 s
+[INFO]       +-- [OK] resolves integer reference - 0.003 s
+[INFO]       +-- [OK] resolves reference inside map value - 0.004 s
+[INFO]       +-- [OK] resolves reference inside list element - 0.004 s
+[INFO]       '-- [OK] handles missing reference gracefully - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.binding.BindingResultTest - 0.004 s
+[INFO]    +-- [OK] withValidationErrors_isNotSuccessful - 0.002 s
+[INFO]    '-- [OK] withValidationErrors_getThrowsConfigException - 0.002 s
+[INFO] .--ConfigReferenceDependencyScanner - 0.026 s
+[INFO] +-----scanAndAddToGraph - 0.011 s
+[INFO] |     +-- [OK] builds correct load order for chain - 0.002 s
+[INFO] |     +-- [OK] still detects cycle for same-config root reference - 0.001 s
+[INFO] |     +-- [OK] adds edges to graph - 0 s
+[INFO] |     '-- [OK] does not create cycle for same-config path reference - 0 s
+[INFO] '-----scanDependencies - 0.012 s
+[INFO]       +-- [OK] finds multiple references - 0.002 s
+[INFO]       +-- [OK] deduplicates references - 0.001 s
+[INFO]       +-- [OK] finds single config reference - 0.001 s
+[INFO]       +-- [OK] ignores non-reference strings - 0.001 s
+[INFO]       +-- [OK] finds nested references - 0.001 s
+[INFO]       +-- [OK] finds folder config item reference - 0.001 s
+[INFO]       +-- [OK] finds config path reference - 0.001 s
+[INFO]       +-- [OK] finds references in lists - 0 s
+[INFO]       '-- [OK] returns empty for no references - 0.001 s
+[INFO] .--ConfigReferenceResolver - 0.041 s
+[INFO] +-----alternatives suggestions - 0.004 s
+[INFO] |     +-- [OK] suggests available config names for missing single config - 0 s
+[INFO] |     '-- [OK] suggests available item IDs for missing folder config item - 0 s
+[INFO] +-----isReference - 0.004 s
+[INFO] |     +-- [OK] returns true for valid reference - 0.002 s
+[INFO] |     '-- [OK] returns false for non-reference - 0 s
+[INFO] +-----deepResolve - 0.011 s
+[INFO] |     +-- [OK] returns same node for scalar non-reference - 0.001 s
+[INFO] |     +-- [OK] resolves references inside map children - 0.002 s
+[INFO] |     +-- [OK] resolves references in nested containers - 0.001 s
+[INFO] |     +-- [OK] resolves scalar reference - 0.001 s
+[INFO] |     +-- [OK] does not mutate original node when resolving map children - 0.001 s
+[INFO] |     +-- [OK] resolves references inside list elements - 0.001 s
+[INFO] |     '-- [OK] returns null node unchanged - 0.001 s
+[INFO] '-----resolveIfReference - 0.018 s
+[INFO]       +-- [OK] returns original node if not a reference - 0.001 s
+[INFO]       +-- [OK] resolves folder config item root reference - 0 s
+[INFO]       +-- [OK] resolves single config root reference - 0.001 s
+[INFO]       +-- [OK] returns null and calls handler for missing reference - 0.002 s
+[INFO]       +-- [OK] resolves folder config item path reference - 0.002 s
+[INFO]       +-- [OK] resolves single config path reference - 0.001 s
+[INFO]       +-- [OK] resolves nested same-config path reference chain - 0.002 s
+[INFO]       +-- [OK] detects multi-node cycle - 0.002 s
+[INFO]       +-- [OK] detects self-cycle - 0 s
+[INFO]       +-- [OK] returns original node if map - 0.001 s
+[INFO]       +-- [OK] resolves nested references when root reference points to map - 0.001 s
+[INFO]       '-- [OK] returns original node if null value - 0.001 s
+[INFO] .--DefaultConfigReferenceErrorHandler - 0.029 s
+[INFO] +-----Context Classes - 0.005 s
+[INFO] |     +-- [OK] ConfigReferenceNotFoundContext toString includes all fields - 0.001 s
+[INFO] |     +-- [OK] ConfigTypeMismatchContext toString includes all fields - 0.002 s
+[INFO] |     '-- [OK] ConfigCircularReferenceContext formatChain - 0.001 s
+[INFO] +-----onTypeMismatch - 0.006 s
+[INFO] |     +-- [OK] logs warning with field name if present - 0.002 s
+[INFO] |     +-- [OK] handles null actual value - 0.002 s
+[INFO] |     +-- [OK] returns null for type mismatch - 0.001 s
+[INFO] |     '-- [OK] logs warning with type details - 0 s
+[INFO] +-----onCircularReference - 0.007 s
+[INFO] |     +-- [OK] throws ConfigException for circular reference - 0.002 s
+[INFO] |     +-- [OK] exception message contains reference - 0.001 s
+[INFO] |     +-- [OK] exception message contains chain - 0.001 s
+[INFO] |     '-- [OK] handles folder config item in chain - 0.001 s
+[INFO] '-----onReferenceNotFound - 0.007 s
+[INFO]       +-- [OK] logs warning with field name if present - 0.002 s
+[INFO]       +-- [OK] handles folder config item source key - 0.001 s
+[INFO]       +-- [OK] logs warning with alternatives if available - 0.001 s
+[INFO]       +-- [OK] returns null for missing reference - 0 s
+[INFO]       '-- [OK] logs warning with reference details - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.test.ConfigNodeHashTest - 0.060 s
+[INFO]    +-- [OK] testNestedMaps - 0.037 s
+[INFO]    +-- [OK] testSameListContent_produceSameHash - 0.002 s
+[INFO]    +-- [OK] testListOrderMatters - 0.005 s
+[INFO]    +-- [OK] testSameMapContentDifferentOrder_produceSameHash - 0.002 s
+[INFO]    +-- [OK] testDifferentMapContent_produceDifferentHash - 0.001 s
+[INFO]    +-- [OK] testScalarValues - 0.001 s
+[INFO]    +-- [OK] testCanonicalizeFormat - 0.001 s
+[INFO]    '-- [OK] testNullValue - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.test.NamingStrategyTest - 0.008 s
+[INFO]    +-- [OK] testKebabCase_toConfig - 0.001 s
+[INFO]    +-- [OK] testSnakeCase_toJava - 0 s
+[INFO]    +-- [OK] testLowerCamel_toJava - 0 s
+[INFO]    +-- [OK] testSnakeCase_toConfig - 0.001 s
+[INFO]    +-- [OK] testKebabCase_toJava - 0 s
+[INFO]    +-- [OK] testIdentity_toJava - 0 s
+[INFO]    +-- [OK] testIdentity_toConfig - 0.001 s
+[INFO]    +-- [OK] testEmptyString - 0 s
+[INFO]    '-- [OK] testLowerCamel_toConfig - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.test.PropertyPathTest - 0.013 s
+[INFO]    +-- [OK] testParseEmpty - 0.001 s
+[INFO]    +-- [OK] testChild - 0.002 s
+[INFO]    +-- [OK] testParse - 0.001 s
+[INFO]    +-- [OK] testLast - 0.001 s
+[INFO]    +-- [OK] testRoot - 0 s
+[INFO]    +-- [OK] testToString - 0 s
+[INFO]    +-- [OK] testOf - 0.001 s
+[INFO]    +-- [OK] testLastOfRoot - 0 s
+[INFO]    +-- [OK] testParseWithIndex - 0.002 s
+[INFO]    +-- [OK] testEquals - 0 s
+[INFO]    +-- [OK] testNotEquals - 0.001 s
+[INFO]    +-- [OK] testParent - 0 s
+[INFO]    '-- [OK] testParentOfRoot - 0.002 s
+[INFO] .--tech.guilhermekaua.spigotboot.config.test.reference.ConfigReferenceParserTest - 0.151 s
+[INFO] +-----ConfigReferenceParserTest ConfigReference Value Object - 0.011 s
+[INFO] |     +-- [OK] getConfigName throws for folder config item - 0.006 s
+[INFO] |     +-- [OK] equals and hashCode work correctly for same reference - 0.001 s
+[INFO] |     +-- [OK] getFolderConfigName throws for single config - 0 s
+[INFO] |     +-- [OK] equals returns false for different references - 0.001 s
+[INFO] |     '-- [OK] toString contains useful information - 0 s
+[INFO] +-----ConfigReferenceParserTest Utility Methods - 0.004 s
+[INFO] |     +-- [OK] looksLikeReference returns true for reference-like strings - 0 s
+[INFO] |     +-- [OK] looksLikeReference returns false for non-reference strings - 0 s
+[INFO] |     +-- [OK] isValidName accepts valid names - 0.001 s
+[INFO] |     '-- [OK] isValidName rejects invalid names - 0.001 s
+[INFO] +-----ConfigReferenceParserTest Edge Cases - 0.006 s
+[INFO] |     +-- [OK] handles reference with surrounding whitespace - 0.001 s
+[INFO] |     +-- [OK] preserves raw token including whitespace trimming - 0 s
+[INFO] |     +-- [OK] handles numeric item IDs - 0.001 s
+[INFO] |     '-- [OK] distinguishes between single config and collection based on dot - 0.001 s
+[INFO] +-----ConfigReferenceParserTest Invalid References - 0.106 s
+[INFO] |     +-- [OK] rejects names with invalid special characters[1] input=${@invalid} - 0.017 s
+[INFO] |     +-- [OK] rejects names with invalid special characters[2] input=${name!special} - 0.001 s
+[INFO] |     +-- [OK] rejects path with consecutive dots - 0.001 s
+[INFO] |     +-- [OK] rejects empty path after colon - 0.001 s
+[INFO] |     +-- [OK] rejects non-reference strings - 0.001 s
+[INFO] |     +-- [OK] rejects nested braces - 0 s
+[INFO] |     +-- [OK] rejects empty collection name or item id - 0.001 s
+[INFO] |     +-- [OK] rejects reference with whitespace inside - 0 s
+[INFO] |     +-- [OK] rejects empty reference content - 0.001 s
+[INFO] |     +-- [OK] rejects path with leading or trailing dot - 0.001 s
+[INFO] |     +-- [OK] rejects names with whitespace[1] input=${name with space} - 0.001 s
+[INFO] |     +-- [OK] rejects names with whitespace[2] input=${name with tab} - 0.001 s
+[INFO] |     +-- [OK] rejects names with whitespace[3] input=${name with newline} - 0 s
+[INFO] |     '-- [OK] rejects partial reference syntax - 0.002 s
+[INFO] +-----ConfigReferenceParserTest Folder Config Item References - 0.007 s
+[INFO] |     +-- [OK] parses folder config item with nested path - 0.001 s
+[INFO] |     +-- [OK] parses folder config item root reference: ${folderConfig.itemId} - 0.002 s
+[INFO] |     '-- [OK] parses folder config item with path: ${folderConfig.itemId:path} - 0 s
+[INFO] '-----ConfigReferenceParserTest Single Config References - 0.008 s
+[INFO]       +-- [OK] parses config name with underscores and hyphens - 0.001 s
+[INFO]       +-- [OK] parses single config with simple path: ${config:key} - 0.004 s
+[INFO]       +-- [OK] parses single config root reference: ${configName} - 0 s
+[INFO]       '-- [OK] parses single config with path: ${configName:path.to.value} - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.test.reference.ReferenceKeyTest - 0.008 s
+[INFO]    +-- [OK] isSingleConfig and isFolderConfigItem work correctly - 0.001 s
+[INFO]    +-- [OK] FolderConfigItemKey equality - 0 s
+[INFO]    +-- [OK] SingleConfigKey equality - 0.001 s
+[INFO]    +-- [OK] SingleConfigKey and FolderConfigItemKey are not equal - 0.004 s
+[INFO]    '-- [OK] getDisplayName returns readable string - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.test.TypeSerializerRegistryTest - 0.008 s
+[INFO]    +-- [OK] testGetPrimitiveIntSerializer - 0.001 s
+[INFO]    +-- [OK] testGetLongSerializer - 0.001 s
+[INFO]    +-- [OK] testCreateEmpty - 0.001 s
+[INFO]    +-- [OK] testCopy - 0 s
+[INFO]    +-- [OK] testGetUnregisteredType - 0.001 s
+[INFO]    +-- [OK] testUnregisterRemovesSerializer - 0 s
+[INFO]    +-- [OK] testGetDoubleSerializer - 0.001 s
+[INFO]    +-- [OK] testGetBooleanSerializer - 0 s
+[INFO]    +-- [OK] testGetStringSerializer - 0.002 s
+[INFO]    '-- [OK] testGetIntSerializer - 0.001 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 143, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-config-spigot >------
+[INFO] Building spigot-boot-config-spigot 2.0.2                          [2/21]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\config-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-config-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-config-spigot ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 25 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-config-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\config-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-config-spigot ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 6 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-config-spigot ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.folder.FolderConfigEntryTest - 2.045 s
+[INFO]    +-- [OK] loadAll_WithEnabledField_FiltersDisabledItems - 1.411 s
+[INFO]    +-- [OK] constructor_WithNullBinder_ThrowsNPE - 0.007 s
+[INFO]    +-- [OK] loadAll_WithExcludePrefix_SkipsMatchingFiles - 0.022 s
+[INFO]    +-- [OK] loadAll_WithYamlFiles_LoadsAllItems - 0.011 s
+[INFO]    +-- [OK] saveItem_ValidIdWithDot_Succeeds - 0.025 s
+[INFO]    +-- [OK] saveItem_IdWithSlash_ReturnsFailure - 0.005 s
+[INFO]    +-- [OK] saveItem_EmptyId_ReturnsFailure - 0.006 s
+[INFO]    +-- [OK] loadAll_OrdersByField_WhenOrderBySpecified - 0.040 s
+[INFO]    +-- [OK] loadAll_WithYmlFiles_LoadsAllItems - 0.020 s
+[INFO]    +-- [OK] deleteItem_ExistingItem_DeletesAndReturnsSuccess - 0.013 s
+[INFO]    +-- [OK] constructor_WithBackslashPath_NormalizesToForwardSlash - 0.004 s
+[INFO]    +-- [OK] constructor_WithNullPlugin_ThrowsNPE - 0.005 s
+[INFO]    +-- [OK] constructor_WithNestedFolder_DerivesNameFromLastSegment - 0.005 s
+[INFO]    +-- [OK] resolveItemPath_YamlExists_PrefersYaml - 0.025 s
+[INFO]    +-- [OK] loadItem_WithExplicitIdField_InjectsId - 0.015 s
+[INFO]    +-- [OK] initialize_EmptyFolder_ReturnsEmptySnapshot - 0.007 s
+[INFO]    +-- [OK] constructor_WithNullAnnotation_ThrowsNPE - 0.003 s
+[INFO]    +-- [OK] initialize_FolderDoesNotExist_CreatesFolderAndLoadsEmpty - 0.018 s
+[INFO]    +-- [OK] reloadAll_NewFileAdded_NotifiesAddedChange - 0.049 s
+[INFO]    +-- [OK] initialize_FolderExists_LoadsItemsWithoutRecreating - 0.015 s
+[INFO]    +-- [OK] loadAll_IgnoresNonYamlFiles - 0.013 s
+[INFO]    +-- [OK] saveItem_IdWithBackslash_ReturnsFailure - 0.005 s
+[INFO]    +-- [OK] removeListener_StopsReceivingNotifications - 0.010 s
+[INFO]    +-- [OK] loadAll_SkipsDirectories - 0.012 s
+[INFO]    +-- [OK] constructor_WithNullLoader_ThrowsNPE - 0.002 s
+[INFO]    +-- [OK] loadAll_OrdersByFilename_DefaultBehavior - 0.031 s
+[INFO]    +-- [OK] saveItem_ValidIdWithHyphen_Succeeds - 0.009 s
+[INFO]    +-- [OK] saveItem_IdWithDoubleDot_ReturnsFailure - 0.006 s
+[INFO]    +-- [OK] saveItem_NullId_ReturnsFailure - 0.005 s
+[INFO]    +-- [OK] saveItem_ValidId_SavesAndReturnsSuccess - 0.013 s
+[INFO]    +-- [OK] saveItem_ValidIdWithUnderscore_Succeeds - 0.012 s
+[INFO]    +-- [OK] reloadItem_ItemRemoved_RemovesAndNotifies - 0.011 s
+[INFO]    +-- [OK] constructor_WithNullItemType_ThrowsNPE - 0.005 s
+[INFO]    +-- [OK] constructor_WithValidParameters_CreatesEntry - 0.004 s
+[INFO]    +-- [OK] addListener_ReceivesNotifications - 0.009 s
+[INFO]    +-- [OK] loadAll_FolderDoesNotExist_SetsEmptySnapshot - 0.004 s
+[INFO]    +-- [OK] constructor_WithTrailingSlash_IgnoresSlash - 0.003 s
+[INFO]    +-- [OK] deleteItem_NonExistentItem_ReturnsFailure - 0.005 s
+[INFO]    +-- [OK] loadItem_WithNodeKeyField_InjectsId - 0.011 s
+[INFO]    +-- [OK] saveItem_IdWithSpecialChars_ReturnsFailure - 0.005 s
+[INFO]    +-- [OK] reloadAll_FileRemoved_NotifiesRemovedChange - 0.013 s
+[INFO]    +-- [OK] copyItem_ValidItem_ReturnsDeepCopy - 0.005 s
+[INFO]    +-- [OK] loadAll_WithEmptyExcludePrefix_LoadsAll - 0.018 s
+[INFO]    +-- [OK] deleteItem_ExistingItem_NotifiesRemoved - 0.009 s
+[INFO]    +-- [OK] constructor_WithExplicitName_UsesProvidedName - 0.005 s
+[INFO]    +-- [OK] reloadItem_ItemDoesNotExist_AddsItem - 0.017 s
+[INFO]    +-- [OK] loadAll_WithEmptyEnabledField_ReturnsAllAsEnabled - 0.027 s
+[INFO]    +-- [OK] saveItem_NewItem_NotifiesAdded - 0.009 s
+[INFO]    '-- [OK] constructor_WithEmptyName_DerivesNameFromFolder - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.loader.YamlConfigLoaderTest - 0.332 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: contains-inline-comment - 0.026 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: ends-with-colon - 0.013 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: ends-with-colon-space - 0.011 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: leading-space - 0.011 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: trailing-space - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: flow-empty-list - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: flow-empty-map - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeListSpecialScalar_roundTripsAsString(String, String) list item round-trip keeps scalar string: comma-only - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: contains-inline-comment - 0.009 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: ends-with-colon - 0.011 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: ends-with-colon-space - 0.010 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: leading-space - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: trailing-space - 0.011 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: flow-empty-list - 0.012 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: flow-empty-map - 0.017 s
+[INFO]    +-- [OK] save_yamlConfigNodeMapSpecialScalar_roundTripsAsString(String, String) map value round-trip keeps scalar string: comma-only - 0.017 s
+[INFO]    +-- [OK] save_scalarWithMidStringHash_roundTripsCorrectly - 0.020 s
+[INFO]    +-- [OK] save_scalarWithColon_roundTripsCorrectly - 0.013 s
+[INFO]    +-- [OK] save_scalarWithHash_roundTripsCorrectly - 0.011 s
+[INFO]    +-- [OK] save_plainScalar_roundTripsCorrectly - 0.010 s
+[INFO]    '-- [OK] save_scalarBooleanLikeString_roundTripsCorrectly - 0.010 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.manager.SpigotConfigManagerTest - 0.112 s
+[INFO]    +-- [OK] registerFolderConfig_WhenDifferentTypesShareSameName_ThrowsConfigExceptionAndKeepsOriginalEntry - 0.021 s
+[INFO]    +-- [OK] getByPath_WhenSingleConfigWithoutPrefix_ReturnsValue - 0.015 s
+[INFO]    +-- [OK] getByPath_WhenMultipleConfigsWithPrefix_ReturnsValueFromRequestedConfig - 0.020 s
+[INFO]    +-- [OK] get_WhenConfigIsNotRegistered_ThrowsConfigException - 0.003 s
+[INFO]    +-- [OK] registerFolderConfig_WhenSameTypeAndNameRegisteredTwice_ThrowsConfigExceptionAndKeepsOriginalEntry - 0.006 s
+[INFO]    +-- [OK] get_WhenConfigIsInitialized_ReturnsInstance - 0.008 s
+[INFO]    +-- [OK] get_WhenConfigIsRegisteredButNotInitialized_ThrowsConfigException - 0.004 s
+[INFO]    +-- [OK] getByPath_WhenMultipleConfigsWithoutPrefix_ThrowsAmbiguousLookupException - 0.008 s
+[INFO]    +-- [OK] register_WhenSameClassRegisteredTwice_ThrowsConfigException - 0.004 s
+[INFO]    '-- [OK] register_WhenDifferentClassesShareSameConfigName_ThrowsConfigExceptionAndKeepsOriginalMapping - 0.016 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.node.YamlConfigNodeTest - 0.004 s
+[INFO]    +-- [OK] remove_fromMapParent_removesEntryFromParent - 0.001 s
+[INFO]    +-- [OK] appendListItem_onScalarNode_listVisibleFromRoot - 0 s
+[INFO]    +-- [OK] remove_fromListParent_removesElementFromParent - 0.001 s
+[INFO]    +-- [OK] appendListItem_onVirtualNode_listVisibleFromRoot - 0 s
+[INFO]    '-- [OK] appendListItem_onExistingList_itemVisibleFromRoot - 0 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.proxy.ConfigProxyTest - 0.050 s
+[INFO]    +-- [OK] equals_WithOverride_DelegatesToCurrentConfig - 0.039 s
+[INFO]    +-- [OK] hashCode_WithOverride_DelegatesToCurrentConfig - 0.001 s
+[INFO]    +-- [OK] equals_WithNonProxyObject_ReturnsFalse - 0.004 s
+[INFO]    +-- [OK] toString_WithDefaultObjectMethod_IsIntercepted - 0.001 s
+[INFO]    +-- [OK] equals_WithSameInstance_ReturnsTrue - 0 s
+[INFO]    +-- [OK] equals_WithNull_ReturnsFalse - 0.001 s
+[INFO]    +-- [OK] toString_WithOverride_DelegatesToCurrentConfig - 0 s
+[INFO]    +-- [OK] hashCode_WithDefaultObjectMethod_IsIntercepted - 0 s
+[INFO]    '-- [OK] equals_WithDifferentProxyInstance_ReturnsFalse - 0.002 s
+[INFO] ---tech.guilhermekaua.spigotboot.config.spigot.test.registry.ConfigRegistryTest - 0.203 s
+[INFO]    +-- [OK] testProcessConfigClass_WithEmptyConfig - 0.162 s
+[INFO]    +-- [OK] testProcessConfigClass_WhenConfigManagerThrows_PropagatesException - 0.006 s
+[INFO]    +-- [OK] testValidateConfigClass_WithProtectedField_ThrowsException - 0.002 s
+[INFO]    +-- [OK] testProcessConfigClass_WithValidConfig - 0.004 s
+[INFO]    +-- [OK] testValidateConfigClass_WithPackagePrivateField_ThrowsException - 0.002 s
+[INFO]    +-- [OK] testProcessConfigClass_WithPrimaryConfig - 0.005 s
+[INFO]    +-- [OK] testProcessConfigClass_WithNestedConfig - 0.005 s
+[INFO]    +-- [OK] testValidateConfigClass_WithPublicField_ThrowsException - 0.001 s
+[INFO]    +-- [OK] testProcessConfigClass_ConfigExceptionNotWrapped - 0.002 s
+[INFO]    +-- [OK] testConfigRegistryIsComponent - 0.003 s
+[INFO]    +-- [OK] testProcessConfigClass_WithQualifiedConfig - 0.005 s
+[INFO]    '-- [OK] testFieldModifierValidation - 0.001 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 106, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --< tech.guilhermekaua.spigot-boot:spigot-boot-commands-config-spigot >--
+[INFO] Building spigot-boot-commands-config-spigot 2.0.2                 [3/21]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\commands-config-spigot\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-commands-config-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-commands-config-spigot ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 3 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-commands-config-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\commands-config-spigot\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-commands-config-spigot ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 1 source file with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-commands-config-spigot ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.commands.config.spigot.test.ConfigBackedCommandTextResolverTest - 1.313 s
+[INFO]    +-- [OK] deepResolvesNestedConfigReferencesBeforeStringifying - 1.172 s
+[INFO]    +-- [OK] failsWhenReferenceIsMissing - 0.021 s
+[INFO]    +-- [OK] failsWhenReferenceResolvesToNonScalarValue - 0.026 s
+[INFO]    +-- [OK] failsWhenTokenIsInvalid - 0.012 s
+[INFO]    +-- [OK] failsWhenConfigManagerIsMissing - 0.006 s
+[INFO]    +-- [OK] resolvesConfigReferencesAcrossCommandMetadata - 0.021 s
+[INFO]    '-- [OK] resolvesFolderConfigItemReferencesInsideCommandText - 0.026 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --< tech.guilhermekaua.spigot-boot:spigot-boot-plugin-messaging-spigot >--
+[INFO] Building spigot-boot-plugin-messaging-spigot 2.0.2                [4/21]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\pmc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-plugin-messaging-spigot ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---< tech.guilhermekaua.spigot-boot:spigot-boot-placeholder-spigot >----
+[INFO] Building spigot-boot-placeholder-spigot 2.0.2                     [5/21]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\placeholder\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-placeholder-spigot ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-placeholder-spigot ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 13 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/platform-spigot/placeholder/src/main/java/tech/guilhermekaua/spigotboot/placeholder/papi/PAPIExpansion.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\placeholder\src\main\java\tech\guilhermekaua\spigotboot\placeholder\papi\PAPIExpansion.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/platform-spigot/placeholder/src/main/java/tech/guilhermekaua/spigotboot/placeholder/papi/PAPIExpansion.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-placeholder-spigot ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\placeholder\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-placeholder-spigot ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 5 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-placeholder-spigot ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManagerTest - 0.091 s
+[INFO]    +-- [OK] testConvert_doubleArray - 0.031 s
+[INFO]    +-- [OK] testConvert_stringArray - 0.002 s
+[INFO]    +-- [OK] testConvert_booleanArray - 0 s
+[INFO]    +-- [OK] testConvert_integerArray - 0.001 s
+[INFO]    +-- [OK] testConvert_floatArray - 0.002 s
+[INFO]    +-- [OK] testConvert_longArray - 0.001 s
+[INFO]    +-- [OK] testRegisterConverter_duplicate_throws - 0.003 s
+[INFO]    +-- [OK] testConvert_characterArray - 0.002 s
+[INFO]    +-- [OK] testConvert_boolean - 0 s
+[INFO]    +-- [OK] testConvert_float - 0.002 s
+[INFO]    +-- [OK] testConvert_short - 0.001 s
+[INFO]    +-- [OK] testConvert_invalidType_throws - 0.003 s
+[INFO]    +-- [OK] testConvert_character - 0.001 s
+[INFO]    +-- [OK] testConvert_double - 0.002 s
+[INFO]    +-- [OK] testConvert_string - 0 s
+[INFO]    +-- [OK] testRegisterConverter_andConvert_customType - 0.001 s
+[INFO]    +-- [OK] testConvert_byteArray - 0.002 s
+[INFO]    +-- [OK] testConvert_shortArray - 0 s
+[INFO]    +-- [OK] testConvert_integer - 0.001 s
+[INFO]    +-- [OK] testConvert_byte - 0.001 s
+[INFO]    '-- [OK] testConvert_long - 0.001 s
+[INFO] ---tech.guilhermekaua.spigotboot.placeholder.metadata.parser.PlacedholderParameterParserTest - 0.044 s
+[INFO]    +-- [OK] testOptionalPlaceholderAbsent - 0.005 s
+[INFO]    +-- [OK] testOptionalPlaceholderAtStartPresent - 0.001 s
+[INFO]    +-- [OK] testPlaceholderAtStartAndEnd - 0.001 s
+[INFO]    +-- [OK] testSimpleMultiplePlaceholders - 0 s
+[INFO]    +-- [OK] testOptionalPlaceholderAtStartAbsent - 0 s
+[INFO]    +-- [OK] testMatches_NonEmptyPatternEmptyValue_OptionalPlaceholderOnly_Parses - 0.001 s
+[INFO]    +-- [OK] testMatches_OptionalAbsentNoMatchStructure_ShouldBeInvalid - 0.001 s
+[INFO]    +-- [OK] testMatches_EmptyPatternNonEmptyValue_ShouldBeInvalid - 0 s
+[INFO]    +-- [OK] testMatches_PlaceholderAtStartAndEnd_NoMatch_ShouldBeInvalid - 0.001 s
+[INFO]    +-- [OK] testOptionalPlaceholderAtEndPresent - 0.002 s
+[INFO]    +-- [OK] testOptionalPlaceholderAtEndAbsent - 0 s
+[INFO]    +-- [OK] testEmptyPattern - 0 s
+[INFO]    +-- [OK] testMatches_SimpleNoMatch_ShouldBeInvalid - 0 s
+[INFO]    +-- [OK] testMatches_LiteralPatternNoMatch_ShouldBeInvalid - 0.001 s
+[INFO]    +-- [OK] testEmptyActualValue - 0.003 s
+[INFO]    +-- [OK] testEmptyPatternAndEmptyActualValue - 0.002 s
+[INFO]    +-- [OK] testPatternWithNoPlaceholdersNoMatch - 0.003 s
+[INFO]    +-- [OK] testPatternWithNoPlaceholders - 0.001 s
+[INFO]    +-- [OK] testOptionalPlaceholderPresent - 0.001 s
+[INFO]    '-- [OK] testNoMatch - 0.001 s
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadataTest - 1.120 s
+[INFO]    +-- [XX] testGetValue_withPlayerAndStringParam - 1.042 s
+[INFO]    +-- [XX] testGetValue_withParamAnnotation - 0.027 s
+[INFO]    '-- [XX] testGetValue_invocationException - 0.035 s
+[INFO] ---tech.guilhermekaua.spigotboot.placeholder.papi.PAPIExpansionTest - 0.232 s
+[INFO]    +-- [XX] testOnPlaceholderRequest_invalidPlaceholder - 0.040 s
+[INFO]    +-- [XX] testGetIdentifier - 0.035 s
+[INFO]    +-- [XX] testGetVersion - 0.038 s
+[INFO]    +-- [XX] testOnPlaceholderRequest_notPlaceholderApi - 0.033 s
+[INFO]    +-- [XX] testGetAuthor - 0.038 s
+[INFO]    '-- [XX] testOnPlaceholderRequest_validPlaceholder - 0.033 s
+[INFO] ---tech.guilhermekaua.spigotboot.placeholder.PlaceholderModuleTest - 0.872 s
+[INFO]    +-- [XX] testDisableEntry_DoesNotUnregisterIfPluginDisabled - 0.827 s
+[INFO]    +-- [XX] testInitialize_PlaceholderApiPresent - 0.014 s
+[INFO]    +-- [XX] testDisableEntry_UnregistersIfPluginEnabled - 0.012 s
+[INFO]    '-- [XX] testInitialize_PlaceholderApiAbsent - 0.011 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   PlaceholderModuleTest.setUp:49 ╗ IllegalState No jar file selected
+[ERROR]   PlaceholderModuleTest.setUp:49 ╗ IllegalState No jar file selected
+[ERROR]   PlaceholderModuleTest.setUp:49 ╗ IllegalState No jar file selected
+[ERROR]   PlaceholderModuleTest.setUp:49 ╗ IllegalState No jar file selected
+[ERROR]   PlaceholderMetadataTest.testGetValue_invocationException ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager, class java.lang.Object]
+[ERROR]   PlaceholderMetadataTest.testGetValue_withParamAnnotation ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager, class java.lang.Object]
+[ERROR]   PlaceholderMetadataTest.testGetValue_withPlayerAndStringParam ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testGetAuthor ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testGetIdentifier ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testGetVersion ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testOnPlaceholderRequest_invalidPlaceholder ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testOnPlaceholderRequest_notPlaceholderApi ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[ERROR]   PAPIExpansionTest.testOnPlaceholderRequest_validPlaceholder ╗ Mockito 
+Mockito cannot mock this class: class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry.
+
+If you're not sure why you're getting this error, please open an issue on GitHub.
+
+
+Java               : 23
+JVM vendor name    : Amazon.com Inc.
+JVM vendor version : 23.0.2+7-FR
+JVM name           : OpenJDK 64-Bit Server VM
+JVM version        : 23.0.2+7-FR
+JVM info           : mixed mode, sharing
+OS name            : Windows 11
+OS version         : 10.0
+
+
+You are seeing this disclaimer because Mockito is configured to create inlined mocks.
+You can learn about inline mocks and their limitations under item #39 of the Mockito class javadoc.
+
+Underlying exception : org.mockito.exceptions.base.MockitoException: Could not modify all classes [class tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry, class java.lang.Object]
+[INFO] 
+[ERROR] Tests run: 54, Failures: 0, Errors: 13, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot-config 2.0.2:
+[INFO] 
+[INFO] spigot-boot-config ................................. SUCCESS [  8.052 s]
+[INFO] spigot-boot-config-spigot .......................... SUCCESS [  7.710 s]
+[INFO] spigot-boot-commands-config-spigot ................. SUCCESS [  4.474 s]
+[INFO] spigot-boot-plugin-messaging-spigot ................ SUCCESS [  0.096 s]
+[INFO] spigot-boot-placeholder-spigot ..................... FAILURE [  5.794 s]
+[INFO] tech.guilhermekaua.spigot-boot ..................... SKIPPED
+[INFO] spigot-boot-data ................................... SKIPPED
+[INFO] spigot-boot-modules ................................ SKIPPED
+[INFO] spigot-boot-data-jdbc .............................. SKIPPED
+[INFO] spigot-boot-data-orm-lite .......................... SKIPPED
+[INFO] spigot-boot-versions-parent ........................ SKIPPED
+[INFO] spigot-boot-versions-api ........................... SKIPPED
+[INFO] spigot-boot-versions-runtime ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_8_8 ........................ SKIPPED
+[INFO] spigot-boot-versions-v1_13_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_16_5 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_17_1 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_19_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_21_11 ...................... SKIPPED
+[INFO] spigot-boot-versions ............................... SKIPPED
+[INFO] test-plugin ........................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  26.847 s
+[INFO] Finished at: 2026-04-17T14:58:52-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.3:test (default-test) on project spigot-boot-placeholder-spigot: 
+[ERROR] 
+[ERROR] See C:\Users\Guilherme\IdeaProjects\spigot-boot\platform-spigot\placeholder\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :spigot-boot-placeholder-spigot

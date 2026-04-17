@@ -27,17 +27,31 @@ class EntityScenarioRegistrationTest {
 
     @Test
     void scenarioRegistry_exposesAllPlannedScenarioIdsAndExactAssertionKeys() {
-        EntityDemoService service = new EntityDemoService();
+        EntityDemoService service = new EntityDemoService(null);
 
         assertEquals(
                 new LinkedHashSet<String>(Arrays.asList(
                         "orbit",
                         "deathfx-cow",
+                        "deathfx-passive-family",
                         "metadata-dirty-zombie",
                         "viewer-cycle-zombie",
+                        "viewer-cycle-special-family",
                         "attach-existing-zombie"
                 )),
                 service.scenarioIds()
+        );
+        assertEquals(
+                new LinkedHashSet<String>(Arrays.asList(
+                        "pass",
+                        "passCount",
+                        "failCount",
+                        "selectedBaseType",
+                        "aiReactedAfterHit",
+                        "deathEffectCount",
+                        "duplicateRegistrationErrors"
+                )),
+                service.assertionKeys("deathfx-passive-family")
         );
         assertEquals(
                 new LinkedHashSet<String>(Arrays.asList(
@@ -52,7 +66,24 @@ class EntityScenarioRegistrationTest {
         assertEquals(
                 new LinkedHashSet<String>(Arrays.asList(
                         "pass",
+                        "passCount",
+                        "failCount",
+                        "selectedBaseType",
+                        "viewerAddCount",
+                        "viewerRemoveCount",
+                        "spawnCount",
+                        "destroyCount"
+                )),
+                service.assertionKeys("viewer-cycle-special-family")
+        );
+        assertEquals(
+                new LinkedHashSet<String>(Arrays.asList(
+                        "pass",
+                        "passCount",
+                        "failCount",
+                        "selectedBaseType",
                         "attachCount",
+                        "controllerTickObserved",
                         "duplicateSpawnCount",
                         "entityIdStable",
                         "trackerRebound"
@@ -67,6 +98,9 @@ class EntityScenarioRegistrationTest {
 
         Map<String, Object> assertions = new LinkedHashMap<String, Object>();
         assertions.put("pass", Boolean.TRUE);
+        assertions.put("passCount", Integer.valueOf(1));
+        assertions.put("failCount", Integer.valueOf(0));
+        assertions.put("selectedBaseType", "ARMOR_STAND");
         assertions.put("viewerAddCount", Integer.valueOf(1));
         assertions.put("viewerRemoveCount", Integer.valueOf(1));
         assertions.put("spawnCount", Integer.valueOf(1));
@@ -75,9 +109,9 @@ class EntityScenarioRegistrationTest {
         Map<String, Object> traceEntry = new LinkedHashMap<String, Object>();
         traceEntry.put("event", "viewer-added");
 
-        EntityScenarioArtifacts.write("viewer-cycle-zombie", Collections.singletonList(traceEntry), assertions);
+        EntityScenarioArtifacts.write("viewer-cycle-special-family", Collections.singletonList(traceEntry), assertions);
 
-        Path outputDirectory = Path.of("target", "entity-matrix", "unit-test-server", "viewer-cycle-zombie");
+        Path outputDirectory = Path.of("target", "entity-matrix", "unit-test-server", "viewer-cycle-special-family");
         Path traceFile = outputDirectory.resolve("trace.json");
         Path assertionsFile = outputDirectory.resolve("assertions.json");
         assertTrue(Files.exists(traceFile));
@@ -85,8 +119,11 @@ class EntityScenarioRegistrationTest {
 
         String traceJson = Files.readString(traceFile);
         String assertionsJson = Files.readString(assertionsFile);
-        assertTrue(traceJson.contains("\"scenario\":\"viewer-cycle-zombie\""));
+        assertTrue(traceJson.contains("\"scenario\":\"viewer-cycle-special-family\""));
         assertTrue(traceJson.contains("\"server\":\"unit-test-server\""));
+        assertTrue(assertionsJson.contains("\"passCount\":1"));
+        assertTrue(assertionsJson.contains("\"failCount\":0"));
+        assertTrue(assertionsJson.contains("\"selectedBaseType\":\"ARMOR_STAND\""));
         assertTrue(assertionsJson.contains("\"viewerAddCount\":1"));
         assertTrue(assertionsJson.contains("\"viewerRemoveCount\":1"));
         assertTrue(assertionsJson.contains("\"spawnCount\":1"));

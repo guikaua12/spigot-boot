@@ -1,0 +1,58 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 1 modules
+[INFO] Installing Central Publishing features
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:test-plugin >-------------
+[INFO] Building test-plugin 2.0.2
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ test-plugin ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ test-plugin ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ test-plugin ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 12 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/test-plugin/src/main/java/tech/guilhermekaua/spigotboot/testPlugin/services/EntityDemoService.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\main\java\tech\guilhermekaua\spigotboot\testPlugin\services\EntityDemoService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/test-plugin/src/main/java/tech/guilhermekaua/spigotboot/testPlugin/services/EntityDemoService.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/test-plugin/src/main/java/tech/guilhermekaua/spigotboot/testPlugin/services/EntityDemoService.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\main\java\tech\guilhermekaua\spigotboot\testPlugin\services\EntityDemoService.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/test-plugin/src/main/java/tech/guilhermekaua/spigotboot/testPlugin/services/EntityDemoService.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ test-plugin ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\test-plugin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ test-plugin ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 6 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ test-plugin ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.testPlugin.services.EntityDemoServiceRecorderContractTest - 0.155 s
+[INFO]    '-- [OK] controllerTickObserved_defaultsToFalseAtCompletion_whenNeverSet_andStillMarksFail - 0.130 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.274 s
+[INFO] Finished at: 2026-04-16T20:31:30-03:00
+[INFO] ------------------------------------------------------------------------

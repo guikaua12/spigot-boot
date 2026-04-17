@@ -51,9 +51,13 @@ import tech.guilhermekaua.spigotboot.versions.runtime.publication.EntityPublicat
 import tech.guilhermekaua.spigotboot.versions.runtime.publication.EntityPublicationBackendResolver;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionNetworkMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionBindings;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportMetadata;
+import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionGoalSupportProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.model.VersionMetadataProvider;
 import tech.guilhermekaua.spigotboot.versions.runtime.registry.EntityTemplateRegistry;
 import tech.guilhermekaua.spigotboot.versions.runtime.network.metadata.EntityNetworkMetadataContract;
+import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityGoalSupportBundle;
+import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityGoalSupportBundleSelector;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityNetworkRuntimeBundle;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityNetworkRuntimeBundleSelector;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityStrategyBundleSelector;
@@ -81,6 +85,7 @@ public final class VersionedPlatform {
     private final EntityTransport transport;
     private final EntityPublicationBackend publicationBackend;
     private final EntityStrategyBundle strategies;
+    private final EntityGoalSupportBundle goalSupport;
 
     /**
      * Creates a new resolved platform.
@@ -121,6 +126,11 @@ public final class VersionedPlatform {
         this.transport = EntityTransportResolver.resolve(runtimeProfile, networkRuntime, adapter, networkMetadataContract);
         this.publicationBackend = EntityPublicationBackendResolver.resolve(networkRuntime);
         this.strategies = EntityStrategyBundleSelector.select(minecraftVersion, capabilities, bindings);
+        this.goalSupport = EntityGoalSupportBundleSelector.select(
+                minecraftVersion,
+                resolveGoalSupportMetadata(adapter),
+                resolveGoalSupportProvider(adapter)
+        );
     }
 
     /**
@@ -191,6 +201,10 @@ public final class VersionedPlatform {
      */
     public @NotNull EntityStrategyBundle strategies() {
         return strategies;
+    }
+
+    final @NotNull EntityGoalSupportBundle goalSupport() {
+        return goalSupport;
     }
 
     /**
@@ -288,7 +302,8 @@ public final class VersionedPlatform {
                         minecraftVersion,
                         nullController(),
                         transport,
-                        publicationBackend
+                        publicationBackend,
+                        goalSupport.createAttachedExecutor(resolveBaseType(entity), entity, minecraftVersion)
                 );
         ControlledEntity<T> attached = strategies.replacement().attach(adapter, entity, lifecycle);
         attachRegistryCleanup(attached);
@@ -466,7 +481,8 @@ public final class VersionedPlatform {
                 spawnOptions,
                 minecraftVersion,
                 transport,
-                publicationBackend
+                publicationBackend,
+                goalSupport.createSpawnExecutor(typedTemplate, spawnOptions, minecraftVersion)
         );
         SpawnedEntity<T> entity = strategies.freshSpawn().spawn(adapter, typedTemplate, spawnOptions, lifecycle);
         registerIfHooked(entity);
@@ -494,6 +510,20 @@ public final class VersionedPlatform {
             return ((VersionNetworkMetadataProvider) adapter).entityNetworkMetadataContract();
         }
         return EntityNetworkMetadataContract.unspecified();
+    }
+
+    private static @NotNull VersionGoalSupportMetadata resolveGoalSupportMetadata(@NotNull VersionAdapter adapter) {
+        if (adapter instanceof VersionGoalSupportProvider) {
+            return ((VersionGoalSupportProvider) adapter).entityGoalSupportMetadata();
+        }
+        return VersionGoalSupportMetadata.unspecified();
+    }
+
+    private static @Nullable VersionGoalSupportProvider resolveGoalSupportProvider(@NotNull VersionAdapter adapter) {
+        if (adapter instanceof VersionGoalSupportProvider) {
+            return (VersionGoalSupportProvider) adapter;
+        }
+        return null;
     }
 
     private void requireSupportedBaseType(@NotNull CustomEntityBaseType baseType) {

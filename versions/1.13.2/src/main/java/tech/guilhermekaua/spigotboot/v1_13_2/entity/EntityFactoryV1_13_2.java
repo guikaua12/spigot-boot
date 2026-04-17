@@ -61,6 +61,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,10 +112,16 @@ public final class EntityFactoryV1_13_2
             EntityStrategyBundleSelector.requireLegacyReplacementStrategy(ENTITY_STRATEGY_BUNDLE.replacement());
     private static final GeneratedNativeEntityClassFactory CLASS_FACTORY = new GeneratedNativeEntityClassFactory();
     private static final EntityHookBinderV1_13_2 HOOK_BINDER = new EntityHookBinderV1_13_2();
+    private static final EnumSet<CustomEntityBaseType> PERMANENT_EXCLUDED_BASE_TYPES = EnumSet.of(
+            CustomEntityBaseType.UNKNOWN,
+            CustomEntityBaseType.PLAYER,
+            CustomEntityBaseType.WEATHER,
+            CustomEntityBaseType.COMPLEX_PART
+    );
+    private static final Map<CustomEntityBaseType, EntityMetadata> METADATA_REGISTRY = createMetadataRegistry();
     private static final Map<Class<?>, ResolvedEntityTypeMetadata> GENERATED_ENTITY_TYPES =
             new LinkedHashMap<Class<?>, ResolvedEntityTypeMetadata>();
 
-    private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
     private final Map<CustomEntityBaseType, ResolvedSpawnMetadata> spawnMetadataRegistry =
             new LinkedHashMap<CustomEntityBaseType, ResolvedSpawnMetadata>();
     private final Map<UUID, ControlledEntity<?>> attachedEntities = new LinkedHashMap<UUID, ControlledEntity<?>>();
@@ -140,7 +147,7 @@ public final class EntityFactoryV1_13_2
     @Override
     public boolean supports(@NotNull CustomEntityBaseType baseType) {
         Objects.requireNonNull(baseType, "baseType cannot be null");
-        return metadataRegistry.containsKey(baseType);
+        return METADATA_REGISTRY.containsKey(baseType);
     }
 
     @Override
@@ -162,7 +169,7 @@ public final class EntityFactoryV1_13_2
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(lifecycle, "lifecycle cannot be null");
-        requireSupportedBaseType(resolveBaseType(entity));
+        requireAdvertisedSupportedBaseType(resolveBaseType(entity), "attach");
 
         ControlledEntity<?> existing = attachedEntities.get(entity.getUniqueId());
         if (existing != null && !existing.isRemoved() && existing.bukkitEntity().equals(entity)) {
@@ -253,7 +260,7 @@ public final class EntityFactoryV1_13_2
     ) {
         Objects.requireNonNull(entity, "entity cannot be null");
         Objects.requireNonNull(currentNativeHandle, "currentNativeHandle cannot be null");
-        requireSupportedBaseType(resolveBaseType(entity));
+        requireAdvertisedSupportedBaseType(resolveBaseType(entity), "replacement");
         return new LegacyReplacementStrategy_1_8_to_1_12.PreparedReplacement(
                 new ReplacementMetadata(currentNativeHandle.getClass())
         );
@@ -614,19 +621,37 @@ public final class EntityFactoryV1_13_2
     }
 
     private @NotNull EntityMetadata requireMetadata(@NotNull CustomEntityBaseType baseType) {
-        EntityMetadata metadata = metadataRegistry.get(baseType);
+        requireAdvertisedSupportedBaseType(baseType, "spawn and attach");
+        EntityMetadata metadata = METADATA_REGISTRY.get(baseType);
         if (metadata == null) {
-            throw new UnsupportedOperationException(
-                    "Minecraft " + SUPPORTED_FAMILY + " does not support spawn and attach for base type '" + baseType + "'."
+            throw new IllegalStateException(
+                    "Minecraft " + SUPPORTED_FAMILY + " did not register metadata for supported base type '" + baseType + "'."
             );
         }
         return metadata;
     }
 
     private static @NotNull Map<CustomEntityBaseType, EntityMetadata> createMetadataRegistry() {
-        Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
-        metadata.put(CustomEntityBaseType.ZOMBIE, new EntityMetadata(CustomEntityBaseType.ZOMBIE, EntityType.ZOMBIE));
+        Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<>();
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            EntityType entityType = baseType.entityTypeOrNull();
+            if (entityType == null || entityType.getEntityClass() == null) {
+                continue;
+            }
+
+            if (PERMANENT_EXCLUDED_BASE_TYPES.contains(baseType)) {
+                continue;
+            }
+
+            metadata.put(baseType, new EntityMetadata(baseType, entityType));
+        }
         return metadata;
+//        Map<CustomEntityBaseType, EntityMetadata> metadata = new LinkedHashMap<CustomEntityBaseType, EntityMetadata>();
+//        for (CustomEntityBaseType baseType : ADVERTISED_SUPPORTED_BASE_TYPES) {
+//            requireExplicitlyAllowedBaseType(baseType);
+//            metadata.put(baseType, new EntityMetadata(baseType, requireEntityType(baseType)));
+//        }
+//        return metadata;
     }
 
     private static @NotNull Entity spawnVanillaEntity(
@@ -659,10 +684,10 @@ public final class EntityFactoryV1_13_2
         return baseType;
     }
 
-    private static void requireSupportedBaseType(@NotNull CustomEntityBaseType baseType) {
-        if (baseType != CustomEntityBaseType.ZOMBIE) {
+    private static void requireAdvertisedSupportedBaseType(@NotNull CustomEntityBaseType baseType, @NotNull String action) {
+        if (!METADATA_REGISTRY.containsKey(baseType)) {
             throw new UnsupportedOperationException(
-                    "Minecraft " + SUPPORTED_FAMILY + " does not support attach for base type '" + baseType + "'."
+                    "Minecraft " + SUPPORTED_FAMILY + " does not support " + action + " for base type '" + baseType + "'."
             );
         }
     }

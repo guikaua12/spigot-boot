@@ -1,0 +1,64 @@
+diff --git a/versions/api/src/main/java/tech/guilhermekaua/spigotboot/entity/api/CustomEntityDefinition.java "b/.sisyphus\\drafts\\remove-ai-slops-feat-nms2-20260413T114851\\versions__api__src__main__java__tech__guilhermekaua__spigotboot__entity__api__CustomEntityDefinition_java.before"
+index eb75938..9ce233a 100644
+--- a/versions/api/src/main/java/tech/guilhermekaua/spigotboot/entity/api/CustomEntityDefinition.java
++++ "b/.sisyphus\\drafts\\remove-ai-slops-feat-nms2-20260413T114851\\versions__api__src__main__java__tech__guilhermekaua__spigotboot__entity__api__CustomEntityDefinition_java.before"
+@@ -83,7 +83,12 @@ public final class CustomEntityDefinition<T extends Entity> {
+      * @return the controller factory
+      */
+     public @NotNull EntityControllerFactory<T> controllerFactory() {
+-        return template.controllerFactory()::create;
++        return new EntityControllerFactory<T>() {
++            @Override
++            public @NotNull EntityController<T> create(@NotNull CustomEntitySpawnContext<T> context) {
++                return template.controllerFactory().create(context);
++            }
++        };
+     }
+ 
+     /**
+@@ -92,7 +97,12 @@ public final class CustomEntityDefinition<T extends Entity> {
+      * @return the initializer
+      */
+     public @NotNull CustomEntityInitializer<T> initializer() {
+-        return template.initializer()::initialize;
++        return new CustomEntityInitializer<T>() {
++            @Override
++            public void initialize(@NotNull CustomEntityContext<T> context) {
++                template.initializer().initialize(context);
++            }
++        };
+     }
+ 
+     /**
+@@ -118,7 +128,7 @@ public final class CustomEntityDefinition<T extends Entity> {
+     ) {
+         Objects.requireNonNull(id, "id cannot be null");
+         Objects.requireNonNull(baseType, "baseType cannot be null");
+-        return new Builder<>(EntityTemplate.builder(id, baseType));
++        return new Builder<T>(EntityTemplate.builder(id, baseType));
+     }
+ 
+     /**
+@@ -135,11 +145,11 @@ public final class CustomEntityDefinition<T extends Entity> {
+     ) {
+         Objects.requireNonNull(id, "id cannot be null");
+         Objects.requireNonNull(entityType, "entityType cannot be null");
+-        return new Builder<>(EntityTemplate.builder(id, entityType));
++        return new Builder<T>(EntityTemplate.builder(id, entityType));
+     }
+ 
+     public static <T extends Entity> @NotNull CustomEntityDefinition<T> fromTemplate(@NotNull EntityTemplate<T> template) {
+-        return new CustomEntityDefinition<>(template);
++        return new CustomEntityDefinition<T>(template);
+     }
+ 
+     /**
+@@ -187,7 +197,7 @@ public final class CustomEntityDefinition<T extends Entity> {
+             if (!controllerFactorySet) {
+                 throw new IllegalStateException("controllerFactory cannot be null");
+             }
+-            return new CustomEntityDefinition<>(delegate.build());
++            return new CustomEntityDefinition<T>(delegate.build());
+         }
+     }
+ }

@@ -1,0 +1,41 @@
+diff --git a/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/entity/runtime/VersionedEntityPlatform.java "b/.sisyphus\\drafts\\remove-ai-slops-feat-nms2-20260413T114851\\versions__runtime__src__main__java__tech__guilhermekaua__spigotboot__entity__runtime__VersionedEntityPlatform_java.before"
+index 8b11b18..3afaa6b 100644
+--- a/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/entity/runtime/VersionedEntityPlatform.java
++++ "b/.sisyphus\\drafts\\remove-ai-slops-feat-nms2-20260413T114851\\versions__runtime__src__main__java__tech__guilhermekaua__spigotboot__entity__runtime__VersionedEntityPlatform_java.before"
+@@ -245,9 +245,12 @@ public final class VersionedEntityPlatform {
+             return;
+         }
+         final ControlledEntity<?> controlledEntity = entity;
+-        ((AbstractRuntimeControlledEntity<?>) entity).bindRemovalCallback(() -> {
+-            Entity bukkitEntity = controlledEntity.bukkitEntity();
+-            attachedEntityRegistry.unregister(bukkitEntity, resolveNativeHandle(bukkitEntity));
++        ((AbstractRuntimeControlledEntity<?>) entity).bindRemovalCallback(new Runnable() {
++            @Override
++            public void run() {
++                Entity bukkitEntity = controlledEntity.bukkitEntity();
++                attachedEntityRegistry.unregister(bukkitEntity, resolveNativeHandle(bukkitEntity));
++            }
+         });
+     }
+ 
+@@ -343,7 +346,10 @@ public final class VersionedEntityPlatform {
+      * @return the spawned entity
+      */
+     public @NotNull SpawnedEntity<?> spawn(@NotNull CustomEntityBaseType baseType, @NotNull Location location) {
+-        return spawn(baseType, Entity.class, location, spawnBuilder -> {
++        return spawn(baseType, Entity.class, location, new Consumer<SpawnBuilder<Entity>>() {
++            @Override
++            public void accept(SpawnBuilder<Entity> spawnBuilder) {
++            }
+         });
+     }
+ 
+@@ -439,7 +445,7 @@ public final class VersionedEntityPlatform {
+      */
+     @Deprecated
+     public @NotNull Collection<CustomEntityDefinition<?>> definitions() {
+-        List<CustomEntityDefinition<?>> definitions = new ArrayList<>();
++        List<CustomEntityDefinition<?>> definitions = new ArrayList<CustomEntityDefinition<?>>();
+         for (EntityTemplate<?> template : templates()) {
+             definitions.add(CustomEntityDefinition.fromTemplate(template));
+         }

@@ -1,0 +1,196 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 5 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot                                                        [pom]
+[INFO] spigot-boot-versions-parent                                        [pom]
+[INFO] spigot-boot-versions-api                                           [jar]
+[INFO] spigot-boot-versions-runtime                                       [jar]
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] 
+[INFO] -------------< tech.guilhermekaua.spigot-boot:spigot-boot >-------------
+[INFO] Building spigot-boot 2.0.2                                         [1/5]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot ---
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] -----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-parent >-----
+[INFO] Building spigot-boot-versions-parent 2.0.2                         [2/5]
+[INFO]   from versions\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-versions-parent ---
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-parent ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-versions-api >-------
+[INFO] Building spigot-boot-versions-api 2.0.2                            [3/5]
+[INFO]   from versions\api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-versions-api ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-api ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 46 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-api ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-api ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 6 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-api ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-runtime >-----
+[INFO] Building spigot-boot-versions-runtime 2.0.2                        [4/5]
+[INFO]   from versions\runtime\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-versions-runtime ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-runtime ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-runtime ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 127 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[27,16] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[27,16] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[27,16] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[27,16] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[27,16] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[44,26] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[44,26] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[44,26] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[44,26] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[44,26] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[451,29] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[451,29] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[451,29] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[451,29] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[451,29] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[453,33] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[WARNING] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/nativebridge/ReflectionSupport.java:[455,21] sun.misc.Unsafe is internal proprietary API and may be removed in a future release
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/lifecycle/AbstractRuntimeControlledEntity.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/main/java/tech/guilhermekaua/spigotboot/versions/runtime/lifecycle/AbstractRuntimeControlledEntity.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-runtime ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-runtime ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 24 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/test/java/tech/guilhermekaua/spigotboot/versions/runtime/EntityGoalSupportBundleSelectorTest.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\runtime\src\test\java\tech\guilhermekaua\spigotboot\versions\runtime\EntityGoalSupportBundleSelectorTest.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/runtime/src/test/java/tech/guilhermekaua/spigotboot/versions/runtime/EntityGoalSupportBundleSelectorTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-runtime ---
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_16_5 >-----
+[INFO] Building spigot-boot-versions-v1_16_5 2.0.2                        [5/5]
+[INFO]   from versions\1.16.5\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 4 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/1.16.5/src/main/java/tech/guilhermekaua/spigotboot/v1_16_5/entity/EntityGoalSupportV1_16_5.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\src\main\java\tech\guilhermekaua\spigotboot\v1_16_5\entity\EntityGoalSupportV1_16_5.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/versions/1.16.5/src/main/java/tech/guilhermekaua/spigotboot/v1_16_5/entity/EntityGoalSupportV1_16_5.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 5 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5ReplacementBridgeTest - 0.099 s
+[INFO]    '-- [XX] rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_doesNotThrowClassCastException - 0.068 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   EntityFactoryV1_16_5ReplacementBridgeTest.rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_doesNotThrowClassCastException:250 rewireModernVehicleAndPassengerReferencesInternal must not throw ClassCastException on the passengers cast; got: java.lang.ClassCastException: class tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5ReplacementBridgeTest$HierarchicalStubDataWatcherObject cannot be cast to class java.util.List (tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5ReplacementBridgeTest$HierarchicalStubDataWatcherObject is in unnamed module of loader 'app'; java.util.List is in module java.base of loader 'bootstrap') ==> expected: <false> but was: <true>
+[INFO] 
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot 2.0.2:
+[INFO] 
+[INFO] spigot-boot ........................................ SUCCESS [  0.598 s]
+[INFO] spigot-boot-versions-parent ........................ SUCCESS [  0.027 s]
+[INFO] spigot-boot-versions-api ........................... SUCCESS [  6.064 s]
+[INFO] spigot-boot-versions-runtime ....................... SUCCESS [  6.384 s]
+[INFO] spigot-boot-versions-v1_16_5 ....................... FAILURE [  3.474 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17.225 s
+[INFO] Finished at: 2026-04-16T20:58:13-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.3:test (default-test) on project spigot-boot-versions-v1_16_5: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :spigot-boot-versions-v1_16_5

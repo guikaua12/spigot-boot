@@ -1,0 +1,98 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 5 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot-versions-v1_16_5                                       [jar]
+[INFO] spigot-boot-versions-v1_17_1                                       [jar]
+[INFO] spigot-boot-versions-v1_19_2                                       [jar]
+[INFO] spigot-boot-versions-v1_21_11                                      [jar]
+[INFO] test-plugin                                                        [jar]
+[INFO] 
+[INFO] ----< tech.guilhermekaua.spigot-boot:spigot-boot-versions-v1_16_5 >-----
+[INFO] Building spigot-boot-versions-v1_16_5 2.0.2                        [1/5]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-versions-v1_16_5 ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-versions-v1_16_5 ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5ReplacementBridgeTest - 1.252 s
+[INFO]    +-- [OK] bindLifecycleToReplacement_shouldBindLifecycleAwareReplacementHandles - 1.123 s
+[INFO]    +-- [OK] allocateReplacementHandle_shouldAllocatePreparedReplacementType - 0.002 s
+[INFO]    +-- [XX] rewireModernVehicleAndPassengerReferences_shouldRewritePassengerOwnership - 0.007 s
+[INFO]    +-- [OK] resolveReplacementTrackingHandles_shouldResolveChunkTrackerEntryAndState - 0.003 s
+[INFO]    +-- [OK] replaceWorldReferences_shouldRewriteEntitiesByUuidWorldState - 0.006 s
+[INFO]    +-- [OK] rebindModernBukkitBridge_shouldMoveTheBukkitWrapperReferenceToTheReplacementHandle - 0.034 s
+[INFO]    +-- [OK] rebindBukkitZombie_shouldDelegateToTheCraftWrapperHandleSetter - 0.008 s
+[INFO]    +-- [XX] rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_picksListFieldNotDataWatcherField - 0.001 s
+[INFO]    +-- [OK] resolveCurrentNativeHandle_shouldUseBukkitHandleAccessor - 0.035 s
+[INFO]    +-- [OK] markModernEntityRemoved_shouldFlagTheOldHandleAsRemoved - 0.001 s
+[INFO]    '-- [OK] rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_doesNotThrowClassCastException - 0.005 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityFactoryV1_16_5Test - 0.297 s
+[INFO]    +-- [OK] bindLifecycleToNativeEntity_shouldBindTheGeneratedBridgeAndDispatchTickHooks - 0.284 s
+[INFO]    +-- [OK] shouldAdvertiseZombieOnlySupportThroughMetadataRegistry - 0.001 s
+[INFO]    +-- [OK] resolveTrackingHandles_shouldExposeTrackedEntityStateWhenTrackerMapContainsHandle - 0.001 s
+[INFO]    +-- [OK] shouldExposeCapabilitiesAndBindingsAsStaticMetadataDescriptors - 0.002 s
+[INFO]    +-- [OK] resolveNativeWorldHandle_shouldUseTheBukkitWorldHandleAccessor - 0.002 s
+[INFO]    '-- [OK] createNativeEntity_shouldGenerateLifecycleAwareBridgeSubclassUsingTheCoordinateConstructor - 0.003 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.EntityHookBinderV1_16_5Test - 0.004 s
+[INFO]    '-- [OK] hookSpecs_shouldSkipPrivateEntityFallbacksAndKeepSearchingForOverridableHooks - 0.004 s
+[INFO] ---tech.guilhermekaua.spigotboot.v1_16_5.entity.SpigotVersionAdapterV1_16_5Test - 0.015 s
+[INFO]    +-- [OK] shouldExposeStableModernTrackingSupportThroughTheSharedStrategyBridge - 0.008 s
+[INFO]    +-- [OK] shouldExposePaperLikeMetadataWithoutResolvingNativeClasses - 0.001 s
+[INFO]    +-- [OK] shouldExposeStablePaperFreshSpawnSupportThroughTheSharedStrategyBridge - 0.001 s
+[INFO]    +-- [OK] shouldExposeStablePaperReplacementSupportThroughTheSharedStrategyBridge - 0.001 s
+[INFO]    +-- [OK] shouldExposeSharedModernTransportAndMetadataContractsWithoutResolvingNativeClasses - 0.001 s
+[INFO]    '-- [OK] shouldInstantiateWithoutResolvingNativeClasses - 0.001 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   EntityFactoryV1_16_5ReplacementBridgeTest.rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_picksListFieldNotDataWatcherField:235 NoSuchMethod 'java.lang.reflect.Field tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport.requireFieldOfType(java.lang.Class, java.lang.Class, java.lang.String[])'
+[ERROR]   EntityFactoryV1_16_5ReplacementBridgeTest.rewireModernVehicleAndPassengerReferences_shouldRewritePassengerOwnership:199 ╗ NoSuchMethod 'java.lang.reflect.Field tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport.requireFieldOfType(java.lang.Class, java.lang.Class, java.lang.String[])'
+[INFO] 
+[ERROR] Tests run: 24, Failures: 0, Errors: 2, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot-versions-v1_16_5 2.0.2:
+[INFO] 
+[INFO] spigot-boot-versions-v1_16_5 ....................... FAILURE [  3.468 s]
+[INFO] spigot-boot-versions-v1_17_1 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_19_2 ....................... SKIPPED
+[INFO] spigot-boot-versions-v1_21_11 ...................... SKIPPED
+[INFO] test-plugin ........................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.081 s
+[INFO] Finished at: 2026-04-17T15:02:09-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.3:test (default-test) on project spigot-boot-versions-v1_16_5: 
+[ERROR] 
+[ERROR] See C:\Users\Guilherme\IdeaProjects\spigot-boot\versions\1.16.5\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

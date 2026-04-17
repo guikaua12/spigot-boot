@@ -1,0 +1,238 @@
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 4 modules
+[INFO] Installing Central Publishing features
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] spigot-boot-data                                                   [jar]
+[INFO] spigot-boot-modules                                                [pom]
+[INFO] spigot-boot-data-jdbc                                              [jar]
+[INFO] spigot-boot-data-orm-lite                                          [jar]
+[INFO] 
+[INFO] ----------< tech.guilhermekaua.spigot-boot:spigot-boot-data >-----------
+[INFO] Building spigot-boot-data 2.0.2                                    [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-data ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\data\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-data ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\data\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-data ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 12 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/data/src/main/java/tech/guilhermekaua/spigotboot/data/config/impl/HikariPersistenceUnitConfig.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\data\src\main\java\tech\guilhermekaua\spigotboot\data\config\impl\HikariPersistenceUnitConfig.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/data/src/main/java/tech/guilhermekaua/spigotboot/data/config/impl/HikariPersistenceUnitConfig.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-data ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\data\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-data ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-data ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------< tech.guilhermekaua.spigot-boot:spigot-boot-modules >---------
+[INFO] Building spigot-boot-modules 2.0.2                                 [2/4]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-modules ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\target
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-modules ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --------< tech.guilhermekaua.spigot-boot:spigot-boot-data-jdbc >--------
+[INFO] Building spigot-boot-data-jdbc 2.0.2                               [3/4]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-jdbc\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-data-jdbc ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-jdbc\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-data-jdbc ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-data-jdbc ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 54 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-jdbc/src/main/java/tech/guilhermekaua/spigotboot/data/jdbc/methodHandler/TransactionalMethodHandler.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-jdbc/src/main/java/tech/guilhermekaua/spigotboot/data/jdbc/methodHandler/TransactionalMethodHandler.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-data-jdbc ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-jdbc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-data-jdbc ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 7 source files with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-jdbc/src/test/java/tech/guilhermekaua/spigotboot/data/jdbc/methodHandler/TransactionalMethodHandlerTest.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-jdbc\src\test\java\tech\guilhermekaua\spigotboot\data\jdbc\methodHandler\TransactionalMethodHandlerTest.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-jdbc/src/test/java/tech/guilhermekaua/spigotboot/data/jdbc/methodHandler/TransactionalMethodHandlerTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-data-jdbc ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] .--tech.guilhermekaua.spigotboot.data.jdbc.connection.ConnectionProviderSqlLoggingTest - 0.734 s
+[INFO] '-----SqlLoggingTests - 0.711 s
+[INFO]       +-- [OK] doesNotLogSqlWhenDisabled - 0.589 s
+[INFO]       '-- [OK] logsExecutedSqlWhenEnabled - 0.104 s
+[INFO] .--tech.guilhermekaua.spigotboot.data.jdbc.converter.BuiltInConvertersTest - 0.165 s
+[INFO] +-----LegacyConverterTests - 0.016 s
+[INFO] |     +-- [OK] calendarConverterRoundTripsTimestamp - 0.014 s
+[INFO] |     '-- [OK] dateConverterRoundTripsTimestamp - 0 s
+[INFO] +-----TemporalConverterTests - 0.061 s
+[INFO] |     +-- [OK] durationConverterRoundTripsSubMillisecondPrecision - 0.001 s
+[INFO] |     +-- [OK] localDateTimeConverterReadsJdbcLiteral - 0.008 s
+[INFO] |     +-- [OK] localTimeConverterReadsTimeValues - 0.004 s
+[INFO] |     +-- [OK] offsetAndZonedConvertersRoundTripIsoValues - 0.018 s
+[INFO] |     +-- [OK] localDateConverterReadsDateValues - 0.008 s
+[INFO] |     +-- [OK] durationConverterReadsNumericAndIsoValues - 0.004 s
+[INFO] |     '-- [OK] instantConverterReadsTimestampAndIsoString - 0.008 s
+[INFO] +-----NumericConverterTests - 0.075 s
+[INFO] |     +-- [OK] bigDecimalConverterSupportsStringAndNumericValues - 0.010 s
+[INFO] |     '-- [OK] bigIntegerConverterUsesExactNumericConversion - 0.002 s
+[INFO] '-----RegistrationTests - 0.002 s
+[INFO]       '-- [OK] registersExpectedConverters - 0.002 s
+[INFO] .--tech.guilhermekaua.spigotboot.data.jdbc.dialect.DialectTypeMappingTest - 0.016 s
+[INFO] +-----SQLiteTests - 0.006 s
+[INFO] |     +-- [OK] mapsDurationAndLocalTimeForSqliteStorage - 0.001 s
+[INFO] |     '-- [OK] mapsBigNumericTypesToNumericAffinity - 0 s
+[INFO] '-----MySqlTests - 0.004 s
+[INFO]       +-- [OK] mapsDurationAndLocalTimeToNativeTypes - 0 s
+[INFO]       '-- [OK] mapsBigNumericTypesToDecimal - 0.002 s
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] ---tech.guilhermekaua.spigotboot.data.jdbc.methodHandler.AsyncTransactionalMethodHandlerIntegrationTest - 1.965 s
+[INFO]    '-- [OK] shouldRunTransactionalHandlerInsideAsyncExecutorThread - 1.964 s
+[INFO] ---tech.guilhermekaua.spigotboot.data.jdbc.methodHandler.TransactionalMethodHandlerTest - 0.053 s
+[INFO]    +-- [OK] shouldRejectInterfaceDeclaredTransactionalMethods - 0.038 s
+[INFO]    '-- [OK] shouldDelegateToInvokeNextInsideTransaction - 0.011 s
+[INFO] .--tech.guilhermekaua.spigotboot.data.jdbc.repository.JdbcRepositoryCompositeJoinColumnsTest - 0.315 s
+[INFO] +-----ParserValidationTests - 0.060 s
+[INFO] |     +-- [OK] embeddedIdRequiresPublicNoArgConstructor - 0.043 s
+[INFO] |     '-- [OK] manyToOneCompositeTargetRequiresReferencedColumnName - 0.015 s
+[INFO] +-----InsertAndIncludeTests - 0.163 s
+[INFO] |     +-- [OK] selectIncludeHydratesOneToManyUsingCompositeJoinColumns - 0.038 s
+[INFO] |     +-- [OK] selectIncludeHydratesManyToOneUsingCompositeJoinColumns - 0.030 s
+[INFO] |     +-- [OK] insertPersistsImplicitCompositeJoinColumnsForManyToOne - 0.022 s
+[INFO] |     +-- [OK] whereHasResolvesCompositeJoinColumns - 0.033 s
+[INFO] |     '-- [OK] queryAnnotationIncludeHydratesManyToOneUsingCompositeJoinColumns - 0.032 s
+[INFO] +-----CrudTests - 0.062 s
+[INFO] |     +-- [OK] updateBindsImplicitCompositeJoinColumnsAtCorrectPositions - 0.035 s
+[INFO] |     '-- [OK] updateBindsCompositeIdValuesInWhereClause - 0.025 s
+[INFO] '-----DdlTests - 0.020 s
+[INFO]       '-- [OK] createTableIncludesAllCompositeJoinColumns - 0.017 s
+[INFO] .--tech.guilhermekaua.spigotboot.data.jdbc.repository.JdbcRepositoryManyToOneIncludeTest - 0.786 s
+[INFO] +-----MetadataValidationTests - 0.035 s
+[INFO] |     '-- [OK] oneToManyWithoutJoinColumnThrowsHelpfulError - 0.034 s
+[INFO] +-----PaginationTests - 0.353 s
+[INFO] |     +-- [OK] repositoryFindAllPageableDelegatesToSelectPagination - 0.097 s
+[INFO] |     +-- [OK] queryAnnotationPageWithoutPageableThrowsHelpfulError - 0.068 s
+[INFO] |     +-- [OK] selectFetchPageSupportsWhereHasWithRootOrderBy - 0.065 s
+[INFO] |     +-- [OK] queryAnnotationPageSupportsIncludesAndPageableSorting - 0.061 s
+[INFO] |     '-- [OK] queryAnnotationPageRejectsSqlWithLimitOffset - 0.056 s
+[INFO] +-----IncludeTests - 0.361 s
+[INFO] |     +-- [OK] whereHasFilterResolvesPropertyNameToMappedColumn - 0.049 s
+[INFO] |     +-- [OK] includeFilterResolvesPropertyNameToMappedColumn - 0.040 s
+[INFO] |     +-- [OK] selectIncludeHydratesNestedManyToOneOneToManyWithoutMappedForeignKeyField - 0.040 s
+[INFO] |     +-- [OK] queryAnnotationIncludeHydratesNestedOneToManyManyToOneWithoutMappedForeignKeyField - 0.035 s
+[INFO] |     +-- [OK] queryAnnotationIncludeHydratesManyToOneWithoutMappedForeignKeyField - 0.033 s
+[INFO] |     +-- [OK] selectIncludeHydratesManyToOneWithoutMappedForeignKeyField - 0.036 s
+[INFO] |     +-- [OK] queryAnnotationIncludeHydratesNestedManyToOneOneToManyWithoutMappedForeignKeyField - 0.031 s
+[INFO] |     +-- [OK] queryAnnotationIncludeHydratesOneToManyWithoutMappedForeignKeyField - 0.033 s
+[INFO] |     +-- [OK] selectIncludeHydratesNestedOneToManyManyToOneWithoutMappedForeignKeyField - 0.029 s
+[INFO] |     '-- [OK] selectIncludeHydratesOneToManyWithoutMappedForeignKeyField - 0.030 s
+[INFO] '-----InsertTests - 0.030 s
+[INFO]       '-- [OK] persistsJoinColumnWhenRelationshipFieldIsSet - 0.030 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] ------< tech.guilhermekaua.spigot-boot:spigot-boot-data-orm-lite >------
+[INFO] Building spigot-boot-data-orm-lite 2.0.2                           [4/4]
+[INFO]   from C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-orm-lite\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ spigot-boot-data-orm-lite ---
+[INFO] Deleting C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-orm-lite\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ spigot-boot-data-orm-lite ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ spigot-boot-data-orm-lite ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 12 source files with javac [debug target 1.8] to target\classes
+[WARNING] bootstrap class path is not set in conjunction with -source 8
+  not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-orm-lite/src/main/java/tech/guilhermekaua/spigotboot/data/ormLite/registry/discovery/OrmLiteRepositoryDiscoveryService.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-orm-lite/src/main/java/tech/guilhermekaua/spigotboot/data/ormLite/registry/discovery/OrmLiteRepositoryDiscoveryService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ spigot-boot-data-orm-lite ---
+[INFO] skip non existing resourceDirectory C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-orm-lite\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ spigot-boot-data-orm-lite ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 1 source file with javac [debug target 17] to target\test-classes
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-orm-lite/src/test/java/tech/guilhermekaua/spigotboot/data/ormLite/utils/OrmLiteTypeUtilsTest.java: C:\Users\Guilherme\IdeaProjects\spigot-boot\modules\data-orm-lite\src\test\java\tech\guilhermekaua\spigotboot\data\ormLite\utils\OrmLiteTypeUtilsTest.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Guilherme/IdeaProjects/spigot-boot/modules/data-orm-lite/src/test/java/tech/guilhermekaua/spigotboot/data/ormLite/utils/OrmLiteTypeUtilsTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ spigot-boot-data-orm-lite ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] ---tech.guilhermekaua.spigotboot.data.ormLite.utils.OrmLiteTypeUtilsTest - 0.059 s
+[INFO]    +-- [OK] resolveEntityType_directInterface - 0.024 s
+[INFO]    +-- [OK] resolveEntityType_concreteSubclassOfGenericImpl - 0.001 s
+[INFO]    +-- [OK] resolveEntityType_unboundTypeVariables_returnsNull - 0.002 s
+[INFO]    +-- [OK] resolveEntityType_unrelatedClass_returnsNull - 0 s
+[INFO]    +-- [OK] resolveEntityType_deepHierarchy - 0.001 s
+[INFO]    '-- [OK] resolveEntityType_intermediateInterface - 0 s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for spigot-boot-data 2.0.2:
+[INFO] 
+[INFO] spigot-boot-data ................................... SUCCESS [  2.693 s]
+[INFO] spigot-boot-modules ................................ SUCCESS [  0.034 s]
+[INFO] spigot-boot-data-jdbc .............................. SUCCESS [ 16.197 s]
+[INFO] spigot-boot-data-orm-lite .......................... SUCCESS [  2.646 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  22.232 s
+[INFO] Finished at: 2026-04-17T15:06:07-03:00
+[INFO] ------------------------------------------------------------------------

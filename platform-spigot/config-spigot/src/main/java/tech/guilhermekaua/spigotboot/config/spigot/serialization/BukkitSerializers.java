@@ -47,7 +47,7 @@ public final class BukkitSerializers {
 
         registry.register(Material.class, new MaterialSerializer());
         registry.register(Sound.class, new SoundSerializer());
-        registry.register(Particle.class, new ParticleSerializer());
+//        registry.register(Particle.class, new ParticleSerializer());
         registry.register(World.class, new WorldSerializer());
         registry.register(Location.class, new LocationSerializer());
         registry.register(Duration.class, new DurationSerializer());

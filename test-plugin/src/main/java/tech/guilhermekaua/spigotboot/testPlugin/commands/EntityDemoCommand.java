@@ -58,6 +58,7 @@ public class EntityDemoCommand {
         player.sendMessage("Use /" + context.getCommandLabel() + " deathfx <entityType>");
         player.sendMessage("Use /" + context.getCommandLabel() + " metadata-dirty-zombie");
         player.sendMessage("Use /" + context.getCommandLabel() + " viewer-cycle-zombie");
+        player.sendMessage("Use /" + context.getCommandLabel() + " goal-builder-zombie");
         player.sendMessage("Use /" + context.getCommandLabel() + " attach-existing-zombie");
     }
 
@@ -137,13 +138,23 @@ public class EntityDemoCommand {
         }
     }
 
+    @Command("goal-builder-zombie")
+    public void goalBuilderZombie(@Sender Player player) {
+        try {
+            entityDemoService.spawnGoalBuilderZombieScenario(player);
+            player.sendMessage("Spawned the goal-builder-zombie scenario.");
+        } catch (RuntimeException exception) {
+            player.sendMessage("Could not spawn the goal-builder-zombie scenario: " + exception.getMessage());
+        }
+    }
+
     @Command("attach-existing-zombie")
     public void attachExistingZombie(@Sender Player player) {
         try {
             entityDemoService.attachExistingZombieScenario(player);
-            player.sendMessage("Spawned the attach-existing-zombie scenario.");
+            player.sendMessage("Spawned the attach-existing-zombie goal mutation scenario.");
         } catch (RuntimeException exception) {
-            player.sendMessage("Could not spawn the attach-existing-zombie scenario: " + exception.getMessage());
+            player.sendMessage("Could not spawn the attach-existing-zombie goal mutation scenario: " + exception.getMessage());
         }
     }
 }

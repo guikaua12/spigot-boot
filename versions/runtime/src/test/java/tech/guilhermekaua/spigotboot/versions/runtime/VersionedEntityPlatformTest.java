@@ -72,6 +72,7 @@ import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperTrackingBind
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,10 +80,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-class VersionedPlatformTest {
+class VersionedEntityPlatformTest {
 
     @Test
     void shouldRegisterTemplatesAndLookupById() {
@@ -684,6 +686,66 @@ class VersionedPlatformTest {
         assertEquals("unspecified", platform.strategies().replacement().id());
         assertEquals("unspecified", platform.strategies().worldAdd().id());
         assertEquals("unspecified", platform.strategies().trackingBinding().id());
+    }
+
+    @Test
+    void shouldMatchTheFinalExplicitSupportMatrixForRepresentativeVersionedPlatforms() {
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 8, 8), RuntimeEntitySupportMatrices.SUPPORT_1_8_8);
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 13, 2), RuntimeEntitySupportMatrices.SUPPORT_1_13_2);
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 16, 5), RuntimeEntitySupportMatrices.SUPPORT_1_16_5);
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 17, 1), RuntimeEntitySupportMatrices.SUPPORT_1_17_1);
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 19, 2), RuntimeEntitySupportMatrices.SUPPORT_1_19_2);
+        assertPlatformSupportMatrix(MinecraftVersion.of(1, 21, 11), RuntimeEntitySupportMatrices.SUPPORT_1_21_11);
+    }
+
+    @Test
+    void shouldRejectTemplateRegistrationAndSpawnOutsideTheExplicitSupportMatrix() {
+        MinecraftVersion version = MinecraftVersion.of(1, 16, 5);
+        VersionedPlatform platform = new VersionedPlatform(
+                version,
+                new MatrixOnlyAdapter(version, RuntimeEntitySupportMatrices.SUPPORT_1_16_5)
+        );
+        EntityTemplate<Entity> unsupportedTemplate = EntityTemplate.<Entity>builder(
+                CustomEntityId.of("test", "unsupported-cow"),
+                CustomEntityBaseType.COW
+        ).build();
+        Location location = new Location(Mockito.mock(World.class), 2.0D, 65.0D, 2.0D);
+
+        IllegalArgumentException registerException = assertThrows(
+                IllegalArgumentException.class,
+                () -> platform.register(unsupportedTemplate)
+        );
+        IllegalArgumentException spawnException = assertThrows(
+                IllegalArgumentException.class,
+                () -> platform.spawn(CustomEntityBaseType.COW, location)
+        );
+
+        assertEquals("The active adapter does not support base type 'COW'.", registerException.getMessage());
+        assertEquals("The active adapter does not support base type 'COW'.", spawnException.getMessage());
+    }
+
+    private static void assertPlatformSupportMatrix(
+            MinecraftVersion version,
+            EnumSet<CustomEntityBaseType> advertisedSupport
+    ) {
+        VersionedPlatform platform = new VersionedPlatform(version, new MatrixOnlyAdapter(version, advertisedSupport));
+        EnumSet<CustomEntityBaseType> actualIncluded = EnumSet.noneOf(CustomEntityBaseType.class);
+
+        for (CustomEntityBaseType baseType : CustomEntityBaseType.values()) {
+            boolean supported = platform.supports(baseType);
+            boolean expected = advertisedSupport.contains(baseType);
+
+            assertEquals(
+                    expected,
+                    supported,
+                    "Support matrix mismatch for " + version + " and base type '" + baseType + "'."
+            );
+            if (supported) {
+                actualIncluded.add(baseType);
+            }
+        }
+
+        assertEquals(advertisedSupport, actualIncluded, "Supported entities should match the advertised contract exactly.");
     }
 
     private static EntityTemplate<Zombie> createTemplate(List<String> events) {
@@ -1590,6 +1652,45 @@ class VersionedPlatformTest {
         }
     }
 
+    private static final class MatrixOnlyAdapter implements VersionAdapter {
+        private final MinecraftVersion version;
+        private final EnumSet<CustomEntityBaseType> supportedBaseTypes;
+
+        private MatrixOnlyAdapter(MinecraftVersion version, EnumSet<CustomEntityBaseType> supportedBaseTypes) {
+            this.version = version;
+            this.supportedBaseTypes = EnumSet.copyOf(supportedBaseTypes);
+        }
+
+        @Override
+        public MinecraftVersion minimumVersion() {
+            return version;
+        }
+
+        @Override
+        public MinecraftVersion maximumVersion() {
+            return version;
+        }
+
+        @Override
+        public boolean supports(CustomEntityBaseType baseType) {
+            return supportedBaseTypes.contains(baseType);
+        }
+
+        @Override
+        public <T extends Entity> SpawnedEntity<T> spawn(
+                EntityTemplate<T> template,
+                SpawnOptions spawnOptions,
+                NativeEntityLifecycle<T> lifecycle
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T extends Entity> ControlledEntity<T> attach(T entity, NativeEntityLifecycle<T> lifecycle) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
     private static final class PaperFreshWorldHandle {
         public boolean addFreshEntity(Object entity) {
             return true;
@@ -1689,4 +1790,7 @@ class VersionedPlatformTest {
     private interface HandleAwareEntity extends Entity {
         Object getHandle();
     }
+}
+
+class VersionedPlatformTest {
 }
