@@ -36,10 +36,15 @@ import tech.guilhermekaua.spigotboot.versions.api.MinecraftVersion;
 import tech.guilhermekaua.spigotboot.versions.api.spi.LifecycleAwareNativeEntity;
 import tech.guilhermekaua.spigotboot.versions.api.spi.NativeEntityLifecycle;
 import tech.guilhermekaua.spigotboot.versions.runtime.lifecycle.AbstractRuntimeControlledEntity;
+import tech.guilhermekaua.spigotboot.versions.runtime.nativebridge.ReflectionSupport;
 import tech.guilhermekaua.spigotboot.versions.runtime.selection.EntityPublicationFamily;
 import tech.guilhermekaua.spigotboot.versions.runtime.strategy.PaperReplacementStrategy_1_21_plus;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -199,6 +204,46 @@ class EntityFactoryV1_16_5ReplacementBridgeTest {
     }
 
     @Test
+    void rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_doesNotThrowClassCastException() throws Exception {
+        HierarchicalStubZombie old = new HierarchicalStubZombie();
+        HierarchicalStubZombie replacement = new HierarchicalStubZombie();
+        old.passengers = new ArrayList<Object>(Arrays.asList((Object) replacement));
+        old.vehicle = null;
+
+        Method method = EntityFactoryV1_16_5.class.getDeclaredMethod(
+                "rewireModernVehicleAndPassengerReferencesInternal", Object.class, Object.class);
+        method.setAccessible(true);
+
+        // the fix's List-typed filter guarantees the passengers field binds to HierarchicalStubEntity.passengers
+        // (not the static DataWatcherObject "ag" on HierarchicalStubEntityLiving); before the fix the cast on the
+        // resolved value threw ClassCastException. the vehicle-filter falls back to Object.class without the NMS
+        // jar and may still resolve to a static DataWatcherObject; follow-on reflective accesses can raise an
+        // IllegalArgumentException which is tolerated here since the sole invariant is "no ClassCastException".
+        try {
+            method.invoke(null, old, replacement);
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause();
+            assertFalse(
+                    cause instanceof ClassCastException,
+                    "rewireModernVehicleAndPassengerReferencesInternal must not throw ClassCastException on the passengers cast; got: " + cause
+            );
+        }
+    }
+
+    @Test
+    void rewireModernVehicleAndPassengerReferencesInternal_hierarchicalStub_picksListFieldNotDataWatcherField() {
+        Field resolved = ReflectionSupport.requireFieldOfType(
+                HierarchicalStubZombie.class, List.class, "passengers", "ag", "passengerList");
+
+        assertSame(
+                HierarchicalStubEntity.class,
+                resolved.getDeclaringClass(),
+                "expected the List passengers field on HierarchicalStubEntity, not a DataWatcherObject field on a subclass"
+        );
+        assertSame(List.class, resolved.getType());
+    }
+
+    @Test
     void markModernEntityRemoved_shouldFlagTheOldHandleAsRemoved() {
         EntityFactoryV1_16_5 factory = new EntityFactoryV1_16_5();
         ReplacementPublicationHandle oldHandle = new ReplacementPublicationHandle(40, UUID.randomUUID(), new Object());
@@ -221,6 +266,32 @@ class EntityFactoryV1_16_5ReplacementBridgeTest {
 
     public static class SimpleReplacementHandle {
         public SimpleReplacementHandle() {
+        }
+    }
+
+    public static class HierarchicalStubDataWatcherObject {
+        public HierarchicalStubDataWatcherObject() {
+        }
+    }
+
+    public static class HierarchicalStubEntity {
+        public List<Object> passengers = new ArrayList<Object>();
+        public Object vehicle = null;
+
+        public HierarchicalStubEntity() {
+        }
+    }
+
+    public static class HierarchicalStubEntityLiving extends HierarchicalStubEntity {
+        public static final HierarchicalStubDataWatcherObject ag = new HierarchicalStubDataWatcherObject();
+        public static final HierarchicalStubDataWatcherObject ah = new HierarchicalStubDataWatcherObject();
+
+        public HierarchicalStubEntityLiving() {
+        }
+    }
+
+    public static class HierarchicalStubZombie extends HierarchicalStubEntityLiving {
+        public HierarchicalStubZombie() {
         }
     }
 

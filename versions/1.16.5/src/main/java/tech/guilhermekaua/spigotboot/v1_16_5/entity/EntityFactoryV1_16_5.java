@@ -116,6 +116,7 @@ public final class EntityFactoryV1_16_5
     private static final EntityHookBinderV1_16_5 HOOK_BINDER = new EntityHookBinderV1_16_5();
     private static final Map<Class<?>, ResolvedEntityTypeMetadata> GENERATED_ENTITY_TYPES =
             new LinkedHashMap<Class<?>, ResolvedEntityTypeMetadata>();
+    private static final Class<?> NMS_ENTITY_CLASS = resolveNmsEntityClass();
 
     private final Map<UUID, ControlledEntity<?>> attachedEntities = new LinkedHashMap<UUID, ControlledEntity<?>>();
     private final Map<CustomEntityBaseType, EntityMetadata> metadataRegistry = createMetadataRegistry();
@@ -1089,8 +1090,15 @@ public final class EntityFactoryV1_16_5
             @NotNull Object oldHandle,
             @NotNull Object replacementHandle
     ) {
-        Field passengersField = requireEntityHandleField(oldHandle, "passengers", "ag", "passengerList");
-        Field vehicleField = requireEntityHandleField(oldHandle, "vehicle", "ah");
+        // resolve the passengers field by its declared type to skip the static DataWatcherObject
+        // shadowing "ag" on EntityLiving on v1_16_R3 (and any equivalent obfuscation collisions).
+        Field passengersField = ReflectionSupport.requireFieldOfType(
+                oldHandle.getClass(), List.class, "passengers", "ag", "passengerList");
+        // filter the vehicle field by the NMS Entity type when available; in unit-test environments
+        // where the NMS jar is absent the filter falls back to Object.class — non-restrictive but harmless.
+        Class<?> vehicleType = (NMS_ENTITY_CLASS != null) ? NMS_ENTITY_CLASS : Object.class;
+        Field vehicleField = ReflectionSupport.requireFieldOfType(
+                oldHandle.getClass(), vehicleType, "vehicle", "ah");
 
         @SuppressWarnings("unchecked")
         List<Object> passengers = (List<Object>) ReflectionSupport.readField(passengersField, oldHandle);
@@ -1169,6 +1177,15 @@ public final class EntityFactoryV1_16_5
 
     private static @Nullable Field findEntityHandleField(@NotNull Object entityHandle, @NotNull String... candidateNames) {
         return ReflectionSupport.findField(entityHandle.getClass(), candidateNames);
+    }
+
+    private static @Nullable Class<?> resolveNmsEntityClass() {
+        try {
+            return Class.forName("net.minecraft.server.v1_16_R3.Entity");
+        } catch (ClassNotFoundException exception) {
+            // tolerated: unit tests do not include the NMS jar on the classpath
+            return null;
+        }
     }
 
     private static @Nullable Field findFirstField(@NotNull Object[] handles, @NotNull String... candidateNames) {
