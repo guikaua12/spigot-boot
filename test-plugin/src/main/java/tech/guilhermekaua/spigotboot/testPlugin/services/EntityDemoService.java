@@ -808,7 +808,9 @@ public class EntityDemoService {
      */
     static void completeAtDeadline(@NotNull ScenarioRecorder recorder) {
         // sentinel is only written at deadline so real TRUE observations flipped by controllers win
-        recorder.putIfAbsent("controllerTickObserved", Boolean.FALSE);
+        if (EntityScenarioDescriptor.require(recorder.scenarioId).assertionKeys().contains("controllerTickObserved")) {
+            recorder.putIfAbsent("controllerTickObserved", Boolean.FALSE);
+        }
         recorder.complete();
     }
 
