@@ -1,6 +1,6 @@
 /*
  * The MIT License
- * Copyright © 2025 Guilherme Kauã da Silva
+ * Copyright Â© 2025 Guilherme KauÃ£ da Silva
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,5 +29,5 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface OnReload {
+public @interface OnEnable {
 }

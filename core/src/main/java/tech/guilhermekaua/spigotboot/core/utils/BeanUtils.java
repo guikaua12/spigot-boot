@@ -3,11 +3,9 @@ package tech.guilhermekaua.spigotboot.core.utils;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
-import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
 
 import java.lang.reflect.AnnotatedElement;
@@ -19,8 +17,8 @@ import java.util.*;
 /**
  * Utility class providing helper methods for bean management in the Spigot Boot dependency injection system.
  * <p>
- * This class handles qualifier extraction, primary bean detection, reload callback creation, and circular dependency
- * detection during bean registration. It supports constructor, field, and setter injection analysis.
+ * This class handles qualifier extraction, primary bean detection, and circular dependency detection during bean
+ * registration. It supports constructor, field, and setter injection analysis.
  */
 public final class BeanUtils {
     /**
@@ -51,38 +49,6 @@ public final class BeanUtils {
         Objects.requireNonNull(element);
 
         return element.isAnnotationPresent(Primary.class);
-    }
-
-    /**
-     * Creates a reload callback for the specified class that automatically invokes all methods annotated with
-     * {@link OnReload} after dependency reinjection.
-     * <p>
-     * The callback resolves dependencies for method parameters using the provided dependency manager and handles
-     * any exceptions by wrapping them in a {@link RuntimeException}. This enables beans to react to configuration
-     * reloads or dependency updates.
-     *
-     * @param clazz the class for which to generate the reload callback, not null
-     * @return a {@link DependencyReloadCallback} that performs the reload logic for the class
-     */
-    public static DependencyReloadCallback createDependencyReloadCallback(@NotNull Class<?> clazz) {
-        Objects.requireNonNull(clazz);
-
-        return (instance, dependencyManager) -> {
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (!method.isAnnotationPresent(OnReload.class)) {
-                    continue;
-                }
-
-                try {
-                    Object[] dependencies = dependencyManager.resolveArguments(method);
-
-                    method.setAccessible(true);
-                    method.invoke(instance, dependencies);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
     }
 
     /**

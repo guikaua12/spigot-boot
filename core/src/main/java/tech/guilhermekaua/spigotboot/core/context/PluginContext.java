@@ -3,6 +3,7 @@ package tech.guilhermekaua.spigotboot.core.context;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.lifecycle.BeanLifecycleInvoker;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.ContextLifecycle;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.processors.preDestroy.ContextPreDestroyProcessor;
 import tech.guilhermekaua.spigotboot.core.context.registration.BeanRegistrar;
@@ -58,8 +59,7 @@ public class PluginContext implements Context {
         beanRegistrar.registerInstance(
                 instance,
                 BeanUtils.getQualifier(clazz),
-                BeanUtils.getIsPrimary(clazz),
-                BeanUtils.createDependencyReloadCallback(clazz)
+                BeanUtils.getIsPrimary(clazz)
         );
     }
 
@@ -71,8 +71,7 @@ public class PluginContext implements Context {
         beanRegistrar.registerDefinition(
                 clazz,
                 BeanUtils.getQualifier(clazz),
-                BeanUtils.getIsPrimary(clazz),
-                BeanUtils.createDependencyReloadCallback(clazz)
+                BeanUtils.getIsPrimary(clazz)
         );
     }
 
@@ -87,19 +86,11 @@ public class PluginContext implements Context {
             return;
         }
 
-        for (Runnable hook : shutdownHooks) {
-            try {
-                hook.run();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        callPreDestroyProcessors();
-
-        shutdownHooks.clear();
-
-        dependencyManager.clear();
+        lifecycle.destroy(
+                this::callDisableCallbacks,
+                this::callShutdownHooks,
+                this::callPreDestroyProcessors
+        );
 
         initialized = false;
     }
@@ -128,6 +119,24 @@ public class PluginContext implements Context {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void callDisableCallbacks() {
+        new BeanLifecycleInvoker(dependencyManager)
+                .invokeOnDisable(dependencyManager.getBeanInstanceRegistry().asMapView(), logger);
+    }
+
+    private void callShutdownHooks() {
+        for (Runnable hook : shutdownHooks) {
+            try {
+                hook.run();
+            } catch (Exception e) {
+                logger.severe("Error executing shutdown hook.");
+                e.printStackTrace();
+            }
+        }
+
+        shutdownHooks.clear();
     }
 
     @Override

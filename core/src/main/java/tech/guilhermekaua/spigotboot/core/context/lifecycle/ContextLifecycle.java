@@ -29,6 +29,7 @@ public class ContextLifecycle {
     private final DependencyManager dependencyManager;
     private final List<Class<? extends Module>> modulesToLoad;
     private final BeanRegistrar beanRegistrar;
+    private final BeanLifecycleInvoker beanLifecycleInvoker;
 
     private ContextPhase currentPhase = ContextPhase.REGISTER_CORE;
 
@@ -36,6 +37,7 @@ public class ContextLifecycle {
         this.context = context;
         this.dependencyManager = dependencyManager;
         this.modulesToLoad = modulesToLoad;
+        this.beanLifecycleInvoker = new BeanLifecycleInvoker(dependencyManager);
 
         beanRegistrar = new DefaultBeanRegistrar(dependencyManager, () -> {
             if (currentPhase.ordinal() >= ContextPhase.INSTANTIATE.ordinal()) {
@@ -53,6 +55,7 @@ public class ContextLifecycle {
             runPhase(ContextPhase.MODULES, this::initializeModules);
             runPhase(ContextPhase.DEFINITIONS_READY, this::notifyBeanDefinitionsReady);
             runPhase(ContextPhase.INSTANTIATE, this::instantiateAllBeans);
+            invokeOnEnableCallbacks();
             runPhase(ContextPhase.READY, this::notifyContextReady);
             currentPhase = ContextPhase.RUNNING;
         } catch (Exception e) {
@@ -170,6 +173,10 @@ public class ContextLifecycle {
         }
     }
 
+    private void invokeOnEnableCallbacks() {
+        beanLifecycleInvoker.invokeOnEnable(dependencyManager.getBeanInstanceRegistry().asMapView());
+    }
+
     private <T> List<T> getOrderedListeners(Class<T> listenerType) {
         List<T> listeners = dependencyManager.getInstancesByType(listenerType);
         if (listeners.isEmpty()) {
@@ -193,6 +200,16 @@ public class ContextLifecycle {
 
     public ContextPhase getCurrentPhase() {
         return currentPhase;
+    }
+
+    public void destroy(@NotNull Runnable onDisable, @NotNull Runnable shutdownHooks, @NotNull Runnable preDestroyProcessors) {
+        currentPhase = ContextPhase.DESTROY;
+        onDisable.run();
+        shutdownHooks.run();
+        currentPhase = ContextPhase.PRE_DESTROY_PROCESSORS;
+        preDestroyProcessors.run();
+        dependencyManager.clear();
+        currentPhase = ContextPhase.CLEARED;
     }
 
     public BeanRegistrar getBeanRegistrar() {

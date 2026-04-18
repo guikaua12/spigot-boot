@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -56,13 +57,7 @@ public class PlaceholderRegistry {
         final DiscoveryService<Class<?>> discoveryService = new PlaceholderDiscoveryService(plugin);
 
         for (Class<?> clazz : discoveryService.discoverAll()) {
-            dependencyManager.registerDependency(
-                    clazz,
-                    BeanUtils.getQualifier(clazz),
-                    BeanUtils.getIsPrimary(clazz),
-                    null,
-                    BeanUtils.createDependencyReloadCallback(clazz)
-            );
+            registerPlaceholderHandler(clazz);
             Object handlerObject = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             final Set<Method> handlerMethods = ReflectionUtils.getMethodsAnnotatedWith(Placeholder.class, clazz);
@@ -131,5 +126,19 @@ public class PlaceholderRegistry {
                 .filter(metadata -> metadata.getPlaceholder().equals(params) ||
                         PlaceholderParameterParser.isValidPlaceholderPattern(metadata.getPlaceholder(), params)
                 ).findFirst().orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerPlaceholderHandler(Class<?> clazz) {
+        registerPlaceholderHandlerTyped((Class<Object>) clazz);
+    }
+
+    private <T> void registerPlaceholderHandlerTyped(Class<T> clazz) {
+        dependencyManager.registerDependency(
+                clazz,
+                BeanUtils.getQualifier(clazz),
+                BeanUtils.getIsPrimary(clazz),
+                (DependencyResolveResolver<T>) null
+        );
     }
 }
