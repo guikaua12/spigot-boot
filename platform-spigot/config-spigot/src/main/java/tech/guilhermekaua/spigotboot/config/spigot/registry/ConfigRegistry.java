@@ -32,14 +32,15 @@ import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.proxy.ConfigProxy;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Component
@@ -55,7 +56,7 @@ public class ConfigRegistry {
      */
     public void registerConfigs(Context context) {
         String basePackage = context.getPlugin().getMainClass().getPackage().getName();
-        ClassPathScanner scanner = new ClassPathScanner(context.getPlugin().getClassLoader(), basePackage);
+        ClassLoader classLoader = context.getPlugin().getClassLoader();
 
         ConfigManager configManager = context.getBean(ConfigManager.class);
         if (configManager == null) {
@@ -64,23 +65,50 @@ public class ConfigRegistry {
 
         Logger logger = context.getPlugin().getLogger();
 
-        for (Class<?> configClass : scanner.getTypesAnnotatedWith(Config.class)) {
+        ClassPathScanner scanner = new ClassPathScanner(classLoader, basePackage);
+        LinkedHashSet<Class<?>> configAnnotatedClasses = new LinkedHashSet<>(
+                scanner.getTypesAnnotatedWith(Config.class));
+        LinkedHashSet<Class<?>> folderAnnotatedClasses = new LinkedHashSet<>(
+                scanner.getTypesAnnotatedWith(FolderConfig.class));
+        LinkedHashSet<Class<?>> foldersContainerAnnotatedClasses = new LinkedHashSet<>(
+                scanner.getTypesAnnotatedWith(FolderConfigs.class));
+
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(classLoader);
+        if (reader.hasAnyIndex()) {
+            List<Class<?>> indexed = reader.classesInCategory(DiscoveryCategories.CONFIG, basePackage);
+            configAnnotatedClasses.addAll(filterByAnnotation(indexed, Config.class));
+            folderAnnotatedClasses.addAll(filterByAnnotation(indexed, FolderConfig.class));
+            foldersContainerAnnotatedClasses.addAll(filterByAnnotation(indexed, FolderConfigs.class));
+        }
+
+        for (Class<?> configClass : configAnnotatedClasses) {
             processConfigClass(configClass, context, configManager);
         }
 
         if (configManager instanceof SpigotConfigManager) {
             SpigotConfigManager spigotConfigManager = (SpigotConfigManager) configManager;
 
-            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(FolderConfig.class)) {
+            for (Class<?> itemClass : folderAnnotatedClasses) {
                 processFolderConfigClass(itemClass, spigotConfigManager, logger);
             }
 
-            for (Class<?> itemClass : scanner.getTypesAnnotatedWith(FolderConfigs.class)) {
+            for (Class<?> itemClass : foldersContainerAnnotatedClasses) {
                 processFolderConfigClass(itemClass, spigotConfigManager, logger);
             }
 
             spigotConfigManager.initializeAll();
         }
+    }
+
+    private static List<Class<?>> filterByAnnotation(Collection<Class<?>> classes,
+                                                    Class<? extends Annotation> annotation) {
+        List<Class<?>> out = new ArrayList<>();
+        for (Class<?> c : classes) {
+            if (c.isAnnotationPresent(annotation)) {
+                out.add(c);
+            }
+        }
+        return out;
     }
 
     @SuppressWarnings("unchecked")

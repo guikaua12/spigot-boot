@@ -23,6 +23,8 @@
 package tech.guilhermekaua.spigotboot.config.annotation;
 
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -34,6 +36,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.CONFIG, kind = SpigotBootDiscoveryCategory.Kind.ANNOTATION)
 public @interface Config {
 
     /**

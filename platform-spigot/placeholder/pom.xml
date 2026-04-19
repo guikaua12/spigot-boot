@@ -20,6 +20,37 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <testSource>17</testSource>
+                    <testTarget>17</testTarget>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.36</version>
+                        </path>
+                        <path>
+                            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+                            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+                            <version>2.0.2</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <repositories>
         <repository>
             <id>placeholderapi</id>
@@ -47,6 +78,14 @@
             <artifactId>spigot-boot-core-spigot</artifactId>
             <version>2.0.2</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+            <version>2.0.2</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

@@ -27,22 +27,37 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MethodHandlerProcessor {
+    private DiscoveryIndexReader discoveryIndexReader;
+
     public List<RegisteredMethodHandler> processFromPackage(String basePackage, DependencyManager dependencyManager) {
-        return ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class)
-                .stream()
+        LinkedHashSet<Class<?>> handlerClasses = new LinkedHashSet<>(
+                ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class));
+        DiscoveryIndexReader reader = getDiscoveryIndexReader();
+        if (reader.hasAnyIndex()) {
+            handlerClasses.addAll(reader.classesInCategory(DiscoveryCategories.METHOD_HANDLER, basePackage));
+        }
+
+        return handlerClasses.stream()
                 .sorted(Comparator.comparing(Class::getName))
                 .flatMap(clazz -> processClass(clazz, dependencyManager).stream())
                 .collect(Collectors.toList());
+    }
+
+    private DiscoveryIndexReader getDiscoveryIndexReader() {
+        if (discoveryIndexReader == null) {
+            discoveryIndexReader = DiscoveryIndexReader.create();
+        }
+        return discoveryIndexReader;
     }
 
     public List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {

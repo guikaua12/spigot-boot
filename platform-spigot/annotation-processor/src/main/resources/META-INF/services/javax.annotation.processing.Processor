@@ -1,1 +1,2 @@
 tech.guilhermekaua.spigotboot.spigot.annotationprocessor.plugin.PluginAnnotationProcessor
+tech.guilhermekaua.spigotboot.spigot.annotationprocessor.discovery.DiscoveryIndexProcessor

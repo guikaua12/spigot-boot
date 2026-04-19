@@ -23,16 +23,30 @@
 package tech.guilhermekaua.spigotboot.data.ormLite.config.registry.discovery;
 
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 
 @Component
 public class PersistenceConfigDiscoveryService {
+    @SuppressWarnings("unchecked")
     public Optional<Class<? extends PersistenceConfig>> discoverFromPackage(String basePackage) {
-        final Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class);
+        final Set<Class<? extends PersistenceConfig>> configs = new LinkedHashSet<>(
+                ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class));
+
+        DiscoveryIndexReader reader = DiscoveryIndexReader.create();
+        if (reader.hasAnyIndex()) {
+            for (Class<?> c : reader.classesInCategory(DiscoveryCategories.PERSISTENCE_CONFIG, basePackage)) {
+                if (PersistenceConfig.class.isAssignableFrom(c)) {
+                    configs.add((Class<? extends PersistenceConfig>) c);
+                }
+            }
+        }
 
         if (configs.isEmpty()) return Optional.empty();
 

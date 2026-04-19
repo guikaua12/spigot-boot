@@ -1,5 +1,8 @@
 package tech.guilhermekaua.spigotboot.core.module;
 
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
@@ -50,7 +53,7 @@ public final class ModuleDiscovery {
 
         Set<String> resolvedFqcns = resolveRelocatedFqcns(discoveredFqcns);
 
-        List<Class<? extends Module>> modules = new ArrayList<>();
+        LinkedHashMap<String, Class<? extends Module>> modules = new LinkedHashMap<>();
         for (String fqcn : resolvedFqcns) {
             try {
                 Class<?> clazz = Class.forName(fqcn, false, classLoader);
@@ -60,13 +63,19 @@ public final class ModuleDiscovery {
                                     " does not implement " + Module.class.getName()
                     );
                 }
-                modules.add((Class<? extends Module>) clazz);
+                modules.put(clazz.getName(), (Class<? extends Module>) clazz);
             } catch (ClassNotFoundException | NoClassDefFoundError e) {
                 LOGGER.log(Level.WARNING, "Skipping module '" + fqcn + "': class not found on classpath", e);
             }
         }
 
-        return modules;
+        // note: the DiscoveryIndex MODULE category exists only to anchor Module implementation
+        // classes against maven-shade-plugin's minimizer. Actual discovery here still relies on
+        // META-INF/spigot-boot/modules/ markers so existing auto-discovery semantics are preserved
+        // (users opt modules in via the marker file or the builder, never by merely implementing
+        // Module).
+
+        return new ArrayList<>(modules.values());
     }
 
     private Set<String> resolveRelocatedFqcns(Set<String> originalFqcns) {
