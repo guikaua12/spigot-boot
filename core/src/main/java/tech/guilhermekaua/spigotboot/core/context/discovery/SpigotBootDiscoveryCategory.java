@@ -77,6 +77,9 @@ public @interface SpigotBootDiscoveryCategory {
      * pattern. Default {@code false} means only direct annotations trigger the rule.
      *
      * <p>Ignored for {@link Kind#SUBTYPE} rules (supertype walks are always transitive).
+     *
+     * @return {@code true} if transitive meta-annotation matching is enabled; {@code false}
+     * (default) for direct-annotation-only matching.
      */
     boolean transitive() default false;
 

@@ -23,7 +23,7 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
 
