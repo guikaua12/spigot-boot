@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
 
+import java.lang.reflect.Modifier;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -42,7 +43,9 @@ public class PersistenceConfigDiscoveryService {
         DiscoveryIndexReader reader = DiscoveryIndexReader.create();
         if (reader.hasAnyIndex()) {
             for (Class<?> c : reader.classesInCategory(DiscoveryCategories.PERSISTENCE_CONFIG, basePackage)) {
-                if (PersistenceConfig.class.isAssignableFrom(c)) {
+                if (PersistenceConfig.class.isAssignableFrom(c)
+                        && !c.isInterface()
+                        && !Modifier.isAbstract(c.getModifiers())) {
                     configs.add((Class<? extends PersistenceConfig>) c);
                 }
             }
