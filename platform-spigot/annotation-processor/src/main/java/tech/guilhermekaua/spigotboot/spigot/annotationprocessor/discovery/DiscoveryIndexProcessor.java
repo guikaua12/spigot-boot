@@ -115,7 +115,12 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
             collectFromElement(root);
         }
 
-        if (roundEnv.processingOver() && !generated) {
+        // Write the index in a non-final round so javac compiles the generated source as
+        // part of the same compilation output. Source files created during processingOver()
+        // emit a "last round" warning and are unreliable across javac/Gradle incremental
+        // builds. Subsequent rounds carry only sources newly emitted by other processors,
+        // which should not be re-indexed here.
+        if (!roundEnv.processingOver() && !discovered.isEmpty()) {
             writeIndexIfAny();
             generated = true;
         }
