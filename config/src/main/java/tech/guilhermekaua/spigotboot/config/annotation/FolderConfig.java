@@ -23,6 +23,8 @@
 package tech.guilhermekaua.spigotboot.config.annotation;
 
 import tech.guilhermekaua.spigotboot.config.binding.NamingStrategy;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 
 import java.lang.annotation.*;
 
@@ -36,6 +38,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Repeatable(FolderConfigs.class)
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.CONFIG, kind = SpigotBootDiscoveryCategory.Kind.ANNOTATION)
 public @interface FolderConfig {
 
     /**

@@ -22,6 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.annotations;
 
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -29,5 +32,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.CONFIGURATION, kind = SpigotBootDiscoveryCategory.Kind.ANNOTATION)
 public @interface Configuration {
 }

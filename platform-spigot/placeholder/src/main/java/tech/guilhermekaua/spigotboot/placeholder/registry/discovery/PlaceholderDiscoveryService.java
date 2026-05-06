@@ -24,12 +24,15 @@ package tech.guilhermekaua.spigotboot.placeholder.registry.discovery;
 
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.placeholder.annotations.RegisterPlaceholder;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 
 @RequiredArgsConstructor
 public class PlaceholderDiscoveryService implements DiscoveryService<Class<?>> {
@@ -37,6 +40,14 @@ public class PlaceholderDiscoveryService implements DiscoveryService<Class<?>> {
 
     @Override
     public Collection<Class<?>> discoverAll() {
-        return ReflectionUtils.getClassesAnnotatedWith(ProxyUtils.getRealClass(plugin).getPackage().getName(), RegisterPlaceholder.class);
+        Class<?> pluginClass = ProxyUtils.getRealClass(plugin);
+        String basePackage = pluginClass.getPackage().getName();
+        LinkedHashSet<Class<?>> result = new LinkedHashSet<>(
+                ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterPlaceholder.class));
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(pluginClass.getClassLoader());
+        if (reader.hasAnyIndex()) {
+            result.addAll(reader.classesInCategory(DiscoveryCategories.PLACEHOLDER, basePackage));
+        }
+        return result;
     }
 }

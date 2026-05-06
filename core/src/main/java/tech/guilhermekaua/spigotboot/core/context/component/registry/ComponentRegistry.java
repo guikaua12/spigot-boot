@@ -31,6 +31,8 @@ import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionConte
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
@@ -42,12 +44,9 @@ import java.util.stream.Stream;
 @Getter
 public class ComponentRegistry {
     private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
+    private DiscoveryIndexReader discoveryIndexReader;
 
     public void registerComponents(String basePackage, DependencyManager dependencyManager) {
-        this.componentsAnnotations.addAll(discoverComponentsAnnotations(basePackage));
-
-        Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
-
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (classLoader == null) {
             classLoader = ComponentRegistry.class.getClassLoader();
@@ -59,6 +58,18 @@ public class ComponentRegistry {
                 classLoader
         );
 
+        // Index covers minimize-jar-safe classes; classpath scan covers package-private classes
+        // the index can't reference (test fixtures, inner classes). Union both for completeness.
+        componentsAnnotations.addAll(discoverComponentsAnnotations(basePackage));
+
+        Set<Class<?>> componentsClasses = new LinkedHashSet<>(discoverComponentsClasses(basePackage));
+
+        DiscoveryIndexReader reader = getDiscoveryIndexReader();
+        if (reader.hasAnyIndex()) {
+            componentsAnnotations.add(Component.class);
+            componentsClasses.addAll(reader.classesInCategory(DiscoveryCategories.COMPONENT, basePackage));
+        }
+
         for (Class<?> componentsClass : componentsClasses) {
             if (ConditionEvaluator.shouldSkip(componentsClass, conditionContext, "ComponentRegistry")) {
                 continue;
@@ -66,6 +77,13 @@ public class ComponentRegistry {
 
             registerScannedComponent(componentsClass, dependencyManager);
         }
+    }
+
+    private DiscoveryIndexReader getDiscoveryIndexReader() {
+        if (discoveryIndexReader == null) {
+            discoveryIndexReader = DiscoveryIndexReader.create();
+        }
+        return discoveryIndexReader;
     }
 
     public void resolveAllComponents(DependencyManager dependencyManager) {

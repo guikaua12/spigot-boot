@@ -27,6 +27,8 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnMissingBean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.config.PersistenceConfig;
@@ -43,6 +45,8 @@ import tech.guilhermekaua.spigotboot.data.transaction.TransactionManager;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,9 +55,22 @@ public class DataJdbcAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(PersistenceConfig.class)
+    @SuppressWarnings("unchecked")
     public PersistenceConfig persistenceConfig(BootPlugin plugin, DependencyManager dependencyManager) {
         String basePackage = plugin.getMainClass().getPackage().getName();
-        Set<Class<? extends PersistenceConfig>> configs = ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class);
+        Set<Class<? extends PersistenceConfig>> configs = new LinkedHashSet<>(
+                ReflectionUtils.getSubClassesOf(basePackage, PersistenceConfig.class));
+
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(plugin.getClassLoader());
+        if (reader.hasAnyIndex()) {
+            for (Class<?> c : reader.classesInCategory(DiscoveryCategories.PERSISTENCE_CONFIG, basePackage)) {
+                if (PersistenceConfig.class.isAssignableFrom(c)
+                        && !c.isInterface()
+                        && !Modifier.isAbstract(c.getModifiers())) {
+                    configs.add((Class<? extends PersistenceConfig>) c);
+                }
+            }
+        }
 
         if (configs.isEmpty()) {
             throw new IllegalStateException(
@@ -97,7 +114,7 @@ public class DataJdbcAutoConfiguration {
 
         TypeConverterRegistry registry = new TypeConverterRegistry();
         BuiltInConverters.registerAll(registry);
-        ConverterScanner.scanAndRegister(basePackage, registry);
+        ConverterScanner.scanAndRegister(basePackage, plugin.getClassLoader(), registry);
         return registry;
     }
 

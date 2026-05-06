@@ -23,17 +23,30 @@
 package tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery;
 
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.impl.OrmLiteRepositoryImpl;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Component
 public class OrmLiteRepositoryDiscoveryService {
-    @SuppressWarnings("rawtypes")
-    public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage) {
-        Set<Class<? extends OrmLiteRepository>> repositories = ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class);
+    @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
+    public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage, ClassLoader classLoader) {
+        Set<Class<? extends OrmLiteRepository>> repositories = new LinkedHashSet<>(
+                ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class));
+
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(classLoader);
+        if (reader.hasAnyIndex()) {
+            for (Class<?> c : reader.classesInCategory(DiscoveryCategories.ORM_LITE_REPOSITORY, basePackage)) {
+                if (OrmLiteRepository.class.isAssignableFrom(c)) {
+                    repositories.add((Class<? extends OrmLiteRepository>) c);
+                }
+            }
+        }
 
         repositories.remove(OrmLiteRepositoryImpl.class);
 

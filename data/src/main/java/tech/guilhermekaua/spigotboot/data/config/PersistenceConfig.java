@@ -22,6 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.data.config;
 
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
+
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.PERSISTENCE_CONFIG, kind = SpigotBootDiscoveryCategory.Kind.SUBTYPE)
 public interface PersistenceConfig {
     String getAddress();
 

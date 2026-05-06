@@ -32,21 +32,40 @@ import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
 import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
 import tech.guilhermekaua.spigotboot.core.context.configuration.proxy.ConfigurationClassProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class ConfigurationProcessor {
+    private DiscoveryIndexReader discoveryIndexReader;
 
     public void processFromPackage(String basePackage, DependencyManager dependencyManager) {
-        for (Class<?> configClass : ReflectionUtils.getClassesAnnotatedWith(basePackage, Configuration.class)) {
+        LinkedHashSet<Class<?>> configClasses = new LinkedHashSet<>(
+                ReflectionUtils.getClassesAnnotatedWith(basePackage, Configuration.class));
+        DiscoveryIndexReader reader = getDiscoveryIndexReader();
+        if (reader.hasAnyIndex()) {
+            configClasses.addAll(reader.classesInCategory(DiscoveryCategories.CONFIGURATION, basePackage));
+        }
+
+        for (Class<?> configClass : configClasses) {
             processClass(configClass, dependencyManager);
         }
+    }
+
+    private DiscoveryIndexReader getDiscoveryIndexReader() {
+        if (discoveryIndexReader == null) {
+            discoveryIndexReader = DiscoveryIndexReader.create();
+        }
+        return discoveryIndexReader;
     }
 
     @SuppressWarnings("unchecked")

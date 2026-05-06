@@ -56,7 +56,8 @@ public class OrmLiteRepositoryRegistry {
 
     public void initialize(Context context) {
         Set<Class<? extends OrmLiteRepository>> repositoryClasses = repositoryDiscoveryService.discoverFromPackage(
-                context.getPlugin().getMainClass().getPackage().getName()
+                context.getPlugin().getMainClass().getPackage().getName(),
+                context.getPlugin().getClassLoader()
         );
 
         ConnectionSource connectionSource = context.getBean(ConnectionSource.class);

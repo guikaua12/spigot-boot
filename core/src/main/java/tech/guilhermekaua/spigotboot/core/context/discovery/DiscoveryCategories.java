@@ -20,19 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.context.annotations;
+package tech.guilhermekaua.spigotboot.core.context.discovery;
 
-import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
-import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
+/**
+ * Category keys used by {@link DiscoveryIndex} implementations. Each key maps to a set of classes
+ * that the runtime would otherwise discover by classpath scanning.
+ */
+public final class DiscoveryCategories {
+    public static final String COMPONENT = "component";
+    public static final String CONFIGURATION = "configuration";
+    public static final String METHOD_HANDLER = "method-handler";
+    public static final String CONFIG = "config";
+    public static final String PLACEHOLDER = "placeholder";
+    public static final String CONVERTER = "converter";
+    public static final String MODULE = "module";
+    public static final String JDBC_REPOSITORY = "jdbc-repository";
+    public static final String ORM_LITE_REPOSITORY = "orm-lite-repository";
+    public static final String PERSISTENCE_CONFIG = "persistence-config";
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Component
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@SpigotBootDiscoveryCategory(value = DiscoveryCategories.METHOD_HANDLER, kind = SpigotBootDiscoveryCategory.Kind.ANNOTATION)
-public @interface RegisterMethodHandler {
+    private DiscoveryCategories() {
+    }
 }

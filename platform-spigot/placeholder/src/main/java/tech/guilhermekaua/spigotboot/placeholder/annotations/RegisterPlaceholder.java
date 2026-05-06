@@ -23,6 +23,8 @@
 package tech.guilhermekaua.spigotboot.placeholder.annotations;
 
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -32,5 +34,6 @@ import java.lang.annotation.Target;
 @Component
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.PLACEHOLDER, kind = SpigotBootDiscoveryCategory.Kind.ANNOTATION)
 public @interface RegisterPlaceholder {
 }

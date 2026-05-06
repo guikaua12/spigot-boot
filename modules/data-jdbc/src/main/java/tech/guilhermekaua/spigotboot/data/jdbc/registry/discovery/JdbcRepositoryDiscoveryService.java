@@ -23,10 +23,14 @@
 package tech.guilhermekaua.spigotboot.data.jdbc.registry.discovery;
 
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.jdbc.repository.JdbcRepository;
 import tech.guilhermekaua.spigotboot.data.jdbc.repository.impl.JdbcRepositoryImpl;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,13 +38,20 @@ import java.util.stream.Collectors;
 @SuppressWarnings("rawtypes")
 public class JdbcRepositoryDiscoveryService {
 
+    @SuppressWarnings("unchecked")
     public Set<Class<? extends JdbcRepository>> discoverFromPackage(String basePackage) {
-        Set<Class<? extends JdbcRepository>> repositories = ReflectionUtils.getSubClassesOf(basePackage, JdbcRepository.class);
+        LinkedHashSet<Class<?>> candidates = new LinkedHashSet<>(
+                (Set) ReflectionUtils.getSubClassesOf(basePackage, JdbcRepository.class));
+        DiscoveryIndexReader reader = DiscoveryIndexReader.create();
+        if (reader.hasAnyIndex()) {
+            candidates.addAll(reader.classesInCategory(DiscoveryCategories.JDBC_REPOSITORY, basePackage));
+        }
 
-        // exclude the implementation class
-        return repositories.stream()
+        return candidates.stream()
                 .filter(c -> c != JdbcRepositoryImpl.class)
                 .filter(Class::isInterface)
+                .filter(JdbcRepository.class::isAssignableFrom)
+                .map(c -> (Class<? extends JdbcRepository>) c)
                 .collect(Collectors.toSet());
     }
 }

@@ -22,11 +22,14 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.repository;
 
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 import tech.guilhermekaua.spigotboot.core.pagination.Page;
 import tech.guilhermekaua.spigotboot.core.pagination.Pageable;
 import tech.guilhermekaua.spigotboot.data.jdbc.query.SelectQuery;
 import tech.guilhermekaua.spigotboot.data.repository.Repository;
 
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.JDBC_REPOSITORY, kind = SpigotBootDiscoveryCategory.Kind.SUBTYPE)
 public interface JdbcRepository<T, ID> extends Repository<T, ID> {
     T insert(T entity);
 

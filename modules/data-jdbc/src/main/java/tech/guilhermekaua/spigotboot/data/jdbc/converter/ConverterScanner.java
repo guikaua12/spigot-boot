@@ -22,12 +22,16 @@
  */
 package tech.guilhermekaua.spigotboot.data.jdbc.converter;
 
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.data.converter.AttributeConverter;
 import tech.guilhermekaua.spigotboot.data.converter.Converter;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,8 +43,13 @@ public final class ConverterScanner {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void scanAndRegister(String basePackage, TypeConverterRegistry registry) {
-        Set<Class<?>> classes = ReflectionUtils.getClassesAnnotatedWith(basePackage, Converter.class);
+    public static void scanAndRegister(String basePackage, ClassLoader classLoader, TypeConverterRegistry registry) {
+        LinkedHashSet<Class<?>> classes = new LinkedHashSet<>(
+                ReflectionUtils.getClassesAnnotatedWith(basePackage, Converter.class));
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(classLoader);
+        if (reader.hasAnyIndex()) {
+            classes.addAll(reader.classesInCategory(DiscoveryCategories.CONVERTER, basePackage));
+        }
 
         for (Class<?> clazz : classes) {
             Converter converterAnnotation = clazz.getAnnotation(Converter.class);

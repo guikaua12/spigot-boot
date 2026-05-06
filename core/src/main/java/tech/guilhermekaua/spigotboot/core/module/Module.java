@@ -23,7 +23,10 @@
 package tech.guilhermekaua.spigotboot.core.module;
 
 import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.MODULE, kind = SpigotBootDiscoveryCategory.Kind.SUBTYPE)
 public interface Module {
     void onInitialize(Context context) throws Exception;
 }

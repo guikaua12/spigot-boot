@@ -44,7 +44,7 @@
                         <path>
                             <groupId>tech.guilhermekaua.spigot-boot</groupId>
                             <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
-                            <version>2.0.2</version>
+                            <version>${project.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
@@ -53,6 +53,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -103,13 +106,13 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
@@ -136,24 +139,24 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-plugin-messaging-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-data-orm-lite</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-placeholder-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config-spigot</artifactId>
-            <version>2.0.2</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
 
