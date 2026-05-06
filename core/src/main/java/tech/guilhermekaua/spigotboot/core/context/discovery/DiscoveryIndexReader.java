@@ -135,6 +135,7 @@ public final class DiscoveryIndexReader {
      * @return {@code true} when any loaded index contains entries for {@code category}.
      */
     public boolean hasEntriesFor(@NotNull String category) {
+        Objects.requireNonNull(category, "category cannot be null");
         List<Class<?>> list = byCategory.get(category);
         return list != null && !list.isEmpty();
     }
@@ -143,6 +144,7 @@ public final class DiscoveryIndexReader {
      * Returns every class registered under {@code category} by any loaded index.
      */
     public @NotNull List<Class<?>> classesInCategory(@NotNull String category) {
+        Objects.requireNonNull(category, "category cannot be null");
         List<Class<?>> list = byCategory.get(category);
         return list != null ? list : Collections.emptyList();
     }
@@ -154,6 +156,7 @@ public final class DiscoveryIndexReader {
      * {@code "com.foo"} does not match {@code "com.foobar.Baz"}.
      */
     public @NotNull List<Class<?>> classesInCategory(@NotNull String category, @Nullable String packageFilter) {
+        Objects.requireNonNull(category, "category cannot be null");
         List<Class<?>> all = classesInCategory(category);
         if (all.isEmpty() || packageFilter == null || packageFilter.isEmpty()) {
             return all;
