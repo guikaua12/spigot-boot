@@ -43,10 +43,10 @@ public final class ConverterScanner {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void scanAndRegister(String basePackage, TypeConverterRegistry registry) {
+    public static void scanAndRegister(String basePackage, ClassLoader classLoader, TypeConverterRegistry registry) {
         LinkedHashSet<Class<?>> classes = new LinkedHashSet<>(
                 ReflectionUtils.getClassesAnnotatedWith(basePackage, Converter.class));
-        DiscoveryIndexReader reader = DiscoveryIndexReader.create();
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(classLoader);
         if (reader.hasAnyIndex()) {
             classes.addAll(reader.classesInCategory(DiscoveryCategories.CONVERTER, basePackage));
         }

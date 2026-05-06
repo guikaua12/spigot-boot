@@ -97,7 +97,7 @@ public class DataJdbcAutoConfiguration {
 
         TypeConverterRegistry registry = new TypeConverterRegistry();
         BuiltInConverters.registerAll(registry);
-        ConverterScanner.scanAndRegister(basePackage, registry);
+        ConverterScanner.scanAndRegister(basePackage, plugin.getClassLoader(), registry);
         return registry;
     }
 
