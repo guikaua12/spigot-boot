@@ -40,10 +40,11 @@ public class PlaceholderDiscoveryService implements DiscoveryService<Class<?>> {
 
     @Override
     public Collection<Class<?>> discoverAll() {
-        String basePackage = ProxyUtils.getRealClass(plugin).getPackage().getName();
+        Class<?> pluginClass = ProxyUtils.getRealClass(plugin);
+        String basePackage = pluginClass.getPackage().getName();
         LinkedHashSet<Class<?>> result = new LinkedHashSet<>(
                 ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterPlaceholder.class));
-        DiscoveryIndexReader reader = DiscoveryIndexReader.create();
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(pluginClass.getClassLoader());
         if (reader.hasAnyIndex()) {
             result.addAll(reader.classesInCategory(DiscoveryCategories.PLACEHOLDER, basePackage));
         }
