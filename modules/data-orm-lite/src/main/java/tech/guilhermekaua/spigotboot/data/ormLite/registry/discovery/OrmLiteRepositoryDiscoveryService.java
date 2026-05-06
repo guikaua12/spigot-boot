@@ -35,11 +35,11 @@ import java.util.Set;
 @Component
 public class OrmLiteRepositoryDiscoveryService {
     @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
-    public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage) {
+    public Set<Class<? extends OrmLiteRepository>> discoverFromPackage(String basePackage, ClassLoader classLoader) {
         Set<Class<? extends OrmLiteRepository>> repositories = new LinkedHashSet<>(
                 ReflectionUtils.getSubClassesOf(basePackage, OrmLiteRepository.class));
 
-        DiscoveryIndexReader reader = DiscoveryIndexReader.create();
+        DiscoveryIndexReader reader = new DiscoveryIndexReader(classLoader);
         if (reader.hasAnyIndex()) {
             for (Class<?> c : reader.classesInCategory(DiscoveryCategories.ORM_LITE_REPOSITORY, basePackage)) {
                 if (OrmLiteRepository.class.isAssignableFrom(c)) {
