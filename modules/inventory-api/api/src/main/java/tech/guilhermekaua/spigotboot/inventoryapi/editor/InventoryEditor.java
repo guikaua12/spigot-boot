@@ -20,23 +20,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin.configuration;
+package tech.guilhermekaua.spigotboot.inventoryapi.editor;
 
-import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
+import tech.guilhermekaua.spigotboot.inventoryapi.item.callback.ItemCallback;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
 
-public class PersistenceConfigImpl implements PersistenceConfig {
-    @Override
-    public String getAddress() {
-        return "jdbc:h2:mem:test";
-    }
+import java.util.List;
 
-    @Override
-    public String getUsername() {
-        return "sa";
-    }
+/**
+ * Owns the per-viewer Bukkit {@link Inventory} and the slot-to-callback mapping. Implementations
+ * apply placeholders to display name and lore at item-set time.
+ */
+public interface InventoryEditor {
 
-    @Override
-    public String getPassword() {
-        return "";
-    }
+    Inventory getInventory();
+
+    void setItem(int slot, InventoryItem inventoryItem);
+
+    void setItem(int slot, InventoryItem inventoryItem, InventoryItem fallbackItem);
+
+    void setEmptyItem(int slot);
+
+    void fillPage(List<InventoryItem> inventoryItems, InventoryLayout layout, Pagination<?> pagination);
+
+    void updateItemStack(int slot);
+
+    void updateAllItemStacks();
+
+    ItemStack getItemStack(int slot);
+
+    ItemCallback getItemCallback(int slot);
+
 }

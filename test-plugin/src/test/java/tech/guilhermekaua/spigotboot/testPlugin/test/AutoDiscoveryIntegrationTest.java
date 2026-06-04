@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
-import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.testPlugin.Main;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,7 +39,6 @@ class AutoDiscoveryIntegrationTest {
         assertNotNull(ctx.getBean(JavaPlugin.class));
         assertNotNull(ctx.getBean(Plugin.class));
         assertNotNull(ctx.getBean(ConfigRegistry.class));
-        assertNotNull(ctx.getBean(OrmLiteRepositoryRegistry.class));
     }
 
     @Test

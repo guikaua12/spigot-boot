@@ -2,6 +2,11 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/local-only/BKCommonLib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/local-only/Foundation" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/local-only/inventory-api-maven" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tmp_BlockParticles" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tmp_mcMMO" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/wiki" vcs="Git" />
   </component>
 </project>

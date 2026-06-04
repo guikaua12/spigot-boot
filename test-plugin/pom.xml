@@ -135,27 +135,15 @@
             <artifactId>h2</artifactId>
             <version>2.3.232</version>
         </dependency>
-
-        <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-plugin-messaging-spigot</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-data-orm-lite</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-placeholder-spigot</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config-spigot</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-inventory-api</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

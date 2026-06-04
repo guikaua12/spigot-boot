@@ -37,6 +37,7 @@ public final class DiscoveryCategories {
     public static final String JDBC_REPOSITORY = "jdbc-repository";
     public static final String ORM_LITE_REPOSITORY = "orm-lite-repository";
     public static final String PERSISTENCE_CONFIG = "persistence-config";
+    public static final String INVENTORY = "inventory";
 
     private DiscoveryCategories() {
     }

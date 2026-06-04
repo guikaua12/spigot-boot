@@ -30,14 +30,17 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.messaging.bungee.BungeeChannel;
+import tech.guilhermekaua.spigotboot.inventoryapi.service.InventoryService;
+import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalPagedInventory;
+import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePagedInventory;
+import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternPagedInventory;
 import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
 @Component
 @RequiredArgsConstructor
 public class JoinListener implements Listener {
-    private final BungeeChannel bungeeChannel;
     private final UserService userService;
+    private final InventoryService inventoryService;
 
     @EventHandler
     public void onChat(PlayerJoinEvent event) {
@@ -70,10 +73,25 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockPlaceEvent event) {
-        if (event.getBlock().getType() != Material.DIAMOND_BLOCK) return;
-
+        final Material blockType = event.getBlock().getType();
         final Player player = event.getPlayer();
-        player.sendMessage("[ApxPlugin] - test message from BlockBreakEvent");
+
+        if (blockType == Material.DIAMOND_BLOCK) {
+            player.sendMessage("[ApxPlugin] - opening scroll pagination sample");
+            inventoryService.open(player, SamplePagedInventory.class);
+            return;
+        }
+
+        if (blockType == Material.EMERALD_BLOCK) {
+            player.sendMessage("[ApxPlugin] - opening normal pagination sample");
+            inventoryService.open(player, SampleNormalPagedInventory.class);
+            return;
+        }
+
+        if (blockType == Material.GOLD_BLOCK) {
+            player.sendMessage("[ApxPlugin] - opening pattern pagination sample");
+            inventoryService.open(player, SamplePatternPagedInventory.class);
+        }
 
 //        try {
 //            bungeeChannel.sendMessage(player, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
