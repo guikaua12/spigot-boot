@@ -85,10 +85,12 @@ public class ViewerImpl implements Viewer {
     @Override
     public void close() {
         Player player = getPlayer();
+        if (player == null || !player.isOnline()) {
+            getRegistry().unregisterViewer(this);
+            return;
+        }
 
-        getRegistry().unregisterViewer(this);
-
-        Bukkit.getScheduler().runTask(getPlugin(), () -> player.closeInventory());
+        Bukkit.getScheduler().runTask(getPlugin(), player::closeInventory);
     }
 
 }
