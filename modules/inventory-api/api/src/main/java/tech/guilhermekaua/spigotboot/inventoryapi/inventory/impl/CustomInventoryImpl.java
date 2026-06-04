@@ -66,7 +66,7 @@ public abstract class CustomInventoryImpl implements CustomInventory {
     @Override
     public void updateInventory(@NotNull Player player) {
         viewerRegistry.findViewer(player).ifPresent(viewer -> {
-            if (viewer.getCustomInventory().getClass().isInstance(this)) {
+            if (viewer.getCustomInventory() == this) {
                 InventoryEditor editor = viewer.getEditor();
                 update(viewer, editor);
                 editor.updateAllItemStacks();

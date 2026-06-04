@@ -72,7 +72,7 @@ public class JoinListener implements Listener {
     }
 
     @EventHandler
-    public void onBlockBreak(BlockPlaceEvent event) {
+    public void onBlockPlace(BlockPlaceEvent event) {
         final Material blockType = event.getBlock().getType();
         final Player player = event.getPlayer();
 
