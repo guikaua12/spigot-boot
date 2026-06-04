@@ -30,16 +30,31 @@ import org.bukkit.material.MaterialData;
 /**
  * Builds {@link ItemStack}s from legacy material name + damage pairs, handling the 1.13 flattening
  * by retrying through {@code Bukkit.getUnsafe().fromLegacy(...)} when the modern lookup fails.
+ *
+ * <p>Returns {@code null} when the material name cannot be resolved on the running server.
  */
 public final class MaterialUtil {
 
+    private MaterialUtil() {
+    }
+
+    /**
+     * @return a one-item stack for the legacy pair, or {@code null} if the name is unknown
+     */
     public static ItemStack convertFromLegacy(String materialName, int damage) {
         try {
-            return new ItemStack(Material.getMaterial(materialName), 1, (short) damage);
+            Material material = Material.getMaterial(materialName);
+            if (material == null) {
+                return null;
+            }
+            return new ItemStack(material, 1, (short) damage);
         } catch (Exception error) {
-            final Material material = Material.valueOf("LEGACY_" + materialName);
-
-            return new ItemStack(Bukkit.getUnsafe().fromLegacy(new MaterialData(material, (byte) damage)));
+            try {
+                Material material = Material.valueOf("LEGACY_" + materialName);
+                return new ItemStack(Bukkit.getUnsafe().fromLegacy(new MaterialData(material, (byte) damage)));
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
         }
     }
 
