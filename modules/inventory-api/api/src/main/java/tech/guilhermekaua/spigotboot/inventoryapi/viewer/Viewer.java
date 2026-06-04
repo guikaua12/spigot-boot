@@ -49,9 +49,7 @@ public interface Viewer {
         return Bukkit.getPlayer(this.getName());
     }
 
-    default UUID getUniqueId() {
-        return this.getPlayer().getUniqueId();
-    }
+    UUID getUniqueId();
 
     <T extends CustomInventory> T getCustomInventory();
 

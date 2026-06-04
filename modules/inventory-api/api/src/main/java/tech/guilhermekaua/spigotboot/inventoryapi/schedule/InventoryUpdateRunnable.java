@@ -23,6 +23,7 @@
 package tech.guilhermekaua.spigotboot.inventoryapi.schedule;
 
 import lombok.RequiredArgsConstructor;
+import org.bukkit.entity.Player;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.ViewerRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
@@ -40,7 +41,10 @@ public final class InventoryUpdateRunnable implements Runnable {
     @Override
     public void run() {
         for (Viewer viewer : viewerRegistry.findAll()) {
-            customInventory.updateInventory(viewer.getPlayer());
+            Player player = viewer.getPlayer();
+            if (player != null) {
+                customInventory.updateInventory(player);
+            }
         }
     }
 

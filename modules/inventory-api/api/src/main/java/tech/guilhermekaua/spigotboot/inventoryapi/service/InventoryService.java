@@ -105,7 +105,13 @@ public final class InventoryService {
         }
 
         CustomInventory inventory = maybe.get();
-        Viewer viewer = new ViewerImpl(viewerContext, placeholderApplier, player.getName(), inventory);
+        Viewer viewer = new ViewerImpl(
+                viewerContext,
+                placeholderApplier,
+                player.getUniqueId(),
+                player.getName(),
+                inventory
+        );
 
         inventory.defaultOpenInventory(player, viewer, initializer);
         return viewer;

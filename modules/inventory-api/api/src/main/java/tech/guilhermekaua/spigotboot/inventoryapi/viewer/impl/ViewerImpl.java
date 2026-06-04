@@ -41,6 +41,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.viewer.configuration.ViewerCon
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.configuration.impl.ViewerConfigurationImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.property.ViewerPropertyMap;
 
+import java.util.UUID;
+
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"context", "placeholderApplier"})
@@ -50,6 +52,7 @@ public class ViewerImpl implements Viewer {
     private final PlaceholderApplier placeholderApplier;
 
     @EqualsAndHashCode.Include
+    private final UUID uniqueId;
     private final String name;
     private final CustomInventory customInventory;
 
