@@ -29,7 +29,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
@@ -43,8 +42,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 import java.util.function.Consumer;
 
 /**
- * Bridges Bukkit's {@link InventoryClickEvent}, {@link InventoryDragEvent}, and
- * {@link InventoryCloseEvent} into the
+ * Bridges Bukkit's {@link InventoryClickEvent} and {@link InventoryCloseEvent} into the
  * inventory-api's own {@link CustomInventoryClickEvent} / {@link CustomInventoryCloseEvent},
  * dispatching click handlers registered on the active viewer.
  *
@@ -92,21 +90,6 @@ public final class CustomInventoryListener implements Listener {
                 callback.accept(clickEvent);
             }
         });
-    }
-
-    @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
-        Player player = (Player) event.getWhoClicked();
-
-        if (!viewerRegistry.findViewer(player).isPresent()) {
-            return;
-        }
-
-        int topSize = event.getView().getTopInventory().getSize();
-        boolean affectsTop = event.getRawSlots().stream().anyMatch(slot -> slot < topSize);
-        if (affectsTop) {
-            event.setCancelled(true);
-        }
     }
 
 }
