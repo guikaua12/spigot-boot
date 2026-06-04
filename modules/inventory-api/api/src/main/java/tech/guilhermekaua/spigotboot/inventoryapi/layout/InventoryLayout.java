@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Parses a row-by-row ASCII grid into a list of named slots plus the back/next navigation slots.
@@ -76,5 +77,15 @@ public class InventoryLayout {
 
     public InventoryLayout(String... layout) {
         this(' ', '<', '>', layout);
+    }
+
+    /**
+     * @throws IllegalArgumentException if {@code layout} defines no item slots (only empty/back/next)
+     */
+    public static void requireItemSlots(InventoryLayout layout) {
+        Objects.requireNonNull(layout, "layout");
+        if (layout.getSlots().isEmpty()) {
+            throw new IllegalArgumentException("layout must define at least one item slot");
+        }
     }
 }

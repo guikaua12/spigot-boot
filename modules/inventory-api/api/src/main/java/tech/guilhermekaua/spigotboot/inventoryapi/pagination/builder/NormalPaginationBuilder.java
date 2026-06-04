@@ -56,6 +56,7 @@ public class NormalPaginationBuilder<T> {
     public NormalPagination<T> build() {
         Objects.requireNonNull(this.itemFactory, "itemFactory is required.");
         Objects.requireNonNull(this.layout, "layout is required.");
+        InventoryLayout.requireItemSlots(this.layout);
 
         return new NormalPagination<>(this.fallbackItem, this.itemFactory, this.layout);
     }

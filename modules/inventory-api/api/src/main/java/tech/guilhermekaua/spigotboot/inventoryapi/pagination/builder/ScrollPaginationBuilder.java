@@ -56,6 +56,7 @@ public class ScrollPaginationBuilder<T> {
     public ScrollPagination<T> build() {
         Objects.requireNonNull(this.itemFactory, "itemFactory is required.");
         Objects.requireNonNull(this.layout, "layout is required.");
+        InventoryLayout.requireItemSlots(this.layout);
 
         return new ScrollPagination<>(this.fallbackItem, this.itemFactory, this.layout);
     }

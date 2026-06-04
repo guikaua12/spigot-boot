@@ -69,6 +69,9 @@ public class PatternPaginationBuilder<T> {
         if (this.patterns.isEmpty()) {
             throw new IllegalArgumentException("patterns list cannot be empty.");
         }
+        for (InventoryLayout pattern : this.patterns) {
+            InventoryLayout.requireItemSlots(pattern);
+        }
 
         return new PatternPagination<>(this.fallbackItem, this.itemFactory, this.patterns);
     }
