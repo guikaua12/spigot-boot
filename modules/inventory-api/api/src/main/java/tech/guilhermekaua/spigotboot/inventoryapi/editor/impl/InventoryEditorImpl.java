@@ -140,6 +140,8 @@ public final class InventoryEditorImpl implements InventoryEditor {
             return null;
         }
 
+        itemStack = itemStack.clone();
+
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) {
             return itemStack;
