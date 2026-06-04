@@ -28,6 +28,12 @@ package tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration;
  */
 public interface InventoryConfiguration {
 
+    /**
+     * Sentinel for {@link #tickUpdate()}: periodic updates are not scheduled when the value is
+     * {@code <= 0}.
+     */
+    int TICK_UPDATE_DISABLED = 0;
+
     int tickUpdate();
 
     @SuppressWarnings("UnusedReturnValue")

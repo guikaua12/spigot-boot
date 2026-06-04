@@ -30,5 +30,5 @@ import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.Invent
 @Data
 public class InventoryConfigurationImpl implements InventoryConfiguration {
 
-    private int tickUpdate = 999999;
+    private int tickUpdate = InventoryConfiguration.TICK_UPDATE_DISABLED;
 }

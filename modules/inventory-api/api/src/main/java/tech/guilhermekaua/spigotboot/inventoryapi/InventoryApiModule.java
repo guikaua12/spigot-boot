@@ -29,6 +29,7 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.InventoryRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.ViewerRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.schedule.InventoryUpdateRunnable;
@@ -59,6 +60,9 @@ public final class InventoryApiModule implements Module {
         BukkitScheduler scheduler = Bukkit.getScheduler();
         for (CustomInventory inventory : inventoryRegistry.findAll()) {
             int tickUpdate = inventory.getConfiguration().tickUpdate();
+            if (tickUpdate <= InventoryConfiguration.TICK_UPDATE_DISABLED) {
+                continue;
+            }
             scheduler.runTaskTimerAsynchronously(
                     plugin,
                     new InventoryUpdateRunnable(viewerRegistry, inventory),
