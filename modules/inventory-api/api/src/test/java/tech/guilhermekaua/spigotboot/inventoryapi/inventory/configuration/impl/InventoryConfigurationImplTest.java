@@ -22,14 +22,40 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.impl;
 
-import lombok.Data;
-import lombok.experimental.Accessors;
+import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
 
-@Accessors(fluent = true)
-@Data
-public class InventoryConfigurationImpl implements InventoryConfiguration {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    private int tickUpdate = InventoryConfiguration.TICK_UPDATE_DISABLED;
-    private boolean tickAsync = false;
+class InventoryConfigurationImplTest {
+
+    @Test
+    void defaultsAreUpdatesDisabledAndSync() {
+        InventoryConfiguration configuration = new InventoryConfigurationImpl();
+
+        assertEquals(InventoryConfiguration.TICK_UPDATE_DISABLED, configuration.tickUpdate());
+        assertFalse(configuration.tickAsync(), "periodic updates must default to the main thread");
+    }
+
+    @Test
+    void tickAsyncIsFluentlyMutable() {
+        InventoryConfiguration configuration = new InventoryConfigurationImpl();
+
+        assertSame(configuration, configuration.tickAsync(true));
+        assertTrue(configuration.tickAsync());
+
+        configuration.tickAsync(false);
+        assertFalse(configuration.tickAsync());
+    }
+
+    @Test
+    void tickUpdateIsFluentlyMutable() {
+        InventoryConfiguration configuration = new InventoryConfigurationImpl();
+
+        assertSame(configuration, configuration.tickUpdate(20));
+        assertEquals(20, configuration.tickUpdate());
+    }
 }

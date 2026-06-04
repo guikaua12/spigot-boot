@@ -38,9 +38,9 @@ import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
 import tech.guilhermekaua.spigotboot.inventoryapi.placeholder.PlaceholderApplier;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 @RequiredArgsConstructor
@@ -48,7 +48,9 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     private final Inventory inventory;
     private final PlaceholderApplier placeholderApplier;
-    private final Map<Integer, ItemCallback> inventoryCallbackMap = new LinkedHashMap<>();
+    // ConcurrentHashMap so a tickAsync update can iterate the callbacks while a main-thread click
+    // mutates them without a ConcurrentModificationException; item callbacks are never null
+    private final Map<Integer, ItemCallback> inventoryCallbackMap = new ConcurrentHashMap<>();
 
     @Override
     public void setItem(int slot, InventoryItem inventoryItem) {

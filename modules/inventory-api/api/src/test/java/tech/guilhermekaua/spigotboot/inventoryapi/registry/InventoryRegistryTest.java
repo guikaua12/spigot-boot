@@ -81,8 +81,11 @@ class InventoryRegistryTest {
         @SuppressWarnings("unchecked")
         public @NotNull <T extends InventoryConfiguration> T getConfiguration() { return (T) new InventoryConfiguration() {
             int ticks = 999999;
+            boolean async = false;
             @Override public int tickUpdate() { return ticks; }
             @Override public InventoryConfiguration tickUpdate(int t) { ticks = t; return this; }
+            @Override public boolean tickAsync() { return async; }
+            @Override public InventoryConfiguration tickAsync(boolean a) { async = a; return this; }
         }; }
 
         @Override

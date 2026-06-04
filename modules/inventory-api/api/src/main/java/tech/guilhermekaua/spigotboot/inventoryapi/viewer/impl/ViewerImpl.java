@@ -93,7 +93,7 @@ public class ViewerImpl implements Viewer {
             return;
         }
 
-        Bukkit.getScheduler().runTask(getPlugin(), player::closeInventory);
+        Bukkit.getScheduler().runTask(getPlugin(), (Runnable) player::closeInventory);
     }
 
 }

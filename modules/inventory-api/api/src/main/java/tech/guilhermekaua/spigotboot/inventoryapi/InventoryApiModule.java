@@ -39,6 +39,9 @@ import tech.guilhermekaua.spigotboot.inventoryapi.schedule.InventoryUpdateRunnab
  * -annotated {@link CustomInventory} subclass under the host plugin's base package, instantiates
  * each one through the dependency manager, and schedules its periodic update task.
  *
+ * <p>The update task is skipped when {@code tickUpdate <= 0} and runs on the main server thread
+ * unless the inventory opts into {@code tickAsync(true)}.
+ *
  * <p>Replaces the upstream {@code InventoryManager.enable(plugin, inv1, inv2, ...)} static
  * bootstrap. Users no longer hand-list inventories — annotated subclasses self-register.
  */
@@ -59,16 +62,18 @@ public final class InventoryApiModule implements Module {
 
         BukkitScheduler scheduler = Bukkit.getScheduler();
         for (CustomInventory inventory : inventoryRegistry.findAll()) {
-            int tickUpdate = inventory.getConfiguration().tickUpdate();
+            InventoryConfiguration configuration = inventory.getConfiguration();
+            int tickUpdate = configuration.tickUpdate();
             if (tickUpdate <= InventoryConfiguration.TICK_UPDATE_DISABLED) {
                 continue;
             }
-            scheduler.runTaskTimerAsynchronously(
-                    plugin,
-                    new InventoryUpdateRunnable(viewerRegistry, inventory),
-                    0L,
-                    tickUpdate
-            );
+
+            InventoryUpdateRunnable task = new InventoryUpdateRunnable(viewerRegistry, inventory);
+            if (configuration.tickAsync()) {
+                scheduler.runTaskTimerAsynchronously(plugin, task, 0L, tickUpdate);
+            } else {
+                scheduler.runTaskTimer(plugin, task, 0L, tickUpdate);
+            }
         }
     }
 }
