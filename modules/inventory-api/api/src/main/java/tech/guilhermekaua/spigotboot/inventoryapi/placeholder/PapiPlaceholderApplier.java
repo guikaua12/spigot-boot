@@ -29,9 +29,9 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * {@link PlaceholderApplier} that delegates to PlaceholderAPI when the plugin is enabled at
- * runtime. The class is loaded only when {@code me.clip.placeholderapi.PlaceholderAPI} is on
- * the classpath (the auto-configuration's factory method is guarded by
- * {@code @ConditionalOnClass}).
+ * runtime. The auto-configuration installs this implementation when
+ * {@code me.clip.placeholderapi.PlaceholderAPI} is present on the classpath (checked via
+ * {@code Class.forName} in {@link tech.guilhermekaua.spigotboot.inventoryapi.config.InventoryApiAutoConfiguration}).
  *
  * <p>If the PlaceholderAPI plugin happens to be on the classpath but disabled at runtime
  * (rare), {@link #apply(Player, String)} returns the input unchanged.

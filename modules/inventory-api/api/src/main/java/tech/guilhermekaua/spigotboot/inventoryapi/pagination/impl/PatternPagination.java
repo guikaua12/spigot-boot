@@ -46,8 +46,8 @@ import java.util.TreeMap;
  * Cycles through a list of {@link InventoryLayout} patterns as the viewer pages forward, with
  * column-aware indexing so logical items map sensibly across heterogeneous layouts.
  *
- * <p>Schedules a one-tick warmup on {@link #init(Viewer)} (changes to page 2 then back to 1)
- * to populate {@code lastPattern} for clean clears on the first real navigation.
+ * <p>{@link #changePage(int)} records the previous layout in {@code lastPattern} and clears
+ * its slots before rendering the new page.
  */
 @RequiredArgsConstructor
 @Getter

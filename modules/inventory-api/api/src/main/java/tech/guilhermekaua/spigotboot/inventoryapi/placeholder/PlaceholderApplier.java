@@ -31,10 +31,10 @@ import java.util.List;
 /**
  * Resolves placeholder tokens in user-facing text (item display names, lore lines, titles).
  *
- * <p>The default implementation, {@link PapiPlaceholderApplier}, delegates to PlaceholderAPI
- * when the plugin is loaded. When PlaceholderAPI is absent the auto-configuration installs
- * {@link NoopPlaceholderApplier}, which returns the input unchanged. Users can override either
- * behavior by registering their own bean.
+ * <p>When PlaceholderAPI is on the classpath,
+ * {@link tech.guilhermekaua.spigotboot.inventoryapi.config.InventoryApiAutoConfiguration} installs
+ * {@link PapiPlaceholderApplier}; otherwise {@link NoopPlaceholderApplier}, which returns the
+ * input unchanged. Users can override either behavior by registering their own bean.
  */
 @FunctionalInterface
 public interface PlaceholderApplier {

@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
  * Picks the right {@link InventoryTitleUpdater} for the running server. The strategy is:
  *
  * <ol>
- *     <li>If the major version is 1.20 or newer, return {@link BukkitInventoryTitleUpdater}
+ *     <li>If the Bukkit minor version is 20 or newer (1.20+), return {@link BukkitInventoryTitleUpdater}
  *         which uses the public Bukkit API ({@code InventoryView#setTitle}) added in 1.20.</li>
  *     <li>Otherwise, look up the CraftBukkit package suffix (e.g. {@code v1_19_R3}) and
  *         instantiate the matching per-version NMS class.</li>
@@ -68,8 +68,8 @@ public final class InventoryApiNMS {
      *                               classpath
      */
     public static InventoryTitleUpdater getTitleUpdater() {
-        int major = detectMajorVersion();
-        if (major >= 20) {
+        int minor = detectMinorVersion();
+        if (minor >= 20) {
             return new BukkitInventoryTitleUpdater();
         }
 
@@ -114,7 +114,7 @@ public final class InventoryApiNMS {
      * Bukkit API path is available. Returns {@code -1} if it cannot be parsed, which forces the
      * selector down the NMS branch.
      */
-    static int detectMajorVersion() {
+    static int detectMinorVersion() {
         String version = Bukkit.getBukkitVersion();
         if (version == null) {
             return -1;
