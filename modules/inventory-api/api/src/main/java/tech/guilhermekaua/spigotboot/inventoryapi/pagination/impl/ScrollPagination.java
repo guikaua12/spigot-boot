@@ -126,8 +126,7 @@ public class ScrollPagination<T> implements Pagination<T> {
 
     @Override
     public void setSource(List<T> source) {
-        this.source.clear();
-        this.source = source;
+        this.source = new ArrayList<>(source);
     }
 
     private int getPageIndex() {

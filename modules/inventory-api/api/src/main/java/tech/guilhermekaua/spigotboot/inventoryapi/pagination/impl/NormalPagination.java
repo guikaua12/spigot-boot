@@ -34,10 +34,9 @@ import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Page-by-page paginator. Each page renders a contiguous slice of the source list, clamped to
@@ -104,8 +103,6 @@ public class NormalPagination<T> implements Pagination<T> {
             }
         }
 
-        inventoryItems.sort(Comparator.comparing(Objects::isNull));
-
         editor.fillPage(inventoryItems, layout, this);
     }
 
@@ -130,8 +127,7 @@ public class NormalPagination<T> implements Pagination<T> {
 
     @Override
     public void setSource(List<T> source) {
-        this.source.clear();
-        this.source = source;
+        this.source = new ArrayList<>(source);
     }
 
     private int getPageIndex() {
