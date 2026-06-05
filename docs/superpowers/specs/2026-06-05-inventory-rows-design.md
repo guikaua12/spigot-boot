@@ -43,13 +43,18 @@ The API should ask authors for the row count instead: `.rows(6)`.
 
 ### `CustomInventoryImpl.applyConfiguration()`
 
-- Reads `settings.getRows()`. If `0` (unset), throws
+- Reads `settings.getRows()`, checked **after** the existing title check (a missing title is
+  still reported first). If `0` (unset), throws
   `IllegalStateException(getClass().getName() + ": configure(...) must set the number of rows.")`
   — same style as the existing title check. Out-of-range values cannot reach this point because
   `rows(...)` already failed fast.
 - Converts once: `this.size = rows * InventoryLayout.INVENTORY_ROW_WIDTH`.
-- The existing `size` field, its Lombok `@Getter`, and every downstream consumer
-  (`ViewerImpl`, `CustomInventoryListener`, pagination) remain unchanged.
+- The existing `size` field and its Lombok `@Getter` remain unchanged, so `ViewerImpl` (the
+  only direct caller of `getSize()`) and the indirect slot-based consumers
+  (`CustomInventoryListener` via the Bukkit inventory size, pagination via `InventoryLayout`
+  slot counts) are untouched.
+- Class-level Javadoc and the `applyConfiguration()` `@throws` description are reworded from
+  "size" to rows (the current text says "leaves the title unset or the size non-positive").
 
 ### `CustomInventory` interface
 
@@ -62,7 +67,11 @@ The API should ask authors for the row count instead: `.rows(6)`.
   }
   ```
 
-- Full Javadoc with `@return`.
+- Requires adding `import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;`
+  to `CustomInventory.java` (same module, no cycle — `INVENTORY_ROW_WIDTH` is
+  `public static final`).
+- Full Javadoc with `@return`; the class-level doc's mention of "size" as the authored value is
+  reworded to rows.
 
 ## Migration
 
@@ -70,7 +79,7 @@ The API should ask authors for the row count instead: `.rows(6)`.
 | --- | --- |
 | `test-plugin` samples (`SamplePagedInventory`, `SampleNormalPagedInventory`, `SamplePatternPagedInventory`) | `.size(9 * 6)` → `.rows(6)` |
 | `InventorySettingsTest` | reworked around `rows(...)`/`getRows()` |
-| `CustomInventoryImplTest` | `.size(54)` → `.rows(6)`; keep `getSize() == 54` assertion (now proves the conversion) |
+| `CustomInventoryImplTest` | both `.size(54)` call sites → `.rows(6)`; keep `getSize() == 54` assertion (now proves the conversion); rework `applyConfigurationThrowsWhenSizeNotPositive` into the missing-rows `IllegalStateException` test |
 | `InventoryRegistryTest` | `.size(54)` → `.rows(6)`; inline `CustomInventory` stub untouched (inherits default `getRows()`) |
 
 ## Error handling
@@ -89,8 +98,8 @@ New focused tests in `modules/inventory-api/api`:
 - `rows(6)` on a configured inventory → `CustomInventoryImpl.getSize() == 54` and
   `getRows() == 6`.
 - Interface default: a stub with `getSize() == 9` reports `getRows() == 1`.
-- `configure(...)` without `rows(...)` → `IllegalStateException` ("must set the number of
-  rows").
+- `configure(...)` without `rows(...)` but **with a title set** (so the rows branch, not the
+  title branch, is exercised) → `IllegalStateException` ("must set the number of rows").
 
 Existing suites updated per the migration table; CI must stay green.
 
