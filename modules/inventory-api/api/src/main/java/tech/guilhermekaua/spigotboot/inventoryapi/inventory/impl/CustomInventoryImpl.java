@@ -84,12 +84,12 @@ public abstract class CustomInventoryImpl implements CustomInventory {
 
     @Override
     public void defaultOpenInventory(Player player, Viewer viewer, Consumer<Viewer> viewerConsumer) {
+        viewer.resetConfigurations();
+        this.configureViewer(viewer);
+
         if (viewerConsumer != null) {
             viewerConsumer.accept(viewer);
         }
-
-        viewer.resetConfigurations();
-        this.configureViewer(viewer);
 
         Inventory inventory = viewer.createInventory();
         viewerRegistry.registerViewer(viewer);
