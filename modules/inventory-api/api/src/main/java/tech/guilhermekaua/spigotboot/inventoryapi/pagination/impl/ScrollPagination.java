@@ -93,11 +93,11 @@ public class ScrollPagination<T> implements Pagination<T> {
         List<InventoryItem> itemList = new ArrayList<>();
 
         for (int i = 0; i < this.itemPageLimit; i++, pageIndex++) {
-            try {
+            if (pageIndex < this.source.size()) {
                 T current = this.source.get(pageIndex);
                 InventoryItem item = this.itemSupplier.get(this.viewer, current);
                 itemList.add(item);
-            } catch (IndexOutOfBoundsException e) {
+            } else {
                 itemList.add(fallbackItem == null ? InventoryItem.of((ItemStack) null) : fallbackItem.get(viewer));
             }
         }
@@ -108,7 +108,6 @@ public class ScrollPagination<T> implements Pagination<T> {
     @Override
     public void changePage(int page) {
         this.currentPage = Math.max(1, Math.min(page, this.getTotalPages()));
-        this.apply();
         CustomInventory customInventory = viewer.getCustomInventory();
         customInventory.updateInventory(viewer.getPlayer());
     }
@@ -131,10 +130,6 @@ public class ScrollPagination<T> implements Pagination<T> {
 
     private int getPageIndex() {
         return (currentPage - 1);
-    }
-
-    private int getPageEndIndex() {
-        return getPageIndex() + itemPageLimit;
     }
 
     @Override
