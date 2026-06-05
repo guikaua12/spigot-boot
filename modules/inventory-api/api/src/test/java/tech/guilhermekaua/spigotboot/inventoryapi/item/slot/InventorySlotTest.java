@@ -22,31 +22,25 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.item.slot;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import org.junit.jupiter.api.Test;
 
-/**
- * Pairs an inventory slot with the layout letter that produced it. Grid-based layouts assign the
- * parsed letter; layouts defined directly from slot indices use {@link #NO_LETTER}.
- */
-@Data
-@AllArgsConstructor
-public class InventorySlot {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    /**
-     * Placeholder letter for slots that were not produced by grid parsing.
-     */
-    public static final char NO_LETTER = '\0';
+class InventorySlotTest {
 
-    private final char letter;
-    private final int slot;
+    @Test
+    void singleArgConstructor_usesNoLetter() {
+        InventorySlot slot = new InventorySlot(7);
 
-    /**
-     * Creates a slot without a grid letter, using {@link #NO_LETTER}.
-     *
-     * @param slot the inventory slot index
-     */
-    public InventorySlot(int slot) {
-        this(NO_LETTER, slot);
+        assertEquals(InventorySlot.NO_LETTER, slot.getLetter());
+        assertEquals(7, slot.getSlot());
+    }
+
+    @Test
+    void twoArgConstructor_keepsLetterAndSlot() {
+        InventorySlot slot = new InventorySlot('A', 4);
+
+        assertEquals('A', slot.getLetter());
+        assertEquals(4, slot.getSlot());
     }
 }
