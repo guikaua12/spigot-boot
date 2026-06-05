@@ -55,8 +55,8 @@ public final class InventorySettings {
      * @param title the title; legacy colour codes are allowed
      * @return this, for chaining
      */
-    public InventorySettings title(String title) {
-        this.title = title;
+    public InventorySettings title(@NotNull String title) {
+        this.title = Objects.requireNonNull(title, "title cannot be null.");
         return this;
     }
 
@@ -93,14 +93,29 @@ public final class InventorySettings {
         return this;
     }
 
+    /**
+     * Returns the configured title, or {@code null} if {@link #title} has not been called.
+     *
+     * @return the inventory title, or {@code null}
+     */
     public String getTitle() {
         return title;
     }
 
+    /**
+     * Returns the configured size in slots, or {@code 0} if {@link #size} has not been called.
+     *
+     * @return the slot count
+     */
     public int getSize() {
         return size;
     }
 
+    /**
+     * Returns the wrapped configuration that tick options delegate to.
+     *
+     * @return the configuration supplied at construction, never null
+     */
     @NotNull
     public InventoryConfiguration getConfiguration() {
         return configuration;

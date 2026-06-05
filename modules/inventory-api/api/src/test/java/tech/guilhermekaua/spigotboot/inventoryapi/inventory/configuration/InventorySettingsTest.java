@@ -27,6 +27,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.impl.I
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InventorySettingsTest {
@@ -54,5 +55,10 @@ class InventorySettingsTest {
         assertEquals(20, configuration.tickUpdate());
         assertTrue(configuration.tickAsync());
         assertSame(configuration, settings.getConfiguration());
+    }
+
+    @Test
+    void constructorRejectsNullConfiguration() {
+        assertThrows(NullPointerException.class, () -> new InventorySettings(null));
     }
 }
