@@ -101,29 +101,15 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
 
         editor.setItem(27, pagination.hasPreviousPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
                 .defaultCallback(click -> {
-                    viewer.updateTitle("&ePage " + pagination.getCurrentPage());
                     pagination.previousPage();
-                })
-                : null);
-
-        editor.setItem(45, pagination.hasPreviousPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
-                .defaultCallback(click -> {
-                    viewer.updateTitle("&ePage " + pagination.getCurrentPage() + " (-2)");
-                    pagination.changePage(pagination.getCurrentPage() - 2);
+                    viewer.updateTitle("&ePage " + pagination.getCurrentPage());
                 })
                 : null);
 
         editor.setItem(35, pagination.hasNextPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
                 .defaultCallback(click -> {
-                    viewer.updateTitle("&ePage " + pagination.getCurrentPage());
                     pagination.nextPage();
-                })
-                : null);
-
-        editor.setItem(53, pagination.hasNextPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
-                .defaultCallback(click -> {
-                    viewer.updateTitle("&ePage " + pagination.getCurrentPage() + " (+2)");
-                    pagination.changePage(pagination.getCurrentPage() + 2);
+                    viewer.updateTitle("&ePage " + pagination.getCurrentPage());
                 })
                 : null);
     }
