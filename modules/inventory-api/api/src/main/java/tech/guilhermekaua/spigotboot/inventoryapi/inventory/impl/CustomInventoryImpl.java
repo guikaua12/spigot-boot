@@ -83,16 +83,18 @@ public abstract class CustomInventoryImpl implements CustomInventory {
         InventorySettings settings = new InventorySettings(configuration);
         configure(settings);
 
-        this.title = settings.getTitle();
-        this.size = settings.getSize();
+        String configuredTitle = settings.getTitle();
+        int configuredSize = settings.getSize();
 
-        if (this.title == null) {
+        if (configuredTitle == null) {
             throw new IllegalStateException(getClass().getName() + ": configure(...) must set a title.");
         }
-        if (this.size <= 0) {
+        if (configuredSize <= 0) {
             throw new IllegalStateException(getClass().getName() + ": configure(...) must set a positive size.");
         }
 
+        this.title = configuredTitle;
+        this.size = configuredSize;
         this.configured = true;
     }
 

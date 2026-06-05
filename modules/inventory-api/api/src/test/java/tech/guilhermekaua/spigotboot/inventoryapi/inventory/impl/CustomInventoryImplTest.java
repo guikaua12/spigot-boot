@@ -63,8 +63,10 @@ class CustomInventoryImplTest {
 
     @Test
     void applyConfigurationThrowsWhenSizeNotPositive() {
-        assertThrows(IllegalStateException.class,
+        IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> new MissingSizeInventory().applyConfiguration());
+
+        assertTrue(error.getMessage().contains(MissingSizeInventory.class.getName()));
     }
 
     private static final class ConfiguredInventory extends CustomInventoryImpl {
