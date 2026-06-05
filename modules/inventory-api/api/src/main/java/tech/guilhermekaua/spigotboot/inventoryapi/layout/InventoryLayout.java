@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.inventoryapi.layout;
 
 import tech.guilhermekaua.spigotboot.inventoryapi.item.slot.InventorySlot;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.impl.GridLayout;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.impl.OrderedSlotsLayout;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,9 @@ import java.util.Objects;
  *
  * <p>Use {@link #ofGrid(String...)} to build a layout from a visual row-by-row ASCII grid whose
  * letters define the fill order alphabetically.
+ *
+ * <p>Use {@link #ofSlots(int...)} to state the fill order directly as slot indices when the grid
+ * vocabulary cannot express it.
  */
 public interface InventoryLayout {
 
@@ -102,6 +106,19 @@ public interface InventoryLayout {
      */
     static GridLayout ofGrid(char empty, char back, char next, String... rows) {
         return new GridLayout(empty, back, next, rows);
+    }
+
+    /**
+     * Creates a layout that places items in exactly the order of the given slot indices, for fill
+     * orders the grid letters cannot express (for example fully custom orders over more than 26
+     * slots).
+     *
+     * @param slots the slot indices in fill order; each must be within 0-53 and unique
+     * @return the ordered layout
+     * @throws IllegalArgumentException if an index is negative, {@code >= 54} or duplicated
+     */
+    static OrderedSlotsLayout ofSlots(int... slots) {
+        return new OrderedSlotsLayout(slots);
     }
 
     /**
