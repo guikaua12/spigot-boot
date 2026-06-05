@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.inventoryapi.inventory;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
 import java.util.function.Consumer;
@@ -32,7 +33,7 @@ import java.util.function.Consumer;
 /**
  * Top-level abstraction for an inventory definition. Concrete subclasses (typically extending
  * {@link tech.guilhermekaua.spigotboot.inventoryapi.inventory.impl.CustomInventoryImpl}) describe
- * a GUI's title, size, configuration and per-render lifecycle hooks.
+ * a GUI's title, row count, configuration and per-render lifecycle hooks.
  *
  * <p>Discovered automatically by the module when annotated with
  * {@link tech.guilhermekaua.spigotboot.inventoryapi.annotation.Inventory}.
@@ -43,6 +44,16 @@ public interface CustomInventory {
     String getTitle();
 
     int getSize();
+
+    /**
+     * Returns the inventory height in rows; each row spans
+     * {@link InventoryLayout#INVENTORY_ROW_WIDTH} slots.
+     *
+     * @return the row count
+     */
+    default int getRows() {
+        return getSize() / InventoryLayout.INVENTORY_ROW_WIDTH;
+    }
 
     @NotNull <T extends InventoryConfiguration> T getConfiguration();
 

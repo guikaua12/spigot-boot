@@ -98,6 +98,11 @@ class InventoryRegistryTest {
         assertEquals(20, inventory.getConfiguration().tickUpdate());
     }
 
+    @Test
+    void stubInventoryDerivesRowsFromSize() {
+        assertEquals(1, new StubInventory().getRows());
+    }
+
     private static final class FakeService {
     }
 

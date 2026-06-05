@@ -40,6 +40,7 @@ class CustomInventoryImplTest {
 
         assertEquals("&aShop", inventory.getTitle());
         assertEquals(54, inventory.getSize());
+        assertEquals(6, inventory.getRows());
         assertEquals(20, inventory.getConfiguration().tickUpdate());
     }
 
