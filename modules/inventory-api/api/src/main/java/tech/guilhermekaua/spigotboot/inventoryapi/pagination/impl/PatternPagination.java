@@ -24,7 +24,6 @@ package tech.guilhermekaua.spigotboot.inventoryapi.pagination.impl;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
@@ -45,13 +44,28 @@ import java.util.TreeMap;
  * Cycles through a list of {@link InventoryLayout} patterns as the viewer pages forward, with
  * column-aware indexing so logical items map sensibly across heterogeneous layouts.
  *
+ * <p>Layouts are expected to follow the same constraints as {@link InventoryLayout}: each row is
+ * exactly {@link InventoryLayout#INVENTORY_ROW_WIDTH} characters wide, and content rows used for
+ * vertical paging are {@link #PATTERN_CONTENT_ROW_COUNT} tall with center-symmetric columns so
+ * {@link #COLUMN_CENTER} (the middle column of a chest row) anchors page placement. Arbitrary
+ * patterns with uneven column heights can skip or duplicate source indices.
+ *
  * <p>{@link #changePage(int)} records the previous layout in {@code lastPattern} and clears
  * its slots before rendering the new page.
  */
 @RequiredArgsConstructor
 @Getter
 public class PatternPagination<T> implements Pagination<T> {
+
+    /**
+     * Zero-based column index at the horizontal center of a 9-wide chest row.
+     */
     public static final int COLUMN_CENTER = 4;
+
+    /**
+     * Number of content rows used when advancing the source window between pages.
+     */
+    private static final int PATTERN_CONTENT_ROW_COUNT = 5;
     private final InventoryItemSupplier fallbackItem;
     private final GenericInventoryItemSupplier<T> itemSupplier;
     private final List<InventoryLayout> patterns;
@@ -151,7 +165,6 @@ public class PatternPagination<T> implements Pagination<T> {
         this.itemPageLimit = currentPattern.getSlots().size();
 
         clearLastPattern();
-        this.apply();
         CustomInventory customInventory = viewer.getCustomInventory();
         customInventory.updateInventory(viewer.getPlayer());
     }
@@ -242,7 +255,8 @@ public class PatternPagination<T> implements Pagination<T> {
 
     private int getPageIndex(int currentPage) {
         int firstColumnItemSize = getFirstColumnItemSize(fromPage(currentPage));
-        return ((currentPage - 1) * 5 + (5 - firstColumnItemSize)) / 2;
+        return ((currentPage - 1) * PATTERN_CONTENT_ROW_COUNT
+                + (PATTERN_CONTENT_ROW_COUNT - firstColumnItemSize)) / 2;
     }
 
     private static int getFirstColumnItemSize(InventoryLayout layout) {

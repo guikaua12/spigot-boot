@@ -44,11 +44,16 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class PatternPaginationTest {
@@ -88,7 +93,78 @@ class PatternPaginationTest {
 
     @Test
     void centeredDiamondLayout_doesNotUseColumnZero() {
-        InventoryLayout layout = new InventoryLayout(
+        assertFalse(centeredDiamondLayout().getColumnSizes().containsKey(0));
+    }
+
+    @Test
+    void diamondPattern_pageOne_mapsCenteredSourceWindow() {
+        InventoryLayout diamond = centeredDiamondLayout();
+        PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
+        InventoryEditor editor = mock(InventoryEditor.class);
+
+        pagination.init(mockViewer(editor));
+        pagination.setSource(sourceOfTwenty());
+        pagination.apply();
+
+        List<Integer> expectedValues = IntStream.rangeClosed(3, 15).boxed().toList();
+        assertMappedSourceValues(editor, diamond, pagination, expectedValues);
+    }
+
+    @Test
+    void diamondPattern_pageTwo_advancesSourceWindow() {
+        InventoryLayout diamond = centeredDiamondLayout();
+        PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
+        InventoryEditor editor = mock(InventoryEditor.class);
+
+        pagination.init(mockViewer(editor));
+        pagination.setSource(sourceOfTwenty());
+        pagination.changePage(2);
+        pagination.apply();
+
+        List<Integer> expectedValues = IntStream.rangeClosed(5, 17).boxed().toList();
+        assertMappedSourceValues(editor, diamond, pagination, expectedValues, true);
+    }
+
+    private static void assertMappedSourceValues(
+            InventoryEditor editor,
+            InventoryLayout layout,
+            Pagination<Integer> pagination,
+            List<Integer> expectedValues
+    ) {
+        assertMappedSourceValues(editor, layout, pagination, expectedValues, false);
+    }
+
+    private static void assertMappedSourceValues(
+            InventoryEditor editor,
+            InventoryLayout layout,
+            Pagination<Integer> pagination,
+            List<Integer> expectedValues,
+            boolean lastFillPageOnly
+    ) {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InventoryItem>> itemsCaptor = ArgumentCaptor.forClass(List.class);
+        if (lastFillPageOnly) {
+            verify(editor, atLeastOnce()).fillPage(itemsCaptor.capture(), eq(layout), eq(pagination));
+        } else {
+            verify(editor).fillPage(itemsCaptor.capture(), eq(layout), eq(pagination));
+        }
+
+        List<InventoryItem> items = lastFillPageOnly
+                ? itemsCaptor.getAllValues().get(itemsCaptor.getAllValues().size() - 1)
+                : itemsCaptor.getValue();
+        assertEquals(expectedValues.size(), items.size());
+
+        for (int i = 0; i < expectedValues.size(); i++) {
+            assertEquals(
+                    expectedValues.get(i),
+                    items.get(i).getItemStack().getAmount(),
+                    "slot letter order index " + i
+            );
+        }
+    }
+
+    private static InventoryLayout centeredDiamondLayout() {
+        return new InventoryLayout(
                 "    O    ",
                 "   OOO   ",
                 "  OOOOO  ",
@@ -96,8 +172,20 @@ class PatternPaginationTest {
                 "    O    ",
                 "         "
         );
+    }
 
-        assertFalse(layout.getColumnSizes().containsKey(0));
+    private static PatternPagination<Integer> diamondOnlyPagination(InventoryLayout diamond) {
+        return new PatternPaginationBuilder<Integer>()
+                .fallbackItem(viewer -> InventoryItem.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)))
+                .pattern(diamond)
+                .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.DIAMOND, value)))
+                .build();
+    }
+
+    private static List<Integer> sourceOfTwenty() {
+        List<Integer> source = new ArrayList<>();
+        IntStream.rangeClosed(1, 20).forEach(source::add);
+        return source;
     }
 
     private static Pagination<Integer> samplePatternPagination() {
@@ -132,8 +220,11 @@ class PatternPaginationTest {
     }
 
     private Viewer mockViewer() {
+        return mockViewer(mock(InventoryEditor.class));
+    }
+
+    private Viewer mockViewer(InventoryEditor editor) {
         Viewer viewer = mock(Viewer.class);
-        InventoryEditor editor = mock(InventoryEditor.class);
         CustomInventory customInventory = mock(CustomInventory.class);
 
         lenient().when(viewer.getEditor()).thenReturn(editor);
