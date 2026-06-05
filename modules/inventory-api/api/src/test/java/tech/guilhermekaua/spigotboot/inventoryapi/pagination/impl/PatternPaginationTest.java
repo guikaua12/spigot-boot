@@ -113,6 +113,22 @@ class PatternPaginationTest {
     }
 
     @Test
+    void getPageOfIndex_diamondLayout_mapsCenterAndEdgeIndices() {
+        PatternPagination<Integer> pagination = diamondOnlyPagination(centeredDiamondLayout());
+        List<Integer> source = sourceOfTwentyOne();
+
+        pagination.init(mockViewer());
+        pagination.setSource(source);
+
+        assertEquals(-1, pagination.getPageOfIndex(0));
+        assertEquals(-1, pagination.getPageOfIndex(1));
+        assertEquals(1, pagination.getPageOfIndex(2));
+        assertEquals(1, pagination.getPageOfIndex(14));
+        assertEquals(2, pagination.getPageOfIndex(16));
+        assertEquals(4, pagination.getPageOfIndex(20));
+    }
+
+    @Test
     void diamondPattern_twentyOneItems_tailIndexReachableOnLastPage() {
         InventoryLayout diamond = centeredDiamondLayout();
         PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
