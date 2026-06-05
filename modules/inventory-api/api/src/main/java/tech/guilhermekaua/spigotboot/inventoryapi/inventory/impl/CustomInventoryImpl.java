@@ -33,6 +33,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventorySettings;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.impl.InventoryConfigurationImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.ViewerRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
@@ -40,7 +41,7 @@ import java.util.function.Consumer;
 
 /**
  * Base class for user-defined inventories. Subclasses implement {@link #configure} to declare the
- * title, size and tick configuration, and override {@link #firstOpen}, {@link #configureInventory},
+ * title, row count and tick configuration, and override {@link #firstOpen}, {@link #configureInventory},
  * {@link #update} and {@link #configureViewer} to populate items and react to renders.
  *
  * <p>The no-arg constructor leaves the subclass constructor free for dependency injection (for
@@ -72,8 +73,8 @@ public abstract class CustomInventoryImpl implements CustomInventory {
      * <p>Called once by the framework after construction and dependency injection. Idempotent — a
      * second call is a no-op.
      *
-     * @throws IllegalStateException if {@link #configure} leaves the title unset or the size
-     *                               non-positive
+     * @throws IllegalStateException if {@link #configure} leaves the title or the row count
+     *                               unset
      */
     public final void applyConfiguration() {
         if (configured) {
@@ -84,22 +85,22 @@ public abstract class CustomInventoryImpl implements CustomInventory {
         configure(settings);
 
         String configuredTitle = settings.getTitle();
-        int configuredSize = settings.getSize();
+        int configuredRows = settings.getRows();
 
         if (configuredTitle == null) {
             throw new IllegalStateException(getClass().getName() + ": configure(...) must set a title.");
         }
-        if (configuredSize <= 0) {
-            throw new IllegalStateException(getClass().getName() + ": configure(...) must set a positive size.");
+        if (configuredRows == 0) {
+            throw new IllegalStateException(getClass().getName() + ": configure(...) must set the number of rows.");
         }
 
         this.title = configuredTitle;
-        this.size = configuredSize;
+        this.size = configuredRows * InventoryLayout.INVENTORY_ROW_WIDTH;
         this.configured = true;
     }
 
     /**
-     * Declares this inventory's title, size and tick configuration. Invoked once after construction
+     * Declares this inventory's title, row count and tick configuration. Invoked once after construction
      * and dependency injection.
      *
      * @param settings the settings to populate, not null

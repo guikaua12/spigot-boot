@@ -66,7 +66,7 @@ public final class SampleNormalPagedInventory extends CustomInventoryImpl {
     @Override
     protected void configure(@NotNull InventorySettings settings) {
         settings.title("&aSample Normal Paged Inventory")
-                .size(9 * 6)
+                .rows(6)
                 .tickUpdate(20);
     }
 

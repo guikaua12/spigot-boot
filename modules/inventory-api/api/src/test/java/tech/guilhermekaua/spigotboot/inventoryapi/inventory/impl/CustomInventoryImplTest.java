@@ -62,11 +62,12 @@ class CustomInventoryImplTest {
     }
 
     @Test
-    void applyConfigurationThrowsWhenSizeNotPositive() {
+    void applyConfigurationThrowsWhenRowsMissing() {
         IllegalStateException error = assertThrows(IllegalStateException.class,
-                () -> new MissingSizeInventory().applyConfiguration());
+                () -> new MissingRowsInventory().applyConfiguration());
 
-        assertTrue(error.getMessage().contains(MissingSizeInventory.class.getName()));
+        assertTrue(error.getMessage().contains(MissingRowsInventory.class.getName()));
+        assertTrue(error.getMessage().contains("must set the number of rows"));
     }
 
     private static final class ConfiguredInventory extends CustomInventoryImpl {
@@ -75,18 +76,18 @@ class CustomInventoryImplTest {
         @Override
         protected void configure(@NotNull InventorySettings settings) {
             configureCalls++;
-            settings.title("&aShop").size(54).tickUpdate(20);
+            settings.title("&aShop").rows(6).tickUpdate(20);
         }
     }
 
     private static final class MissingTitleInventory extends CustomInventoryImpl {
         @Override
         protected void configure(@NotNull InventorySettings settings) {
-            settings.size(54);
+            settings.rows(6);
         }
     }
 
-    private static final class MissingSizeInventory extends CustomInventoryImpl {
+    private static final class MissingRowsInventory extends CustomInventoryImpl {
         @Override
         protected void configure(@NotNull InventorySettings settings) {
             settings.title("&aShop");

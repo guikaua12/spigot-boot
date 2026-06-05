@@ -108,7 +108,7 @@ class InventoryRegistryTest {
 
         @Override
         protected void configure(@NotNull InventorySettings settings) {
-            settings.title("&aLombok").size(54).tickUpdate(20);
+            settings.title("&aLombok").rows(6).tickUpdate(20);
         }
     }
 

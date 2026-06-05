@@ -82,7 +82,7 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
     @Override
     protected void configure(@NotNull InventorySettings settings) {
         settings.title("&aSample Pattern Paged Inventory")
-                .size(9 * 6)
+                .rows(6)
                 .tickUpdate(20);
     }
 
