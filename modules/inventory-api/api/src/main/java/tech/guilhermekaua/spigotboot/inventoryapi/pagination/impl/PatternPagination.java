@@ -198,20 +198,6 @@ public class PatternPagination<T> implements Pagination<T> {
         return totalPages;
     }
 
-    private boolean hasEmptySpaces(int currentPage) {
-        int itemPageLimit = this.fromPage(currentPage).getSlots().size();
-        int pageIndex = this.getPageIndex(currentPage);
-        int pageMaxIndex = this.getPageMaxIndex(currentPage, itemPageLimit);
-
-        for (int i = 0; i < itemPageLimit; i++, pageIndex++) {
-            if (pageIndex >= pageMaxIndex) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     @Override
     public int getPageOfIndex(int index) {
         for (int currentPage = 1; currentPage <= this.source.size(); currentPage++) {
