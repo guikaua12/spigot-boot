@@ -30,6 +30,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -100,5 +101,60 @@ class OrderedSlotsLayoutTest {
         assertEquals(2, layout.getColumnSizes().get(1));
         assertEquals(1, layout.getColumnSizes().get(3));
         assertFalse(layout.getColumnSizes().containsKey(0));
+    }
+
+    @Test
+    void withBackSlot_returnsNewInstance_originalUnchanged() {
+        OrderedSlotsLayout original = InventoryLayout.ofSlots(10, 11);
+        OrderedSlotsLayout adjusted = original.withBackSlot(36);
+
+        assertNotSame(original, adjusted);
+        assertEquals(45, original.getBackSlot());
+        assertEquals(36, adjusted.getBackSlot());
+        assertEquals(original.getSlots(), adjusted.getSlots());
+        assertEquals(original.getNextSlot(), adjusted.getNextSlot());
+    }
+
+    @Test
+    void withNextSlot_returnsNewInstance_originalUnchanged() {
+        OrderedSlotsLayout original = InventoryLayout.ofSlots(10, 11);
+        OrderedSlotsLayout adjusted = original.withNextSlot(44);
+
+        assertNotSame(original, adjusted);
+        assertEquals(53, original.getNextSlot());
+        assertEquals(44, adjusted.getNextSlot());
+        assertEquals(original.getBackSlot(), adjusted.getBackSlot());
+    }
+
+    @Test
+    void withBackSlot_rejectsOutOfBounds() {
+        OrderedSlotsLayout layout = InventoryLayout.ofSlots(10);
+
+        assertThrows(IllegalArgumentException.class, () -> layout.withBackSlot(-1));
+        assertThrows(IllegalArgumentException.class, () -> layout.withBackSlot(54));
+    }
+
+    @Test
+    void withBackSlot_rejectsItemSlotCollision() {
+        OrderedSlotsLayout layout = InventoryLayout.ofSlots(10);
+
+        assertThrows(IllegalArgumentException.class, () -> layout.withBackSlot(10));
+    }
+
+    @Test
+    void withBackSlot_rejectsNextSlotCollision() {
+        OrderedSlotsLayout layout = InventoryLayout.ofSlots(10);
+
+        assertThrows(IllegalArgumentException.class, () -> layout.withBackSlot(53));
+    }
+
+    @Test
+    void withNextSlot_rejectsAllCollisions() {
+        OrderedSlotsLayout layout = InventoryLayout.ofSlots(10);
+
+        assertThrows(IllegalArgumentException.class, () -> layout.withNextSlot(-1));
+        assertThrows(IllegalArgumentException.class, () -> layout.withNextSlot(54));
+        assertThrows(IllegalArgumentException.class, () -> layout.withNextSlot(10)); // item slot
+        assertThrows(IllegalArgumentException.class, () -> layout.withNextSlot(45)); // back slot
     }
 }
