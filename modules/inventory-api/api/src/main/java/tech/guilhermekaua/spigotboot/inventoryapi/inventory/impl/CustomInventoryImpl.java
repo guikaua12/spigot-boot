@@ -92,6 +92,7 @@ public abstract class CustomInventoryImpl implements CustomInventory {
         this.configureViewer(viewer);
 
         Inventory inventory = viewer.createInventory();
+        viewerRegistry.registerViewer(viewer);
         InventoryEditor editor = viewer.getEditor();
 
         player.openInventory(inventory);
@@ -99,8 +100,6 @@ public abstract class CustomInventoryImpl implements CustomInventory {
         firstOpen(viewer, editor);
         configureInventory(viewer, editor);
         update(viewer, editor);
-
-        viewerRegistry.registerViewer(viewer);
     }
 
     protected void configureViewer(@NotNull Viewer viewer) {

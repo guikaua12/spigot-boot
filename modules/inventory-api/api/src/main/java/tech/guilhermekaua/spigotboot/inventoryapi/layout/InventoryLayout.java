@@ -34,11 +34,18 @@ import java.util.Objects;
 
 /**
  * Parses a row-by-row ASCII grid into a list of named slots plus the back/next navigation slots.
- * Each row is a 9-character string; characters not matching {@code empty}, {@code back} or
- * {@code next} are treated as named item slots and sorted alphabetically.
+ * Each row must be exactly {@link #INVENTORY_ROW_WIDTH} characters; characters not matching
+ * {@code empty}, {@code back} or {@code next} are treated as named item slots and sorted
+ * alphabetically by letter.
  */
 @Getter
 public class InventoryLayout {
+
+    /**
+     * Width of a single chest inventory row in characters.
+     */
+    public static final int INVENTORY_ROW_WIDTH = 9;
+
     private final String[] layout;
     private final int backSlot, nextSlot;
     private final List<InventorySlot> slots = new LinkedList<>();
@@ -49,6 +56,13 @@ public class InventoryLayout {
         int backSlot = 45, nextSlot = 53; // default
 
         for (int row = 0; row < layout.length; row++) {
+            if (layout[row].length() != INVENTORY_ROW_WIDTH) {
+                throw new IllegalArgumentException(
+                        "layout row " + row + " must be " + INVENTORY_ROW_WIDTH
+                                + " characters wide, but was " + layout[row].length()
+                );
+            }
+
             for (int column = 0; column < layout[row].length(); column++) {
                 char letter = layout[row].charAt(column);
 
