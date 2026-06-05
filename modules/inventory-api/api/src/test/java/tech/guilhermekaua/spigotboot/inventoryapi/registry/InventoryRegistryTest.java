@@ -22,18 +22,25 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.registry;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventorySettings;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.impl.CustomInventoryImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
+import java.lang.reflect.Constructor;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +75,41 @@ class InventoryRegistryTest {
 
         assertEquals(1, registry.findAll().size());
         assertSame(second, registry.findInventory(StubInventory.class).get());
+    }
+
+    @Test
+    void lombokStyleInventoryIsConstructedInjectedAndConfigured() throws Exception {
+        DependencyManager dependencyManager = new DependencyManager();
+        FakeService service = new FakeService();
+        dependencyManager.registerDependency(service, null, false);
+
+        Constructor<?> constructor = dependencyManager.findInjectConstructor(LombokStyleInventory.class);
+        assertNotNull(constructor);
+
+        Object[] arguments = dependencyManager.resolveArguments(constructor);
+        constructor.setAccessible(true);
+        LombokStyleInventory inventory = (LombokStyleInventory) constructor.newInstance(arguments);
+
+        inventory.applyConfiguration();
+
+        assertSame(service, inventory.getService());
+        assertEquals("&aLombok", inventory.getTitle());
+        assertEquals(54, inventory.getSize());
+        assertEquals(20, inventory.getConfiguration().tickUpdate());
+    }
+
+    static final class FakeService {
+    }
+
+    @Getter
+    @RequiredArgsConstructor
+    static final class LombokStyleInventory extends CustomInventoryImpl {
+        private final FakeService service;
+
+        @Override
+        protected void configure(@NotNull InventorySettings settings) {
+            settings.title("&aLombok").size(54).tickUpdate(20);
+        }
     }
 
     private static final class StubInventory implements CustomInventory {

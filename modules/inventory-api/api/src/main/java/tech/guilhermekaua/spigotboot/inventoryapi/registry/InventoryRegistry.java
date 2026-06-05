@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.impl.CustomInventoryImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.discovery.InventoryDiscoveryService;
 
 import java.lang.reflect.Constructor;
@@ -103,6 +104,10 @@ public final class InventoryRegistry {
         );
         CustomInventory inventory = (CustomInventory) dependencyManager.initializeBean(definition, rawInstance);
         injectSuperclassDependencies(dependencyManager, inventoryClass, inventory);
+
+        if (inventory instanceof CustomInventoryImpl) {
+            ((CustomInventoryImpl) inventory).applyConfiguration();
+        }
 
         dependencyManager.registerDependency(
                 inventory,
