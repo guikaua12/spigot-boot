@@ -38,7 +38,6 @@ public final class InventorySettings {
 
     private final InventoryConfiguration configuration;
     private String title;
-    private int size;
     private int rows;
 
     /**
@@ -58,17 +57,6 @@ public final class InventorySettings {
      */
     public InventorySettings title(@NotNull String title) {
         this.title = Objects.requireNonNull(title, "title cannot be null.");
-        return this;
-    }
-
-    /**
-     * Sets the inventory size in slots (a positive multiple of nine).
-     *
-     * @param size the slot count
-     * @return this, for chaining
-     */
-    public InventorySettings size(int size) {
-        this.size = size;
         return this;
     }
 
@@ -116,15 +104,6 @@ public final class InventorySettings {
      */
     public String getTitle() {
         return title;
-    }
-
-    /**
-     * Returns the configured size in slots, or {@code 0} if {@link #size} has not been called.
-     *
-     * @return the slot count
-     */
-    public int getSize() {
-        return size;
     }
 
     /**
