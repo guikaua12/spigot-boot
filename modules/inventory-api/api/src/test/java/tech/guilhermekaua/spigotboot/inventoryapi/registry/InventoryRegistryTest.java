@@ -98,12 +98,12 @@ class InventoryRegistryTest {
         assertEquals(20, inventory.getConfiguration().tickUpdate());
     }
 
-    static final class FakeService {
+    private static final class FakeService {
     }
 
-    @Getter
+    @Getter // exposes getService() for the assertSame check in the regression test
     @RequiredArgsConstructor
-    static final class LombokStyleInventory extends CustomInventoryImpl {
+    private static final class LombokStyleInventory extends CustomInventoryImpl {
         private final FakeService service;
 
         @Override
