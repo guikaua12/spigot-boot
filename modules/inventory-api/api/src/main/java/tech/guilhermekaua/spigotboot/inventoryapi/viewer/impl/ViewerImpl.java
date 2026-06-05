@@ -82,7 +82,12 @@ public class ViewerImpl implements Viewer {
 
     @Override
     public void updateTitle(String title) {
-        getTitleUpdater().update(getPlayer(), title);
+        getTitleUpdater().update(getPlayer(), formatTitle(title));
+    }
+
+    private String formatTitle(String title) {
+        String translated = ChatColor.translateAlternateColorCodes('&', title);
+        return placeholderApplier.apply(getPlayer(), translated);
     }
 
     @Override
