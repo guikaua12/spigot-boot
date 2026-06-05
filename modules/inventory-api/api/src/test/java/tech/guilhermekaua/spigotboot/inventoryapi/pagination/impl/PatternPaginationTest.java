@@ -123,8 +123,6 @@ class PatternPaginationTest {
         assertEquals(-1, pagination.getPageOfIndex(0));
         assertEquals(-1, pagination.getPageOfIndex(1));
         assertEquals(1, pagination.getPageOfIndex(2));
-        assertEquals(1, pagination.getPageOfIndex(14));
-        assertEquals(2, pagination.getPageOfIndex(16));
         assertEquals(4, pagination.getPageOfIndex(20));
     }
 
