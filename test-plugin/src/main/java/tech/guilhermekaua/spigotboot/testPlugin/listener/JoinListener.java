@@ -28,7 +28,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.InventoryService;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalPagedInventory;
@@ -41,35 +40,6 @@ import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 public class JoinListener implements Listener {
     private final UserService userService;
     private final InventoryService inventoryService;
-
-    @EventHandler
-    public void onChat(PlayerJoinEvent event) {
-        final Player player = event.getPlayer();
-
-//        userService.getPeople(player.getUniqueId().toString()).thenAccept(peopleOptional -> {
-//            if (!peopleOptional.isPresent()) {
-//                player.sendMessage("Not in database, creating...");
-//                final People people = new People(event.getPlayer().getUniqueId(),
-//                        player.getName(),
-//                        player.getName() + "@example.com",
-//                        Instant.now()
-//                );
-//
-//                userService.savePeople(people).join();
-//                player.sendMessage("Created!");
-//                return;
-//            }
-//
-//            final People people = peopleOptional.get();
-//            player.sendMessage(ColorUtil.colored("&aWelcome back, &e" + people.getName() + "!"));
-//        }).exceptionally(throwable -> {
-//            player.sendMessage(ColorUtil.colored("&cAn error occurred while trying to fetch your data."));
-//            throwable.printStackTrace();
-//            return null;
-//        });
-
-//        player.sendMessage(ColorUtil.colored("&aBased on UserNamePlaceholder, your name is: &e" + placeholders.userNamePlaceholder(player) + "!"));
-    }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
