@@ -32,7 +32,7 @@ class InventoryLayoutTest {
     void constructor_rejectsRowWithWrongWidth() {
         assertThrows(IllegalArgumentException.class, () -> new InventoryLayout(
                 "    O    ",
-                "  OOOOO  "
+                "  OOOO  " // 8 characters wide — not nine, so it is rejected
         ));
     }
 }
