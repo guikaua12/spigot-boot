@@ -54,26 +54,26 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
 
     private final PatternPaginationBuilder<Integer> paginationBuilder = new PatternPaginationBuilder<Integer>()
             .pattern(new InventoryLayout(
-                    "    O    ",
-                    "   OOO   ",
-                    "  OOOOO  ",
-                    "   OOO   ",
-                    "    O    ",
+                    "DEF NOP X",
+                    "C G M Q W",
+                    "B H L R V",
+                    "A IJK STU",
+                    "         ",
                     "         "
             ))
             .pattern(new InventoryLayout(
+                    "AB JKL TU",
+                    " C I M S ",
+                    " D H N R ",
+                    " EFG OPQ ",
                     "         ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
                     "         "
             ))
             .pattern(new InventoryLayout(
-                    "         ",
-                    "         ",
-                    "  OOOOO  ",
-                    "         ",
+                    "A ILK STU",
+                    "B H L R V",
+                    "C G M Q W",
+                    "DEF NOP X",
                     "         ",
                     "         "
             ))
@@ -99,14 +99,14 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
         Pagination<Integer> pagination = viewer.getPropertyMap().get(PAGINATION_KEY);
         pagination.apply();
 
-        editor.setItem(27, pagination.hasPreviousPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
+        editor.setItem(36, pagination.hasPreviousPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
                 .defaultCallback(click -> {
                     pagination.previousPage();
                     viewer.updateTitle("&ePage " + pagination.getCurrentPage());
                 })
                 : null);
 
-        editor.setItem(35, pagination.hasNextPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
+        editor.setItem(44, pagination.hasNextPage() ? InventoryItem.of(new ItemStack(Material.ARROW))
                 .defaultCallback(click -> {
                     pagination.nextPage();
                     viewer.updateTitle("&ePage " + pagination.getCurrentPage());
