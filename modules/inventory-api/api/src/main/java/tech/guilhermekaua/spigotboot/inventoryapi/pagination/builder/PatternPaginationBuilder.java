@@ -31,6 +31,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Builds {@link PatternPagination} instances from one or more {@link InventoryLayout} patterns.
+ *
+ * <p><strong>Centered patterns:</strong> layouts that leave the left columns empty (for example a
+ * diamond shape starting at column 4) intentionally skip leading source indices on the first
+ * pages. Those items are not shown unless you pad the source, use a full-width pattern, or choose
+ * {@link tech.guilhermekaua.spigotboot.inventoryapi.pagination.builder.NormalPaginationBuilder}
+ * instead. See {@link PatternPagination} for the indexing rules.
+ */
 public class PatternPaginationBuilder<T> {
     private InventoryItemSupplier fallbackItem;
     private GenericInventoryItemSupplier<T> itemFactory;
@@ -59,7 +68,7 @@ public class PatternPaginationBuilder<T> {
     }
 
     public PatternPaginationBuilder<T> patterns(List<InventoryLayout> patterns) {
-        this.patterns = patterns;
+        this.patterns = new ArrayList<>(patterns);
         return this;
     }
 
@@ -73,6 +82,6 @@ public class PatternPaginationBuilder<T> {
             InventoryLayout.requireItemSlots(pattern);
         }
 
-        return new PatternPagination<>(this.fallbackItem, this.itemFactory, this.patterns);
+        return new PatternPagination<>(this.fallbackItem, this.itemFactory, new ArrayList<>(this.patterns));
     }
 }
