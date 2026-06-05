@@ -102,7 +102,7 @@ This prevents: (a) `setSource(...)` called from `update()` recursing to `StackOv
 `changePage(int)` flow (all three impls):
 
 1. Clamp the target (lower bound 1 always; upper bound only when `pageSource.totalsKnown()`, §5).
-2. **Dedupe:** if the clamped target equals `currentPage` AND a request for it is already in flight, return without dispatching (click spam must not hammer the supplier and starve the first render). `refresh()` bypasses this (§13).
+2. **Dedupe:** if the clamped target equals `currentPage` AND `pageSource.isLoading()` (every dispatch targets `currentPage`, so an in-flight request is always for it), return without dispatching (click spam must not hammer the supplier and starve the first render). `refresh()` bypasses this (§13).
 3. Snapshot rollback state (§6): `currentPage`; Pattern also `currentPattern`/`lastPattern`/`itemPageLimit`.
 4. Commit navigation state (Pattern: switch pattern, recompute `itemPageLimit`, `clearLastPattern()`), compute per-type `offset`/`pageSize`, dispatch `pageSource.request(...)`.
 5. Render once: if `isLoading()` after dispatch returned → loading frame; else the inline-settled result. Guarded by `viewer.getPlayer() != null` — hoisted so the existing unguarded `viewer.getPlayer()` in all three `changePage` impls is fixed in the same motion.
