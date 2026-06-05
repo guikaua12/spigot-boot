@@ -27,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.annotation.Inventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventorySettings;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.impl.CustomInventoryImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
@@ -62,10 +63,11 @@ public final class SampleNormalPagedInventory extends CustomInventoryImpl {
             ))
             .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.EMERALD, value)));
 
-    public SampleNormalPagedInventory() {
-        super("&aSample Normal Paged Inventory", 9 * 6);
-
-        configuration(config -> config.tickUpdate(20));
+    @Override
+    protected void configure(@NotNull InventorySettings settings) {
+        settings.title("&aSample Normal Paged Inventory")
+                .size(9 * 6)
+                .tickUpdate(20);
     }
 
     @Override

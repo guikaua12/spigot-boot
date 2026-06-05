@@ -27,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.annotation.Inventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
+import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventorySettings;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.impl.CustomInventoryImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
@@ -34,6 +35,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.builder.PatternPaginationBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.property.ViewerPropertyMap;
+import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -77,10 +79,11 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
             ))
             .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.DIAMOND, value)));
 
-    public SamplePatternPagedInventory() {
-        super("&aSample Pattern Paged Inventory", 9 * 6);
-
-        configuration(config -> config.tickUpdate(20));
+    @Override
+    protected void configure(@NotNull InventorySettings settings) {
+        settings.title("&aSample Pattern Paged Inventory")
+                .size(9 * 6)
+                .tickUpdate(20);
     }
 
     @Override
