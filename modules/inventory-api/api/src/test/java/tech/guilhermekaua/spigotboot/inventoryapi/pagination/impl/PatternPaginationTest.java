@@ -40,7 +40,9 @@ import tech.guilhermekaua.spigotboot.inventoryapi.pagination.builder.PatternPagi
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -108,6 +110,60 @@ class PatternPaginationTest {
 
         List<Integer> expectedValues = IntStream.rangeClosed(3, 15).boxed().toList();
         assertMappedSourceValues(editor, diamond, pagination, expectedValues);
+    }
+
+    @Test
+    void diamondPattern_twentyOneItems_tailIndexReachableOnLastPage() {
+        InventoryLayout diamond = centeredDiamondLayout();
+        PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
+
+        pagination.init(mockViewer());
+        pagination.setSource(sourceOfTwentyOne());
+
+        assertEquals(4, pagination.getTotalPages());
+        assertTrue(pagination.hasNextPage());
+
+        pagination.changePage(4);
+        pagination.apply();
+
+        assertEquals(4, pagination.getCurrentPage());
+        assertFalse(pagination.hasNextPage());
+    }
+
+    @Test
+    void diamondPattern_allPages_unionCoversReachableSourceValues() {
+        InventoryLayout diamond = centeredDiamondLayout();
+        PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
+        InventoryEditor editor = mock(InventoryEditor.class);
+
+        pagination.init(mockViewer(editor));
+        pagination.setSource(sourceOfTwentyOne());
+
+        for (int page = 1; page <= pagination.getTotalPages(); page++) {
+            pagination.changePage(page);
+            pagination.apply();
+        }
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InventoryItem>> itemsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(editor, atLeastOnce()).fillPage(itemsCaptor.capture(), eq(diamond), eq(pagination));
+
+        Set<Integer> renderedValues = new HashSet<>();
+        for (List<InventoryItem> items : itemsCaptor.getAllValues()) {
+            for (InventoryItem item : items) {
+                ItemStack stack = item.getItemStack();
+                if (stack != null && stack.getType() == Material.DIAMOND) {
+                    renderedValues.add(stack.getAmount());
+                }
+            }
+        }
+
+        IntStream.rangeClosed(3, 21).forEach(expected ->
+                assertTrue(
+                        renderedValues.contains(expected),
+                        "source value " + expected + " must appear on some page"
+                )
+        );
     }
 
     @Test
@@ -185,6 +241,12 @@ class PatternPaginationTest {
     private static List<Integer> sourceOfTwenty() {
         List<Integer> source = new ArrayList<>();
         IntStream.rangeClosed(1, 20).forEach(source::add);
+        return source;
+    }
+
+    private static List<Integer> sourceOfTwentyOne() {
+        List<Integer> source = new ArrayList<>();
+        IntStream.rangeClosed(1, 21).forEach(source::add);
         return source;
     }
 

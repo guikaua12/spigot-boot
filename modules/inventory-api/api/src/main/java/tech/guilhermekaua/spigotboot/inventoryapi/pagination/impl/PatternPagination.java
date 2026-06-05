@@ -125,7 +125,7 @@ public class PatternPagination<T> implements Pagination<T> {
         int pageIndex = this.getPageIndex();
 
         for (int i = 0; i < this.itemPageLimit; i++, pageIndex++) {
-            if (pageIndex <= pageMaxIndex) {
+            if (pageIndex < pageMaxIndex) {
                 T current = this.source.get(pageIndex);
                 InventoryItem item = this.itemSupplier.get(this.viewer, current);
 
@@ -171,17 +171,31 @@ public class PatternPagination<T> implements Pagination<T> {
 
     @Override
     public int getTotalPages() {
-        int currentPage = 1;
-
-        for (int i = 0; i < this.source.size(); i++) {
-            if (hasEmptySpaces(currentPage + 1)) {
-                return currentPage;
-            }
-
-            currentPage++;
+        if (this.source.isEmpty()) {
+            return 1;
         }
 
-        return currentPage;
+        int totalPages = 1;
+        int highestExclusiveEnd = getPageMaxIndex(1, fromPage(1).getSlots().size());
+
+        while (highestExclusiveEnd < this.source.size()) {
+            int nextPage = totalPages + 1;
+            if (getPageIndex(nextPage) >= this.source.size()) {
+                break;
+            }
+
+            int nextPageLimit = fromPage(nextPage).getSlots().size();
+            int nextExclusiveEnd = getPageMaxIndex(nextPage, nextPageLimit);
+
+            if (nextExclusiveEnd <= highestExclusiveEnd) {
+                break;
+            }
+
+            totalPages = nextPage;
+            highestExclusiveEnd = nextExclusiveEnd;
+        }
+
+        return totalPages;
     }
 
     private boolean hasEmptySpaces(int currentPage) {
@@ -190,7 +204,7 @@ public class PatternPagination<T> implements Pagination<T> {
         int pageMaxIndex = this.getPageMaxIndex(currentPage, itemPageLimit);
 
         for (int i = 0; i < itemPageLimit; i++, pageIndex++) {
-            if (pageIndex > pageMaxIndex) {
+            if (pageIndex >= pageMaxIndex) {
                 return true;
             }
         }
@@ -218,7 +232,7 @@ public class PatternPagination<T> implements Pagination<T> {
         int pageIndex = this.getPageIndex(currentPage);
         int pageMaxIndex = this.getPageMaxIndex(currentPage, itemPageLimit);
 
-        return index >= pageIndex && index <= pageMaxIndex;
+        return index >= pageIndex && index < pageMaxIndex;
     }
 
     private int getColumnOfIndex(int currentPage, int index) {
@@ -277,20 +291,12 @@ public class PatternPagination<T> implements Pagination<T> {
         return getPageIndex(currentPage);
     }
 
-    private int getPageEndIndex(int currentPage, int itemPageLimit) {
-        return (getPageIndex(currentPage) + itemPageLimit) - 1;
-    }
-
-    private int getPageEndIndex() {
-        return getPageEndIndex(currentPage, itemPageLimit);
-    }
-
     private int getPageMaxIndex() {
         return getPageMaxIndex(currentPage, itemPageLimit);
     }
 
     private int getPageMaxIndex(int currentPage, int itemPageLimit) {
-        return Math.min(this.getPageEndIndex(currentPage, itemPageLimit), this.source.size() - 1);
+        return Math.min(getPageIndex(currentPage) + itemPageLimit, this.source.size());
     }
 
     @Override
