@@ -115,8 +115,11 @@ public class NormalPagination<T> implements Pagination<T> {
 
     @Override
     public int getTotalPages() {
-        int pageSize = this.source.size();
-        return (pageSize / itemPageLimit) + Math.min(1, pageSize % itemPageLimit);
+        if (this.source.isEmpty()) {
+            return 1;
+        }
+
+        return (this.source.size() + itemPageLimit - 1) / itemPageLimit;
     }
 
     @Override
