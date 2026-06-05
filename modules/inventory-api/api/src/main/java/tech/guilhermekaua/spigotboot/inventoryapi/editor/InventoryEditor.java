@@ -39,10 +39,31 @@ public interface InventoryEditor {
 
     Inventory getInventory();
 
+    /**
+     * Places an item in the given slot, or clears the slot when {@code inventoryItem} is null.
+     *
+     * @param slot           the slot index
+     * @param inventoryItem  the item to place, or {@code null} to clear the slot
+     * @throws IllegalArgumentException if {@code slot} is outside {@code [0, inventory.getSize())}
+     */
     void setItem(int slot, InventoryItem inventoryItem);
 
+    /**
+     * Places an item in the given slot, using a fallback when {@code inventoryItem} is null.
+     *
+     * @param slot           the slot index
+     * @param inventoryItem  the primary item, or {@code null} to use the fallback
+     * @param fallbackItem   the item used when {@code inventoryItem} is null
+     * @throws IllegalArgumentException if {@code slot} is outside {@code [0, inventory.getSize())}
+     */
     void setItem(int slot, InventoryItem inventoryItem, InventoryItem fallbackItem);
 
+    /**
+     * Clears the given slot.
+     *
+     * @param slot the slot index
+     * @throws IllegalArgumentException if {@code slot} is outside {@code [0, inventory.getSize())}
+     */
     void setEmptyItem(int slot);
 
     void fillPage(List<InventoryItem> inventoryItems, InventoryLayout layout, Pagination<?> pagination);
@@ -51,6 +72,13 @@ public interface InventoryEditor {
 
     void updateAllItemStacks();
 
+    /**
+     * Returns the item in the given slot with placeholders applied.
+     *
+     * @param slot the slot index
+     * @return the item stack in the slot, or {@code null} if empty
+     * @throws IllegalArgumentException if {@code slot} is outside {@code [0, inventory.getSize())}
+     */
     ItemStack getItemStack(int slot);
 
     ItemCallback getItemCallback(int slot);

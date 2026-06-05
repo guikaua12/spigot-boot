@@ -54,35 +54,43 @@ public final class SamplePatternPagedInventory extends CustomInventoryImpl {
 
     private final PatternPaginationBuilder<Integer> paginationBuilder = new PatternPaginationBuilder<Integer>()
             .pattern(new InventoryLayout(
-                    "DEF NOP X",
-                    "C G M Q W",
-                    "B H L R V",
-                    "A IJK STU",
+                    " OOOOOOO ",
+                    "         ",
+                    "         ",
+                    "         ",
                     "         ",
                     "         "
             ))
-            .pattern(new InventoryLayout(
-                    "AB JKL TU",
-                    " C I M S ",
-                    " D H N R ",
-                    " EFG OPQ ",
-                    "         ",
-                    "         "
-            ))
-            .pattern(new InventoryLayout(
-                    "A ILK STU",
-                    "B H L R V",
-                    "C G M Q W",
-                    "DEF NOP X",
-                    "         ",
-                    "         "
-            ))
+//            .pattern(new InventoryLayout(
+//                    "DEF NOP X",
+//                    "C G M Q W",
+//                    "B H L R V",
+//                    "A IJK STU",
+//                    "         ",
+//                    "         "
+//            ))
+//            .pattern(new InventoryLayout(
+//                    "AB JKL TU",
+//                    " C I M S ",
+//                    " D H N R ",
+//                    " EFG OPQ ",
+//                    "         ",
+//                    "         "
+//            ))
+//            .pattern(new InventoryLayout(
+//                    "A ILK STU",
+//                    "B H L R V",
+//                    "C G M Q W",
+//                    "DEF NOP X",
+//                    "         ",
+//                    "         "
+//            ))
             .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.DIAMOND, value)));
 
     @Override
     protected void configure(@NotNull InventorySettings settings) {
         settings.title("&aSample Pattern Paged Inventory")
-                .rows(6)
+                .rows(1)
                 .tickUpdate(20);
     }
 

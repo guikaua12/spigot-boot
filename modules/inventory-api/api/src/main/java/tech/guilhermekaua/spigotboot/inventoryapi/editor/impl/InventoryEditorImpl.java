@@ -54,6 +54,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     @Override
     public void setItem(int slot, InventoryItem inventoryItem) {
+        validateSlot(slot);
         if (inventoryItem == null) {
             setEmptyItem(slot);
             return;
@@ -67,6 +68,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     @Override
     public void setItem(int slot, InventoryItem inventoryItem, InventoryItem fallbackItem) {
+        validateSlot(slot);
         if (inventoryItem == null) {
             if (fallbackItem == null) {
                 setEmptyItem(slot);
@@ -86,6 +88,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     @Override
     public void setEmptyItem(int slot) {
+        validateSlot(slot);
         this.inventory.setItem(slot, null);
         this.inventoryCallbackMap.remove(slot);
     }
@@ -119,6 +122,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     @Override
     public ItemStack getItemStack(int slot) {
+        validateSlot(slot);
         return applyPlaceholders(this.inventory.getItem(slot));
     }
 
@@ -128,6 +132,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
     }
 
     private void updateItemStack(int slot, ItemCallback itemCallback) {
+        validateSlot(slot);
         ItemUpdateCallback updateCallback = itemCallback.getUpdateCallback();
         if (updateCallback == null) return;
 
@@ -135,6 +140,15 @@ public final class InventoryEditorImpl implements InventoryEditor {
         updateCallback.accept(itemStack);
 
         this.inventory.setItem(slot, itemStack);
+    }
+
+    private void validateSlot(int slot) {
+        int size = inventory.getSize();
+        if (slot < 0 || slot >= size) {
+            throw new IllegalArgumentException(
+                    "slot " + slot + " is out of bounds for inventory size " + size
+            );
+        }
     }
 
     private ItemStack applyPlaceholders(ItemStack itemStack) {
