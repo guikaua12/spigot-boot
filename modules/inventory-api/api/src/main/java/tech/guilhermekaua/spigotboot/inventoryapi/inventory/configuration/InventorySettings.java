@@ -39,6 +39,7 @@ public final class InventorySettings {
     private final InventoryConfiguration configuration;
     private String title;
     private int size;
+    private int rows;
 
     /**
      * Creates settings that write tick options through to the given configuration.
@@ -68,6 +69,21 @@ public final class InventorySettings {
      */
     public InventorySettings size(int size) {
         this.size = size;
+        return this;
+    }
+
+    /**
+     * Sets the inventory height in rows; each row spans nine slots.
+     *
+     * @param rows the row count, between 1 and 6 (inclusive)
+     * @return this, for chaining
+     * @throws IllegalArgumentException if {@code rows} is less than 1 or greater than 6
+     */
+    public InventorySettings rows(int rows) {
+        if (rows < 1 || rows > 6) {
+            throw new IllegalArgumentException("rows must be between 1 and 6, got " + rows);
+        }
+        this.rows = rows;
         return this;
     }
 
@@ -109,6 +125,15 @@ public final class InventorySettings {
      */
     public int getSize() {
         return size;
+    }
+
+    /**
+     * Returns the configured row count, or {@code 0} if {@link #rows} has not been called.
+     *
+     * @return the row count
+     */
+    public int getRows() {
+        return rows;
     }
 
     /**

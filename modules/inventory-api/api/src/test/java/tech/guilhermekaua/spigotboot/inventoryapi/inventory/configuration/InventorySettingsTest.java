@@ -38,10 +38,37 @@ class InventorySettingsTest {
         InventorySettings settings = new InventorySettings(configuration);
 
         assertSame(settings, settings.title("&aShop"));
-        assertSame(settings, settings.size(54));
+        assertSame(settings, settings.rows(6));
 
         assertEquals("&aShop", settings.getTitle());
-        assertEquals(54, settings.getSize());
+        assertEquals(6, settings.getRows());
+    }
+
+    @Test
+    void rowsAcceptsChestRangeBounds() {
+        InventorySettings settings = new InventorySettings(new InventoryConfigurationImpl());
+
+        assertEquals(1, settings.rows(1).getRows());
+        assertEquals(6, settings.rows(6).getRows());
+    }
+
+    @Test
+    void rowsRejectsValuesOutsideChestRange() {
+        InventorySettings settings = new InventorySettings(new InventoryConfigurationImpl());
+
+        assertThrows(IllegalArgumentException.class, () -> settings.rows(0));
+        assertThrows(IllegalArgumentException.class, () -> settings.rows(-1));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> settings.rows(7));
+        assertEquals("rows must be between 1 and 6, got 7", error.getMessage());
+    }
+
+    @Test
+    void getRowsReturnsZeroWhenUnset() {
+        InventorySettings settings = new InventorySettings(new InventoryConfigurationImpl());
+
+        assertEquals(0, settings.getRows());
     }
 
     @Test
