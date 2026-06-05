@@ -94,9 +94,10 @@ convention.
 - Empty `ofSlots()` is allowed at construction, mirroring grid mode (an all-spaces grid also
   constructs); the pagination builders' existing `requireItemSlots` call rejects it at `build()`.
 - Nav slots default to 45/53. `withBackSlot(int)` / `withNextSlot(int)` return a **new**
-  `OrderedSlotsLayout` with that slot replaced; they validate the argument is within 0–53 and is
-  **not one of the item slots** (explicit intent → fail fast on collision). The *defaults* are not
-  collision-checked, matching grid mode's existing leniency.
+  `OrderedSlotsLayout` with that slot replaced; they validate the argument is within 0–53, is
+  **not one of the item slots**, and is not equal to the other nav slot (explicit intent → fail
+  fast on collision). The *defaults* are not collision-checked, matching grid mode's existing
+  leniency.
 - A layout slot may still exceed the actual inventory size (e.g. slot 40 in a 3-row inventory);
   that remains a write-time `IllegalArgumentException` from `InventoryEditorImpl.validateSlot`,
   same as grid mode.
@@ -120,7 +121,7 @@ All `new InventoryLayout(...)` sites become `InventoryLayout.ofGrid(...)`:
 | --- | --- |
 | `test-plugin` (`SamplePagedInventory`, `SampleNormalPagedInventory`, `SamplePatternPagedInventory`) | 5 |
 | `InventoryLayoutTest` | 1 |
-| `PatternPaginationTest` | 5 |
+| `PatternPaginationTest` | 4 |
 
 No other source changes are required — all remaining references are type references against the
 unchanged interface name. The untracked `local-only/` and `inventory-framework/` reference
@@ -159,7 +160,7 @@ New and migrated suites in `modules/inventory-api/api`:
   - empty `ofSlots()` constructs, then `requireItemSlots` rejects it;
   - default nav slots are 45/53;
   - `withBackSlot`/`withNextSlot` return new instances, leave the original unchanged, and reject
-    out-of-range or item-slot-colliding arguments;
+    out-of-range, item-slot-colliding, or nav-slot-colliding arguments;
   - slots carry `InventorySlot.NO_LETTER`;
   - derived `getColumnSizes()` counts per column correctly.
 - **`GridLayoutTest`**: current `InventoryLayoutTest` migrated/renamed; passing unchanged proves
