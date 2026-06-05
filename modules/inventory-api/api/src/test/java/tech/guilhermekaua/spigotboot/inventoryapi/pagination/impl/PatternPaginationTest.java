@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
@@ -74,7 +75,7 @@ class PatternPaginationTest {
     }
 
     @Test
-    void applyAndChangePage_withCenteredPatterns_doNotThrow() {
+    void applyAndChangePage_withCyclingPatterns_doNotThrow() {
         Pagination<Integer> pagination = samplePatternPagination();
         Viewer viewer = mockViewer();
 
@@ -94,12 +95,46 @@ class PatternPaginationTest {
     }
 
     @Test
-    void centeredDiamondLayout_doesNotUseColumnZero() {
+    void cyclingPatterns_fiftyItems_renderEverySourceValueExactlyOnce() {
+        Pagination<Integer> pagination = samplePatternPagination();
+        InventoryEditor editor = mock(InventoryEditor.class);
+
+        pagination.init(mockViewer(editor));
+        pagination.setSource(sourceOfFifty());
+
+        for (int page = 1; page <= pagination.getTotalPages(); page++) {
+            pagination.changePage(page);
+            pagination.apply();
+        }
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InventoryItem>> itemsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(editor, atLeastOnce()).fillPage(itemsCaptor.capture(), any(), eq(pagination));
+
+        List<Integer> rendered = new ArrayList<>();
+        for (List<InventoryItem> items : itemsCaptor.getAllValues()) {
+            for (InventoryItem item : items) {
+                ItemStack stack = item.getItemStack();
+                if (stack != null && stack.getType() == Material.DIAMOND) {
+                    rendered.add(stack.getAmount());
+                }
+            }
+        }
+
+        assertEquals(
+                IntStream.rangeClosed(1, 50).boxed().toList(),
+                rendered.stream().sorted().toList(),
+                "every source value 1..50 must appear exactly once across all pages (no skips, no overlap)"
+        );
+    }
+
+    @Test
+    void diamondLayout_leavesColumnZeroEmpty() {
         assertFalse(centeredDiamondLayout().getColumnSizes().containsKey(0));
     }
 
     @Test
-    void diamondPattern_pageOne_mapsCenteredSourceWindow() {
+    void diamondPattern_pageOne_fillsSequentiallyFromFirstItem() {
         InventoryLayout diamond = centeredDiamondLayout();
         PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
         InventoryEditor editor = mock(InventoryEditor.class);
@@ -108,22 +143,24 @@ class PatternPaginationTest {
         pagination.setSource(sourceOfTwenty());
         pagination.apply();
 
-        List<Integer> expectedValues = IntStream.rangeClosed(3, 15).boxed().toList();
+        List<Integer> expectedValues = IntStream.rangeClosed(1, 13).boxed().toList();
         assertMappedSourceValues(editor, diamond, pagination, expectedValues);
     }
 
     @Test
-    void getPageOfIndex_diamondLayout_mapsCenterAndEdgeIndices() {
+    void getPageOfIndex_diamondLayout_mapsSequentialPages() {
         PatternPagination<Integer> pagination = diamondOnlyPagination(centeredDiamondLayout());
         List<Integer> source = sourceOfTwentyOne();
 
         pagination.init(mockViewer());
         pagination.setSource(source);
 
-        assertEquals(-1, pagination.getPageOfIndex(0));
-        assertEquals(-1, pagination.getPageOfIndex(1));
-        assertEquals(1, pagination.getPageOfIndex(2));
-        assertEquals(4, pagination.getPageOfIndex(20));
+        assertEquals(1, pagination.getPageOfIndex(0));
+        assertEquals(1, pagination.getPageOfIndex(12));
+        assertEquals(2, pagination.getPageOfIndex(13));
+        assertEquals(2, pagination.getPageOfIndex(20));
+        assertEquals(-1, pagination.getPageOfIndex(21));
+        assertEquals(-1, pagination.getPageOfIndex(-1));
     }
 
     @Test
@@ -134,18 +171,18 @@ class PatternPaginationTest {
         pagination.init(mockViewer());
         pagination.setSource(sourceOfTwentyOne());
 
-        assertEquals(4, pagination.getTotalPages());
+        assertEquals(2, pagination.getTotalPages());
         assertTrue(pagination.hasNextPage());
 
-        pagination.changePage(4);
+        pagination.changePage(2);
         pagination.apply();
 
-        assertEquals(4, pagination.getCurrentPage());
+        assertEquals(2, pagination.getCurrentPage());
         assertFalse(pagination.hasNextPage());
     }
 
     @Test
-    void diamondPattern_allPages_unionCoversReachableSourceValues() {
+    void diamondPattern_allPages_unionCoversEverySourceValue() {
         InventoryLayout diamond = centeredDiamondLayout();
         PatternPagination<Integer> pagination = diamondOnlyPagination(diamond);
         InventoryEditor editor = mock(InventoryEditor.class);
@@ -172,7 +209,7 @@ class PatternPaginationTest {
             }
         }
 
-        IntStream.rangeClosed(3, 21).forEach(expected ->
+        IntStream.rangeClosed(1, 21).forEach(expected ->
                 assertTrue(
                         renderedValues.contains(expected),
                         "source value " + expected + " must appear on some page"
@@ -187,11 +224,11 @@ class PatternPaginationTest {
         InventoryEditor editor = mock(InventoryEditor.class);
 
         pagination.init(mockViewer(editor));
-        pagination.setSource(sourceOfTwenty());
+        pagination.setSource(sourceOf(26));
         pagination.changePage(2);
         pagination.apply();
 
-        List<Integer> expectedValues = IntStream.rangeClosed(5, 17).boxed().toList();
+        List<Integer> expectedValues = IntStream.rangeClosed(14, 26).boxed().toList();
         assertMappedSourceValues(editor, diamond, pagination, expectedValues, true);
     }
 
@@ -261,6 +298,12 @@ class PatternPaginationTest {
     private static List<Integer> sourceOfTwentyOne() {
         List<Integer> source = new ArrayList<>();
         IntStream.rangeClosed(1, 21).forEach(source::add);
+        return source;
+    }
+
+    private static List<Integer> sourceOf(int count) {
+        List<Integer> source = new ArrayList<>();
+        IntStream.rangeClosed(1, count).forEach(source::add);
         return source;
     }
 

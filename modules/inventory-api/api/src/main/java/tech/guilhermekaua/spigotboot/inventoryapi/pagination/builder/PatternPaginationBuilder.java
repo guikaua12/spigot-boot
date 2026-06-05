@@ -34,11 +34,10 @@ import java.util.Objects;
 /**
  * Builds {@link PatternPagination} instances from one or more {@link InventoryLayout} patterns.
  *
- * <p><strong>Centered patterns:</strong> layouts that leave the left columns empty (for example a
- * diamond shape starting at column 4) intentionally skip leading source indices on the first
- * pages. Those items are not shown unless you pad the source, use a full-width pattern, or choose
- * {@link tech.guilhermekaua.spigotboot.inventoryapi.pagination.builder.NormalPaginationBuilder}
- * instead. See {@link PatternPagination} for the indexing rules.
+ * <p>The paginator cycles through the supplied patterns as the viewer pages forward and fills each
+ * page's slots sequentially from the source, so every item is shown exactly once regardless of the
+ * pattern shape. Use the slot letters within each {@link InventoryLayout} to control placement order
+ * (horizontal, vertical, or custom); see {@link PatternPagination} for details.
  */
 public class PatternPaginationBuilder<T> {
     private InventoryItemSupplier fallbackItem;

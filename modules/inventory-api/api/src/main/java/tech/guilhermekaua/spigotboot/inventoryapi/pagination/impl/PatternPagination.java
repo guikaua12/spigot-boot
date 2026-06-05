@@ -37,35 +37,26 @@ import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
- * Cycles through a list of {@link InventoryLayout} patterns as the viewer pages forward, with
- * column-aware indexing so logical items map sensibly across heterogeneous layouts.
+ * Paginates a source list across one or more {@link InventoryLayout} patterns, cycling through the
+ * patterns as the viewer pages forward. Each page renders a contiguous slice of the source whose
+ * length equals the slot count of that page's pattern, so every source item appears exactly once
+ * across the pages with no gaps or overlap.
  *
- * <p>Layouts are expected to follow the same constraints as {@link InventoryLayout}: each row is
- * exactly {@link InventoryLayout#INVENTORY_ROW_WIDTH} characters wide, and content rows used for
- * vertical paging are {@link #PATTERN_CONTENT_ROW_COUNT} tall with center-symmetric columns so
- * {@link #COLUMN_CENTER} (the middle column of a chest row) anchors page placement. Arbitrary
- * patterns with uneven column heights can skip or duplicate source indices.
+ * <p>The pattern controls only <em>where</em> and in <em>what order</em> items are placed: slots are
+ * filled in the letter order defined by {@link InventoryLayout}, which lets a pattern lay items out
+ * horizontally, vertically, or in any custom order. Each row must be exactly
+ * {@link InventoryLayout#INVENTORY_ROW_WIDTH} characters wide.
  *
- * <p>{@link #changePage(int)} records the previous layout in {@code lastPattern} and clears
- * its slots before rendering the new page.
+ * <p>{@link #changePage(int)} records the previous layout in {@code lastPattern} and clears its
+ * slots before rendering the new page, so cycling between patterns of different sizes leaves no
+ * residual items behind.
  */
 @RequiredArgsConstructor
 @Getter
 public class PatternPagination<T> implements Pagination<T> {
 
-    /**
-     * Zero-based column index at the horizontal center of a 9-wide chest row.
-     */
-    public static final int COLUMN_CENTER = 4;
-
-    /**
-     * Number of content rows used when advancing the source window between pages.
-     */
-    private static final int PATTERN_CONTENT_ROW_COUNT = 5;
     private final InventoryItemSupplier fallbackItem;
     private final GenericInventoryItemSupplier<T> itemSupplier;
     private final List<InventoryLayout> patterns;
@@ -96,10 +87,6 @@ public class PatternPagination<T> implements Pagination<T> {
     @Override
     public boolean hasNextPage() {
         return this.currentPage + 1 <= this.getTotalPages();
-    }
-
-    private boolean hasNextPage(int currentPage) {
-        return currentPage + 1 <= this.getTotalPages();
     }
 
     @Override
@@ -175,74 +162,30 @@ public class PatternPagination<T> implements Pagination<T> {
             return 1;
         }
 
-        int totalPages = 1;
-        int highestExclusiveEnd = getPageMaxIndex(1, fromPage(1).getSlots().size());
-
-        while (highestExclusiveEnd < this.source.size()) {
-            int nextPage = totalPages + 1;
-            if (getPageIndex(nextPage) >= this.source.size()) {
-                break;
-            }
-
-            int nextPageLimit = fromPage(nextPage).getSlots().size();
-            int nextExclusiveEnd = getPageMaxIndex(nextPage, nextPageLimit);
-
-            if (nextExclusiveEnd <= highestExclusiveEnd) {
-                break;
-            }
-
-            totalPages = nextPage;
-            highestExclusiveEnd = nextExclusiveEnd;
+        int page = 1;
+        int consumed = fromPage(page).getSlots().size();
+        while (consumed < this.source.size()) {
+            page++;
+            consumed += fromPage(page).getSlots().size();
         }
 
-        return totalPages;
+        return page;
     }
 
     @Override
     public int getPageOfIndex(int index) {
-        for (int currentPage = 1; currentPage <= this.source.size(); currentPage++) {
-            final int columnOfIndex = getColumnOfIndex(currentPage, index);
-
-            if (columnOfIndex == -1) continue;
-
-            if (columnOfIndex == COLUMN_CENTER || (columnOfIndex < COLUMN_CENTER && !hasPreviousPage(currentPage)) || (columnOfIndex > COLUMN_CENTER && !hasNextPage(currentPage))) {
-                return currentPage;
-            }
+        if (index < 0 || index >= this.source.size()) {
+            return -1;
         }
 
-        return -1;
-    }
-
-    private boolean isIndexInPage(int currentPage, int index) {
-        int itemPageLimit = this.fromPage(currentPage).getSlots().size();
-        int pageIndex = this.getPageIndex(currentPage);
-        int pageMaxIndex = this.getPageMaxIndex(currentPage, itemPageLimit);
-
-        return index >= pageIndex && index < pageMaxIndex;
-    }
-
-    private int getColumnOfIndex(int currentPage, int index) {
-        if (!isIndexInPage(currentPage, index)) return -1;
-
-        int pageIndex = this.getPageIndex(currentPage);
-
-        final InventoryLayout layout = fromPage(currentPage);
-
-        final Map<Integer, Integer> columnSizes = layout.getColumnSizes();
-
-        int currentColumnIndex = pageIndex;
-        int currentColumnIndexMax = pageIndex;
-
-        for (final Map.Entry<Integer, Integer> entry : new TreeMap<>(columnSizes).entrySet()) {
-            final int columnSize = entry.getValue();
-
-            currentColumnIndex = currentColumnIndexMax;
-            currentColumnIndexMax = currentColumnIndexMax + columnSize;
-
-            if (index >= currentColumnIndex && index <= currentColumnIndexMax - 1) {
-                return entry.getKey();
+        int startIndex = 0;
+        int totalPages = this.getTotalPages();
+        for (int page = 1; page <= totalPages; page++) {
+            int pageSize = fromPage(page).getSlots().size();
+            if (index < startIndex + pageSize) {
+                return page;
             }
-
+            startIndex += pageSize;
         }
 
         return -1;
@@ -254,23 +197,11 @@ public class PatternPagination<T> implements Pagination<T> {
     }
 
     private int getPageIndex(int currentPage) {
-        int firstColumnItemSize = getFirstColumnItemSize(fromPage(currentPage));
-        return ((currentPage - 1) * PATTERN_CONTENT_ROW_COUNT
-                + (PATTERN_CONTENT_ROW_COUNT - firstColumnItemSize)) / 2;
-    }
-
-    private static int getFirstColumnItemSize(InventoryLayout layout) {
-        Map<Integer, Integer> columnSizes = layout.getColumnSizes();
-        if (columnSizes.isEmpty()) {
-            return 0;
+        int startIndex = 0;
+        for (int previousPage = 1; previousPage < currentPage; previousPage++) {
+            startIndex += fromPage(previousPage).getSlots().size();
         }
-
-        int leftmostColumn = columnSizes.keySet().stream()
-                .mapToInt(Integer::intValue)
-                .min()
-                .orElse(0);
-
-        return columnSizes.getOrDefault(leftmostColumn, 0);
+        return startIndex;
     }
 
     private int getPageIndex() {
