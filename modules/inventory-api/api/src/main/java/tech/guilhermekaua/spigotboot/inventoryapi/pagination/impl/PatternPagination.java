@@ -45,9 +45,9 @@ import java.util.List;
  * across the pages with no gaps or overlap.
  *
  * <p>The pattern controls only <em>where</em> and in <em>what order</em> items are placed: slots are
- * filled in the letter order defined by {@link InventoryLayout}, which lets a pattern lay items out
- * horizontally, vertically, or in any custom order. Each row must be exactly
- * {@link InventoryLayout#INVENTORY_ROW_WIDTH} characters wide.
+ * filled in the order of the layout's {@link InventoryLayout#getSlots()} list, which lets a pattern
+ * lay items out horizontally, vertically, or in any custom order. Grid-based layouts derive that
+ * order from their letters; ordered-slots layouts state it explicitly.
  *
  * <p>{@link #changePage(int)} records the previous layout in {@code lastPattern} and clears its
  * slots before rendering the new page, so cycling between patterns of different sizes leaves no

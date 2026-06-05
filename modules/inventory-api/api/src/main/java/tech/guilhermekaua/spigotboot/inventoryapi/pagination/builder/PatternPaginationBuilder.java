@@ -36,8 +36,8 @@ import java.util.Objects;
  *
  * <p>The paginator cycles through the supplied patterns as the viewer pages forward and fills each
  * page's slots sequentially from the source, so every item is shown exactly once regardless of the
- * pattern shape. Use the slot letters within each {@link InventoryLayout} to control placement order
- * (horizontal, vertical, or custom); see {@link PatternPagination} for details.
+ * pattern shape. Each {@link InventoryLayout} defines its own placement order (grid letters or
+ * explicit slot indices); see {@link PatternPagination} for details.
  */
 public class PatternPaginationBuilder<T> {
     private InventoryItemSupplier fallbackItem;
