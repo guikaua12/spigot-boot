@@ -109,7 +109,6 @@ public class NormalPagination<T> implements Pagination<T> {
     @Override
     public void changePage(int page) {
         this.currentPage = Math.max(1, Math.min(page, this.getTotalPages()));
-        this.apply();
         CustomInventory customInventory = viewer.getCustomInventory();
         customInventory.updateInventory(viewer.getPlayer());
     }
