@@ -20,10 +20,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.inventoryapi.layout;
+package tech.guilhermekaua.spigotboot.inventoryapi.layout.impl;
 
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.slot.InventorySlot;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 
 import java.util.List;
 
@@ -31,11 +32,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class InventoryLayoutTest {
+class GridLayoutTest {
 
     @Test
     void constructor_rejectsRowWithWrongWidth() {
-        assertThrows(IllegalArgumentException.class, () -> new InventoryLayout(
+        assertThrows(IllegalArgumentException.class, () -> InventoryLayout.ofGrid(
                 "    O    ",
                 "  OOOO  " // 8 characters wide — not nine, so it is rejected
         ));
@@ -43,7 +44,7 @@ class InventoryLayoutTest {
 
     @Test
     void distinctLetters_sortAlphabetically_definingFillOrder() {
-        InventoryLayout layout = new InventoryLayout(
+        InventoryLayout layout = InventoryLayout.ofGrid(
                 "   CAB   "
         );
 
@@ -60,7 +61,7 @@ class InventoryLayoutTest {
 
     @Test
     void repeatedLetters_keepRowMajorGridOrder() {
-        InventoryLayout layout = new InventoryLayout(
+        InventoryLayout layout = InventoryLayout.ofGrid(
                 "  OO     ",
                 " O       "
         );
@@ -74,7 +75,7 @@ class InventoryLayoutTest {
 
     @Test
     void backAndNextChars_overrideDefaultNavSlots() {
-        InventoryLayout layout = new InventoryLayout(
+        InventoryLayout layout = InventoryLayout.ofGrid(
                 "<       >"
         );
 
@@ -84,7 +85,7 @@ class InventoryLayoutTest {
 
     @Test
     void navSlots_defaultTo45And53() {
-        InventoryLayout layout = new InventoryLayout(
+        InventoryLayout layout = InventoryLayout.ofGrid(
                 "    O    "
         );
 
@@ -94,7 +95,7 @@ class InventoryLayoutTest {
 
     @Test
     void columnSizes_countNamedSlotsPerColumn() {
-        InventoryLayout layout = new InventoryLayout(
+        InventoryLayout layout = InventoryLayout.ofGrid(
                 " A A     ",
                 " B       "
         );

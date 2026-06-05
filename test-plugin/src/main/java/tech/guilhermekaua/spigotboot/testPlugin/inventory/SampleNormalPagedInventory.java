@@ -53,12 +53,12 @@ public final class SampleNormalPagedInventory extends CustomInventoryImpl {
 
     private final NormalPaginationBuilder<Integer> paginationBuilder = new NormalPaginationBuilder<Integer>()
             .fallbackItem(viewer -> InventoryItem.of(new ItemStack(Material.GRAY_STAINED_GLASS_PANE)))
-            .layout(new InventoryLayout(
+            .layout(InventoryLayout.ofGrid(
                     "         ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
-                    " OOOOOOO ",
+                    " OOZYXUV ",
+                    " UTSRQPO ",
+                    " NMLKJIH ",
+                    " GFEDCBA ",
                     "         "
             ))
             .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.EMERALD, value)));

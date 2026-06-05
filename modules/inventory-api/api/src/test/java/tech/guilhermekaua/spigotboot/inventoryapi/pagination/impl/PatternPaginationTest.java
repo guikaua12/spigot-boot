@@ -271,7 +271,7 @@ class PatternPaginationTest {
     }
 
     private static InventoryLayout centeredDiamondLayout() {
-        return new InventoryLayout(
+        return InventoryLayout.ofGrid(
                 "    O    ",
                 "   OOO   ",
                 "  OOOOO  ",
@@ -310,7 +310,7 @@ class PatternPaginationTest {
     private static Pagination<Integer> samplePatternPagination() {
         return new PatternPaginationBuilder<Integer>()
                 .fallbackItem(viewer -> InventoryItem.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)))
-                .pattern(new InventoryLayout(
+                .pattern(InventoryLayout.ofGrid(
                         "    O    ",
                         "   OOO   ",
                         "  OOOOO  ",
@@ -318,7 +318,7 @@ class PatternPaginationTest {
                         "    O    ",
                         "         "
                 ))
-                .pattern(new InventoryLayout(
+                .pattern(InventoryLayout.ofGrid(
                         "         ",
                         " OOOOOOO ",
                         " OOOOOOO ",
@@ -326,7 +326,7 @@ class PatternPaginationTest {
                         " OOOOOOO ",
                         "         "
                 ))
-                .pattern(new InventoryLayout(
+                .pattern(InventoryLayout.ofGrid(
                         "         ",
                         "         ",
                         "  OOOOO  ",

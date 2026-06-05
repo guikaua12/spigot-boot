@@ -22,81 +22,92 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.layout;
 
-import lombok.Getter;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.slot.InventorySlot;
+import tech.guilhermekaua.spigotboot.inventoryapi.layout.impl.GridLayout;
 
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Parses a row-by-row ASCII grid into a list of named slots plus the back/next navigation slots.
- * Each row must be exactly {@link #INVENTORY_ROW_WIDTH} characters; characters not matching
- * {@code empty}, {@code back} or {@code next} are treated as named item slots and sorted
- * alphabetically by letter.
+ * Defines where and in what order pagination items are placed inside an inventory.
+ *
+ * <p>The core contract is {@link #getSlots()}: an ordered list of fill positions. Consumers such
+ * as {@code InventoryEditor#fillPage} place the i-th page item into the i-th slot of that list.
+ *
+ * <p>Use {@link #ofGrid(String...)} to build a layout from a visual row-by-row ASCII grid whose
+ * letters define the fill order alphabetically.
  */
-@Getter
-public class InventoryLayout {
+public interface InventoryLayout {
 
     /**
-     * Width of a single chest inventory row in characters.
+     * Width of a single chest inventory row in slots.
      */
-    public static final int INVENTORY_ROW_WIDTH = 9;
+    int INVENTORY_ROW_WIDTH = 9;
 
-    private final String[] layout;
-    private final int backSlot, nextSlot;
-    private final List<InventorySlot> slots = new LinkedList<>();
-    private final Map<Integer, Integer> columnSizes = new HashMap<>();
+    /**
+     * Returns the ordered item slot positions: the i-th page item is placed into the i-th element
+     * of this list.
+     *
+     * @return the ordered fill positions, never null
+     */
+    List<InventorySlot> getSlots();
 
-    public InventoryLayout(char empty, char back, char next, String... layout) {
-        this.layout = layout;
-        int backSlot = 45, nextSlot = 53; // default
+    /**
+     * @return the inventory slot holding the back-navigation button
+     */
+    int getBackSlot();
 
-        for (int row = 0; row < layout.length; row++) {
-            if (layout[row].length() != INVENTORY_ROW_WIDTH) {
-                throw new IllegalArgumentException(
-                        "layout row " + row + " must be " + INVENTORY_ROW_WIDTH
-                                + " characters wide, but was " + layout[row].length()
-                );
-            }
+    /**
+     * @return the inventory slot holding the next-navigation button
+     */
+    int getNextSlot();
 
-            for (int column = 0; column < layout[row].length(); column++) {
-                char letter = layout[row].charAt(column);
-
-                int slot = row * INVENTORY_ROW_WIDTH + column;
-                if (letter == back) {
-                    backSlot = slot;
-                } else if (letter == next) {
-                    nextSlot = slot;
-                } else if (letter != empty) {
-                    slots.add(new InventorySlot(letter, slot));
-
-                    if (columnSizes.containsKey(column)) {
-                        columnSizes.put(column, columnSizes.get(column) + 1);
-                    } else {
-                        columnSizes.put(column, 1);
-                    }
-                }
-            }
+    /**
+     * Counts the item slots in each inventory column, keyed by column index (0-8). Columns
+     * without item slots are absent from the map.
+     *
+     * @return the number of item slots per column
+     */
+    default Map<Integer, Integer> getColumnSizes() {
+        Map<Integer, Integer> columnSizes = new HashMap<>();
+        for (InventorySlot slot : getSlots()) {
+            columnSizes.merge(slot.getSlot() % INVENTORY_ROW_WIDTH, 1, Integer::sum);
         }
-
-        this.backSlot = backSlot;
-        this.nextSlot = nextSlot;
-
-        slots.sort(Comparator.comparing(InventorySlot::getLetter));
+        return columnSizes;
     }
 
-    public InventoryLayout(String... layout) {
-        this(' ', '<', '>', layout);
+    /**
+     * Creates a grid layout using the default {@code ' '} (empty), {@code '<'} (back) and
+     * {@code '>'} (next) control characters.
+     *
+     * @param rows the grid rows, each exactly {@link #INVENTORY_ROW_WIDTH} characters wide
+     * @return the parsed grid layout
+     * @throws IllegalArgumentException if a row is not exactly {@link #INVENTORY_ROW_WIDTH} characters wide
+     */
+    static GridLayout ofGrid(String... rows) {
+        return new GridLayout(rows);
+    }
+
+    /**
+     * Creates a grid layout using custom control characters.
+     *
+     * @param empty the character marking a slot without an item
+     * @param back  the character marking the back-navigation slot
+     * @param next  the character marking the next-navigation slot
+     * @param rows  the grid rows, each exactly {@link #INVENTORY_ROW_WIDTH} characters wide
+     * @return the parsed grid layout
+     * @throws IllegalArgumentException if a row is not exactly {@link #INVENTORY_ROW_WIDTH} characters wide
+     */
+    static GridLayout ofGrid(char empty, char back, char next, String... rows) {
+        return new GridLayout(empty, back, next, rows);
     }
 
     /**
      * @throws IllegalArgumentException if {@code layout} defines no item slots (only empty/back/next)
      */
-    public static void requireItemSlots(InventoryLayout layout) {
+    static void requireItemSlots(InventoryLayout layout) {
         Objects.requireNonNull(layout, "layout");
         if (layout.getSlots().isEmpty()) {
             throw new IllegalArgumentException("layout must define at least one item slot");

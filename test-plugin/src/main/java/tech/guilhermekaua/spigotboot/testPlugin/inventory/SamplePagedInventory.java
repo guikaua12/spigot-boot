@@ -53,7 +53,7 @@ public final class SamplePagedInventory extends CustomInventoryImpl {
 
     private final ScrollPaginationBuilder<Integer> paginationBuilder = new ScrollPaginationBuilder<Integer>()
             .fallbackItem(viewer -> InventoryItem.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)))
-            .layout(new InventoryLayout(
+            .layout(InventoryLayout.ofGrid(
                     "         ",
                     "         ",
                     "         ",
