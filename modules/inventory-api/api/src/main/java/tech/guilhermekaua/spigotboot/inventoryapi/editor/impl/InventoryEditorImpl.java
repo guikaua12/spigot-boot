@@ -24,7 +24,6 @@ package tech.guilhermekaua.spigotboot.inventoryapi.editor.impl;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -48,6 +47,7 @@ public final class InventoryEditorImpl implements InventoryEditor {
 
     private final Inventory inventory;
     private final PlaceholderApplier placeholderApplier;
+    private final Player viewerPlayer;
     // ConcurrentHashMap so a tickAsync update can iterate the callbacks while a main-thread click
     // mutates them without a ConcurrentModificationException; item callbacks are never null
     private final Map<Integer, ItemCallback> inventoryCallbackMap = new ConcurrentHashMap<>();
@@ -149,23 +149,11 @@ public final class InventoryEditorImpl implements InventoryEditor {
             return itemStack;
         }
 
-        Player player = firstViewer();
-
-        itemMeta.setDisplayName(placeholderApplier.apply(player, itemMeta.getDisplayName()));
-        itemMeta.setLore(placeholderApplier.applyAll(player, itemMeta.getLore()));
+        itemMeta.setDisplayName(placeholderApplier.apply(viewerPlayer, itemMeta.getDisplayName()));
+        itemMeta.setLore(placeholderApplier.applyAll(viewerPlayer, itemMeta.getLore()));
 
         itemStack.setItemMeta(itemMeta);
         return itemStack;
-    }
-
-    private Player firstViewer() {
-        List<HumanEntity> viewers = this.inventory.getViewers();
-        if (viewers.isEmpty()) {
-            return null;
-        }
-
-        HumanEntity entity = viewers.get(0);
-        return entity instanceof Player ? (Player) entity : null;
     }
 
 }

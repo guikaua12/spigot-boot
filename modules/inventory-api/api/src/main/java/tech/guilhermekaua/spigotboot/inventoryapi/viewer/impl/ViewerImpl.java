@@ -69,7 +69,7 @@ public class ViewerImpl implements Viewer {
                 configuration.inventorySize(),
                 ChatColor.translateAlternateColorCodes('&', configuration.titleInventory())
         );
-        this.editor = new InventoryEditorImpl(inventory, placeholderApplier);
+        this.editor = new InventoryEditorImpl(inventory, placeholderApplier, getPlayer());
         return inventory;
     }
 
