@@ -92,9 +92,6 @@ class InventoryRegistryTest {
         public void defaultOpenInventory(Player player, Viewer viewer, Consumer<Viewer> viewerConsumer) { }
 
         @Override
-        public <T extends InventoryConfiguration> void configuration(@NotNull Consumer<T> consumer) { }
-
-        @Override
         public void updateInventory(@NotNull Player player) { }
     }
 }

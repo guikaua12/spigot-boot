@@ -48,8 +48,6 @@ public interface CustomInventory {
 
     void defaultOpenInventory(Player player, Viewer viewer, Consumer<Viewer> viewerConsumer);
 
-    <T extends InventoryConfiguration> void configuration(@NotNull Consumer<T> consumer);
-
     void updateInventory(@NotNull Player player);
 
 }
