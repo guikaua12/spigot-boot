@@ -232,6 +232,30 @@ class PatternPaginationTest {
         assertMappedSourceValues(editor, diamond, pagination, expectedValues, true);
     }
 
+    @Test
+    void mixedGridAndOrderedSlotsPatterns_pageTwo_fillsOrderedLayoutInGivenOrder() {
+        InventoryLayout diamond = centeredDiamondLayout(); // 13 slots, grid-based
+        InventoryLayout snake = InventoryLayout.ofSlots(36, 27, 18, 9, 0, 1, 10, 19); // 8 slots
+        PatternPagination<Integer> pagination = new PatternPaginationBuilder<Integer>()
+                .fallbackItem(viewer -> InventoryItem.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)))
+                .pattern(diamond)
+                .pattern(snake)
+                .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.DIAMOND, value)))
+                .build();
+        InventoryEditor editor = mock(InventoryEditor.class);
+
+        pagination.init(mockViewer(editor));
+        pagination.setSource(sourceOf(21)); // 13 on the diamond page + 8 on the snake page
+
+        assertEquals(2, pagination.getTotalPages());
+
+        pagination.changePage(2);
+        pagination.apply();
+
+        List<Integer> expectedValues = IntStream.rangeClosed(14, 21).boxed().toList();
+        assertMappedSourceValues(editor, snake, pagination, expectedValues, true);
+    }
+
     private static void assertMappedSourceValues(
             InventoryEditor editor,
             InventoryLayout layout,
