@@ -66,7 +66,7 @@ public class InventoryLayout {
             for (int column = 0; column < layout[row].length(); column++) {
                 char letter = layout[row].charAt(column);
 
-                int slot = row * 9 + column;
+                int slot = row * INVENTORY_ROW_WIDTH + column;
                 if (letter == back) {
                     backSlot = slot;
                 } else if (letter == next) {
