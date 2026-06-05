@@ -46,7 +46,7 @@ public interface Viewer {
     String getName();
 
     default Player getPlayer() {
-        return Bukkit.getPlayer(this.getName());
+        return Bukkit.getPlayer(this.getUniqueId());
     }
 
     UUID getUniqueId();
