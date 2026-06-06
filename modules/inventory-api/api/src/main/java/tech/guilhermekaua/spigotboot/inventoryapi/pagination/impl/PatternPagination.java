@@ -87,12 +87,29 @@ public class PatternPagination<T> implements Pagination<T> {
     private InventoryLayout currentPattern;
     private InventoryLayout lastPattern;
 
+    /**
+     * Creates an eager paginator over an initially empty source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param patterns     the layout patterns cycled across pages, not null or empty
+     */
     public PatternPagination(InventoryItemSupplier fallbackItem,
                              GenericInventoryItemSupplier<T> itemSupplier,
                              List<InventoryLayout> patterns) {
         this(fallbackItem, itemSupplier, patterns, null, EagerPageSource.empty());
     }
 
+    /**
+     * Creates a paginator over the given page source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param patterns     the layout patterns cycled across pages, not null or empty
+     * @param loadingItem  item rendered while an async load is in flight, may be null
+     * @param pageSource   where page items come from, not null
+     * @throws NullPointerException if {@code pageSource} is null
+     */
     public PatternPagination(InventoryItemSupplier fallbackItem,
                              GenericInventoryItemSupplier<T> itemSupplier,
                              List<InventoryLayout> patterns,

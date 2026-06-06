@@ -72,12 +72,29 @@ public class ScrollPagination<T> implements Pagination<T> {
     private int currentPage = 1;
     private int itemPageLimit;
 
+    /**
+     * Creates an eager paginator over an initially empty source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param layout       the slots of the sliding window, not null
+     */
     public ScrollPagination(InventoryItemSupplier fallbackItem,
                             GenericInventoryItemSupplier<T> itemSupplier,
                             InventoryLayout layout) {
         this(fallbackItem, itemSupplier, layout, null, EagerPageSource.empty());
     }
 
+    /**
+     * Creates a paginator over the given page source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param layout       the slots of the sliding window, not null
+     * @param loadingItem  item rendered while an async load is in flight, may be null
+     * @param pageSource   where page items come from, not null
+     * @throws NullPointerException if {@code pageSource} is null
+     */
     public ScrollPagination(InventoryItemSupplier fallbackItem,
                             GenericInventoryItemSupplier<T> itemSupplier,
                             InventoryLayout layout,
