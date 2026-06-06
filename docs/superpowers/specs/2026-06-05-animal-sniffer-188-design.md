@@ -46,8 +46,11 @@ New module `modules/inventory-api/spigot-api-1_8-signature/`:
 - Listed **first** in the inventory-api parent `<modules>` so the sequential
   reactor builds it before `api`/`nms-api`/`nms` (no dependency edge exists; the
   build is not parallelized).
-- `<maven.deploy.skip>true</maven.deploy.skip>`: build-internal artifact, not
-  published by release workflows. `install` stays enabled so single-module `-pl`
+- `<maven.deploy.skip>true</maven.deploy.skip>` plus
+  `central-publishing-maven-plugin` `skipPublishing=true`: build-internal
+  artifact, never published. Both are needed — the release workflow runs
+  `mvn clean deploy` through the central-publishing extension, which does not
+  honor `maven.deploy.skip`. `install` stays enabled so single-module `-pl`
   workflows work after one root build.
 
 ### 2. Check executions on api, nms-api, nms

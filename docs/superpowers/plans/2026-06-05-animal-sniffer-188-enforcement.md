@@ -78,8 +78,9 @@ Create `modules/inventory-api/spigot-api-1_8-signature/pom.xml` with exactly:
                 <version>1.27</version>
                 <configuration>
                     <!-- modern JDKs (9+) have no boot classpath, so animal-sniffer cannot harvest the
-                         JDK API here; the signature covers spigot-api only and the consuming checks
-                         ignore java.* / javax.* instead (JDK-level enforcement is a non-goal) -->
+                         JDK API here; the signature covers spigot-api (and its transitives) only and
+                         the consuming checks ignore java.* / javax.* instead (JDK-level enforcement
+                         is a non-goal) -->
                     <includeJavaHome>false</includeJavaHome>
                 </configuration>
                 <executions>
@@ -93,6 +94,15 @@ Create `modules/inventory-api/spigot-api-1_8-signature/pom.xml` with exactly:
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <configuration>
+                    <!-- maven.deploy.skip does not cover the central-publishing extension used by the
+                         release workflow; skip explicitly so this build-internal artifact never ships -->
+                    <skipPublishing>true</skipPublishing>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -113,7 +123,8 @@ Change to (new module listed FIRST — there is no dependency edge, so sequentia
 
 ```xml
     <modules>
-        <!-- listed first: generates the 1.8.8 signature the sibling checks consume in-reactor -->
+        <!-- listed first: generates the 1.8.8 signature the sibling checks consume in-reactor
+             (declaration order guarantees this only for sequential builds; -T is not supported) -->
         <module>spigot-api-1_8-signature</module>
         <module>api</module>
 ```
