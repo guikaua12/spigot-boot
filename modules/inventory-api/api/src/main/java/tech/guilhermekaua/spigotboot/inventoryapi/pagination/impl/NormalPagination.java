@@ -22,8 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.impl;
 
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
@@ -32,31 +33,86 @@ import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.GenericInventory
 import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.InventoryItemSupplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageRequest;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageResult;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Page-by-page paginator. Each page renders a contiguous slice of the source list, clamped to
- * {@code itemPageLimit} (the number of slots in the configured layout).
+ * Page-by-page paginator. Each page renders a contiguous slice of the source, clamped to
+ * {@code itemPageLimit} (the number of slots in the configured layout). Pages come from a
+ * {@link PageSource}: an in-memory list by default, or an async supplier configured through the
+ * builder's {@code async(...)} method.
  */
-@RequiredArgsConstructor
 @Getter
 public class NormalPagination<T> implements Pagination<T> {
+
+    private static final Logger LOGGER = Logger.getLogger(NormalPagination.class.getName());
+
     private final InventoryItemSupplier fallbackItem;
     private final GenericInventoryItemSupplier<T> itemSupplier;
     private final InventoryLayout layout;
+    @Getter(AccessLevel.NONE)
+    private final InventoryItemSupplier loadingItem;
+    @Getter(AccessLevel.NONE)
+    private PageSource<T> pageSource;
+    @Getter(AccessLevel.NONE)
+    private volatile List<T> currentItems = Collections.emptyList();
+    @Getter(AccessLevel.NONE)
+    private volatile Thread dispatchingThread;
     private Viewer viewer;
-    private List<T> source = new LinkedList<>();
     private int currentPage = 1;
     private int itemPageLimit;
+
+    /**
+     * Creates an eager paginator over an initially empty source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param layout       the slots the page renders into, not null
+     */
+    public NormalPagination(InventoryItemSupplier fallbackItem,
+                            GenericInventoryItemSupplier<T> itemSupplier,
+                            InventoryLayout layout) {
+        this(fallbackItem, itemSupplier, layout, null, EagerPageSource.empty());
+    }
+
+    /**
+     * Creates a paginator over the given page source.
+     *
+     * @param fallbackItem item used for empty slots, may be null
+     * @param itemSupplier renders one source element, not null
+     * @param layout       the slots the page renders into, not null
+     * @param loadingItem  item rendered while an async load is in flight, may be null
+     * @param pageSource   where page items come from, not null
+     * @throws NullPointerException if {@code pageSource} is null
+     */
+    public NormalPagination(InventoryItemSupplier fallbackItem,
+                            GenericInventoryItemSupplier<T> itemSupplier,
+                            InventoryLayout layout,
+                            InventoryItemSupplier loadingItem,
+                            PageSource<T> pageSource) {
+        this.fallbackItem = fallbackItem;
+        this.itemSupplier = itemSupplier;
+        this.layout = layout;
+        this.loadingItem = loadingItem;
+        this.pageSource = Objects.requireNonNull(pageSource, "pageSource is required.");
+    }
 
     @Override
     public void init(Viewer viewer) {
         this.viewer = viewer;
         this.itemPageLimit = layout.getSlots().size();
+        dispatch(this.currentPage, false);
     }
 
     @Override
@@ -87,19 +143,17 @@ public class NormalPagination<T> implements Pagination<T> {
     @Override
     public void insertPageItems() {
         InventoryEditor editor = this.viewer.getEditor();
+        List<T> items = this.currentItems;
+        boolean loading = this.pageSource.isLoading();
         List<InventoryItem> inventoryItems = new LinkedList<>();
 
-        int pageMaxIndex = this.getPageMaxIndex();
-        int pageIndex = this.getPageIndex();
-
-        for (int i = 0; i < this.itemPageLimit; i++, pageIndex++) {
-            if (pageIndex < pageMaxIndex) {
-                T current = this.source.get(pageIndex);
-                InventoryItem item = this.itemSupplier.get(this.viewer, current);
-
-                inventoryItems.add(item);
+        for (int i = 0; i < this.itemPageLimit; i++) {
+            if (loading) {
+                inventoryItems.add(loadingOrFallback());
+            } else if (i < items.size()) {
+                inventoryItems.add(this.itemSupplier.get(this.viewer, items.get(i)));
             } else {
-                inventoryItems.add(fallbackItem == null ? InventoryItem.of((ItemStack) null) : fallbackItem.get(viewer));
+                inventoryItems.add(emptyOrFallback());
             }
         }
 
@@ -108,40 +162,135 @@ public class NormalPagination<T> implements Pagination<T> {
 
     @Override
     public void changePage(int page) {
-        this.currentPage = Math.max(1, Math.min(page, this.getTotalPages()));
+        changePageInternal(page, false);
+    }
+
+    private void changePageInternal(int page, boolean forceDispatch) {
+        int target = Math.max(1, page);
+        if (this.pageSource.totalsKnown()) {
+            target = Math.min(target, this.getTotalPages());
+        }
+        if (!forceDispatch && target == this.currentPage && this.pageSource.isLoading()) {
+            return;
+        }
+        int rollbackPage = this.currentPage;
+        this.currentPage = target;
+        dispatch(rollbackPage, true);
+    }
+
+    private void dispatch(int rollbackPage, boolean render) {
+        PageRequest request = new PageRequest(
+                this.currentPage, this.itemPageLimit,
+                (this.currentPage - 1) * this.itemPageLimit, this.viewer);
+        this.dispatchingThread = Thread.currentThread();
+        try {
+            this.pageSource.request(request, (result, error) -> onSettle(rollbackPage, result, error));
+        } finally {
+            this.dispatchingThread = null;
+        }
+        if (render) {
+            renderIfOnline();
+        }
+    }
+
+    private void onSettle(int rollbackPage, PageResult<T> result, Throwable error) {
+        boolean inline = Thread.currentThread() == this.dispatchingThread;
+        try {
+            if (error != null) {
+                this.currentPage = rollbackPage;
+            } else {
+                this.currentItems = result.getItems();
+                if (this.pageSource.totalsKnown() && this.currentPage > this.getTotalPages()) {
+                    changePageInternal(this.getTotalPages(), true);
+                    return;
+                }
+            }
+            if (!inline) {
+                renderIfOnline();
+            }
+        } catch (Throwable t) {
+            LOGGER.log(Level.WARNING, "Failed to apply a settled page load.", t);
+        }
+    }
+
+    private void renderIfOnline() {
+        Viewer viewer = this.viewer;
+        if (viewer == null) {
+            return;
+        }
+        Player player = viewer.getPlayer();
+        if (player == null) {
+            return;
+        }
         CustomInventory customInventory = viewer.getCustomInventory();
-        customInventory.updateInventory(viewer.getPlayer());
+        if (customInventory == null) {
+            return;
+        }
+        customInventory.updateInventory(player);
     }
 
     @Override
     public int getTotalPages() {
-        if (this.source.isEmpty()) {
+        int total = this.pageSource.totalElements();
+        if (total == 0) {
             return 1;
         }
-
-        return (this.source.size() + itemPageLimit - 1) / itemPageLimit;
+        return (int) (((long) total + this.itemPageLimit - 1) / this.itemPageLimit);
     }
 
     @Override
     public int getPageOfIndex(int index) {
-        return index / itemPageLimit + 1;
+        if (index < 0 || index >= this.pageSource.totalElements()) {
+            return -1;
+        }
+        return index / this.itemPageLimit + 1;
     }
 
     @Override
     public void setSource(List<T> source) {
-        this.source = new ArrayList<>(source);
+        if (this.pageSource instanceof AsyncPageSource) {
+            LOGGER.warning("setSource(List) called on an async-built pagination: the async supplier"
+                    + " (and its loading item, error callback, timeout and cache) is discarded.");
+        }
+        this.pageSource = new EagerPageSource<>(source);
+        this.currentItems = Collections.emptyList();
+        if (this.viewer != null) {
+            dispatch(this.currentPage, false);
+        }
     }
 
-    private int getPageIndex() {
-        return (currentPage - 1) * itemPageLimit;
+    @Override
+    public List<T> getSource() {
+        return this.pageSource.elements();
     }
 
-    private int getPageEndIndex() {
-        return currentPage * itemPageLimit;
+    @Override
+    public boolean isLoading() {
+        return this.pageSource.isLoading();
     }
 
-    private int getPageMaxIndex() {
-        return Math.min(this.getPageEndIndex(), this.source.size());
+    @Override
+    public Throwable lastError() {
+        return this.pageSource.lastError();
+    }
+
+    @Override
+    public int getTotalElements() {
+        return this.pageSource.totalElements();
+    }
+
+    @Override
+    public void refresh() {
+        this.pageSource.invalidate();
+        changePageInternal(this.currentPage, true);
+    }
+
+    private InventoryItem emptyOrFallback() {
+        return fallbackItem == null ? InventoryItem.of((ItemStack) null) : fallbackItem.get(viewer);
+    }
+
+    private InventoryItem loadingOrFallback() {
+        return loadingItem != null ? loadingItem.get(viewer) : emptyOrFallback();
     }
 
     @Override

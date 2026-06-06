@@ -61,11 +61,19 @@ public final class CustomInventoryListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
 
-        Viewer viewer = viewerRegistry.unregisterViewer(player);
-        if (viewer != null) {
-            CustomInventoryCloseEvent closeEvent = new CustomInventoryCloseEvent(viewer, event);
-            Bukkit.getPluginManager().callEvent(closeEvent);
+        Viewer viewer = viewerRegistry.findViewer(player).orElse(null);
+        if (viewer == null) {
+            return;
         }
+        // a close event for a previous container (fired synchronously while opening a new custom
+        // inventory) must not unregister the viewer of the inventory that is being opened
+        if (viewer.getInventory() != event.getInventory()) {
+            return;
+        }
+
+        viewerRegistry.unregisterViewer(viewer);
+        CustomInventoryCloseEvent closeEvent = new CustomInventoryCloseEvent(viewer, event);
+        Bukkit.getPluginManager().callEvent(closeEvent);
     }
 
     @EventHandler

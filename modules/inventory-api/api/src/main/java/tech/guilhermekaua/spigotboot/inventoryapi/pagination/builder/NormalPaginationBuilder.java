@@ -26,13 +26,17 @@ import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.GenericInventory
 import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.InventoryItemSupplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.impl.NormalPagination;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class NormalPaginationBuilder<T> {
     private InventoryItemSupplier fallbackItem;
     private GenericInventoryItemSupplier<T> itemFactory;
     private InventoryLayout layout;
+    private AsyncPaginationOptions<T> asyncOptions;
 
     public static <T> NormalPaginationBuilder<T> builder() {
         return new NormalPaginationBuilder<>();
@@ -53,11 +57,32 @@ public class NormalPaginationBuilder<T> {
         return this;
     }
 
+    /**
+     * Configures asynchronous page loading. All async-related settings (source, loading item,
+     * error callback, timeout, cache) are set on the options object passed to the consumer.
+     *
+     * @param configurer receives the options to populate, not null
+     * @return this builder, for chaining
+     */
+    public NormalPaginationBuilder<T> async(Consumer<AsyncPaginationOptions<T>> configurer) {
+        Objects.requireNonNull(configurer, "configurer is required.");
+        this.asyncOptions = new AsyncPaginationOptions<>();
+        configurer.accept(this.asyncOptions);
+        return this;
+    }
+
     public NormalPagination<T> build() {
         Objects.requireNonNull(this.itemFactory, "itemFactory is required.");
         Objects.requireNonNull(this.layout, "layout is required.");
         InventoryLayout.requireItemSlots(this.layout);
 
-        return new NormalPagination<>(this.fallbackItem, this.itemFactory, this.layout);
+        PageSource<T> pageSource = this.asyncOptions != null
+                ? this.asyncOptions.buildPageSource()
+                : EagerPageSource.empty();
+        InventoryItemSupplier loadingItem = this.asyncOptions != null
+                ? this.asyncOptions.getLoadingItem()
+                : null;
+
+        return new NormalPagination<>(this.fallbackItem, this.itemFactory, this.layout, loadingItem, pageSource);
     }
 }

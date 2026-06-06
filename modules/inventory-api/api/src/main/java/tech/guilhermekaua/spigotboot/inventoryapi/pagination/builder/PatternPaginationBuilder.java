@@ -26,10 +26,13 @@ import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.GenericInventory
 import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.InventoryItemSupplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.impl.PatternPagination;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Builds {@link PatternPagination} instances from one or more {@link InventoryLayout} patterns.
@@ -43,6 +46,7 @@ public class PatternPaginationBuilder<T> {
     private InventoryItemSupplier fallbackItem;
     private GenericInventoryItemSupplier<T> itemFactory;
     private List<InventoryLayout> patterns;
+    private AsyncPaginationOptions<T> asyncOptions;
 
     public static <T> PatternPaginationBuilder<T> builder() {
         return new PatternPaginationBuilder<>();
@@ -71,6 +75,13 @@ public class PatternPaginationBuilder<T> {
         return this;
     }
 
+    public PatternPaginationBuilder<T> async(Consumer<AsyncPaginationOptions<T>> configurer) {
+        Objects.requireNonNull(configurer, "configurer is required.");
+        this.asyncOptions = new AsyncPaginationOptions<>();
+        configurer.accept(this.asyncOptions);
+        return this;
+    }
+
     public PatternPagination<T> build() {
         Objects.requireNonNull(this.itemFactory, "itemFactory is required.");
         Objects.requireNonNull(this.patterns, "patterns are required.");
@@ -81,6 +92,14 @@ public class PatternPaginationBuilder<T> {
             InventoryLayout.requireItemSlots(pattern);
         }
 
-        return new PatternPagination<>(this.fallbackItem, this.itemFactory, new ArrayList<>(this.patterns));
+        PageSource<T> pageSource = this.asyncOptions != null
+                ? this.asyncOptions.buildPageSource()
+                : EagerPageSource.empty();
+        InventoryItemSupplier loadingItem = this.asyncOptions != null
+                ? this.asyncOptions.getLoadingItem()
+                : null;
+
+        return new PatternPagination<>(this.fallbackItem, this.itemFactory, new ArrayList<>(this.patterns),
+                loadingItem, pageSource);
     }
 }

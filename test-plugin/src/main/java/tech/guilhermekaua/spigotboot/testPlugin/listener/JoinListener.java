@@ -30,6 +30,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.InventoryService;
+import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleAsyncPagedInventory;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalPagedInventory;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePagedInventory;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternPagedInventory;
@@ -61,6 +62,11 @@ public class JoinListener implements Listener {
         if (blockType == Material.GOLD_BLOCK) {
             player.sendMessage("[ApxPlugin] - opening pattern pagination sample");
             inventoryService.open(player, SamplePatternPagedInventory.class);
+        }
+
+        if (blockType == Material.NETHERITE_BLOCK) {
+            player.sendMessage("[ApxPlugin] - opening normal async pagination sample");
+            inventoryService.open(player, SampleAsyncPagedInventory.class);
         }
 
 //        try {
