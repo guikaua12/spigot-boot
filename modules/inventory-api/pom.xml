@@ -57,4 +57,54 @@
         </repository>
     </repositories>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- fails the build when a main-source class references Bukkit/Paper API that
+                     does not exist in spigot-api 1.8.8. Modules opt in by declaring this plugin.
+                     excludeDependencies is load-bearing: animal-sniffer ignores classes found in
+                     dependencies BEFORE consulting the signature, so paper-api (compile API) and
+                     MockBukkit (bundles org.bukkit.command / org.bukkit.plugin.java classes,
+                     resolved via test scope) must not contribute to the ignore list.
+                     Single-module runs (e.g. mvnw -pl modules/inventory-api/api test) resolve the
+                     signature from the local repository: run a modules/inventory-api reactor build
+                     (or install the spigot-api-1_8-signature module) once first. -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>animal-sniffer-maven-plugin</artifactId>
+                    <version>1.27</version>
+                    <configuration>
+                        <signature>
+                            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+                            <artifactId>spigot-boot-spigot-api-1_8-signature</artifactId>
+                            <version>${project.version}</version>
+                        </signature>
+                        <excludeDependencies>
+                            <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
+                            <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
+                        </excludeDependencies>
+                        <!-- the signature cannot contain the JDK API (see the signature module pom);
+                             JDK classes are not dependencies either, so ignore them explicitly.
+                             limitation: methods inherited from JDK supertypes but invoked on a
+                             Bukkit-typed receiver (e.g. InventoryType.equals) cannot resolve and are
+                             reported undefined - rewrite the call site (enums: use ==) or add a
+                             targeted ignore -->
+                        <ignores>
+                            <ignore>java.*</ignore>
+                            <ignore>javax.*</ignore>
+                        </ignores>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>check-spigot-188-api</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
 </project>
