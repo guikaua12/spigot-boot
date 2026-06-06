@@ -1,7 +1,10 @@
 # Design: animal-sniffer spigot-api 1.8.8 enforcement for inventory-api
 
 Date: 2026-06-05
-Status: approved
+Status: approved (topology superseded — see
+`2026-06-06-repo-wide-188-enforcement-design.md`: the signature module and the
+shared pluginManagement moved to the repo root; the mechanics described here
+are unchanged)
 Scope: `modules/inventory-api` (submodules `api`, `nms-api`, `nms`)
 
 ## Problem
