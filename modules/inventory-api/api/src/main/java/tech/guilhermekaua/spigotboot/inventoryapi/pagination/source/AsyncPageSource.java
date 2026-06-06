@@ -234,6 +234,11 @@ public final class AsyncPageSource<T> implements PageSource<T> {
             return null;
         }
         return timeoutScheduler().schedule(() -> {
+            // the TimeoutException settle is dispatched before cancel(true) triggers the
+            // future's CancellationException settle for the same id; FIFO dispatchers (inline,
+            // Bukkit scheduler) therefore always surface the TimeoutException, with the
+            // cancellation settle discarded by the at-most-once check. A dispatcher that
+            // reorders tasks could surface CancellationException instead.
             settle(id, request, null,
                     new TimeoutException("page request timed out after " + requestTimeout), onSettle, false);
             future.cancel(true);
