@@ -63,6 +63,7 @@ Shared setup in the inventory-api parent `<pluginManagement>`:
         </signature>
         <excludeDependencies>
             <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
+            <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
         </excludeDependencies>
     </configuration>
     <executions>
@@ -106,6 +107,14 @@ from the ignore list means:
   signature (missing members fail), and
 - paper-only classes (`io.papermc.*`, `com.destroystokyo.*`) fail outright —
   neither in the signature nor ignored.
+
+MockBukkit must be excluded for the same reason: the check resolves test-scope
+dependencies (`ResolutionScope.TEST`), and `MockBukkit-v1.20-3.20.2.jar` bundles
+classes in `org.bukkit.command` and `org.bukkit.plugin.java` (verified by jar
+inspection on 2026-06-05), which would otherwise put those packages on the
+ignore list and mask future main-source references into them. Excluding it has
+no downside because `checkTestClasses=false` — main classes never reference
+MockBukkit.
 
 The check goal's defaults do the rest: phase `process-test-classes` (runs under
 `mvn test`), `checkTestClasses=false` (MockBukkit-1.20 tests untouched),
