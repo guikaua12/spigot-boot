@@ -23,4 +23,14 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the inventory-api parent) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
