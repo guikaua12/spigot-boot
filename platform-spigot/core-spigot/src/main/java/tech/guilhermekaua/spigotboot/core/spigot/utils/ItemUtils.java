@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.core.spigot.utils;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
@@ -58,7 +59,13 @@ public final class ItemUtils {
             return head;
         }
         final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        headMeta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
+        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+        try {
+            headMeta.setOwningPlayer(player);
+        } catch (NoSuchMethodError e) {
+            // 1.8.8: setOwningPlayer (1.12.1+) is absent; fall back to the name-based owner
+            headMeta.setOwner(player.getName());
+        }
 
         head.setItemMeta(headMeta);
         return head;
