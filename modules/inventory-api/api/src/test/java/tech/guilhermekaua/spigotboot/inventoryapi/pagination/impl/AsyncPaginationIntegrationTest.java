@@ -321,6 +321,49 @@ class AsyncPaginationIntegrationTest {
     }
 
     @Test
+    void changePageBeforeInit_isDeferredToInit() {
+        CapturingSupplier supplier = new CapturingSupplier();
+        NormalPagination<Integer> pagination = asyncNormal(supplier);
+
+        pagination.changePage(3);
+
+        assertTrue(supplier.requests.isEmpty(), "no viewer is bound yet; nothing must be dispatched");
+        assertEquals(3, pagination.getCurrentPage());
+
+        Viewer viewer = mockViewer(mock(InventoryEditor.class), mock(CustomInventory.class));
+        pagination.init(viewer);
+
+        assertEquals(1, supplier.requests.size());
+        PageRequest request = supplier.requests.get(0);
+        assertEquals(3, request.getPage());
+        assertEquals(6, request.getOffset(), "page 3 of size 3 => offset 6");
+        assertEquals(viewer, request.getViewer(), "the dispatched request must carry the bound viewer");
+    }
+
+    @Test
+    void changePageBeforeInit_onPattern_neverTouchesTheEditor() {
+        CapturingSupplier supplier = new CapturingSupplier();
+        PatternPagination<Integer> pagination = new PatternPaginationBuilder<Integer>()
+                .pattern(InventoryLayout.ofSlots(0, 1, 2, 3, 4))      // 5 slots
+                .pattern(InventoryLayout.ofSlots(9, 10))               // 2 slots
+                .itemFactory((viewer, value) -> InventoryItem.of(new ItemStack(Material.DIAMOND, value)))
+                .async(options -> options.source(supplier))
+                .build();
+
+        pagination.changePage(2);
+        pagination.changePage(3); // previously NPE'd clearing the last pattern with no viewer bound
+
+        assertTrue(supplier.requests.isEmpty(), "no viewer is bound yet; nothing must be dispatched");
+
+        pagination.init(mockViewer(mock(InventoryEditor.class), mock(CustomInventory.class)));
+
+        assertEquals(1, supplier.requests.size());
+        assertEquals(3, supplier.requests.get(0).getPage());
+        assertEquals(7, supplier.requests.get(0).getOffset(), "page 3 starts after one full 7-slot cycle");
+        assertEquals(5, supplier.requests.get(0).getPageSize(), "page 3 cycles back to the 5-slot pattern");
+    }
+
+    @Test
     void asyncSettle_repaintsInventoryForOnlineViewer() throws Exception {
         CapturingSupplier supplier = new CapturingSupplier();
         NormalPagination<Integer> pagination = asyncNormal(supplier);

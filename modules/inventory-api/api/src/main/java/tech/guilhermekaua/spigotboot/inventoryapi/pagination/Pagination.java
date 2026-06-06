@@ -71,7 +71,8 @@ public interface Pagination<T> {
      * source's totals are known. For async sources, navigation issued before the first load
      * completes is honored optimistically and re-clamped downward when totals arrive. A call that
      * targets the current page while a request for it is already in flight is ignored; use
-     * {@link #refresh()} to force a reload.
+     * {@link #refresh()} to force a reload. Before {@link #init(Viewer)} the call only records
+     * the target page; {@code init} dispatches the load for it.
      */
     void changePage(int page);
 

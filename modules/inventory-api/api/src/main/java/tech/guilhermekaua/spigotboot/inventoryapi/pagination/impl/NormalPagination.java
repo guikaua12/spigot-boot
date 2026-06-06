@@ -173,6 +173,11 @@ public class NormalPagination<T> implements Pagination<T> {
         if (!forceDispatch && target == this.currentPage && this.pageSource.isLoading()) {
             return;
         }
+        // no viewer bound yet: record the target only; init dispatches the load for it
+        if (this.viewer == null) {
+            this.currentPage = target;
+            return;
+        }
         int rollbackPage = this.currentPage;
         this.currentPage = target;
         dispatch(rollbackPage, true);

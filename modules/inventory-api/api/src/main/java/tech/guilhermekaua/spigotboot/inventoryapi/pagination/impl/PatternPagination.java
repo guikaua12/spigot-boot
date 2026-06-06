@@ -195,6 +195,12 @@ public class PatternPagination<T> implements Pagination<T> {
         if (!forceDispatch && target == this.currentPage && this.pageSource.isLoading()) {
             return;
         }
+        // no viewer bound yet: record the target only; init derives the pattern state for it
+        // and dispatches the load
+        if (this.viewer == null) {
+            this.currentPage = target;
+            return;
+        }
         PatternState rollback = snapshotState();
 
         this.currentPage = target;

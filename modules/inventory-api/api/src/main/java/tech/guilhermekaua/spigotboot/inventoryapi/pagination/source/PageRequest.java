@@ -54,7 +54,9 @@ public final class PageRequest {
     private final int offset;
 
     /**
-     * The viewer the page is being loaded for.
+     * The viewer the page is being loaded for. Never {@code null} for requests dispatched by the
+     * built-in paginations: navigation issued before {@code init(Viewer)} only records the target
+     * page, and {@code init} dispatches the load for it.
      */
     private final Viewer viewer;
 }
