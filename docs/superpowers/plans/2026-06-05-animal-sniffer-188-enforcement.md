@@ -76,6 +76,12 @@ Create `modules/inventory-api/spigot-api-1_8-signature/pom.xml` with exactly:
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
                 <version>1.27</version>
+                <configuration>
+                    <!-- modern JDKs (9+) have no boot classpath, so animal-sniffer cannot harvest the
+                         JDK API here; the signature covers spigot-api only and the consuming checks
+                         ignore java.* / javax.* instead (JDK-level enforcement is a non-goal) -->
+                    <includeJavaHome>false</includeJavaHome>
+                </configuration>
                 <executions>
                     <execution>
                         <id>generate-spigot-188-signature</id>
@@ -122,7 +128,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 Test-Path modules\inventory-api\spigot-api-1_8-signature\target\spigot-boot-spigot-api-1_8-signature-2.0.2.signature
 ```
 
-Expected: `BUILD SUCCESS`, and the `Test-Path` prints `True`.
+Expected: `BUILD SUCCESS` with `[INFO] Wrote signatures for 5556 classes.` (spigot-api 1.8.8 plus its transitives; the JDK is intentionally absent — see the pom comment), and the `Test-Path` prints `True`.
 
 - [ ] **Step 1.4: Commit**
 
@@ -171,6 +177,12 @@ In `modules/inventory-api/pom.xml`, insert between `</repositories>` and `</proj
                             <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
                             <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
                         </excludeDependencies>
+                        <!-- the signature cannot contain the JDK API (see the signature module pom);
+                             JDK classes are not dependencies either, so ignore them explicitly -->
+                        <ignores>
+                            <ignore>java.*</ignore>
+                            <ignore>javax.*</ignore>
+                        </ignores>
                     </configuration>
                     <executions>
                         <execution>
@@ -336,8 +348,10 @@ In `modules/inventory-api/nms/pom.xml`, extend the plugin declaration from Step 
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
                 <configuration>
                     <!-- BukkitInventoryTitleUpdater intentionally calls InventoryView#setTitle (1.20+);
-                         InventoryApiNMS only selects it when the server minor version is >= 20 -->
-                    <ignores>
+                         InventoryApiNMS only selects it when the server minor version is >= 20.
+                         combine.children="append" merges with the managed java.*/javax.* ignores
+                         instead of replacing them -->
+                    <ignores combine.children="append">
                         <ignore>org.bukkit.inventory.InventoryView</ignore>
                     </ignores>
                 </configuration>

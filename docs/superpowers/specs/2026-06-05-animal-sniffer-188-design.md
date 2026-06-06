@@ -37,8 +37,12 @@ New module `modules/inventory-api/spigot-api-1_8-signature/`:
 - The mojo attaches the result via `projectHelper.attachArtifact(project,
   "signature", …)`; Maven's ReactorReader serves attached artifacts in-session,
   so consumers resolve it mid-build without `install`.
-- `includeJavaHome=true` (default): the signature contains the building JDK's
-  API plus the spigot-api 1.8.8 API, keeping `java.*` references resolvable.
+- `includeJavaHome=false`: animal-sniffer cannot harvest the JDK API on modern
+  JDKs (9+ have no boot classpath — verified empirically on JDK 21 with plugin
+  1.27, which skips generation with a warning). The signature therefore covers
+  spigot-api 1.8.8 (and its transitives) only; the consuming checks ignore
+  `java.*`/`javax.*` instead (see below), consistent with JDK-level enforcement
+  being a non-goal.
 - Listed **first** in the inventory-api parent `<modules>` so the sequential
   reactor builds it before `api`/`nms-api`/`nms` (no dependency edge exists; the
   build is not parallelized).
@@ -65,6 +69,10 @@ Shared setup in the inventory-api parent `<pluginManagement>`:
             <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
             <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
         </excludeDependencies>
+        <ignores>
+            <ignore>java.*</ignore>
+            <ignore>javax.*</ignore>
+        </ignores>
     </configuration>
     <executions>
         <execution>
@@ -81,13 +89,16 @@ execution. `nms` additionally sets:
 
 ```xml
 <configuration>
-    <ignores>
+    <ignores combine.children="append">
         <ignore>org.bukkit.inventory.InventoryView</ignore>
     </ignores>
 </configuration>
 ```
 
-for the intentional, version-gated `InventoryView#setTitle` (1.20+) call in
+(`combine.children="append"` is required: Maven's default configuration merge
+would otherwise *replace* the managed `java.*`/`javax.*` ignores with this
+module-level list.) This suppresses the intentional, version-gated
+`InventoryView#setTitle` (1.20+) call in
 `BukkitInventoryTitleUpdater` — selected at runtime only when the server minor
 version is >= 20.
 
@@ -115,6 +126,12 @@ inspection on 2026-06-05), which would otherwise put those packages on the
 ignore list and mask future main-source references into them. Excluding it has
 no downside because `checkTestClasses=false` — main classes never reference
 MockBukkit.
+
+The managed `java.*`/`javax.*` ignores are the flip side of the signature not
+containing the JDK API (see the module section above): JDK classes are not
+Maven dependencies, so without these ignores every `java.lang.*` reference
+would be reported as undefined. This expresses the JDK-enforcement non-goal in
+config.
 
 The check goal's defaults do the rest: phase `process-test-classes` (runs under
 `mvn test`), `checkTestClasses=false` (MockBukkit-1.20 tests untouched),
