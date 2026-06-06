@@ -70,7 +70,7 @@ Shared setup in the inventory-api parent `<pluginManagement>`:
         </signature>
         <excludeDependencies>
             <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
-            <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
+            <excludeDependency>com.github.seeseemelk:*</excludeDependency>
         </excludeDependencies>
         <ignores>
             <ignore>java.*</ignore>
@@ -105,8 +105,14 @@ module-level list.) This suppresses the intentional, version-gated
 `BukkitInventoryTitleUpdater` — selected at runtime only when the server minor
 version is >= 20.
 
-The version-specific `nms-1_8_R3` … `nms-1_19_R3` modules and the signature
-module itself do not declare the plugin and are unaffected.
+The version-specific `nms-1_8_R3` … `nms-1_19_R3` modules do not declare the
+plugin and are unaffected. The signature module declares it for the `build`
+goal only and defends against `pluginManagement` bleed-through: it pins its
+configuration with `combine.self="override"` (the managed checker
+configuration must not merge into the `build` goal, where
+`excludeDependencies` would silently shrink the generated signature) and
+unbinds the inherited check execution (`<phase>none</phase>` for
+`check-spigot-188-api` — a self-referential check on a classless module).
 
 ### Why `excludeDependencies` is load-bearing
 
@@ -128,7 +134,9 @@ classes in `org.bukkit.command` and `org.bukkit.plugin.java` (verified by jar
 inspection on 2026-06-05), which would otherwise put those packages on the
 ignore list and mask future main-source references into them. Excluding it has
 no downside because `checkTestClasses=false` — main classes never reference
-MockBukkit.
+MockBukkit. The exclude uses the group wildcard `com.github.seeseemelk:*` so an
+artifactId bump (e.g. `MockBukkit-v1.21`) cannot silently re-enable the
+masking.
 
 The managed `java.*`/`javax.*` ignores are the flip side of the signature not
 containing the JDK API (see the module section above): JDK classes are not
@@ -163,10 +171,16 @@ A violation fails `mvn test` at `process-test-classes` with
 behavior locally (`mvnw.cmd test` from root or `modules/inventory-api`).
 
 Caveat (documented as a pom comment): a single-module run such as
-`mvnw.cmd -pl modules/inventory-api/api test` has no reactor signature module and
-no dependency edge for `-am` to follow; it resolves the signature from the local
-repository, requiring one prior root/aggregator build or
-`mvnw.cmd -pl modules/inventory-api/spigot-api-1_8-signature install`.
+`mvnw.cmd -pl modules/inventory-api/api test` — and any `-am` build that pulls a
+consumer into the reactor (e.g. `mvnw.cmd -pl test-plugin -am package`) — has no
+reactor signature module and no dependency edge for `-am` to follow; the
+signature resolves from the local repository. A reactor `test` build only
+attaches in-session and does NOT install, so the working remedies are
+`mvnw.cmd -f modules/inventory-api/pom.xml -pl spigot-api-1_8-signature install`
+(once per version bump) or skipping via `-Danimal.sniffer.skip=true`. Giving
+consumers a real reactor edge (a `type=signature` dependency) is a possible
+follow-up but needs verification that it stays off classpaths and out of the
+checker's dependency-ignore scan.
 
 ## Verification plan
 

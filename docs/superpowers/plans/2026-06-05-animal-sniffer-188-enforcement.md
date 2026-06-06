@@ -296,6 +296,25 @@ git commit -m "build(inventory-api): enforce spigot-api 1.8.8 compatibility in a
 
 (`git status` first: confirm the canary file is gone and only the two poms are staged.)
 
+- [x] **Step 2.8 (added by code review): hardening commit**
+
+> **Execution note (2026-06-06, commit `3a1e293`):** quality review of Task 2 found two Important
+> issues, fixed in a follow-up commit touching all three poms:
+> 1. The signature module inherited the managed `check-spigot-188-api` execution AND the managed
+>    checker `<configuration>` merged into its `build` goal — where `excludeDependencies` is a
+>    real parameter that could silently shrink the generated signature. Fixed by
+>    `combine.self="override"` on the module's plugin configuration and an unbind execution
+>    (`<id>check-spigot-188-api</id><phase>none</phase>`); its explicit `<version>1.27</version>`
+>    was dropped (now managed by the parent).
+> 2. The single-module-run pom comment prescribed a non-working remedy (a reactor `test` build
+>    attaches but never installs), and `-am` builds pulling consumers into the reactor (e.g.
+>    `mvnw -pl test-plugin -am package`) broke on cold cache. Comment now names the working
+>    remedy (`mvnw -f modules/inventory-api/pom.xml -pl spigot-api-1_8-signature install`, or
+>    `-Danimal.sniffer.skip=true`), and the signature was installed locally.
+> Also: MockBukkit exclude widened to `com.github.seeseemelk:*` (artifactId bumps must not
+> re-enable masking) and the api opt-in entry gained an explanatory comment. Red canary re-run
+> after the changes: still fails as designed.
+
 ---
 
 ### Task 3: nms-api and nms enforcement (nms proves red before the ignore)
@@ -311,6 +330,7 @@ In `modules/inventory-api/nms-api/pom.xml`, insert between `</dependencies>` and
 ```xml
     <build>
         <plugins>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the inventory-api parent) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
@@ -337,6 +357,7 @@ In `modules/inventory-api/nms/pom.xml`, insert between `</dependencies>` and `</
 ```xml
     <build>
         <plugins>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the inventory-api parent) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
@@ -361,6 +382,7 @@ In `modules/inventory-api/nms/pom.xml`, extend the plugin declaration from Step 
 ```xml
     <build>
         <plugins>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the inventory-api parent) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
