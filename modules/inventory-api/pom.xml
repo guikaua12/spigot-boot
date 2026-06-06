@@ -16,6 +16,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <!-- listed first: generates the 1.8.8 signature the sibling checks consume in-reactor -->
+        <module>spigot-api-1_8-signature</module>
         <module>api</module>
         <module>nms-api</module>
         <module>nms</module>

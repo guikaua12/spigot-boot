@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>tech.guilhermekaua.spigot-boot</groupId>
+        <artifactId>spigot-boot-inventory-api-parent</artifactId>
+        <version>2.0.2</version>
+    </parent>
+
+    <name>${project.artifactId}</name>
+    <description>Generates the spigot-api 1.8.8 animal-sniffer signature used to enforce API compatibility in the version-independent inventory API modules.</description>
+    <url>https://github.com/guikaua12/spigot-boot</url>
+    <artifactId>spigot-boot-spigot-api-1_8-signature</artifactId>
+    <packaging>pom</packaging>
+
+    <properties>
+        <!-- build-internal artifact: consumed in-reactor (or from the local repo), never published -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <!-- compile scope on purpose: the animal-sniffer build goal only collects
+             signatures from classpath dependencies -->
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.8.8-R0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <version>1.27</version>
+                <configuration>
+                    <!-- modern JDKs (9+) have no boot classpath, so animal-sniffer cannot harvest the
+                         JDK API here; the signature covers spigot-api only and the consuming checks
+                         ignore java.* / javax.* instead (JDK-level enforcement is a non-goal) -->
+                    <includeJavaHome>false</includeJavaHome>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>generate-spigot-188-signature</id>
+                        <!-- bound early so a plain `mvn test` reactor run (what CI executes)
+                             attaches the signature before sibling checks need it -->
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
