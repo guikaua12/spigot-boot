@@ -51,7 +51,8 @@ New module `modules/inventory-api/spigot-api-1_8-signature/`:
   artifact, never published. Both are needed — the release workflow runs
   `mvn clean deploy` through the central-publishing extension, which does not
   honor `maven.deploy.skip`. `install` stays enabled so single-module `-pl`
-  workflows work after one root build.
+  workflows work after one `install` of this module (a plain reactor `test`
+  build attaches in-session but does not install).
 
 ### 2. Check executions on api, nms-api, nms
 
@@ -188,8 +189,10 @@ checker's dependency-ignore scan.
 ## Verification plan
 
 1. **Green**: purge `tech/guilhermekaua/spigot-boot/spigot-boot-spigot-api-1_8-signature`
-   from `~/.m2`, run `mvnw.cmd -pl modules/inventory-api -am test` — proves
-   in-reactor generation, resolution, and passing checks.
+   from `~/.m2`, run `mvnw.cmd -f modules/inventory-api/pom.xml test` (or the
+   full `mvnw.cmd test -B`) — proves in-reactor generation, resolution, and
+   passing checks. (Do NOT use `-pl modules/inventory-api -am`: selecting an
+   aggregator with `-pl` does not include its children, so no checks would run.)
 2. **Red canary (reverted afterwards)**: add a temporary
    `inventory.getStorageContents()` (1.9+) call in `api` — the build must fail
    with the undefined-reference error.

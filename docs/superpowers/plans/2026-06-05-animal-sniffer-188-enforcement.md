@@ -33,7 +33,7 @@ The `nms-1_8_R3` … `nms-1_19_R3` modules are NOT touched.
 - Create: `modules/inventory-api/spigot-api-1_8-signature/pom.xml`
 - Modify: `modules/inventory-api/pom.xml` (modules list, currently lines 18–28)
 
-- [ ] **Step 1.1: Create the module pom**
+- [x] **Step 1.1: Create the module pom**
 
 Create `modules/inventory-api/spigot-api-1_8-signature/pom.xml` with exactly:
 
@@ -110,7 +110,7 @@ Create `modules/inventory-api/spigot-api-1_8-signature/pom.xml` with exactly:
 </project>
 ```
 
-- [ ] **Step 1.2: Register the module first in the inventory-api parent**
+- [x] **Step 1.2: Register the module first in the inventory-api parent**
 
 In `modules/inventory-api/pom.xml`, the modules list currently reads:
 
@@ -129,7 +129,7 @@ Change to (new module listed FIRST — there is no dependency edge, so sequentia
         <module>api</module>
 ```
 
-- [ ] **Step 1.3: Verify the signature generates and attaches**
+- [x] **Step 1.3: Verify the signature generates and attaches**
 
 Run:
 
@@ -141,7 +141,7 @@ Test-Path modules\inventory-api\spigot-api-1_8-signature\target\spigot-boot-spig
 
 Expected: `BUILD SUCCESS` with `[INFO] Wrote signatures for 5556 classes.` (spigot-api 1.8.8 plus its transitives; the JDK is intentionally absent — see the pom comment), and the `Test-Path` prints `True`.
 
-- [ ] **Step 1.4: Commit**
+- [x] **Step 1.4: Commit**
 
 ```powershell
 git add modules/inventory-api/spigot-api-1_8-signature/pom.xml modules/inventory-api/pom.xml
@@ -157,7 +157,7 @@ git commit -m "build(inventory-api): add spigot-api 1.8 signature generator modu
 - Modify: `modules/inventory-api/api/pom.xml` (add plugin to existing `<build><plugins>`, currently lines 21–49)
 - Temporary: `modules/inventory-api/api/src/main/java/tech/guilhermekaua/spigotboot/inventoryapi/Compat188Canary.java`
 
-- [ ] **Step 2.1: Add pluginManagement to the inventory-api parent**
+- [x] **Step 2.1: Add pluginManagement to the inventory-api parent**
 
 In `modules/inventory-api/pom.xml`, insert between `</repositories>` and `</project>`:
 
@@ -209,7 +209,7 @@ In `modules/inventory-api/pom.xml`, insert between `</repositories>` and `</proj
     </build>
 ```
 
-- [ ] **Step 2.2: Activate the check in the api module**
+- [x] **Step 2.2: Activate the check in the api module**
 
 In `modules/inventory-api/api/pom.xml`, the `<build><plugins>` section currently contains only `maven-compiler-plugin` (ends `</plugin>` line 48 followed by `</plugins>` line 49). Add after the compiler plugin's closing `</plugin>`:
 
@@ -222,7 +222,7 @@ In `modules/inventory-api/api/pom.xml`, the `<build><plugins>` section currently
 
 (No version/configuration — both come from the parent `pluginManagement`.)
 
-- [ ] **Step 2.3: Write the red canary (temporary, never committed)**
+- [x] **Step 2.3: Write the red canary (temporary, never committed)**
 
 Create `modules/inventory-api/api/src/main/java/tech/guilhermekaua/spigotboot/inventoryapi/Compat188Canary.java`:
 
@@ -245,7 +245,7 @@ final class Compat188Canary {
 }
 ```
 
-- [ ] **Step 2.4: Run the check — expect FAILURE on the canary**
+- [x] **Step 2.4: Run the check — expect FAILURE on the canary**
 
 Run:
 
@@ -269,13 +269,13 @@ If this step PASSES instead, STOP — the check is vacuous (most likely the `exc
 > (`refactor(inventory-api): compare InventoryType by identity in listener`) placed BEFORE the
 > build-enforcement commit so every commit stays green.
 
-- [ ] **Step 2.5: Delete the canary**
+- [x] **Step 2.5: Delete the canary**
 
 ```powershell
 Remove-Item modules\inventory-api\api\src\main\java\tech\guilhermekaua\spigotboot\inventoryapi\Compat188Canary.java
 ```
 
-- [ ] **Step 2.6: Re-run with full tests — expect GREEN**
+- [x] **Step 2.6: Re-run with full tests — expect GREEN**
 
 Run:
 
@@ -286,7 +286,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS`; the log shows the check ran (a `animal-sniffer:1.27:check (check-spigot-188-api)` line for the api module) and the existing unit tests pass.
 
-- [ ] **Step 2.7: Commit**
+- [x] **Step 2.7: Commit**
 
 ```powershell
 git status --short modules/inventory-api
@@ -323,7 +323,7 @@ git commit -m "build(inventory-api): enforce spigot-api 1.8.8 compatibility in a
 - Modify: `modules/inventory-api/nms-api/pom.xml` (no `<build>` section exists; add after `</dependencies>` line 24)
 - Modify: `modules/inventory-api/nms/pom.xml` (no `<build>` section exists; add after `</dependencies>` line 61)
 
-- [ ] **Step 3.1: Activate the check in nms-api**
+- [x] **Step 3.1: Activate the check in nms-api**
 
 In `modules/inventory-api/nms-api/pom.xml`, insert between `</dependencies>` and `</project>`:
 
@@ -339,7 +339,7 @@ In `modules/inventory-api/nms-api/pom.xml`, insert between `</dependencies>` and
     </build>
 ```
 
-- [ ] **Step 3.2: Verify nms-api is green**
+- [x] **Step 3.2: Verify nms-api is green**
 
 Run:
 
@@ -350,7 +350,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS` with the `check-spigot-188-api` execution visible for nms-api.
 
-- [ ] **Step 3.3: Activate the check in nms WITHOUT the ignore — expect FAILURE**
+- [x] **Step 3.3: Activate the check in nms WITHOUT the ignore — expect FAILURE**
 
 In `modules/inventory-api/nms/pom.xml`, insert between `</dependencies>` and `</project>`:
 
@@ -375,7 +375,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD FAILURE` with an undefined-reference error in `BukkitInventoryTitleUpdater` for `org.bukkit.inventory.InventoryView.setTitle(java.lang.String)` — this proves the nms check actually bites before we suppress the one intentional, version-gated usage.
 
-- [ ] **Step 3.4: Add the InventoryView ignore — expect GREEN**
+- [x] **Step 3.4: Add the InventoryView ignore — expect GREEN**
 
 In `modules/inventory-api/nms/pom.xml`, extend the plugin declaration from Step 3.3 to:
 
@@ -432,7 +432,7 @@ git commit -m "build(inventory-api): enforce spigot-api 1.8.8 compatibility in n
 
 **Files:** none (verification only)
 
-- [ ] **Step 4.1: Purge the installed signature artifact to prove in-reactor resolution**
+- [x] **Step 4.1: Purge the installed signature artifact to prove in-reactor resolution**
 
 ```powershell
 Remove-Item -Recurse -Force "$env:USERPROFILE\.m2\repository\tech\guilhermekaua\spigot-boot\spigot-boot-spigot-api-1_8-signature" -ErrorAction SilentlyContinue
@@ -440,7 +440,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.m2\repository\tech\guilhermekaua\
 
 (CI starts with this artifact absent from cache; this reproduces that state.)
 
-- [ ] **Step 4.2: Run the exact CI command across the full reactor**
+- [x] **Step 4.2: Run the exact CI command across the full reactor**
 
 Run (expect several minutes — all modules build and test):
 
