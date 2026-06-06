@@ -48,6 +48,23 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <configuration>
+                    <!-- TypeUtil#convertFromLegacy: UnsafeValues#fromLegacy (1.13+) is data-gated -
+                         Material.valueOf("LEGACY_"+name) throws on 1.8.8 before the call is reached.
+                         ItemUtils#getHeadByUuid: SkullMeta#setOwningPlayer (1.12.1+) is guarded by a
+                         runtime NoSuchMethodError fallback to setOwner.
+                         combine.children="append" merges with the managed java.*/javax.* ignores
+                         instead of replacing them -->
+                    <ignores combine.children="append">
+                        <ignore>org.bukkit.UnsafeValues</ignore>
+                        <ignore>org.bukkit.inventory.meta.SkullMeta</ignore>
+                    </ignores>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
