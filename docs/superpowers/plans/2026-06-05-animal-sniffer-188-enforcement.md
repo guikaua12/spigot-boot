@@ -409,12 +409,22 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS` (the rest of the nms module — e.g. `InventoryApiNMS`'s `Bukkit.getBukkitVersion()` — is still checked; only `InventoryView` references are bypassed).
 
-- [ ] **Step 3.5: Commit**
+- [x] **Step 3.5: Commit**
 
 ```powershell
 git add modules/inventory-api/nms-api/pom.xml modules/inventory-api/nms/pom.xml
 git commit -m "build(inventory-api): enforce spigot-api 1.8.8 compatibility in nms modules"
 ```
+
+> **Execution note (2026-06-06):** the Step 3.3 red run surfaced, alongside the expected
+> `InventoryView.setTitle` error, two more hits of the JDK-supertype false-positive class:
+> `InventoryApiNMS` calling `Bukkit.getServer().getClass()` (owner `org.bukkit.Server`, lines
+> 80/140). Fixed at source by hoisting the server into `Object`-typed locals so `getClass()`
+> resolves via the managed `java.*` ignore — commit
+> `refactor(inventory-api): hoist server to Object receiver in nms selector` (`eac3065`),
+> placed before the enforcement commit (`c31d545`). Quality review added why-comments at both
+> hoists (`02030fa`) so the Object type is not "simplified" away. The final `nms` pom ignores
+> only `org.bukkit.inventory.InventoryView` — no `org.bukkit.Server` pom ignore was needed.
 
 ---
 
