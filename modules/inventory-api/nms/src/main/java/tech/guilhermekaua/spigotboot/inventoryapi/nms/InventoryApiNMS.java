@@ -75,9 +75,10 @@ public final class InventoryApiNMS {
 
         String suffix = detectPackageSuffix();
         if (suffix == null) {
+            Object server = Bukkit.getServer();
             throw new IllegalStateException(
                     "Unable to detect CraftBukkit package suffix (server.class=" +
-                            Bukkit.getServer().getClass().getName() +
+                            server.getClass().getName() +
                             "); register a custom TitleUpdater bean to bypass the selector"
             );
         }
@@ -137,7 +138,8 @@ public final class InventoryApiNMS {
      * always major &ge; 20.
      */
     static String detectPackageSuffix() {
-        String pkg = Bukkit.getServer().getClass().getPackage().getName();
+        Object server = Bukkit.getServer();
+        String pkg = server.getClass().getPackage().getName();
         int lastDot = pkg.lastIndexOf('.');
         if (lastDot < 0) {
             return null;
