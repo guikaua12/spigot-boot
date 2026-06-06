@@ -89,7 +89,7 @@ public final class CustomInventoryListener implements Listener {
             CustomInventoryClickEvent clickEvent = new CustomInventoryClickEvent(viewer, event);
             Bukkit.getPluginManager().callEvent(clickEvent);
 
-            if (clickedInventory.getType().equals(InventoryType.PLAYER)) return;
+            if (clickedInventory.getType() == InventoryType.PLAYER) return;
 
             InventoryEditor editor = viewer.getEditor();
             ItemCallback itemCallback = editor.getItemCallback(event.getRawSlot());
