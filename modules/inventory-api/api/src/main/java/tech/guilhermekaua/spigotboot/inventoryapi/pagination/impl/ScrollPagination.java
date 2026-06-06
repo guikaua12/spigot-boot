@@ -22,30 +22,12 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.impl;
 
-import lombok.AccessLevel;
 import lombok.Getter;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
-import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
-import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.GenericInventoryItemSupplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.supplier.InventoryItemSupplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageRequest;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageResult;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
-import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Sliding-window paginator. Each "page" advances the visible window by one source element rather
@@ -53,24 +35,9 @@ import java.util.logging.Logger;
  * default, or an async supplier configured through the builder's {@code async(...)} method.
  */
 @Getter
-public class ScrollPagination<T> implements Pagination<T> {
+public class ScrollPagination<T> extends AbstractPageSourcePagination<T, Integer> {
 
-    private static final Logger LOGGER = Logger.getLogger(ScrollPagination.class.getName());
-
-    private final InventoryItemSupplier fallbackItem;
-    private final GenericInventoryItemSupplier<T> itemSupplier;
     private final InventoryLayout layout;
-    @Getter(AccessLevel.NONE)
-    private final InventoryItemSupplier loadingItem;
-    @Getter(AccessLevel.NONE)
-    private PageSource<T> pageSource;
-    @Getter(AccessLevel.NONE)
-    private volatile List<T> currentItems = Collections.emptyList();
-    @Getter(AccessLevel.NONE)
-    private volatile Thread dispatchingThread;
-    private Viewer viewer;
-    private int currentPage = 1;
-    private int itemPageLimit;
 
     /**
      * Creates an eager paginator over an initially empty source.
@@ -100,137 +67,39 @@ public class ScrollPagination<T> implements Pagination<T> {
                             InventoryLayout layout,
                             InventoryItemSupplier loadingItem,
                             PageSource<T> pageSource) {
-        this.fallbackItem = fallbackItem;
-        this.itemSupplier = itemSupplier;
+        super(fallbackItem, itemSupplier, loadingItem, pageSource);
         this.layout = layout;
-        this.loadingItem = loadingItem;
-        this.pageSource = Objects.requireNonNull(pageSource, "pageSource is required.");
     }
 
     @Override
-    public void init(Viewer viewer) {
-        this.viewer = viewer;
+    protected void initNavigationState() {
         this.itemPageLimit = layout.getSlots().size();
-        dispatch(this.currentPage, false);
     }
 
     @Override
-    public void apply() {
-        insertPageItems();
+    protected int requestOffset() {
+        // the window slides one element per page
+        return this.currentPage - 1;
     }
 
     @Override
-    public void nextPage() {
-        this.changePage(this.currentPage + 1);
+    protected Integer navigationSnapshot() {
+        return this.currentPage;
     }
 
     @Override
-    public boolean hasNextPage() {
-        return this.currentPage < getTotalPages();
+    protected void restoreNavigation(Integer snapshot) {
+        this.currentPage = snapshot;
     }
 
     @Override
-    public void previousPage() {
-        this.changePage(this.currentPage - 1);
-    }
-
-    @Override
-    public boolean hasPreviousPage() {
-        return this.currentPage > 1;
-    }
-
-    @Override
-    public void insertPageItems() {
-        InventoryEditor editor = this.viewer.getEditor();
-        List<T> items = this.currentItems;
-        boolean loading = this.pageSource.isLoading();
-        List<InventoryItem> inventoryItems = new LinkedList<>();
-
-        for (int i = 0; i < this.itemPageLimit; i++) {
-            if (loading) {
-                inventoryItems.add(loadingOrFallback());
-            } else if (i < items.size()) {
-                inventoryItems.add(this.itemSupplier.get(this.viewer, items.get(i)));
-            } else {
-                inventoryItems.add(emptyOrFallback());
-            }
-        }
-
-        editor.fillPage(inventoryItems, layout, this);
-    }
-
-    @Override
-    public void changePage(int page) {
-        changePageInternal(page, false);
-    }
-
-    private void changePageInternal(int page, boolean forceDispatch) {
-        int target = Math.max(1, page);
-        if (this.pageSource.totalsKnown()) {
-            target = Math.min(target, this.getTotalPages());
-        }
-        if (!forceDispatch && target == this.currentPage && this.pageSource.isLoading()) {
-            return;
-        }
-        // no viewer bound yet: record the target only; init dispatches the load for it
-        if (this.viewer == null) {
-            this.currentPage = target;
-            return;
-        }
-        int rollbackPage = this.currentPage;
+    protected void commitNavigation(int target) {
         this.currentPage = target;
-        dispatch(rollbackPage, true);
     }
 
-    private void dispatch(int rollbackPage, boolean render) {
-        PageRequest request = new PageRequest(
-                this.currentPage, this.itemPageLimit,
-                this.currentPage - 1, this.viewer);
-        this.dispatchingThread = Thread.currentThread();
-        try {
-            this.pageSource.request(request, (result, error) -> onSettle(rollbackPage, result, error));
-        } finally {
-            this.dispatchingThread = null;
-        }
-        if (render) {
-            renderIfOnline();
-        }
-    }
-
-    private void onSettle(int rollbackPage, PageResult<T> result, Throwable error) {
-        boolean inline = Thread.currentThread() == this.dispatchingThread;
-        try {
-            if (error != null) {
-                this.currentPage = rollbackPage;
-            } else {
-                this.currentItems = result.getItems();
-                if (this.pageSource.totalsKnown() && this.currentPage > this.getTotalPages()) {
-                    changePageInternal(this.getTotalPages(), true);
-                    return;
-                }
-            }
-            if (!inline) {
-                renderIfOnline();
-            }
-        } catch (Throwable t) {
-            LOGGER.log(Level.WARNING, "Failed to apply a settled page load.", t);
-        }
-    }
-
-    private void renderIfOnline() {
-        Viewer viewer = this.viewer;
-        if (viewer == null) {
-            return;
-        }
-        Player player = viewer.getPlayer();
-        if (player == null) {
-            return;
-        }
-        CustomInventory customInventory = viewer.getCustomInventory();
-        if (customInventory == null) {
-            return;
-        }
-        customInventory.updateInventory(player);
+    @Override
+    protected InventoryLayout renderLayout() {
+        return this.layout;
     }
 
     @Override
@@ -245,58 +114,5 @@ public class ScrollPagination<T> implements Pagination<T> {
             return -1;
         }
         return Math.max(1, index - this.itemPageLimit + 2);
-    }
-
-    @Override
-    public void setSource(List<T> source) {
-        if (this.pageSource instanceof AsyncPageSource) {
-            LOGGER.warning("setSource(List) called on an async-built pagination: the async supplier"
-                    + " (and its loading item, error callback, timeout and cache) is discarded.");
-        }
-        this.pageSource = new EagerPageSource<>(source);
-        this.currentItems = Collections.emptyList();
-        if (this.viewer != null) {
-            dispatch(this.currentPage, false);
-        }
-    }
-
-    @Override
-    public List<T> getSource() {
-        return this.pageSource.elements();
-    }
-
-    @Override
-    public boolean isLoading() {
-        return this.pageSource.isLoading();
-    }
-
-    @Override
-    public Throwable lastError() {
-        return this.pageSource.lastError();
-    }
-
-    @Override
-    public int getTotalElements() {
-        return this.pageSource.totalElements();
-    }
-
-    @Override
-    public void refresh() {
-        this.pageSource.invalidate();
-        changePageInternal(this.currentPage, true);
-    }
-
-    private InventoryItem emptyOrFallback() {
-        return fallbackItem == null ? InventoryItem.of((ItemStack) null) : fallbackItem.get(viewer);
-    }
-
-    private InventoryItem loadingOrFallback() {
-        return loadingItem != null ? loadingItem.get(viewer) : emptyOrFallback();
-    }
-
-    @Override
-    public InventoryItem getFallbackItem() {
-        if (fallbackItem == null) return null;
-        return this.fallbackItem.get(viewer);
     }
 }
