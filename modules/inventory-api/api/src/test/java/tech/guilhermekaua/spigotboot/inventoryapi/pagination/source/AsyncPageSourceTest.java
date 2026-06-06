@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -250,6 +251,54 @@ class AsyncPageSourceTest {
 
             assertFalse(source.isLoading(), "round " + round + ": loading must clear once the latest request settles");
         }
+    }
+
+    @Test
+    void racingRequests_staleDispatchCannotStrandLoadingFlag() throws Exception {
+        for (int round = 0; round < 100; round++) {
+            AsyncPageSource<Integer> source = source(req ->
+                    CompletableFuture.completedFuture(PageResult.of(Arrays.asList(1), 1)));
+            Object lock = stateLockOf(source);
+
+            Thread first;
+            Thread second;
+            // hold the internal state lock so both request() calls park right before their
+            // state writes; once released, the later dispatch may run to completion before
+            // the earlier one resumes -- the earlier dispatch must not strand loading=true
+            synchronized (lock) {
+                first = startRequestThread(source);
+                awaitBlockedOnMonitor(first);
+                second = startRequestThread(source);
+                awaitBlockedOnMonitor(second);
+            }
+            first.join(5000);
+            second.join(5000);
+
+            assertFalse(source.isLoading(),
+                    "round " + round + ": every dispatch settled, loading must be false");
+        }
+    }
+
+    private static Thread startRequestThread(AsyncPageSource<Integer> source) {
+        Thread thread = new Thread(() -> source.request(request(1), (result, error) -> { }));
+        thread.start();
+        return thread;
+    }
+
+    private static void awaitBlockedOnMonitor(Thread thread) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (thread.getState() != Thread.State.BLOCKED) {
+            if (System.currentTimeMillis() > deadline) {
+                throw new AssertionError("request thread never blocked on the state lock");
+            }
+            Thread.sleep(1);
+        }
+    }
+
+    private static Object stateLockOf(AsyncPageSource<?> source) throws Exception {
+        Field lockField = AsyncPageSource.class.getDeclaredField("lock");
+        lockField.setAccessible(true);
+        return lockField.get(source);
     }
 
     /**

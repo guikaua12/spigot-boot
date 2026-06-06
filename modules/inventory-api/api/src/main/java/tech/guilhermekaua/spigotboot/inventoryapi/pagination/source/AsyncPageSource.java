@@ -128,9 +128,13 @@ public final class AsyncPageSource<T> implements PageSource<T> {
         Objects.requireNonNull(request, "request is required.");
         Objects.requireNonNull(onSettle, "onSettle is required.");
 
-        long id = requestIds.incrementAndGet();
+        long id;
         PageResult<T> cached;
         synchronized (lock) {
+            // the id must be claimed under the lock: claimed outside it, an older claimant
+            // could mark loading=true after the newest request already settled, and its own
+            // discarded settle would then strand the flag at true forever
+            id = requestIds.incrementAndGet();
             loading = true;
             lastError = null;
             cached = cacheTtl == null ? null : cachedResult(cacheKey(request));
