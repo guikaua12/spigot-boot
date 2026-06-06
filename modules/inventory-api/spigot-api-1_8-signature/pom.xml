@@ -35,8 +35,10 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
-                <version>1.27</version>
-                <configuration>
+                <configuration combine.self="override">
+                    <!-- keep the generator's config to itself: the managed checker configuration
+                         (signature/excludeDependencies/ignores) must not merge into the build goal,
+                         where excludeDependencies would silently shrink the generated signature -->
                     <!-- modern JDKs (9+) have no boot classpath, so animal-sniffer cannot harvest the
                          JDK API here; the signature covers spigot-api (and its transitives) only and
                          the consuming checks ignore java.* / javax.* instead (JDK-level enforcement
@@ -52,6 +54,12 @@
                         <goals>
                             <goal>build</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <!-- unbind the check execution inherited from the parent's pluginManagement:
+                             a self-referential check on this classless module is meaningless -->
+                        <id>check-spigot-188-api</id>
+                        <phase>none</phase>
                     </execution>
                 </executions>
             </plugin>

@@ -65,10 +65,16 @@
                      excludeDependencies is load-bearing: animal-sniffer ignores classes found in
                      dependencies BEFORE consulting the signature, so paper-api (compile API) and
                      MockBukkit (bundles org.bukkit.command / org.bukkit.plugin.java classes,
-                     resolved via test scope) must not contribute to the ignore list.
-                     Single-module runs (e.g. mvnw -pl modules/inventory-api/api test) resolve the
-                     signature from the local repository: run a modules/inventory-api reactor build
-                     (or install the spigot-api-1_8-signature module) once first. -->
+                     resolved via test scope) must not contribute to the ignore list (group
+                     wildcard: an artifactId bump like MockBukkit-v1.21 must not silently
+                     re-enable the masking).
+                     Single-module runs (e.g. mvnw -pl modules/inventory-api/api test) and -am
+                     builds that pull consumers into the reactor (e.g. mvnw -pl test-plugin -am
+                     package) do not include the signature module, so the signature must already
+                     be in the local repository: run
+                     mvnw -f modules/inventory-api/pom.xml -pl spigot-api-1_8-signature install
+                     once (and again after version bumps), or skip the check with
+                     -Danimal.sniffer.skip=true. -->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>animal-sniffer-maven-plugin</artifactId>
@@ -81,7 +87,7 @@
                         </signature>
                         <excludeDependencies>
                             <excludeDependency>io.papermc.paper:paper-api</excludeDependency>
-                            <excludeDependency>com.github.seeseemelk:MockBukkit-v1.20</excludeDependency>
+                            <excludeDependency>com.github.seeseemelk:*</excludeDependency>
                         </excludeDependencies>
                         <!-- the signature cannot contain the JDK API (see the signature module pom);
                              JDK classes are not dependencies either, so ignore them explicitly.
