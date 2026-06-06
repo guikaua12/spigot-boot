@@ -26,6 +26,7 @@ import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.MockPlugin;
 import be.seeseemelk.mockbukkit.ServerMock;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -317,6 +318,30 @@ class AsyncPaginationIntegrationTest {
         PageRequest second = supplier.requests.get(1);
         assertEquals(5, second.getOffset(), "page 2 starts after pattern 1's 5 slots");
         assertEquals(2, second.getPageSize(), "page 2 uses pattern 2's slot count");
+    }
+
+    @Test
+    void asyncSettle_repaintsInventoryForOnlineViewer() throws Exception {
+        CapturingSupplier supplier = new CapturingSupplier();
+        NormalPagination<Integer> pagination = asyncNormal(supplier);
+        CustomInventory customInventory = mock(CustomInventory.class);
+        Viewer viewer = mockViewer(mock(InventoryEditor.class), customInventory);
+        Player player = mock(Player.class);
+        lenient().when(viewer.getPlayer()).thenReturn(player);
+
+        pagination.init(viewer);
+        verify(customInventory, never()).updateInventory(any());
+
+        Thread completer = new Thread(() ->
+                supplier.futures.get(0).complete(PageResult.of(Arrays.asList(1, 2, 3), 9)));
+        completer.start();
+        completer.join(5000);
+
+        // the settle is queued on the scheduler; the repaint happens on the main thread
+        verify(customInventory, never()).updateInventory(any());
+        server.getScheduler().performOneTick();
+
+        verify(customInventory).updateInventory(player);
     }
 
     @Test
