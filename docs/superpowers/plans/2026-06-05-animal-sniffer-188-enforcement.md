@@ -262,6 +262,13 @@ Expected: `BUILD FAILURE`. The animal-sniffer output must contain an undefined-r
 
 If this step PASSES instead, STOP — the check is vacuous (most likely the `excludeDependencies` config is wrong) and the plan must not proceed until the failure reproduces.
 
+> **Execution note (2026-06-06):** the red run also surfaced one pre-existing violation of the
+> JDK-supertype false-positive class: `CustomInventoryListener.java:92` called
+> `InventoryType#equals`, unresolvable because the signature lacks `java.lang.Enum`/`Object`.
+> Fixed by switching to identity comparison (`==`) in its own commit
+> (`refactor(inventory-api): compare InventoryType by identity in listener`) placed BEFORE the
+> build-enforcement commit so every commit stays green.
+
 - [ ] **Step 2.5: Delete the canary**
 
 ```powershell

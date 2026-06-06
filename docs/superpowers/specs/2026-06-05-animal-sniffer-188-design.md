@@ -148,6 +148,12 @@ The check goal's defaults do the rest: phase `process-test-classes` (runs under
   2026-06-05 there are zero `net.kyori`/`net.md_5` imports in main sources.
 - JDK-8-API enforcement is a non-goal (CI has no JDK 8 toolchain; `source/target
   1.8` stays as is).
+- Because the signature lacks JDK supertypes, methods inherited from
+  `java.lang.Object`/`java.lang.Enum` but invoked through a Bukkit-typed
+  receiver (e.g. `InventoryType#equals`) are reported as undefined references —
+  a false positive. Rewrite such call sites (enums: use `==`) or add a targeted
+  ignore; the one pre-existing occurrence (`CustomInventoryListener`) was
+  rewritten to identity comparison during rollout.
 - Other root modules (`core`, `commands`, …) are out of scope.
 
 ## Failure mode and developer experience
