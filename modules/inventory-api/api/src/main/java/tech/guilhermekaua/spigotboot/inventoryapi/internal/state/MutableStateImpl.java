@@ -43,7 +43,7 @@ import java.util.function.UnaryOperator;
  * @param <T> the value type
  */
 @ApiStatus.Internal
-public final class MutableStateImpl<T> implements MutableState<T> {
+public final class MutableStateImpl<T> implements MutableState<T>, IdentifiableToken {
 
     private static final Object NULL_VALUE = new Object();
 
@@ -72,6 +72,11 @@ public final class MutableStateImpl<T> implements MutableState<T> {
      * @return the token id
      */
     public int id() {
+        return id;
+    }
+
+    @Override
+    public int tokenId() {
         return id;
     }
 

@@ -42,7 +42,7 @@ import java.util.function.UnaryOperator;
  * @param <T> the value type
  */
 @ApiStatus.Internal
-public final class InitialStateImpl<T> implements MutableState<T> {
+public final class InitialStateImpl<T> implements MutableState<T>, IdentifiableToken {
 
     private final View owner;
     private final String key;
@@ -72,6 +72,11 @@ public final class InitialStateImpl<T> implements MutableState<T> {
      * @return the token id
      */
     public int id() {
+        return id;
+    }
+
+    @Override
+    public int tokenId() {
         return id;
     }
 

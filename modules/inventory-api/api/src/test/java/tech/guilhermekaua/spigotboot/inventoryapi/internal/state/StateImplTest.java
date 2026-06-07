@@ -330,6 +330,38 @@ class StateImplTest {
         assertEquals(threads * increments, counter.get());
     }
 
+    @Test
+    void allTokenImpls_implementIdentifiableToken_withTableAssignedId() {
+        View view = new TokenSeamView();
+        java.util.List<tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken> tokens =
+                view.tokenTable().tokens();
+
+        for (int i = 0; i < tokens.size(); i++) {
+            assertTrue(tokens.get(i) instanceof IdentifiableToken,
+                    tokens.get(i).getClass().getSimpleName() + " must implement IdentifiableToken");
+            assertEquals(i, ((IdentifiableToken) tokens.get(i)).tokenId());
+        }
+    }
+
+    @Test
+    void sharedState_flushHookSetter_isInvokedOnSet() {
+        TokenSeamView view = new TokenSeamView();
+        java.util.concurrent.atomic.AtomicInteger flushes = new java.util.concurrent.atomic.AtomicInteger();
+
+        ((SharedStateImpl<String>) view.shared).flushHook(flushes::incrementAndGet);
+        view.shared.set("value");
+
+        assertEquals(1, flushes.get());
+    }
+
+    /** declares one token of each kind so the seam test covers all four impls. */
+    private static final class TokenSeamView extends View {
+        final tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState<Integer> mutable = mutableState(0);
+        final tech.guilhermekaua.spigotboot.inventoryapi.state.State<String> lazy = lazyState(ctx -> "x");
+        final tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState<String> initial = initialState("k", String.class);
+        final tech.guilhermekaua.spigotboot.inventoryapi.state.SharedState<String> shared = sharedState(null);
+    }
+
     @Nested
     class MainThreadGuard {
 

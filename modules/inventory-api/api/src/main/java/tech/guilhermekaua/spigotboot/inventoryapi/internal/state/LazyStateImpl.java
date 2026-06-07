@@ -41,7 +41,7 @@ import java.util.function.Function;
  * @param <T> the value type
  */
 @ApiStatus.Internal
-public final class LazyStateImpl<T> implements State<T> {
+public final class LazyStateImpl<T> implements State<T>, IdentifiableToken {
 
     private static final Object NULL_VALUE = new Object();
 
@@ -70,6 +70,11 @@ public final class LazyStateImpl<T> implements State<T> {
      * @return the token id
      */
     public int id() {
+        return id;
+    }
+
+    @Override
+    public int tokenId() {
         return id;
     }
 

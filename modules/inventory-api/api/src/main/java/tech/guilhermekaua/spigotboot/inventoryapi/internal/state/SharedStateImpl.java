@@ -40,7 +40,7 @@ import java.util.function.UnaryOperator;
  * @param <T> the value type
  */
 @ApiStatus.Internal
-public final class SharedStateImpl<T> implements SharedState<T> {
+public final class SharedStateImpl<T> implements SharedState<T>, IdentifiableToken {
 
     private final View owner;
     private final AtomicReference<T> value;
@@ -71,6 +71,22 @@ public final class SharedStateImpl<T> implements SharedState<T> {
      */
     public int id() {
         return id;
+    }
+
+    @Override
+    public int tokenId() {
+        return id;
+    }
+
+    /**
+     * Wires the engine flush callback invoked after every {@link #set}; assigned once by the
+     * engine on the view's first open.
+     *
+     * @param hook the flush callback, or null to clear
+     */
+    @ApiStatus.Internal
+    public void flushHook(@Nullable Runnable hook) {
+        this.flushHook = hook;
     }
 
     @Override
