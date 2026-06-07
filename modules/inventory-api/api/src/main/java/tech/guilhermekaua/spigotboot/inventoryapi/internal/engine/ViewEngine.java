@@ -314,23 +314,26 @@ public final class ViewEngine {
                         }
                     }
                 } else {
-                    // accumulate token ids into the coalescing map; putIfAbsent is atomic so
-                    // exactly one thread will see null returned (= first inserter) and will
-                    // schedule the flush task; subsequent writes just add to the existing set
-                    Set<Integer> fresh = Collections.newSetFromMap(new ConcurrentHashMap<>());
-                    Set<Integer> existing = sharedFlushScheduled.putIfAbsent(owner, fresh);
-                    if (existing == null) {
-                        // this thread created the entry — add our id and schedule
-                        fresh.add(tokenId);
+                    // compute is atomic vs the drain's remove on the same key, so an id can
+                    // never land in an already-drained set
+                    boolean[] schedule = {false};
+                    sharedFlushScheduled.compute(owner, (key, existing) -> {
+                        if (existing == null) {
+                            Set<Integer> created = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
+                            created.add(tokenId);
+                            schedule[0] = true;
+                            return created;
+                        }
+                        existing.add(tokenId);
+                        return existing;
+                    });
+                    if (schedule[0]) {
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             Set<Integer> ids = sharedFlushScheduled.remove(owner);
                             if (ids != null) {
                                 flushShared(owner, ids);
                             }
                         });
-                    } else {
-                        // entry already present — just accumulate our token id
-                        existing.add(tokenId);
                     }
                 }
             });
