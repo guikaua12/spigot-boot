@@ -49,6 +49,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -232,16 +233,37 @@ public final class ViewEngine {
 
     /**
      * Defers an operation to the end of the current tick. The session leaves ACTIVE
-     * immediately (TRANSITIONING) so further clicks are swallowed until the operation runs.
+     * immediately (TRANSITIONING) so further clicks are swallowed until the operation runs;
+     * sessions still TRANSITIONING after the drain return to ACTIVE. Every queued operation
+     * is guarded so it no-ops when the session was closed before the tick ran (manual close,
+     * disconnect, plugin disable, or an earlier deferred operation queued by the same click).
      *
      * @param session the session the operation belongs to
      * @param op      the operation to run at end of tick
      */
     public void defer(@NotNull ViewSession session, @NotNull Runnable op) {
         assertMainThread("ViewEngine.defer");
-        session.status(ViewSession.Status.TRANSITIONING);
-        session.deferredOps().add(op);
-        Bukkit.getScheduler().runTask(plugin, op);
+        if (session.status() == ViewSession.Status.ACTIVE) {
+            session.status(ViewSession.Status.TRANSITIONING);
+        }
+        // cleanup safety: a stale op against a closed session must do nothing
+        session.deferredOps().add(() -> {
+            if (session.status() != ViewSession.Status.CLOSED) {
+                op.run();
+            }
+        });
+        Bukkit.getScheduler().runTask(plugin, () -> drainDeferred(session));
+    }
+
+    private void drainDeferred(ViewSession session) {
+        List<Runnable> ops = session.deferredOps();
+        while (!ops.isEmpty()) {
+            ops.remove(0).run();
+        }
+        // deferred ops that neither closed nor replaced the session leave it usable again
+        if (session.status() == ViewSession.Status.TRANSITIONING) {
+            session.status(ViewSession.Status.ACTIVE);
+        }
     }
 
     /**

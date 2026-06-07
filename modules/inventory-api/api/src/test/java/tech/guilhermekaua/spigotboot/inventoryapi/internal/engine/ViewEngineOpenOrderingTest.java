@@ -127,6 +127,12 @@ class ViewEngineOpenOrderingTest {
     }
 
     static final class ViewD extends View {
+        private final List<String> log;
+
+        ViewD(List<String> log) {
+            this.log = log;
+        }
+
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
             config.title("D").rows(1);
@@ -135,6 +141,11 @@ class ViewEngineOpenOrderingTest {
         @Override
         protected void onFirstRender(@NotNull RenderContext context) {
             context.openView(ViewE.class);
+        }
+
+        @Override
+        protected void onClose(@NotNull CloseContext context) {
+            log.add("D.onClose(" + context.reason() + ")");
         }
     }
 
@@ -164,7 +175,7 @@ class ViewEngineOpenOrderingTest {
         views = new ViewRegistry();
         log = new ArrayList<>();
         viewB = new ViewB(log);
-        viewD = new ViewD();
+        viewD = new ViewD(log);
         views.register(new ViewA(log));
         views.register(viewB);
         views.register(new InitialStateView());
@@ -261,8 +272,17 @@ class ViewEngineOpenOrderingTest {
         assertEquals(ViewSession.Status.ACTIVE, session.status());
         assertEquals(1, session.deferredOps().size(),
                 "the openView from onFirstRender must be captured as one deferred op");
-        // Task 14 wires the end-of-tick scheduler that actually runs the deferred op,
-        // closing D with REPLACED and opening E (last-wins semantics)
+
+        // at end of tick the deferred open runs: E replaces D (last-wins semantics)
+        server.getScheduler().performTicks(1);
+
+        assertEquals(ViewSession.Status.CLOSED, session.status());
+        assertTrue(log.contains("D.onClose(REPLACED)"),
+                "the outer view observes the deferred replacement through onClose");
+        ViewSession current = sessions.find(player.getUniqueId()).orElseThrow();
+        assertSame(ViewE.class, current.registered().type());
+        assertEquals(ViewSession.Status.ACTIVE, current.status());
+        assertSame(current.inventory(), player.getOpenInventory().getTopInventory());
     }
 
     @Test
