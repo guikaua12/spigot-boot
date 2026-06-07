@@ -30,8 +30,6 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
@@ -42,6 +40,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegist
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
+
+import java.util.Objects;
 
 /**
  * Orchestrator of the v3 view lifecycle and sole session mutator. This skeleton pins the
