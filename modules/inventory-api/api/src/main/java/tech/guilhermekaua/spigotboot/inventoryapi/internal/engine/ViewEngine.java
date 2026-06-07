@@ -49,6 +49,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.SharedStateImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
@@ -135,7 +136,7 @@ public final class ViewEngine {
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> viewType,
                      @NotNull ViewArguments arguments) {
-        assertMainThread("ViewEngine.open");
+        ThreadUtils.assertMainThread("ViewEngine.open");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(arguments, "arguments");
         if (isInClickDispatch()) {
@@ -170,7 +171,7 @@ public final class ViewEngine {
      * @param reason  the close reason
      */
     public void close(@NotNull ViewSession session, @NotNull CloseReason reason) {
-        assertMainThread("ViewEngine.close");
+        ThreadUtils.assertMainThread("ViewEngine.close");
         if (isInClickDispatch()) {
             // self-defer: the deferred op runs at end of tick, when click dispatch is
             // over, so it cannot re-defer
@@ -190,7 +191,7 @@ public final class ViewEngine {
      * @throws IllegalStateException when called off the main thread
      */
     public void updateTitle(@NotNull ViewSession session, @NotNull String title) {
-        assertMainThread("ViewEngine.updateTitle");
+        ThreadUtils.assertMainThread("ViewEngine.updateTitle");
         // placeholders first, then color codes: PAPI output may itself contain '&' codes
         String resolved = ChatColor.translateAlternateColorCodes('&',
                 painter.applyText(session.player(), title, session.effectiveConfig().applyPlaceholders()));
@@ -204,7 +205,7 @@ public final class ViewEngine {
      * @param trigger the cause of the update
      */
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
-        assertMainThread("ViewEngine.update");
+        ThreadUtils.assertMainThread("ViewEngine.update");
         updatePhase.update(session, trigger, null);
         flushDirty(session);
     }
@@ -219,7 +220,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void click(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        assertMainThread("ViewEngine.click");
+        ThreadUtils.assertMainThread("ViewEngine.click");
         clickDispatch(true);
         try {
             clickRoutingPhase.route(session, event);
@@ -239,7 +240,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void drag(@NotNull ViewSession session, @NotNull InventoryDragEvent event) {
-        assertMainThread("ViewEngine.drag");
+        ThreadUtils.assertMainThread("ViewEngine.drag");
         if (!session.effectiveConfig().cancelOnDrag()) {
             return;
         }
@@ -265,7 +266,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void bukkitClose(@NotNull ViewSession session, @NotNull InventoryCloseEvent event) {
-        assertMainThread("ViewEngine.bukkitClose");
+        ThreadUtils.assertMainThread("ViewEngine.bukkitClose");
         if (event.getInventory() != session.inventory()) {
             return;
         }
@@ -281,7 +282,7 @@ public final class ViewEngine {
      * @param session the session to flush
      */
     public void flushDirty(@NotNull ViewSession session) {
-        assertMainThread("ViewEngine.flushDirty");
+        ThreadUtils.assertMainThread("ViewEngine.flushDirty");
         int cascades = 0;
         while (session.stateStore().hasDirty()) {
             if (++cascades > CASCADE_CAP) {
@@ -303,7 +304,7 @@ public final class ViewEngine {
      * @param owner the view singleton whose sessions should flush
      */
     public void flushShared(@NotNull View owner) {
-        assertMainThread("ViewEngine.flushShared");
+        ThreadUtils.assertMainThread("ViewEngine.flushShared");
         flushShared(owner, null);
     }
 
@@ -393,7 +394,7 @@ public final class ViewEngine {
      * @param op      the operation to run at end of tick
      */
     public void defer(@NotNull ViewSession session, @NotNull Runnable op) {
-        assertMainThread("ViewEngine.defer");
+        ThreadUtils.assertMainThread("ViewEngine.defer");
         if (session.status() == ViewSession.Status.ACTIVE) {
             session.status(ViewSession.Status.TRANSITIONING);
         }
@@ -456,16 +457,4 @@ public final class ViewEngine {
         return titleUpdater;
     }
 
-    /**
-     * Throws when not on the main server thread; when no server is present (pure unit
-     * tests), the check is skipped.
-     *
-     * @param operation the operation name used in the error message
-     * @throws IllegalStateException when called off the main server thread
-     */
-    public static void assertMainThread(@NotNull String operation) {
-        if (Bukkit.getServer() != null && !Bukkit.isPrimaryThread()) {
-            throw new IllegalStateException(operation + " must be called on the main server thread");
-        }
-    }
 }

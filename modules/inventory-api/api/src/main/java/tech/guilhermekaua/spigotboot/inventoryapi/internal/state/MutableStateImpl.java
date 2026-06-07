@@ -22,13 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.state;
 
-import org.bukkit.Bukkit;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
 
 import java.util.Objects;
@@ -97,7 +97,7 @@ public final class MutableStateImpl<T> implements MutableState<T>, IdentifiableT
     @Override
     public void set(@NotNull ViewContext context, @Nullable T value) {
         Objects.requireNonNull(context, "context");
-        assertMainThread();
+        ThreadUtils.assertMainThread("MutableState.set/update");
         StateStore store = storeFor(context);
         store.set(id, value == null ? NULL_VALUE : value);
         store.markDirty(id);
@@ -119,12 +119,5 @@ public final class MutableStateImpl<T> implements MutableState<T>, IdentifiableT
             throw new StaleContextException("context of " + owner.getClass().getName() + " is closed");
         }
         return ContextStateAccess.storeOf(context);
-    }
-
-    private static void assertMainThread() {
-        // the server null-check keeps pure unit tests (no Bukkit) working on any thread
-        if (Bukkit.getServer() != null && !Bukkit.isPrimaryThread()) {
-            throw new IllegalStateException("MutableState.set/update must run on the main thread");
-        }
     }
 }

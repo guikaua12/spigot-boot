@@ -53,6 +53,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.StateStore;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.placeholder.NoopPlaceholderApplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
@@ -299,12 +300,12 @@ class ContextPhaseValidityTest {
 
     @Test
     void assertMainThread_onMainPasses_offMainThrowsNamingTheOperation() throws Exception {
-        assertDoesNotThrow(() -> ViewEngine.assertMainThread("test-op"));
+        assertDoesNotThrow(() -> ThreadUtils.assertMainThread("test-op"));
 
         AtomicReference<Throwable> thrown = new AtomicReference<>();
         Thread thread = new Thread(() -> {
             try {
-                ViewEngine.assertMainThread("test-op");
+                ThreadUtils.assertMainThread("test-op");
             } catch (Throwable t) {
                 thrown.set(t);
             }

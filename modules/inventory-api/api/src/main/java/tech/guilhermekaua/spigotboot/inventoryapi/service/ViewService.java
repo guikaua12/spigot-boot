@@ -32,6 +32,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.exception.UnknownViewException
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.PlainViewContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -79,7 +80,7 @@ public final class ViewService {
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> view,
                      @NotNull ViewArguments arguments) {
-        ViewEngine.assertMainThread("ViewService.open");
+        ThreadUtils.assertMainThread("ViewService.open");
         engine.open(player, view, arguments);
     }
 
@@ -90,7 +91,7 @@ public final class ViewService {
      * @throws IllegalStateException if called off the main thread
      */
     public void close(@NotNull Player player) {
-        ViewEngine.assertMainThread("ViewService.close");
+        ThreadUtils.assertMainThread("ViewService.close");
         sessions.find(player.getUniqueId())
                 .ifPresent(session -> engine.close(session, CloseReason.API));
     }
