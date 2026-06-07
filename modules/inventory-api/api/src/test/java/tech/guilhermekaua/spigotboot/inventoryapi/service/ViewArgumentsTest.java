@@ -109,8 +109,12 @@ class ViewArgumentsTest {
     void require_wrongType_throws() {
         ViewArguments arguments = ViewArguments.of("count", 3);
 
-        assertThrows(IllegalArgumentException.class,
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> arguments.require("count", String.class));
+
+        assertTrue(error.getMessage().contains("count"));
+        assertTrue(error.getMessage().contains(String.class.getName()));
+        assertTrue(error.getMessage().contains(Integer.class.getName()));
     }
 
     @Test
