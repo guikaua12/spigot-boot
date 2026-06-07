@@ -24,7 +24,10 @@ package tech.guilhermekaua.spigotboot.inventoryapi.config;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -123,16 +126,32 @@ public final class ViewConfig {
      * @param title the title override, or {@code null} to keep the current title
      * @param rows  the rows override, or {@code null} to keep the current rows
      * @return a new config with the overrides applied
+     * @throws ViewConfigurationException if a non-null rows override is outside 1-6
      */
     public @NotNull ViewConfig withOverrides(@Nullable String title, @Nullable Integer rows) {
+        if (rows != null) {
+            validateRows(rows);
+        }
         return new ViewConfig(
                 title != null ? title : this.title,
                 rows != null ? rows : this.rows,
-                this.layout,
+                Collections.unmodifiableList(new ArrayList<>(this.layout)),
                 this.cancelOnClick,
                 this.cancelOnDrag,
                 this.updateIntervalTicks,
                 this.applyPlaceholders
         );
+    }
+
+    /**
+     * Validates that rows is between 1 and 6 (inclusive).
+     *
+     * @param rows the row count to validate
+     * @throws ViewConfigurationException if rows is outside 1-6
+     */
+    static void validateRows(int rows) {
+        if (rows < 1 || rows > 6) {
+            throw new ViewConfigurationException("rows must be between 1 and 6, but was " + rows);
+        }
     }
 }

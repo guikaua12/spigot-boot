@@ -166,4 +166,35 @@ class ViewConfigBuilderTest {
         assertEquals("Shop", overridden.title());
         assertEquals(3, overridden.rows());
     }
+
+    @Test
+    void build_rowsBoundaryValid_passes() {
+        ViewConfig config1 = new ViewConfigBuilder().title("Shop").rows(1).build();
+        assertEquals(1, config1.rows());
+
+        ViewConfig config6 = new ViewConfigBuilder().title("Shop").rows(6).build();
+        assertEquals(6, config6.rows());
+    }
+
+    @Test
+    void scheduleUpdate_zeroDisables() {
+        ViewConfig config = new ViewConfigBuilder().title("Shop").rows(1).scheduleUpdate(0L).build();
+
+        assertEquals(0L, config.updateIntervalTicks());
+    }
+
+    @Test
+    void build_nullLayoutRow_throws() {
+        ViewConfigBuilder builder = new ViewConfigBuilder().title("Shop").layout("         ", null);
+
+        ViewConfigurationException ex = assertThrows(ViewConfigurationException.class, builder::build);
+        assertTrue(ex.getMessage().contains("row 1"));
+    }
+
+    @Test
+    void withOverrides_invalidRows_throws() {
+        ViewConfig original = new ViewConfigBuilder().title("Shop").rows(3).build();
+
+        assertThrows(ViewConfigurationException.class, () -> original.withOverrides(null, 0));
+    }
 }

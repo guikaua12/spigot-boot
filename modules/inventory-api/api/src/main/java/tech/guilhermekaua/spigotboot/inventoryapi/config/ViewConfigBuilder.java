@@ -70,10 +70,11 @@ public final class ViewConfigBuilder {
 
     /**
      * Sets the layout rows; each row must be exactly {@link Layout#ROW_WIDTH} characters,
-     * validated at {@link #build()}.
+     * validated at {@link #build()}. Layout rows must not be null.
      *
      * @param rows the layout rows
      * @return this builder
+     * @throws ViewConfigurationException if any layout row is null
      */
     public @NotNull ViewConfigBuilder layout(@NotNull String... rows) {
         Objects.requireNonNull(rows, "rows");
@@ -130,18 +131,21 @@ public final class ViewConfigBuilder {
      *
      * @return the immutable config
      * @throws ViewConfigurationException if the title is missing, rows are outside 1-6,
-     *                                    a layout row is not exactly {@link Layout#ROW_WIDTH} characters wide,
+     *                                    a layout row is null or not exactly {@link Layout#ROW_WIDTH} characters wide,
      *                                    rows and layout are inconsistent, or neither rows nor layout is set
      */
     public @NotNull ViewConfig build() {
         if (title == null) {
             throw new ViewConfigurationException("view title is required");
         }
-        if (rows != null && (rows < 1 || rows > 6)) {
-            throw new ViewConfigurationException("rows must be between 1 and 6, got " + rows);
+        if (rows != null) {
+            ViewConfig.validateRows(rows);
         }
         for (int i = 0; i < layout.size(); i++) {
             String row = layout.get(i);
+            if (row == null) {
+                throw new ViewConfigurationException("layout row " + i + " must not be null");
+            }
             if (row.length() != Layout.ROW_WIDTH) {
                 throw new ViewConfigurationException(
                         "layout row " + i + " must be exactly " + Layout.ROW_WIDTH
