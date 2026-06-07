@@ -43,13 +43,13 @@ NOT touched: `platform-spigot/annotation-processor`, `test-plugin`, `nms-1_*` mo
 - Modify: `modules/inventory-api/pom.xml` (modules list lines 18–31; whole `<build>` lines 60–114)
 - Modify: `modules/inventory-api/api/pom.xml`, `modules/inventory-api/nms-api/pom.xml`, `modules/inventory-api/nms/pom.xml` (comment wording)
 
-- [ ] **Step 1.1: Move the module**
+- [x] **Step 1.1: Move the module**
 
 ```powershell
 git mv modules/inventory-api/spigot-api-1_8-signature spigot-api-1_8-signature
 ```
 
-- [ ] **Step 1.2: Reparent and re-describe the moved pom**
+- [x] **Step 1.2: Reparent and re-describe the moved pom**
 
 In `spigot-api-1_8-signature/pom.xml`:
 
@@ -94,7 +94,7 @@ with:
 
 Nothing else in the file changes.
 
-- [ ] **Step 1.3: Root pom — modules list**
+- [x] **Step 1.3: Root pom — modules list**
 
 In `pom.xml`, replace:
 
@@ -113,7 +113,7 @@ with:
         <module>core</module>
 ```
 
-- [ ] **Step 1.4: Root pom — pluginManagement**
+- [x] **Step 1.4: Root pom — pluginManagement**
 
 In `pom.xml`, insert directly after the `<build>` line (before `<plugins>`):
 
@@ -172,7 +172,7 @@ In `pom.xml`, insert directly after the `<build>` line (before `<plugins>`):
         </pluginManagement>
 ```
 
-- [ ] **Step 1.5: Strip the inventory-api parent**
+- [x] **Step 1.5: Strip the inventory-api parent**
 
 In `modules/inventory-api/pom.xml`:
 
@@ -195,7 +195,7 @@ with:
 
 (b) Delete the ENTIRE `<build>...</build>` section (lines 60–114 — it contains only the animal-sniffer `<pluginManagement>`, which now lives in the root pom).
 
-- [ ] **Step 1.6: Update the three inventory-api activation comments**
+- [x] **Step 1.6: Update the three inventory-api activation comments**
 
 In each of `modules/inventory-api/api/pom.xml`, `modules/inventory-api/nms-api/pom.xml`, `modules/inventory-api/nms/pom.xml`, replace:
 
@@ -209,7 +209,7 @@ with:
             <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
 ```
 
-- [ ] **Step 1.7: Verify relocation — generation, cross-subtree in-reactor resolution, remedy**
+- [x] **Step 1.7: Verify relocation — generation, cross-subtree in-reactor resolution, remedy**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -231,7 +231,7 @@ Get-ChildItem "$env:USERPROFILE\.m2\repository\tech\guilhermekaua\spigot-boot\sp
 
 Expected: install `BUILD SUCCESS` with the `.signature` file listed; subtree build `BUILD SUCCESS` with all three inventory-api checks executing.
 
-- [ ] **Step 1.8: Commit**
+- [x] **Step 1.8: Commit**
 
 ```powershell
 git status --short
@@ -250,7 +250,7 @@ git commit -m "build: promote 1.8.8 signature module and check config to repo ro
 - Temporary: `platform-spigot/core-spigot/src/main/java/tech/guilhermekaua/spigotboot/core/spigot/Compat188Canary.java`
 - Possibly modify (triage): Java sources under `platform-spigot/core-spigot/src/main/java`
 
-- [ ] **Step 2.1: Mask scan**
+- [x] **Step 2.1: Mask scan**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -270,7 +270,7 @@ foreach ($j in $jars) {
 
 Expected output: only jars whose groupId is ALREADY excluded (`paper-api-*` from `io.papermc.paper`, `MockBukkit-*` from `com.github.seeseemelk`). Any OTHER hit is a dependency mask (triage category 2): identify its groupId:artifactId via the path in cp-scan.txt and add an `<excludeDependency>` entry to the root pom's managed `excludeDependencies` (keep the list alphabetical by groupId), noting it in the commit message.
 
-- [ ] **Step 2.2: Activate the check**
+- [x] **Step 2.2: Activate the check**
 
 In `platform-spigot/core-spigot/pom.xml`, add after the maven-compiler-plugin's closing `</plugin>` (inside `<build><plugins>`):
 
@@ -282,7 +282,7 @@ In `platform-spigot/core-spigot/pom.xml`, add after the maven-compiler-plugin's 
             </plugin>
 ```
 
-- [ ] **Step 2.3: Red canary (temporary, never committed)**
+- [x] **Step 2.3: Red canary (temporary, never committed)**
 
 Create `platform-spigot/core-spigot/src/main/java/tech/guilhermekaua/spigotboot/core/spigot/Compat188Canary.java`:
 
@@ -305,7 +305,7 @@ final class Compat188Canary {
 }
 ```
 
-- [ ] **Step 2.4: Run the check — the canary MUST fail it**
+- [x] **Step 2.4: Run the check — the canary MUST fail it**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -322,7 +322,7 @@ Expected: `BUILD FAILURE` including:
 
 Collect any OTHER `Undefined reference` errors in the output — those are core-spigot's real violation list for triage.
 
-- [ ] **Step 2.5: Delete the canary, triage remaining violations**
+- [x] **Step 2.5: Delete the canary, triage remaining violations**
 
 ```powershell
 Remove-Item platform-spigot\core-spigot\src\main\java\tech\guilhermekaua\spigotboot\core\spigot\Compat188Canary.java
@@ -330,7 +330,7 @@ Remove-Item platform-spigot\core-spigot\src\main\java\tech\guilhermekaua\spigotb
 
 Apply the **Violation triage policy** from the plan header to every error collected in Step 2.4. Category-1 fixes go in their own `refactor(platform-spigot): ...` commit(s) BEFORE Step 2.7's commit. Category 3 → STOP and report.
 
-- [ ] **Step 2.6: Green run**
+- [x] **Step 2.6: Green run**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -339,7 +339,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS` with `animal-sniffer:1.27:check (check-spigot-188-api) @ spigot-boot-core-spigot` and existing tests passing.
 
-- [ ] **Step 2.7: Commit**
+- [x] **Step 2.7: Commit**
 
 ```powershell
 git status --short platform-spigot
@@ -360,11 +360,11 @@ git commit -m "build(platform-spigot): enforce spigot-api 1.8.8 compatibility in
 
 For EACH module `M` in `commands-spigot`, `commands-config-spigot`, `config-spigot`, `pmc`, `placeholder`, repeat:
 
-- [ ] **Step 3.1 (×5): Mask scan for M**
+- [x] **Step 3.1 (×5): Mask scan for M**
 
 Same script as Step 2.1 with `$m = "platform-spigot\M"` (and `-pl platform-spigot/M`). Same expected outcome and exclude-handling.
 
-- [ ] **Step 3.2 (×5): Activate in M**
+- [x] **Step 3.2 (×5): Activate in M**
 
 For the four modules WITH an existing `<build><plugins>` (commands-spigot, commands-config-spigot, config-spigot, placeholder), add after the maven-compiler-plugin's closing `</plugin>`:
 
@@ -390,7 +390,7 @@ For `pmc` (no `<build>` section), insert before `</project>`:
     </build>
 ```
 
-- [ ] **Step 3.3: Combined red probe across all five**
+- [x] **Step 3.3: Combined red probe across all five**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -400,11 +400,11 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 Outcome A — `BUILD SUCCESS`: all five are already 1.8.8-clean; proceed to Step 3.5.
 Outcome B — `BUILD FAILURE` with `Undefined reference` errors: collect them per module and triage per the policy (category-1 fixes in `refactor(platform-spigot): ...` commits BEFORE Step 3.6; category 3 → STOP and report). Note: Maven stops at the first failing module — after fixing it, re-run this step until the whole list is green so later modules get probed too.
 
-- [ ] **Step 3.4: (only if triage produced source fixes) Commit each fix**
+- [x] **Step 3.4: (only if triage produced source fixes) Commit each fix**
 
 One `refactor(platform-spigot): <what>` commit per logical fix, each with a body explaining the animal-sniffer rationale (see `git log` for the two precedents: `compare InventoryType by identity in listener`, `hoist server to Object receiver in nms selector`).
 
-- [ ] **Step 3.5: Green run with tests across all five**
+- [x] **Step 3.5: Green run with tests across all five**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -413,7 +413,7 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS` with five `check (check-spigot-188-api)` execution lines (one per module).
 
-- [ ] **Step 3.6: Commit**
+- [x] **Step 3.6: Commit**
 
 ```powershell
 git status --short platform-spigot
@@ -430,7 +430,7 @@ git commit -m "build(platform-spigot): enforce spigot-api 1.8.8 compatibility in
 **Files:**
 - Modify: `CLAUDE.md` (Build commands section)
 
-- [ ] **Step 4.1: Update the CLAUDE.md remedy path**
+- [x] **Step 4.1: Update the CLAUDE.md remedy path**
 
 Replace:
 
@@ -444,7 +444,7 @@ with:
 On a fresh clone, first run `mvnw.cmd -pl spigot-api-1_8-signature install` (the spigot-api 1.8.8 API-check signature is build-internal, never published), or skip the check with `-Danimal.sniffer.skip=true`.
 ```
 
-- [ ] **Step 4.2: Cold-cache full-reactor verification (the CI command)**
+- [x] **Step 4.2: Cold-cache full-reactor verification (the CI command)**
 
 ```powershell
 Remove-Item -Recurse -Force "$env:USERPROFILE\.m2\repository\tech\guilhermekaua\spigot-boot\spigot-boot-spigot-api-1_8-signature" -ErrorAction SilentlyContinue
@@ -456,7 +456,7 @@ Select-String -Path target\repo-wide-188.log -Pattern "Undefined reference"
 
 Expected: `BUILD SUCCESS`; exactly ONE `build (generate-spigot-188-signature)` line appearing FIRST (the signature module is the first reactor entry); exactly NINE `check (check-spigot-188-api)` lines — for `spigot-boot-inventory-api`, `spigot-boot-inventory-api-nms-api`, `spigot-boot-inventory-api-nms`, `spigot-boot-core-spigot`, `spigot-boot-commands-spigot`, `spigot-boot-commands-config-spigot`, `spigot-boot-config-spigot`, `spigot-boot-plugin-messaging-spigot`, `spigot-boot-placeholder-spigot` (all artifactIds verified against the poms) — and none for any other module; zero `Undefined reference` lines.
 
-- [ ] **Step 4.3: Restore the local install**
+- [x] **Step 4.3: Restore the local install**
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
@@ -465,10 +465,39 @@ $env:JAVA_HOME = "C:\Users\Guilherme\.jdks\ms-21.0.10"
 
 Expected: `BUILD SUCCESS`.
 
-- [ ] **Step 4.4: Commit**
+- [x] **Step 4.4: Commit**
 
 ```powershell
 git status --short
 git add CLAUDE.md
 git commit -m "docs: update 1.8.8 signature install remedy for repo-root location"
 ```
+
+---
+
+## Execution record (2026-06-06)
+
+All four tasks executed and verified; cold-cache `mvnw test -B` produced 1 signature
+generation + exactly 9 checks with 0 undefined references, BUILD SUCCESS.
+
+Findings from the red runs, triaged per the policy:
+
+- **Leftover user canary (api module):** Task 1's verification caught a
+  `Player#sendTitle(String,String,int,int,int)` (1.11+) line in
+  `PapiPlaceholderApplier` — the user's own manual test of the check, still in the
+  working tree; removed with their knowledge (accidental end-to-end proof of the
+  relocated wiring).
+- **core-spigot:** `UnsafeValues#fromLegacy` (1.13+) in `TypeUtil#convertFromLegacy`
+  is data-gated by `LEGACY_*` materials (unreachable on 1.8.8) → targeted
+  `org.bukkit.UnsafeValues` ignore. `SkullMeta#setOwningPlayer` (1.12.1+) in
+  `ItemUtils#getHeadByUuid` was a genuine ungated 1.8.8 crash → runtime
+  `NoSuchMethodError` fallback to `setOwner` (commit `ec2a967`) + targeted
+  `SkullMeta` ignore (`40b3d53`).
+- **commands-spigot:** 4 JDK-supertype false positives (`Material.name()`,
+  `getClass()` ×3) → Enum/Object receiver retypes with why-comments.
+- **config-spigot:** `Sound.name()`/`Material.name()` + `getClass()` ×2 → same
+  retypes (all in `088cdbc`). `ParticleSerializer` referenced `org.bukkit.Particle`
+  (class itself is 1.9+), crashing `BukkitSerializers#registerAll` on 1.8.8 —
+  user decided to DELETE the serializer (`6e11be5`).
+- **commands-config-spigot, pmc, placeholder:** clean on first probe.
+- All five mask scans found only the already-excluded paper-api and MockBukkit jars.
