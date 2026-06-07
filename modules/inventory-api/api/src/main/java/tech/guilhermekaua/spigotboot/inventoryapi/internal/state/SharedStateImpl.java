@@ -47,8 +47,9 @@ public final class SharedStateImpl<T> implements SharedState<T>, IdentifiableTok
     private final int id;
 
     // wired by ViewEngine at registration (plan task 16) to flush every open session of
-    // the owning view; null until the engine wires it
-    @Nullable Runnable flushHook;
+    // the owning view; null until the engine wires it; volatile so writes from any thread
+    // are visible to the runFlushHook() reader without synchronization
+    @Nullable volatile Runnable flushHook;
 
     /**
      * Creates and registers the token.

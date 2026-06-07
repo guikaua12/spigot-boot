@@ -37,7 +37,9 @@ import java.util.function.UnaryOperator;
 /**
  * Mutable state token bound from {@code ViewArguments} at open: the open phase validates
  * the argument type and writes the value straight into the session's {@link StateStore}.
- * An absent key reads as {@code null} until set.
+ * An absent key reads as {@code null} until set. Unlike {@link MutableStateImpl}, null
+ * values are stored directly (no sentinel): the open-phase writer always seeds the slot
+ * before any read, so absent-vs-null does not need to be distinguished here.
  *
  * @param <T> the value type
  */
@@ -108,8 +110,8 @@ public final class InitialStateImpl<T> implements MutableState<T>, IdentifiableT
     @Override
     public void set(@NotNull ViewContext context, @Nullable T value) {
         Objects.requireNonNull(context, "context");
-        StateStore store = storeFor(context);
         assertMainThread();
+        StateStore store = storeFor(context);
         store.set(id, value);
         store.markDirty(id);
     }

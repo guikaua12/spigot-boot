@@ -97,8 +97,8 @@ public final class MutableStateImpl<T> implements MutableState<T>, IdentifiableT
     @Override
     public void set(@NotNull ViewContext context, @Nullable T value) {
         Objects.requireNonNull(context, "context");
-        StateStore store = storeFor(context);
         assertMainThread();
+        StateStore store = storeFor(context);
         store.set(id, value == null ? NULL_VALUE : value);
         store.markDirty(id);
     }

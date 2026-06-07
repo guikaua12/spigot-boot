@@ -236,6 +236,7 @@ class StateImplTest {
         OwnerView view = new OwnerView();
         MutableStateImpl<String> mutable = new MutableStateImpl<>(view, view.tokenTable(), ctx -> "initial");
         LazyStateImpl<String> lazy = new LazyStateImpl<>(view, view.tokenTable(), ctx -> "lazy");
+        InitialStateImpl<String> initial = new InitialStateImpl<>(view, view.tokenTable(), "key", String.class);
         FakeViewContext context = new FakeViewContext(view, new StateStore(view.tokenTable().size()));
 
         context.deactivate();
@@ -243,6 +244,8 @@ class StateImplTest {
         assertThrows(StaleContextException.class, () -> mutable.get(context));
         assertThrows(StaleContextException.class, () -> mutable.set(context, "x"));
         assertThrows(StaleContextException.class, () -> lazy.get(context));
+        assertThrows(StaleContextException.class, () -> initial.get(context));
+        assertThrows(StaleContextException.class, () -> initial.set(context, "x"));
     }
 
     @Test
