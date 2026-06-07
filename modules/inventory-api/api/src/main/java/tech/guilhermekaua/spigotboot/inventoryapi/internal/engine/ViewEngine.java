@@ -32,7 +32,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
@@ -48,21 +47,12 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
-import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.SharedStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
-import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
@@ -72,9 +62,6 @@ import java.util.logging.Logger;
 @ApiStatus.Internal
 public final class ViewEngine {
 
-    private static final Logger LOGGER = Logger.getLogger(ViewEngine.class.getName());
-    private static final int CASCADE_CAP = 8;
-
     private final Plugin plugin;
     private final ViewRegistry views;
     private final SessionRegistry sessions;
@@ -83,19 +70,16 @@ public final class ViewEngine {
 
     private boolean inClickDispatch;
 
-    // re-entrancy guard for main-thread shared flushes: a renderer writing shared state
-    // while its view is being flushed must not recurse; main thread only
-    private final Set<View> sharedFlushPending = new HashSet<>();
-    // per-tick coalescing of off-main shared writes: maps each owner to the accumulated set
-    // of dirty token ids; touched from any thread; drained atomically when the scheduled task runs
-    private final ConcurrentHashMap<View, Set<Integer>> sharedFlushScheduled = new ConcurrentHashMap<>();
-
     // fixed-order phase handlers, engine-owned
     final OpenPhase openPhase;
     final FirstRenderPhase firstRenderPhase;
     final UpdatePhase updatePhase;
     final ClickRoutingPhase clickRoutingPhase;
     final ClosePhase closePhase;
+
+    // flush machinery extracted behind a dedicated coordinator (single responsibility);
+    // the flush entry points below delegate to it after asserting the main thread
+    private final FlushCoordinator flushCoordinator;
 
     /**
      * Creates the engine and its phase handlers.
@@ -118,6 +102,7 @@ public final class ViewEngine {
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
         this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
+        this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase);
     }
 
     /**
@@ -276,25 +261,14 @@ public final class ViewEngine {
     /**
      * Flushes dirty state tokens of a session: each pass drains the dirty set and runs a
      * STATE_CHANGE update over the watchers; passes repeat while handlers re-dirty tokens,
-     * capped at {@value #CASCADE_CAP} cascades per flush, after which the remaining dirty
-     * tokens are dropped with a WARNING.
+     * capped at {@value FlushCoordinator#CASCADE_CAP} cascades per flush, after which the
+     * remaining dirty tokens are dropped with a WARNING.
      *
      * @param session the session to flush
      */
     public void flushDirty(@NotNull ViewSession session) {
         ThreadUtils.assertMainThread("ViewEngine.flushDirty");
-        int cascades = 0;
-        while (session.stateStore().hasDirty()) {
-            if (++cascades > CASCADE_CAP) {
-                LOGGER.log(Level.WARNING, "state feedback loop detected for view {0}; "
-                                + "dropping remaining dirty tokens after {1} cascaded flush passes",
-                        new Object[]{session.registered().type().getName(), CASCADE_CAP});
-                session.stateStore().drainDirty();
-                break;
-            }
-            Set<Integer> dirty = session.stateStore().drainDirty();
-            updatePhase.update(session, UpdateTrigger.STATE_CHANGE, dirty);
-        }
+        flushCoordinator.flushDirty(session);
     }
 
     /**
@@ -305,82 +279,18 @@ public final class ViewEngine {
      */
     public void flushShared(@NotNull View owner) {
         ThreadUtils.assertMainThread("ViewEngine.flushShared");
-        flushShared(owner, null);
-    }
-
-    /**
-     * Runs a STATE_CHANGE repaint pass on every active session of the given view, restricting
-     * the repaint to watchers of the supplied token id set. Passing {@code null} for
-     * {@code tokenIds} triggers a full repaint (same as the no-arg overload).
-     *
-     * @param owner    the view singleton whose sessions should flush
-     * @param tokenIds the dirty token ids to pass to the update phase, or {@code null} for a full pass
-     */
-    private void flushShared(@NotNull View owner, @Nullable Set<Integer> tokenIds) {
-        // snapshot: an onUpdate handler may close a session and mutate the registry
-        List<ViewSession> snapshot = new ArrayList<>(sessions.all());
-        for (ViewSession session : snapshot) {
-            if (session.registered().instance() == owner && session.isActive()) {
-                updatePhase.update(session, UpdateTrigger.STATE_CHANGE, tokenIds);
-            }
-        }
+        flushCoordinator.flushShared(owner);
     }
 
     /**
      * Wires the flush hook of every {@code SharedState} token of the view so writes fan out
-     * to all of the view's open sessions: main-thread writes flush immediately (re-entrancy
-     * guarded), off-main writes coalesce into one scheduled flush per view per tick. Already
-     * wired tokens are skipped to avoid redundant re-wiring. The flush is watcher-scoped: each
-     * hook captures its token id and passes it as a singleton dirty set so only components
-     * watching that token are repainted.
+     * to all of the view's open sessions; see {@link FlushCoordinator#wireSharedFlush} for
+     * the immediate-vs-coalesced dispatch rules.
      *
      * @param registered the registration whose view instance is being opened
      */
     void wireSharedFlush(@NotNull RegisteredView registered) {
-        final View owner = registered.instance();
-        for (StateToken token : owner.tokenTable().tokens()) {
-            if (!(token instanceof SharedStateImpl)) {
-                continue;
-            }
-            SharedStateImpl<?> shared = (SharedStateImpl<?>) token;
-            if (shared.flushHookWired()) {
-                continue;
-            }
-            final int tokenId = shared.id();
-            shared.flushHook(() -> {
-                if (Bukkit.isPrimaryThread()) {
-                    if (sharedFlushPending.add(owner)) {
-                        try {
-                            flushShared(owner, Collections.singleton(tokenId));
-                        } finally {
-                            sharedFlushPending.remove(owner);
-                        }
-                    }
-                } else {
-                    // compute is atomic vs the drain's remove on the same key, so an id can
-                    // never land in an already-drained set
-                    boolean[] schedule = {false};
-                    sharedFlushScheduled.compute(owner, (key, existing) -> {
-                        if (existing == null) {
-                            Set<Integer> created = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
-                            created.add(tokenId);
-                            schedule[0] = true;
-                            return created;
-                        }
-                        existing.add(tokenId);
-                        return existing;
-                    });
-                    if (schedule[0]) {
-                        Bukkit.getScheduler().runTask(plugin, () -> {
-                            Set<Integer> ids = sharedFlushScheduled.remove(owner);
-                            if (ids != null) {
-                                flushShared(owner, ids);
-                            }
-                        });
-                    }
-                }
-            });
-        }
+        flushCoordinator.wireSharedFlush(registered);
     }
 
     /**
