@@ -48,6 +48,11 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 
