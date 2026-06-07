@@ -58,6 +58,8 @@ public final class ComponentInstance {
     /**
      * Identity sentinel returned by {@link #renderForPaint} when evaluation failed: the caller
      * must skip painting so the slot keeps its previous content.
+     * This instance must never be mutated and must never be passed to SlotPainter.paint;
+     * its content is meaningless — it exists only for identity comparison.
      */
     public static final ItemStack RENDER_FAILURE = new ItemStack(Material.BARRIER);
 
@@ -128,6 +130,8 @@ public final class ComponentInstance {
 
     /**
      * Produces this component's item: the static item, or the renderer applied to the context.
+     * Use {@link #renderForPaint} for all paint paths; this method is for non-paint introspection
+     * only (exceptions yield null here, not the failure sentinel).
      *
      * @return the item, or null when the renderer throws (throw is rate-limit logged)
      */
@@ -218,6 +222,11 @@ public final class ComponentInstance {
      */
     public @NotNull int[] watchedTokenIds() {
         return watchedTokenIds.clone();
+    }
+
+    /** returns the backing array without copying; engine-internal read-only use */
+    int[] watchedTokenIdsInternal() {
+        return watchedTokenIds;
     }
 
     /**

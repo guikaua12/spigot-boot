@@ -93,7 +93,7 @@ public final class ComponentTable {
     public @NotNull List<ComponentInstance> watchersOf(@NotNull Set<Integer> dirtyTokenIds) {
         List<ComponentInstance> watchers = new ArrayList<>();
         for (ComponentInstance component : components) {
-            for (int tokenId : component.watchedTokenIds()) {
+            for (int tokenId : component.watchedTokenIdsInternal()) {
                 if (dirtyTokenIds.contains(tokenId)) {
                     watchers.add(component);
                     break;

@@ -256,6 +256,13 @@ class ComponentInstanceTest {
         assertSame(ComponentInstance.RENDER_FAILURE, component.renderForPaint(context));
     }
 
+    @Test
+    void renderForPaint_rendererReturnsNull_returnsNullToClearSlot() {
+        ComponentInstance component = builderWith(b -> b.item(ctx -> null)).materialize(new int[]{0});
+
+        assertNull(component.renderForPaint(context));
+    }
+
     private static ItemComponentBuilderImpl staticItemBuilder() {
         ItemComponentBuilderImpl builder = new ItemComponentBuilderImpl();
         builder.item(new ItemStack(Material.STONE));
