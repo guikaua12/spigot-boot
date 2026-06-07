@@ -80,7 +80,11 @@ public final class RenderContextImpl extends AbstractViewContext implements Rend
     @Override
     public @NotNull ItemComponentBuilder layoutSlot(char character) {
         ResolvedLayout layout = session().layout();
-        if (layout == null || !layout.hasChar(character)) {
+        if (layout == null) {
+            throw new ViewConfigurationException("no layout is defined for " + view().getClass().getName()
+                    + "; layoutSlot('" + character + "') requires a config layout");
+        }
+        if (!layout.hasChar(character)) {
             throw new ViewConfigurationException("layout character '" + character
                     + "' is not present in the layout of " + view().getClass().getName());
         }
@@ -95,6 +99,7 @@ public final class RenderContextImpl extends AbstractViewContext implements Rend
     /**
      * Materializes every collected declaration into the session's component table, in
      * declaration order; the table validates slot overlaps and missing item sources.
+     * idempotent: a second call is a no-op.
      *
      * @throws ViewConfigurationException when a declaration overlaps slots or has no item source
      */
@@ -102,6 +107,7 @@ public final class RenderContextImpl extends AbstractViewContext implements Rend
         for (PendingComponent declaration : pending) {
             session().components().add(declaration.builder.materialize(declaration.slots));
         }
+        pending.clear();
     }
 
     private ItemComponentBuilder register(int[] slots) {

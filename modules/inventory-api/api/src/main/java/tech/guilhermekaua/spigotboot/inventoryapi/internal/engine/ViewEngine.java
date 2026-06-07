@@ -30,6 +30,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
@@ -69,13 +71,13 @@ public final class ViewEngine {
      * @param painter      the slot painting strategy
      * @param titleUpdater the in-place title update strategy
      */
-    public ViewEngine(Plugin plugin, ViewRegistry views, SessionRegistry sessions,
-                      SlotPainter painter, TitleUpdater titleUpdater) {
-        this.plugin = plugin;
-        this.views = views;
-        this.sessions = sessions;
-        this.painter = painter;
-        this.titleUpdater = titleUpdater;
+    public ViewEngine(@NotNull Plugin plugin, @NotNull ViewRegistry views, @NotNull SessionRegistry sessions,
+                      @NotNull SlotPainter painter, @NotNull TitleUpdater titleUpdater) {
+        this.plugin = Objects.requireNonNull(plugin, "plugin");
+        this.views = Objects.requireNonNull(views, "views");
+        this.sessions = Objects.requireNonNull(sessions, "sessions");
+        this.painter = Objects.requireNonNull(painter, "painter");
+        this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
     }
 
     /**
@@ -170,7 +172,7 @@ public final class ViewEngine {
         session.deferredOps().add(op);
         // the Bukkit scheduler call activates when close() and open() are real (Task 12);
         // the skeleton only establishes the deferral invariants that are tested in Task 11
-        // TODO(Task 12): Bukkit.getScheduler().runTask(plugin, op);
+        // TODO(Task 14): Bukkit.getScheduler().runTask(plugin, op);
     }
 
     /**
