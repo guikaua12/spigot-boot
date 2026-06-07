@@ -28,6 +28,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
 import tech.guilhermekaua.spigotboot.inventoryapi.registry.InventoryRegistry;
@@ -44,6 +45,11 @@ import tech.guilhermekaua.spigotboot.inventoryapi.schedule.InventoryUpdateRunnab
  *
  * <p>Replaces the upstream {@code InventoryManager.enable(plugin, inv1, inv2, ...)} static
  * bootstrap. Users no longer hand-list inventories — annotated subclasses self-register.
+ *
+ * <p>Also bootstraps the v3 view engine by initializing the {@link ViewRegistry}, which
+ * discovers and registers every
+ * {@link tech.guilhermekaua.spigotboot.inventoryapi.annotation.RegisterView}-annotated
+ * {@link View} subclass.
  */
 public final class InventoryApiModule implements Module {
 
@@ -54,11 +60,15 @@ public final class InventoryApiModule implements Module {
     private ViewerRegistry viewerRegistry;
 
     @Inject
+    private ViewRegistry viewRegistry;
+
+    @Inject
     private Plugin plugin;
 
     @Override
     public void onInitialize(Context context) throws Exception {
         inventoryRegistry.initialize(context);
+        viewRegistry.initialize(context);
 
         BukkitScheduler scheduler = Bukkit.getScheduler();
         for (CustomInventory inventory : inventoryRegistry.findAll()) {
