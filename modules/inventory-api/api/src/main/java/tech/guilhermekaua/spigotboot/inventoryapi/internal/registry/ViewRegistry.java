@@ -24,38 +24,141 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.registry;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.discovery.ViewDiscoveryService;
 
+import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Registry of view singletons and their frozen configs, keyed by view class.
  *
- * <p>Discovery-driven registration ({@code initialize(Context)} and the DI constructor)
- * is added in plan task 17; until then views are registered directly via
- * {@link #register(View)}.
+ * <p>Boot-time discovery and dependency-manager instantiation happen in
+ * {@link #initialize(Context)}, mirroring the 2.x {@code InventoryRegistry} bootstrap;
+ * views can also be registered directly via {@link #register(View)}.
  */
 @Component
 @ApiStatus.Internal
 public final class ViewRegistry {
+    private static final Logger LOGGER = Logger.getLogger(ViewRegistry.class.getName());
 
     private final Map<Class<? extends View>, RegisteredView> views = new LinkedHashMap<>();
+
+    private final @Nullable ViewDiscoveryService discoveryService;
 
     /**
      * Creates a registry without discovery support; views are registered directly through
      * {@link #register(View)}.
      */
     public ViewRegistry() {
+        this.discoveryService = null;
+    }
+
+    /**
+     * Creates the registry with discovery support.
+     *
+     * @param discoveryService the discovery service used by {@link #initialize(Context)}
+     */
+    @Inject
+    public ViewRegistry(@NotNull ViewDiscoveryService discoveryService) {
+        this.discoveryService = Objects.requireNonNull(discoveryService, "discoveryService cannot be null.");
+    }
+
+    /**
+     * Discovers {@code @RegisterView} classes under the host plugin's base package, instantiates
+     * each through the dependency manager and registers it. A view that fails to instantiate or
+     * register is logged SEVERE and skipped; the remaining views still register.
+     *
+     * @param context the host plugin's application context
+     * @throws Exception when context access fails
+     */
+    public void initialize(@NotNull Context context) throws Exception {
+        ViewDiscoveryService discovery = this.discoveryService != null
+                ? this.discoveryService
+                : context.getBean(ViewDiscoveryService.class);
+        if (discovery == null) {
+            throw new IllegalStateException("ViewDiscoveryService is not available.");
+        }
+
+        String basePackage = context.getPlugin().getMainClass().getPackage().getName();
+        Set<Class<? extends View>> classes = discovery.discoverFromPackage(basePackage);
+        DependencyManager dependencyManager = context.getDependencyManager();
+
+        int registered = 0;
+        for (Class<? extends View> viewClass : classes) {
+            try {
+                registerDiscoveredView(viewClass, dependencyManager);
+                registered++;
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Failed to register view " + viewClass.getName(), ex);
+            }
+        }
+
+        LOGGER.log(Level.INFO, "Registered {0} views.", registered);
+    }
+
+    private void registerDiscoveredView(
+            Class<? extends View> viewClass,
+            DependencyManager dependencyManager
+    ) throws Exception {
+        Constructor<?> constructor = dependencyManager.findInjectConstructor(viewClass);
+        if (constructor == null) {
+            throw new IllegalStateException("No injectable constructor found for view: " + viewClass.getName());
+        }
+
+        Object[] constructorArguments = dependencyManager.resolveArguments(constructor);
+        constructor.setAccessible(true);
+        Object rawInstance = constructor.newInstance(constructorArguments);
+
+        BeanDefinition definition = new BeanDefinition(
+                viewClass,
+                viewClass,
+                viewClass.getName() + "#view",
+                false,
+                null,
+                null
+        );
+        View view = (View) dependencyManager.initializeBean(definition, rawInstance);
+        injectSuperclassDependencies(dependencyManager, viewClass, view);
+
+        dependencyManager.registerDependency(
+                view,
+                BeanUtils.getQualifier(viewClass),
+                BeanUtils.getIsPrimary(viewClass)
+        );
+        register(view);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void injectSuperclassDependencies(
+            DependencyManager dependencyManager,
+            Class<? extends View> viewClass,
+            View instance
+    ) {
+        for (Class type = viewClass.getSuperclass();
+             type != null && type != Object.class;
+             type = type.getSuperclass()) {
+            dependencyManager.injectDependencies(type, instance);
+        }
     }
 
     /**
