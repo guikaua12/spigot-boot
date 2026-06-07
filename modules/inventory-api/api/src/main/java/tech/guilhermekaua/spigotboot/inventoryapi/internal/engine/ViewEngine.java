@@ -31,6 +31,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
@@ -82,9 +83,9 @@ public final class ViewEngine {
     // re-entrancy guard for main-thread shared flushes: a renderer writing shared state
     // while its view is being flushed must not recurse; main thread only
     private final Set<View> sharedFlushPending = new HashSet<>();
-    // per-tick coalescing of off-main shared writes; touched from any thread
-    private final Set<View> sharedFlushScheduled =
-            Collections.newSetFromMap(new ConcurrentHashMap<View, Boolean>());
+    // per-tick coalescing of off-main shared writes: maps each owner to the accumulated set
+    // of dirty token ids; touched from any thread; drained atomically when the scheduled task runs
+    private final ConcurrentHashMap<View, Set<Integer>> sharedFlushScheduled = new ConcurrentHashMap<>();
 
     // fixed-order phase handlers, engine-owned
     final OpenPhase openPhase;
@@ -254,18 +255,30 @@ public final class ViewEngine {
     }
 
     /**
-     * Runs a full STATE_CHANGE repaint pass on every active session of the given view;
-     * invoked after a {@code SharedState} write through the wired flush hook.
+     * Runs a full STATE_CHANGE repaint pass on every active session of the given view; full-pass
+     * fallback — the wired hooks use the watcher-scoped overload.
      *
      * @param owner the view singleton whose sessions should flush
      */
     public void flushShared(@NotNull View owner) {
         assertMainThread("ViewEngine.flushShared");
+        flushShared(owner, null);
+    }
+
+    /**
+     * Runs a STATE_CHANGE repaint pass on every active session of the given view, restricting
+     * the repaint to watchers of the supplied token id set. Passing {@code null} for
+     * {@code tokenIds} triggers a full repaint (same as the no-arg overload).
+     *
+     * @param owner    the view singleton whose sessions should flush
+     * @param tokenIds the dirty token ids to pass to the update phase, or {@code null} for a full pass
+     */
+    private void flushShared(@NotNull View owner, @Nullable Set<Integer> tokenIds) {
         // snapshot: an onUpdate handler may close a session and mutate the registry
         List<ViewSession> snapshot = new ArrayList<>(sessions.all());
         for (ViewSession session : snapshot) {
             if (session.registered().instance() == owner && session.isActive()) {
-                updatePhase.update(session, UpdateTrigger.STATE_CHANGE, null);
+                updatePhase.update(session, UpdateTrigger.STATE_CHANGE, tokenIds);
             }
         }
     }
@@ -273,8 +286,10 @@ public final class ViewEngine {
     /**
      * Wires the flush hook of every {@code SharedState} token of the view so writes fan out
      * to all of the view's open sessions: main-thread writes flush immediately (re-entrancy
-     * guarded), off-main writes coalesce into one scheduled flush per view per tick. The
-     * overwrite is idempotent and re-applied on every open.
+     * guarded), off-main writes coalesce into one scheduled flush per view per tick. Already
+     * wired tokens are skipped to avoid redundant re-wiring. The flush is watcher-scoped: each
+     * hook captures its token id and passes it as a singleton dirty set so only components
+     * watching that token are repainted.
      *
      * @param registered the registration whose view instance is being opened
      */
@@ -284,21 +299,38 @@ public final class ViewEngine {
             if (!(token instanceof SharedStateImpl)) {
                 continue;
             }
-            ((SharedStateImpl<?>) token).flushHook(() -> {
+            SharedStateImpl<?> shared = (SharedStateImpl<?>) token;
+            if (shared.flushHookWired()) {
+                continue;
+            }
+            final int tokenId = shared.id();
+            shared.flushHook(() -> {
                 if (Bukkit.isPrimaryThread()) {
                     if (sharedFlushPending.add(owner)) {
                         try {
-                            flushShared(owner);
+                            flushShared(owner, Collections.singleton(tokenId));
                         } finally {
                             sharedFlushPending.remove(owner);
                         }
                     }
                 } else {
-                    if (sharedFlushScheduled.add(owner)) {
+                    // accumulate token ids into the coalescing map; putIfAbsent is atomic so
+                    // exactly one thread will see null returned (= first inserter) and will
+                    // schedule the flush task; subsequent writes just add to the existing set
+                    Set<Integer> fresh = Collections.newSetFromMap(new ConcurrentHashMap<>());
+                    Set<Integer> existing = sharedFlushScheduled.putIfAbsent(owner, fresh);
+                    if (existing == null) {
+                        // this thread created the entry — add our id and schedule
+                        fresh.add(tokenId);
                         Bukkit.getScheduler().runTask(plugin, () -> {
-                            sharedFlushScheduled.remove(owner);
-                            flushShared(owner);
+                            Set<Integer> ids = sharedFlushScheduled.remove(owner);
+                            if (ids != null) {
+                                flushShared(owner, ids);
+                            }
                         });
+                    } else {
+                        // entry already present — just accumulate our token id
+                        existing.add(tokenId);
                     }
                 }
             });

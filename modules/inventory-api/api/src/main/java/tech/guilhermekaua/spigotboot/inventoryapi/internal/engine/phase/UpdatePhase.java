@@ -69,6 +69,8 @@ public final class UpdatePhase {
     /**
      * Runs one update pass on a session. Non-active sessions skip every trigger except
      * {@link UpdateTrigger#STATE_CHANGE}, which flushes are allowed to deliver.
+     * TRANSITIONING and OPENING sessions still receive STATE_CHANGE passes; CLOSED sessions
+     * never repaint.
      *
      * @param session     the session to update
      * @param trigger     the cause of this pass

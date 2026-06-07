@@ -90,6 +90,16 @@ public final class SharedStateImpl<T> implements SharedState<T>, IdentifiableTok
         this.flushHook = hook;
     }
 
+    /**
+     * Returns {@code true} if the engine has already wired a flush hook on this token.
+     *
+     * @return {@code true} when a flush hook is present
+     */
+    @ApiStatus.Internal
+    public boolean flushHookWired() {
+        return flushHook != null;
+    }
+
     @Override
     public @Nullable T get() {
         return value.get();

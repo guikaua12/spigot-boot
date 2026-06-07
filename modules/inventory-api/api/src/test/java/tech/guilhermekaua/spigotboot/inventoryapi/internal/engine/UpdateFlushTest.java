@@ -81,6 +81,7 @@ class UpdateFlushTest {
     private FeedbackView feedbackView;
     private ScheduledView scheduledView;
     private SharedView sharedView;
+    private TwoSlotSharedView twoSlotSharedView;
 
     @BeforeEach
     void setUp() {
@@ -93,11 +94,13 @@ class UpdateFlushTest {
         feedbackView = new FeedbackView();
         scheduledView = new ScheduledView();
         sharedView = new SharedView();
+        twoSlotSharedView = new TwoSlotSharedView();
         views.register(reactiveView);
         views.register(cascadeView);
         views.register(feedbackView);
         views.register(scheduledView);
         views.register(sharedView);
+        views.register(twoSlotSharedView);
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, t) -> {
         });
@@ -183,7 +186,7 @@ class UpdateFlushTest {
 
             engine.update(session, UpdateTrigger.EXPLICIT);
 
-            // one explicit pass plus eight capped cascade passes, then stop
+            // firstRender(1) + explicit pass repaint(1) + eight capped cascade passes(8) = 10
             assertEquals(10, feedbackView.renders.get());
             assertFalse(session.stateStore().hasDirty(),
                     "remaining dirty tokens must be dropped at the cap");
@@ -258,6 +261,23 @@ class UpdateFlushTest {
 
         assertEquals(4, sharedView.renders.get(),
                 "two pre-tick writes must coalesce into one flush pass per session");
+    }
+
+    @Test
+    void sharedStateSet_repaintsOnlyWatchingComponents() {
+        engine.open(player, TwoSlotSharedView.class, ViewArguments.empty());
+        ViewSession session = sessionOf(player);
+
+        // first render paints both slots exactly once
+        assertEquals(1, twoSlotSharedView.watchedRenders.get());
+        assertEquals(1, twoSlotSharedView.unwatchedRenders.get());
+
+        twoSlotSharedView.shared.set("changed");
+
+        assertEquals(2, twoSlotSharedView.watchedRenders.get(),
+                "slot 0 watches the shared token and must repaint");
+        assertEquals(1, twoSlotSharedView.unwatchedRenders.get(),
+                "slot 1 does not watch the shared token and must not repaint");
     }
 
     static final class ReactiveView extends View {
@@ -370,6 +390,29 @@ class UpdateFlushTest {
                         return new ItemStack(Material.PAPER);
                     })
                     .updateOnStateChange(shared);
+        }
+    }
+
+    static final class TwoSlotSharedView extends View {
+        final SharedState<String> shared = sharedState("initial");
+        final AtomicInteger watchedRenders = new AtomicInteger();
+        final AtomicInteger unwatchedRenders = new AtomicInteger();
+
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("TwoSlotShared").rows(1);
+        }
+
+        @Override
+        protected void onFirstRender(@NotNull RenderContext render) {
+            render.slot(0)
+                    .item(ctx -> {
+                        watchedRenders.incrementAndGet();
+                        return new ItemStack(Material.EMERALD);
+                    })
+                    .updateOnStateChange(shared);
+            render.slot(1)
+                    .item(ctx -> new ItemStack(Material.PAPER, unwatchedRenders.incrementAndGet()));
         }
     }
 
