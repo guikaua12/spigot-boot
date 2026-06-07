@@ -34,6 +34,9 @@ import java.util.Objects;
  * One slot's worth of pagination engine output: a user-declared element builder, a plain
  * frame item (a {@code null} item clears the slot), or the failure sentinel that keeps the
  * slot's previous content entirely.
+ *
+ * <p>Consumers decode in this order: {@link #isFailure()} first, then {@link #elementBuilder()},
+ * then {@link #plainItem()} (where {@code null} clears the slot).
  */
 @ApiStatus.Internal
 public final class RenderedItem {

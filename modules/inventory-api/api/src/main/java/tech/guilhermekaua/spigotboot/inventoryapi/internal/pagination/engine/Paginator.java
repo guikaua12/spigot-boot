@@ -98,6 +98,9 @@ public interface Paginator<T> {
     /**
      * Returns the page count of the current source.
      *
+     * <p>Results are undefined before {@link #bind}: the page limit is derived from the layout
+     * at bind time (pre-init reads are answered by the binding, never by the engine).
+     *
      * @return the total number of pages backing the current source, at least 1
      */
     int getTotalPages();
@@ -120,12 +123,18 @@ public interface Paginator<T> {
     /**
      * Returns the page capacity.
      *
+     * <p>Results are undefined before {@link #bind}: the page limit is derived from the layout
+     * at bind time (pre-init reads are answered by the binding, never by the engine).
+     *
      * @return the maximum number of items rendered per page
      */
     int getItemPageLimit();
 
     /**
      * Maps a global source index onto the page it appears on.
+     *
+     * <p>Results are undefined before {@link #bind}: the page limit is derived from the layout
+     * at bind time (pre-init reads are answered by the binding, never by the engine).
      *
      * @param index the global element index
      * @return the 1-indexed page containing the given index (for scroll paginators: the first

@@ -64,7 +64,7 @@ public interface PaginationHost {
     /**
      * Returns the player pages are being loaded for; populates the slim {@code PageRequest}.
      *
-     * @return the player's unique id, or {@code null} only for engine-external test usage
+     * @return the viewing player's id; production hosts never return null (test fixtures may)
      */
     @Nullable UUID playerId();
 

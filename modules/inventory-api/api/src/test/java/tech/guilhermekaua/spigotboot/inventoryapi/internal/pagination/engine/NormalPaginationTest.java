@@ -40,6 +40,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class NormalPaginationTest {
 
@@ -173,5 +174,26 @@ class NormalPaginationTest {
         assertEquals(2, pagination.getCurrentPage());
         // page 2 of a 20-element source over 9 slots renders amounts 10..18
         assertEquals(10, host.lastFillPage().items.get(0).plainItem().getAmount());
+    }
+
+    @Test
+    void partialLastPage_rendersItemsThenClearsRemainingSlots() {
+        NormalPagination<Integer> pagination = eagerPagination(sourceOf(20));
+        FakePaginationHost host = newHost();
+
+        pagination.bind(host);
+        pagination.changePage(3);
+        pagination.insertPageItems();
+
+        FakePaginationHost.FillPageCall fill = host.lastFillPage();
+        // page 3 of 20 over 9 slots: items 19 and 20, then seven empty clears
+        assertEquals(9, fill.items.size());
+        assertEquals(19, fill.items.get(0).plainItem().getAmount());
+        assertEquals(20, fill.items.get(1).plainItem().getAmount());
+        for (int i = 2; i < 9; i++) {
+            assertNull(fill.items.get(i).plainItem(), "slot " + i + " clears on the partial page");
+            assertFalse(fill.items.get(i).isFailure());
+        }
+        assertEquals(9, fill.layout.slots().size(), "the fill layout is the engine's render layout");
     }
 }

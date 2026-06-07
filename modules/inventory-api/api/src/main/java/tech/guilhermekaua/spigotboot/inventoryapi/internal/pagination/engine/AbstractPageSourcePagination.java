@@ -53,7 +53,7 @@ import java.util.logging.Logger;
  * {@link #restoreNavigation(Object)} / {@link #commitNavigation(int)}).
  *
  * <p>Settle failures are logged through a per-class JUL logger (visible in the server console)
- * rather than a plugin logger, since a host may not be bound when they occur.
+ * rather than a plugin logger; the logger exists independently of any host or plugin lifecycle.
  *
  * @param <T> the source element type
  * @param <S> the navigation state snapshot used for failure rollback
@@ -74,6 +74,8 @@ abstract class AbstractPageSourcePagination<T, S> implements Paginator<T> {
     @Getter(AccessLevel.NONE)
     protected PageSource<T> pageSource;
     @Getter(AccessLevel.NONE)
+    // currentItems is volatile because the PageSource.request contract permits settling on any
+    // thread (custom sources and dispatcher-less test usage), so the field must be safely published
     private volatile List<T> currentItems = Collections.emptyList();
     // inline-settle detection assumes a single thread dispatches for this paginator at a time
     // (the main thread by default); concurrent dispatches may misclassify an inline settle as
@@ -218,6 +220,7 @@ abstract class AbstractPageSourcePagination<T, S> implements Paginator<T> {
     }
 
     private void dispatch(S rollback, boolean render) {
+        // the host is always bound here: bind dispatches after setting it, and changePageInternal records-only when unbound
         PageRequest request = new PageRequest(this.currentPage, this.itemPageLimit,
                 requestOffset(), this.host.playerId(), this.host.plugin());
         this.dispatchingThread = Thread.currentThread();
