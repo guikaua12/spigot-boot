@@ -57,7 +57,9 @@ public class BukkitCommandCompletionRegistryCustomizer implements CommandComplet
         });
         registry.register("materials", (context, parameter, input) -> {
             List<String> values = new ArrayList<>();
-            for (Material material : Material.values()) {
+            // Enum-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+            // name() must resolve via the java.* ignore (see root pom)
+            for (Enum<?> material : Material.values()) {
                 values.add(material.name().toLowerCase(Locale.ROOT));
             }
             return values;

@@ -519,7 +519,10 @@ public final class FolderConfigEntry<T> {
 
             String normalizedPath = ResourceScanUtils.normalizePath(resourcePath);
 
-            URL jarUrl = plugin.getClass().getProtectionDomain()
+            // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+            // getClass() must resolve via the java.* ignore (see root pom)
+            Object pluginObject = plugin;
+            URL jarUrl = pluginObject.getClass().getProtectionDomain()
                     .getCodeSource().getLocation();
 
             if (jarUrl != null && jarUrl.getPath().endsWith(".jar")) {
@@ -550,7 +553,10 @@ public final class FolderConfigEntry<T> {
     }
 
     private void copyFromFilesystem(String resourcePath) {
-        URL resourceUrl = plugin.getClass().getClassLoader().getResource(resourcePath);
+        // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+        // getClass() must resolve via the java.* ignore (see root pom)
+        Object pluginObject = plugin;
+        URL resourceUrl = pluginObject.getClass().getClassLoader().getResource(resourcePath);
         if (resourceUrl == null) {
             return;
         }

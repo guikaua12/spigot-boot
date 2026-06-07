@@ -50,6 +50,9 @@ public class SoundSerializer implements TypeSerializer<Sound> {
 
     @Override
     public void serialize(@NotNull Sound value, @NotNull MutableConfigNode node) throws SerializationException {
-        node.set(value.name());
+        // Enum-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+        // name() must resolve via the java.* ignore (see root pom)
+        Enum<?> enumValue = value;
+        node.set(enumValue.name());
     }
 }
