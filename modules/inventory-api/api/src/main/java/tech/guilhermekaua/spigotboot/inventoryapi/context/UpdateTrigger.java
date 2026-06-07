@@ -30,7 +30,9 @@ public enum UpdateTrigger {
     /** Scheduled tick update configured via {@code ViewConfigBuilder.scheduleUpdate(long)}. */
     SCHEDULED,
 
-    /** Coalesced flush after one or more state tokens changed. */
+    /** Coalesced flush after one or more state tokens changed via
+     * {@link tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState} or
+     * {@link tech.guilhermekaua.spigotboot.inventoryapi.state.SharedState}. */
     STATE_CHANGE,
 
     /** Explicit {@link ViewContext#update()} or service-driven update. */

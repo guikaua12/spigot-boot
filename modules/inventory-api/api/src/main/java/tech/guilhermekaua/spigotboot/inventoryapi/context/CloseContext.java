@@ -28,9 +28,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Context for {@code View.onClose}: the session is tearing down.
  *
- * <p>Phase validity: {@code update()} and {@code openView(...)} throw
- * {@link IllegalStateException}; {@code close()} is a no-op because the session is already
- * closing.
+ * <p>Phase validity: {@code update()} throws {@link IllegalStateException}. Calling
+ * {@code openView(...)} from {@code onClose} is illegal; the call is logged SEVERE and
+ * dropped immediately to prevent navigation loops. {@code close()} is a no-op because
+ * the session is already closing.
  */
 @ApiStatus.NonExtendable
 public interface CloseContext extends ViewContext {

@@ -31,6 +31,8 @@ import org.jetbrains.annotations.NotNull;
  * <p>Phase validity: {@code inventory()}, {@code update()} and {@code updateTitle(String)}
  * throw {@link IllegalStateException} naming this phase. Cancelling aborts the open with
  * zero side effects — the player's current view, if any, stays untouched and protected.
+ * {@code close()} is valid but redundant here — prefer {@link #cancelOpen()}, which
+ * preserves the player's current view intact.
  */
 @ApiStatus.NonExtendable
 public interface OpenContext extends ViewContext {

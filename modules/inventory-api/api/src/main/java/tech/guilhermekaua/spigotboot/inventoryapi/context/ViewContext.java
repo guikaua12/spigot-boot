@@ -112,7 +112,8 @@ public interface ViewContext {
 
     /**
      * Closes this session. When called during click dispatch the close is deferred to the
-     * end of the current tick and further clicks are swallowed. Main thread only.
+     * end of the current tick and further clicks are swallowed. Outside click dispatch,
+     * the session closes synchronously before this method returns. Main thread only.
      */
     void close();
 
@@ -127,7 +128,8 @@ public interface ViewContext {
     /**
      * Navigates to another registered view: this session closes with
      * {@link CloseReason#REPLACED}, then the target opens. Deferred to the end of the tick
-     * during click dispatch. Main thread only.
+     * during click dispatch. Calling this method from within {@code onClose} is illegal;
+     * the call is logged SEVERE and dropped to prevent navigation loops. Main thread only.
      *
      * @param target the registered view class to open
      * @throws UnknownViewException when the target class is not registered
@@ -136,6 +138,8 @@ public interface ViewContext {
 
     /**
      * Same as {@link #openView(Class)}, passing arguments to the target view.
+     * Calling this method from within {@code onClose} is illegal; the call is logged
+     * SEVERE and dropped to prevent navigation loops.
      *
      * @param target    the registered view class to open
      * @param arguments the arguments handed to the target's contexts

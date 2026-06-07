@@ -52,7 +52,9 @@ public interface MutableState<T> extends State<T> {
      * the result. Main thread only.
      *
      * @param context an active context of the owning view
-     * @param fn      the function producing the new value from the current one
+     * @param fn      the function producing the new value from the current one; invoked
+     *                exactly once on the current value. Side effects inside fn are safe
+     *                (unlike {@link tech.guilhermekaua.spigotboot.inventoryapi.state.SharedState#update})
      * @throws StaleContextException when the context belongs to another view or is closed
      * @throws IllegalStateException when called off the main thread
      */

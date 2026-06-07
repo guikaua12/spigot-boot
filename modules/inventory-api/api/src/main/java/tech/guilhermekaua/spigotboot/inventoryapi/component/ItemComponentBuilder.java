@@ -41,7 +41,7 @@ import java.util.function.Predicate;
  * {@code RenderContext.slot(...)}/{@code layoutSlot(...)}. Declaration order is paint
  * order; all callbacks run on the main thread, engine-invoked. A component must declare an
  * item source via {@code item(...)} — one without fails at first render with
- * {@code ViewConfigurationException}.
+ * {@link tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException}.
  */
 @ApiStatus.NonExtendable
 public interface ItemComponentBuilder {
