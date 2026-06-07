@@ -34,6 +34,13 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.UpdateTrigger;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.UnknownViewException;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.ClickRoutingPhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.ClosePhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.FirstRenderPhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.OpenPhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.UpdatePhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.RegisteredView;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
@@ -44,31 +51,38 @@ import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
 import java.util.Objects;
 
 /**
- * Orchestrator of the v3 view lifecycle and sole session mutator. This skeleton pins the
- * contracted surface; the phase handlers filling {@link #open}, {@link #close},
- * {@link #update}, {@link #click}, {@link #drag}, {@link #bukkitClose}, {@link #flushDirty}
- * and {@link #flushShared} are added by plan tasks 12-16.
+ * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
+ * sole mutator of sessions. All entry points assert the main thread.
+ *
+ * <p>Click and drag routing plus end-of-tick deferral are completed in plan task 14;
+ * dirty-state and shared-state flushing in plan task 16.
  */
 @Component
 @ApiStatus.Internal
 public final class ViewEngine {
 
     private final Plugin plugin;
-    // collaborators consumed by the phase handlers added in tasks 12-16
     private final ViewRegistry views;
+    // used by the flush implementations added in plan task 16
     private final SessionRegistry sessions;
-    private final SlotPainter painter;
     private final TitleUpdater titleUpdater;
 
     private boolean inClickDispatch;
 
+    // fixed-order phase handlers, engine-owned
+    final OpenPhase openPhase;
+    final FirstRenderPhase firstRenderPhase;
+    final UpdatePhase updatePhase;
+    final ClickRoutingPhase clickRoutingPhase;
+    final ClosePhase closePhase;
+
     /**
-     * Creates the engine.
+     * Creates the engine and its phase handlers.
      *
      * @param plugin       the plugin owning the inventory-api runtime
-     * @param views        the view class registry
+     * @param views        the view registry
      * @param sessions     the per-player session registry
-     * @param painter      the slot painting strategy
+     * @param painter      the slot painter used by the rendering phases
      * @param titleUpdater the in-place title update strategy
      */
     public ViewEngine(@NotNull Plugin plugin, @NotNull ViewRegistry views, @NotNull SessionRegistry sessions,
@@ -76,30 +90,51 @@ public final class ViewEngine {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.views = Objects.requireNonNull(views, "views");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
-        this.painter = Objects.requireNonNull(painter, "painter");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
+        Objects.requireNonNull(painter, "painter");
+        this.closePhase = new ClosePhase(this, sessions);
+        this.openPhase = new OpenPhase(this, sessions);
+        this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
+        this.updatePhase = new UpdatePhase(this);
+        this.clickRoutingPhase = new ClickRoutingPhase(this);
     }
 
     /**
-     * Opens a registered view for a player, replacing any current session.
+     * Opens a registered view for a player, replacing any previous session at the commit
+     * point (spec §7).
      *
      * @param player    the viewer
      * @param viewType  the registered view class
      * @param arguments the open arguments
+     * @throws UnknownViewException     when the view class is not registered
+     * @throws IllegalArgumentException when an {@code initialState} argument has a
+     *                                  mismatching type
+     * @throws IllegalStateException    when called off the main thread
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> viewType,
                      @NotNull ViewArguments arguments) {
-        throw new UnsupportedOperationException("implemented in Task 12");
+        assertMainThread("ViewEngine.open");
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(arguments, "arguments");
+        RegisteredView registered = views.find(viewType).orElseThrow(() ->
+                new UnknownViewException("view " + viewType.getName() + " is not registered"));
+        ViewSession session = openPhase.openSession(player, registered, arguments);
+        if (session == null) {
+            // cancelled with zero side effects; the previous session stays untouched
+            return;
+        }
+        firstRenderPhase.firstRender(session);
     }
 
     /**
-     * Closes a session with the given reason.
+     * Closes a session with the given reason; idempotent on already closed sessions.
      *
      * @param session the session to close
      * @param reason  the close reason
      */
     public void close(@NotNull ViewSession session, @NotNull CloseReason reason) {
-        throw new UnsupportedOperationException("implemented in Task 12");
+        assertMainThread("ViewEngine.close");
+        closePhase.close(session, reason);
     }
 
     /**
@@ -109,7 +144,8 @@ public final class ViewEngine {
      * @param trigger the cause of the update
      */
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
-        throw new UnsupportedOperationException("implemented in Task 12");
+        assertMainThread("ViewEngine.update");
+        updatePhase.update(session, trigger, null);
     }
 
     /**
@@ -119,7 +155,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void click(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        throw new UnsupportedOperationException("implemented in Task 12");
+        throw new UnsupportedOperationException("implemented in Task 14");
     }
 
     /**
@@ -133,13 +169,19 @@ public final class ViewEngine {
     }
 
     /**
-     * Handles a Bukkit close event for a session, guarded by container identity.
+     * Handles a Bukkit close event for a session, guarded by container identity: a close event
+     * for a previous container (fired synchronously while opening a new view) must not tear
+     * down the session of the view that is being opened.
      *
      * @param session the player's session
      * @param event   the Bukkit event
      */
     public void bukkitClose(@NotNull ViewSession session, @NotNull InventoryCloseEvent event) {
-        throw new UnsupportedOperationException("implemented in Task 13");
+        assertMainThread("ViewEngine.bukkitClose");
+        if (event.getInventory() != session.inventory()) {
+            return;
+        }
+        close(session, CloseReason.PLAYER);
     }
 
     /**
@@ -176,9 +218,10 @@ public final class ViewEngine {
     }
 
     /**
-     * Returns whether a click event is currently being dispatched; drives operation deferral.
+     * Returns whether a click event is currently being dispatched (drives operation
+     * deferral).
      *
-     * @return {@code true} while a click is being dispatched
+     * @return always {@code false} until click dispatch lands in plan task 14
      */
     public boolean isInClickDispatch() {
         return inClickDispatch;
@@ -214,15 +257,14 @@ public final class ViewEngine {
     }
 
     /**
-     * Throws when called off the main server thread; a missing server (pure unit tests)
-     * passes on any thread.
+     * Throws when not on the main server thread.
      *
      * @param operation the operation name used in the error message
-     * @throws IllegalStateException when called off the main thread
+     * @throws IllegalStateException when called off the main server thread
      */
     public static void assertMainThread(@NotNull String operation) {
         if (Bukkit.getServer() != null && !Bukkit.isPrimaryThread()) {
-            throw new IllegalStateException(operation + " must run on the main thread");
+            throw new IllegalStateException(operation + " must be called on the main server thread");
         }
     }
 }
