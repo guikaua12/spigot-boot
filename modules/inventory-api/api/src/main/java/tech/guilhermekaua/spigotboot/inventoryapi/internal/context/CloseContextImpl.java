@@ -35,8 +35,9 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
- * Context for {@code View.onClose}: the session is tearing down. {@link #update()} throws,
- * {@link #close()} is a no-op, and {@link #openView} is dropped with a SEVERE log (§5.4).
+ * Context for {@code View.onClose}: the session is tearing down. {@link #update()} and
+ * {@link #updateTitle} throw, {@link #close()} is a no-op, and {@link #openView} is dropped
+ * with a SEVERE log (§5.4).
  */
 @ApiStatus.Internal
 public final class CloseContextImpl extends AbstractViewContext implements CloseContext {
@@ -71,6 +72,12 @@ public final class CloseContextImpl extends AbstractViewContext implements Close
     @Override
     public void close() {
         // no-op: the session is already closing
+    }
+
+    @Override
+    public void updateTitle(@NotNull String title) {
+        throw new IllegalStateException(
+                "updateTitle() is not allowed during onClose; the session is tearing down");
     }
 
     @Override

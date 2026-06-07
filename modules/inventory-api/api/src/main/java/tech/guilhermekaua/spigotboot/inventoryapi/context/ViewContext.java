@@ -105,8 +105,9 @@ public interface ViewContext {
     boolean isActive();
 
     /**
-     * Schedules a full update pass ({@link UpdateTrigger#EXPLICIT}); multiple calls in the
-     * same tick are coalesced. Main thread only.
+     * Runs a full update pass ({@link UpdateTrigger#EXPLICIT}) synchronously:
+     * {@code onUpdate} followed by a component repaint. State written during the pass is
+     * coalesced into a single trailing flush. Main thread only.
      */
     void update();
 
@@ -118,8 +119,9 @@ public interface ViewContext {
     void close();
 
     /**
-     * Updates the container title in place (no reopen) via the NMS title updater;
-     * placeholders are applied for {@link #player()}. Main thread only.
+     * Updates the container title in place (no reopen) via the title updater: placeholders
+     * are applied for {@link #player()} when enabled by the view config, then legacy
+     * {@code &} color codes are translated. Main thread only.
      *
      * @param title the new title, legacy color codes supported
      */

@@ -88,6 +88,13 @@ public final class FirstRenderPhase {
                     + "; aborting the open", ex);
             // teardown through the close phase; the session was never registered
             engine.close(session, CloseReason.OPEN_FAILED);
+            // REPLACED -> OPEN_FAILED dead container: the commit point already closed the
+            // previous session, so the player may still be staring at its container with no
+            // session protecting it (free item theft); close the screen unless another
+            // session took over in the meantime
+            if (session.player().isOnline() && !sessions.find(session.player().getUniqueId()).isPresent()) {
+                session.player().closeInventory();
+            }
             return;
         }
 

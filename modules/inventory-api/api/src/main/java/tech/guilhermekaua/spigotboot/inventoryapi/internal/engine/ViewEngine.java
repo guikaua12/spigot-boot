@@ -23,6 +23,7 @@
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -76,6 +77,7 @@ public final class ViewEngine {
     private final Plugin plugin;
     private final ViewRegistry views;
     private final SessionRegistry sessions;
+    private final SlotPainter painter;
     private final TitleUpdater titleUpdater;
 
     private boolean inClickDispatch;
@@ -108,6 +110,7 @@ public final class ViewEngine {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.views = Objects.requireNonNull(views, "views");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
+        this.painter = Objects.requireNonNull(painter, "painter");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
         this.closePhase = new ClosePhase(this, sessions);
         this.openPhase = new OpenPhase(this, sessions, painter);
@@ -118,7 +121,9 @@ public final class ViewEngine {
 
     /**
      * Opens a registered view for a player, replacing any previous session at the commit
-     * point (spec §7).
+     * point (spec §7). Self-defers to end of tick during click dispatch, so service-path
+     * opens made from a click handler never tear down the clicked session mid-dispatch;
+     * the registration check then runs when the deferred open executes.
      *
      * @param player    the viewer
      * @param viewType  the registered view class
@@ -133,6 +138,18 @@ public final class ViewEngine {
         assertMainThread("ViewEngine.open");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(arguments, "arguments");
+        if (isInClickDispatch()) {
+            // self-defer: an inline open would replace the clicked session while its click
+            // is still being routed; the deferred op runs at end of tick, when click
+            // dispatch is over, so it cannot re-defer
+            ViewSession current = sessions.find(player.getUniqueId()).orElse(null);
+            if (current != null) {
+                defer(current, () -> open(player, viewType, arguments));
+            } else {
+                Bukkit.getScheduler().runTask(plugin, () -> open(player, viewType, arguments));
+            }
+            return;
+        }
         RegisteredView registered = views.find(viewType).orElseThrow(() ->
                 new UnknownViewException("view " + viewType.getName() + " is not registered"));
         wireSharedFlush(registered);
@@ -146,13 +163,38 @@ public final class ViewEngine {
 
     /**
      * Closes a session with the given reason; idempotent on already closed sessions.
+     * Self-defers to end of tick during click dispatch, so service-path closes made from a
+     * click handler never tear down the clicked session mid-dispatch.
      *
      * @param session the session to close
      * @param reason  the close reason
      */
     public void close(@NotNull ViewSession session, @NotNull CloseReason reason) {
         assertMainThread("ViewEngine.close");
+        if (isInClickDispatch()) {
+            // self-defer: the deferred op runs at end of tick, when click dispatch is
+            // over, so it cannot re-defer
+            defer(session, () -> close(session, reason));
+            return;
+        }
         closePhase.close(session, reason);
+    }
+
+    /**
+     * Updates the container title of a session in place: placeholders are applied for the
+     * session's player when the effective config enables them, then legacy {@code &} color
+     * codes are translated, and the result is handed to the {@link TitleUpdater}.
+     *
+     * @param session the session whose container title is updated
+     * @param title   the new title, legacy color codes supported
+     * @throws IllegalStateException when called off the main thread
+     */
+    public void updateTitle(@NotNull ViewSession session, @NotNull String title) {
+        assertMainThread("ViewEngine.updateTitle");
+        // placeholders first, then color codes: PAPI output may itself contain '&' codes
+        String resolved = ChatColor.translateAlternateColorCodes('&',
+                painter.applyText(session.player(), title, session.effectiveConfig().applyPlaceholders()));
+        titleUpdater().update(session.player(), resolved);
     }
 
     /**

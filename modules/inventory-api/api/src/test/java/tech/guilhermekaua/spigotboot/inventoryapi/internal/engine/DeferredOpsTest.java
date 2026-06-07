@@ -82,6 +82,7 @@ class DeferredOpsTest {
         int clickCount;
         int closeCount;
         CloseReason lastCloseReason;
+        Runnable directAction;
 
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
@@ -108,6 +109,12 @@ class DeferredOpsTest {
                         // two deferred ops queued by a single click
                         ctx.close();
                         ctx.close();
+                    });
+            render.slot(4, new ItemStack(Material.DIAMOND))
+                    .onClick(ctx -> {
+                        clickCount++;
+                        // direct engine call, bypassing the context deferral paths
+                        directAction.run();
                     });
         }
 
@@ -242,6 +249,53 @@ class DeferredOpsTest {
         assertSame(otherView, current.registered().instance());
         assertEquals(ViewSession.Status.ACTIVE, current.status());
         assertSame(current.inventory(), player.getOpenInventory().getTopInventory());
+    }
+
+    @Test
+    void engineOpenInsideClickHandler_selfDefersToEndOfTick() {
+        engine.open(player, MainView.class, ViewArguments.empty());
+        ViewSession oldSession = session();
+        // simulates ViewService.open: a direct engine call, not a context navigation
+        mainView.directAction = () -> engine.open(player, OtherView.class, ViewArguments.empty());
+
+        engine.click(oldSession, click(4));
+
+        assertEquals(1, mainView.clickCount, "the handler itself runs synchronously");
+        assertEquals(ViewSession.Status.TRANSITIONING, oldSession.status(),
+                "a service-path open inside click dispatch must self-defer, not run inline");
+        assertSame(oldSession, sessions.find(player.getUniqueId()).orElseThrow(IllegalStateException::new),
+                "no synchronous open: the clicked session stays registered until end of tick");
+
+        server.getScheduler().performTicks(1);
+
+        assertEquals(ViewSession.Status.CLOSED, oldSession.status());
+        assertEquals(CloseReason.REPLACED, mainView.lastCloseReason,
+                "the old view observes the deferred replacement through onClose");
+        ViewSession current = sessions.find(player.getUniqueId()).orElseThrow(IllegalStateException::new);
+        assertNotSame(oldSession, current);
+        assertSame(otherView, current.registered().instance());
+        assertEquals(ViewSession.Status.ACTIVE, current.status());
+        assertSame(current.inventory(), player.getOpenInventory().getTopInventory());
+    }
+
+    @Test
+    void engineCloseInsideClickHandler_selfDefersToEndOfTick() {
+        engine.open(player, MainView.class, ViewArguments.empty());
+        ViewSession session = session();
+        // simulates ViewService.close: a direct engine call, not a context close
+        mainView.directAction = () -> engine.close(session, CloseReason.API);
+
+        engine.click(session, click(4));
+
+        assertEquals(1, mainView.clickCount, "the handler itself runs synchronously");
+        assertEquals(ViewSession.Status.TRANSITIONING, session.status(),
+                "a service-path close inside click dispatch must self-defer, not tear down inline");
+        assertSame(session, sessions.find(player.getUniqueId()).orElseThrow(IllegalStateException::new));
+
+        server.getScheduler().performTicks(1);
+
+        assertEquals(ViewSession.Status.CLOSED, session.status());
+        assertFalse(sessions.find(player.getUniqueId()).isPresent());
     }
 
     @Test

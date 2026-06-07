@@ -67,10 +67,11 @@ public final class UpdatePhase {
     }
 
     /**
-     * Runs one update pass on a session. Non-active sessions skip every trigger except
-     * {@link UpdateTrigger#STATE_CHANGE}, which flushes are allowed to deliver.
-     * TRANSITIONING and OPENING sessions still receive STATE_CHANGE passes; CLOSED sessions
-     * never repaint.
+     * Runs one update pass on a session. CLOSED sessions are skipped entirely — neither
+     * {@code onUpdate} nor a repaint runs on a torn-down session. Other non-active sessions
+     * skip every trigger except {@link UpdateTrigger#STATE_CHANGE}, which flushes are
+     * allowed to deliver: TRANSITIONING and OPENING sessions still receive STATE_CHANGE
+     * passes.
      *
      * @param session     the session to update
      * @param trigger     the cause of this pass
@@ -79,6 +80,10 @@ public final class UpdatePhase {
      */
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger,
                        @Nullable Set<Integer> dirtyOrNull) {
+        // a CLOSED session never receives onUpdate, not even from a STATE_CHANGE flush
+        if (session.status() == ViewSession.Status.CLOSED) {
+            return;
+        }
         if (!session.isActive() && trigger != UpdateTrigger.STATE_CHANGE) {
             return;
         }

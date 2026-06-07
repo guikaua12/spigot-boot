@@ -76,7 +76,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -228,14 +227,19 @@ class ContextPhaseValidityTest {
     }
 
     @Test
-    void updateTitle_delegatesToTheEngineTitleUpdater() {
+    void updateTitle_appliesPlaceholdersAndColorCodesBeforeTheTitleUpdater() {
+        List<String> received = new ArrayList<>();
+        ViewEngine recordingEngine = new ViewEngine(plugin, new ViewRegistry(), new SessionRegistry(),
+                new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> received.add(title));
         ViewSession session = sessionFor(new ProbeView(), config());
         session.status(ViewSession.Status.ACTIVE);
-        PlainViewContextImpl context = new PlainViewContextImpl(session, engine);
+        PlainViewContextImpl context = new PlainViewContextImpl(session, recordingEngine);
 
-        context.updateTitle("&aNew Title");
+        context.updateTitle("&aHi");
 
-        verify(titleUpdater).update(player, "&aNew Title");
+        // the engine resolves placeholders, then translates '&' codes, before the updater
+        assertEquals(1, received.size());
+        assertEquals("§aHi", received.get(0));
     }
 
     @Test
@@ -405,6 +409,10 @@ class ContextPhaseValidityTest {
 
         IllegalStateException updateError = assertThrows(IllegalStateException.class, context::update);
         assertTrue(updateError.getMessage().contains("onClose"));
+
+        IllegalStateException titleError = assertThrows(IllegalStateException.class,
+                () -> context.updateTitle("title"));
+        assertTrue(titleError.getMessage().contains("onClose"));
 
         // the session is already closing; close() must not call the engine (which would throw)
         assertDoesNotThrow(context::close);

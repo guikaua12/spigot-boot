@@ -151,7 +151,7 @@ public abstract class AbstractViewContext implements ViewContext, StateBackedCon
 
     @Override
     public void updateTitle(@NotNull String title) {
-        engine.titleUpdater().update(player(), title);
+        engine.updateTitle(session, title);
     }
 
     @Override

@@ -135,6 +135,18 @@ class ViewConfigBuilderTest {
     }
 
     @Test
+    void build_layoutTallerThanSixRows_withoutExplicitRows_throwsNamingRows() {
+        ViewConfigBuilder builder = new ViewConfigBuilder()
+                .title("Shop")
+                .layout("         ", "         ", "         ", "         ",
+                        "         ", "         ", "         "); // 7 valid rows
+
+        ViewConfigurationException ex = assertThrows(ViewConfigurationException.class, builder::build);
+        assertTrue(ex.getMessage().contains("rows"));
+        assertTrue(ex.getMessage().contains("7"));
+    }
+
+    @Test
     void layout_isUnmodifiable() {
         ViewConfig config = new ViewConfigBuilder().title("Shop").layout("         ").build();
 

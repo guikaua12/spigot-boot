@@ -129,7 +129,8 @@ public final class ViewConfigBuilder {
      * Validates and freezes the configuration.
      *
      * @return the immutable config
-     * @throws ViewConfigurationException if the title is missing, rows are outside 1-6,
+     * @throws ViewConfigurationException if the title is missing, rows (explicit or inferred
+     *                                    from the layout height) are outside 1-6,
      *                                    a layout row is null or not exactly {@link Layout#ROW_WIDTH} characters wide,
      *                                    rows and layout are inconsistent, or neither rows nor layout is set
      */
@@ -162,6 +163,11 @@ public final class ViewConfigBuilder {
         }
 
         int resolvedRows = rows != null ? rows : layout.size();
+        if (rows == null) {
+            // rows inferred from the layout height must satisfy the same 1-6 chest bound
+            // as an explicit rows() value
+            ViewConfig.validateRows(resolvedRows);
+        }
         return new ViewConfig(title, resolvedRows, layout, cancelOnClick, cancelOnDrag,
                 updateIntervalTicks, applyPlaceholders);
     }

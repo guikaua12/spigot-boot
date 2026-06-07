@@ -55,6 +55,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -156,6 +157,18 @@ class ViewEngineOpenOrderingTest {
         }
     }
 
+    static final class RenderFailView extends View {
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("F").rows(1);
+        }
+
+        @Override
+        protected void onFirstRender(@NotNull RenderContext context) {
+            throw new IllegalStateException("render boom");
+        }
+    }
+
     static final class InitialStateView extends View {
         @SuppressWarnings("unused")
         private final MutableState<Integer> count = initialState("count", Integer.class);
@@ -181,6 +194,7 @@ class ViewEngineOpenOrderingTest {
         views.register(new InitialStateView());
         views.register(viewD);
         views.register(new ViewE());
+        views.register(new RenderFailView());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
         });
@@ -283,6 +297,21 @@ class ViewEngineOpenOrderingTest {
         assertSame(ViewE.class, current.registered().type());
         assertEquals(ViewSession.Status.ACTIVE, current.status());
         assertSame(current.inventory(), player.getOpenInventory().getTopInventory());
+    }
+
+    @Test
+    void onFirstRenderThrows_afterReplacement_closesTheDeadPreviousContainer() {
+        ViewSession previous = openViewA();
+        Inventory previousContainer = previous.inventory();
+
+        // the commit point already closed A with REPLACED; when B's onFirstRender throws,
+        // the player must not be left staring at A's now-unmanaged container
+        engine.open(player, RenderFailView.class, ViewArguments.empty());
+
+        assertFalse(sessions.find(player.getUniqueId()).isPresent(),
+                "an aborted open must register nothing");
+        assertNotSame(previousContainer, player.getOpenInventory().getTopInventory(),
+                "the replaced view's dead container must be closed, not left clickable");
     }
 
     @Test
