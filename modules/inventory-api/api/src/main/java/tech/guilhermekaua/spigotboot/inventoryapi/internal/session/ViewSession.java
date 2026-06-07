@@ -245,7 +245,8 @@ public final class ViewSession {
 
     /**
      * Returns the operations deferred to the end of the current tick; the engine appends
-     * during click dispatch and drains in FIFO order.
+     * during click dispatch and drains in FIFO order. The list is not yet drained when ops
+     * execute; plan task 15 reconciles the queue with the scheduler.
      *
      * @return the mutable deferred-operations list, one stable instance per session
      */

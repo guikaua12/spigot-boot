@@ -53,6 +53,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -149,6 +150,22 @@ class ClickRoutingTest {
         }
     }
 
+    static final class ErrorThrowingView extends View {
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("ErrorThrowing").rows(1);
+        }
+
+        @Override
+        protected void onFirstRender(@NotNull RenderContext render) {
+            render.slot(0, new ItemStack(Material.STONE))
+                    .cancelOnClick(false)
+                    .onClick(ctx -> {
+                        throw new AssertionError("boom");
+                    });
+        }
+    }
+
     @BeforeEach
     void setUp() {
         server = MockBukkit.mock();
@@ -162,6 +179,7 @@ class ClickRoutingTest {
         views.register(throwingView);
         views.register(new PermissiveView());
         views.register(new NoDragView());
+        views.register(new ErrorThrowingView());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, t) -> {
         });
@@ -375,5 +393,19 @@ class ClickRoutingTest {
         engine.drag(session, event);
 
         assertFalse(event.isCancelled());
+    }
+
+    @Test
+    void errorThrowingHandler_eventStaysCancelled_errorPropagates() {
+        ViewSession session = open(ErrorThrowingView.class);
+        InventoryClickEvent first = click(0);
+
+        assertThrows(AssertionError.class, () -> engine.click(session, first));
+        assertTrue(first.isCancelled(), "event must stay cancelled even when an Error escapes");
+
+        // session remains usable for subsequent clicks
+        InventoryClickEvent second = click(0);
+        assertThrows(AssertionError.class, () -> engine.click(session, second));
+        assertEquals(ViewSession.Status.ACTIVE, session.status());
     }
 }

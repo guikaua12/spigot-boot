@@ -207,14 +207,28 @@ class ViewListenerTest {
     }
 
     @Test
-    void close_forDifferentPlayersInventory_doesNothing() {
+    void close_withoutSession_isIgnored() {
         engine.open(player, ListenerView.class, ViewArguments.empty());
         ViewSession session = sessionOf(player);
 
-        // the close event belongs to another player without a session, over the same container
+        // second has no session; the close event is simply ignored
         listener.onClose(closeEventFor(second, session.inventory()));
 
         assertEquals(ViewSession.Status.ACTIVE, session.status());
+        assertTrue(listenerView.closeReasons.isEmpty());
+    }
+
+    @Test
+    void close_forDifferentContainer_keepsSessionActive() {
+        engine.open(player, ListenerView.class, ViewArguments.empty());
+        ViewSession session = sessionOf(player);
+
+        // player has a session but the close event carries a different inventory object
+        Inventory otherInventory = Bukkit.createInventory(null, 9);
+        listener.onClose(closeEventFor(player, otherInventory));
+
+        assertEquals(ViewSession.Status.ACTIVE, session.status());
+        assertTrue(sessions.find(player.getUniqueId()).isPresent());
         assertTrue(listenerView.closeReasons.isEmpty());
     }
 

@@ -106,9 +106,11 @@ public final class ClickRoutingPhase {
                     preCancel(session, null, bottom) || forced);
         }
 
-        dispatch(session, component, ctx, event);
-
-        event.setCancelled(forced || ctx.isCancelled());
+        try {
+            dispatch(session, component, ctx, event);
+        } finally {
+            event.setCancelled(forced || ctx.isCancelled());
+        }
     }
 
     // pre-cancel policy: bottom always pre-cancelled; component override beats config
@@ -143,6 +145,10 @@ public final class ClickRoutingPhase {
             LOGGER.log(Level.SEVERE, "click handler failed for view " + view.getClass().getName()
                     + " at raw slot " + event.getRawSlot(), ex);
             ctx.setCancelled(true);
+        } catch (Error error) {
+            // even under abnormal JVM conditions the click must stay cancelled at this boundary
+            ctx.setCancelled(true);
+            throw error;
         }
     }
 
