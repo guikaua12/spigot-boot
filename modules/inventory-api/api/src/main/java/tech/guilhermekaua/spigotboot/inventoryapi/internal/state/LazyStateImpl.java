@@ -56,7 +56,7 @@ public final class LazyStateImpl<T> implements State<T> {
                          @NotNull Function<ViewContext, T> computation) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.computation = Objects.requireNonNull(computation, "computation");
-        this.id = Objects.requireNonNull(table, "table").register(this);
+        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
     }
 
     /**

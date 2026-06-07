@@ -60,7 +60,7 @@ public final class InitialStateImpl<T> implements MutableState<T> {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.key = Objects.requireNonNull(key, "key");
         this.type = Objects.requireNonNull(type, "type");
-        this.id = Objects.requireNonNull(table, "table").register(this);
+        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
     }
 
     /**

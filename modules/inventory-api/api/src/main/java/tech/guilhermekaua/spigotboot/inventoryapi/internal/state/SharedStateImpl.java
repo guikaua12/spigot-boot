@@ -55,7 +55,7 @@ public final class SharedStateImpl<T> implements SharedState<T> {
     public SharedStateImpl(@NotNull View owner, @NotNull TokenTable table, @Nullable T initialValue) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.value = new AtomicReference<>(initialValue);
-        this.id = Objects.requireNonNull(table, "table").register(this);
+        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
     }
 
     /**

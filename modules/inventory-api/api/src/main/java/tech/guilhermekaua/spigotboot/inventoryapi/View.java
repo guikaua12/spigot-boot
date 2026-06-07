@@ -179,7 +179,8 @@ public abstract class View {
 
     /**
      * Returns this view's token table; used by the engine to size per-session state
-     * storage and to freeze token registration.
+     * storage and to freeze token registration. Plugin code must not call this method;
+     * it is reserved for the engine registration phase.
      *
      * @return the token registry of this view instance
      */

@@ -57,7 +57,7 @@ public final class MutableStateImpl<T> implements MutableState<T> {
                             @NotNull Function<ViewContext, T> initialValue) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.initialValue = Objects.requireNonNull(initialValue, "initialValue");
-        this.id = Objects.requireNonNull(table, "table").register(this);
+        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
     }
 
     /**

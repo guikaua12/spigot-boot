@@ -33,13 +33,15 @@ import java.util.Objects;
 
 /**
  * Per-view registry of state tokens. Tokens register during view construction and receive
- * sequential ids; registration is frozen once the view is registered.
+ * sequential ids; registration is frozen once the view is registered. Registration and
+ * freezing are expected on a single thread; the frozen flag is volatile so the guard is
+ * visible if the engine freezes from another thread.
  */
 @ApiStatus.Internal
 public final class TokenTable {
 
     private final List<StateToken> tokens = new ArrayList<>();
-    private boolean frozen;
+    private volatile boolean frozen;
 
     /**
      * Registers a token and assigns its id.
