@@ -32,12 +32,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.editor.InventoryEditor;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.callback.ItemCallback;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.callback.update.ItemUpdateCallback;
-import tech.guilhermekaua.spigotboot.inventoryapi.item.slot.InventorySlot;
-import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
 import tech.guilhermekaua.spigotboot.inventoryapi.placeholder.PlaceholderApplier;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -91,18 +87,6 @@ public final class InventoryEditorImpl implements InventoryEditor {
         validateSlot(slot);
         this.inventory.setItem(slot, null);
         this.inventoryCallbackMap.remove(slot);
-    }
-
-    @Override
-    public void fillPage(List<InventoryItem> inventoryItems, InventoryLayout layout, Pagination<?> pagination) {
-        List<InventorySlot> slots = layout.getSlots();
-
-        for (int i = 0; i < slots.size(); i++) {
-            int itemSlot = slots.get(i).getSlot();
-            InventoryItem item = inventoryItems.get(i);
-
-            setItem(itemSlot, item, pagination.getFallbackItem());
-        }
     }
 
     @Override

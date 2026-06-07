@@ -22,132 +22,162 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination;
 
-import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
-import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
+import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
-import java.util.List;
-
-public interface Pagination<T> {
-    /**
-     * Initializes the paginator against a freshly opened viewer. Must be called once before any
-     * navigation method is invoked.
-     */
-    void init(Viewer viewer);
-
-    /**
-     * Renders the items of the current page into the viewer's inventory.
-     */
-    void apply();
-
-    /**
-     * Advances to the next page if one exists.
-     */
-    void nextPage();
-
-    /**
-     * @return {@code true} if there is at least one page after the current one
-     */
-    boolean hasNextPage();
-
-    /**
-     * Returns to the previous page if one exists.
-     */
-    void previousPage();
-
-    /**
-     * @return {@code true} if there is at least one page before the current one
-     */
-    boolean hasPreviousPage();
-
-    /**
-     * Inserts the items of the current page into the viewer's inventory.
-     */
-    void insertPageItems();
+/**
+ * Reactive pagination token, declared once per view through the {@code View.paginate*} factories
+ * and built by {@link PaginationBuilder#build()}. The token itself holds no paging state: every
+ * method reads or mutates the state of the session behind the given {@link ViewContext}, so a
+ * single declaration serves every viewer with fully isolated per-context paging.
+ *
+ * <p>As a {@link StateToken} the token can be watched via
+ * {@code ItemComponentBuilder.updateOnStateChange(StateToken...)}: watching components re-render
+ * whenever a page load settles or a navigation repaints the pagination area.
+ *
+ * <p><strong>Pre-init window.</strong> Between {@code onOpen} and the engine's pagination
+ * initialization (which runs before {@code onFirstRender}) the token is not yet backed by a
+ * paging engine. In that window reads return defaults — {@link #totalPages} is {@code 1},
+ * {@link #totalElements} is {@code 0}, {@link #isLoading} is {@code false} and
+ * {@link #lastError} is {@code null} — and {@link #advance}, {@link #back} and
+ * {@link #switchTo} record a pending target page (never below 1) that is replayed once
+ * initialization completes; {@link #currentPage} reports that pending target.
+ *
+ * <p><strong>Threading.</strong> {@link #advance}, {@link #back}, {@link #switchTo} and
+ * {@link #refresh} are main-thread only and throw {@link IllegalStateException} when invoked
+ * off the main server thread. Reads are unsynchronized and only coherent on the main thread.
+ *
+ * <p>Every method first validates the context: a context belonging to a different view class or
+ * to an already closed session fails with {@link StaleContextException}.
+ *
+ * @param <T> the element type served by the backing page source
+ */
+@ApiStatus.NonExtendable
+public interface Pagination<T> extends StateToken {
 
     /**
-     * Navigates directly to the given 1-indexed page.
+     * Returns the current page, 1-indexed. Before initialization this is the pending
+     * navigation target.
      *
-     * <p>The target is clamped to at least 1, and to {@code getTotalPages()} once the backing
-     * source's totals are known. For async sources, navigation issued before the first load
-     * completes is honored optimistically and re-clamped downward when totals arrive. A call that
-     * targets the current page while a request for it is already in flight is ignored; use
-     * {@link #refresh()} to force a reload. Before {@link #init(Viewer)} the call only records
-     * the target page; {@code init} dispatches the load for it.
+     * @param context the context of the session to read
+     * @return the current 1-indexed page
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    void changePage(int page);
+    int currentPage(@NotNull ViewContext context);
 
     /**
-     * @return the total number of pages backing the current source
+     * Returns the total page count, always at least 1. Before initialization — and, for async
+     * sources, before the first successful load reveals the totals — this is {@code 1}.
+     *
+     * @param context the context of the session to read
+     * @return the total page count, {@code >= 1}
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    int getTotalPages();
+    int totalPages(@NotNull ViewContext context);
 
     /**
-     * @return the 1-indexed current page number
+     * Returns the total element count of the backing source. Before initialization — and, for
+     * async sources, before totals are known — this is {@code 0}.
+     *
+     * @param context the context of the session to read
+     * @return the total element count
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    int getCurrentPage();
+    int totalElements(@NotNull ViewContext context);
 
     /**
-     * @return the 1-indexed page containing the given global source index (for scroll paginators:
-     * the first page on which the index becomes visible), or {@code -1} if the index is outside
-     * {@code [0, getTotalElements())}
+     * Returns whether a next page exists, i.e. {@code currentPage + 1 <= totalPages}. Always
+     * {@code false} before initialization.
+     *
+     * @param context the context of the session to read
+     * @return {@code true} when {@link #advance} would move forward
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    int getPageOfIndex(int index);
+    boolean canAdvance(@NotNull ViewContext context);
 
     /**
-     * Replaces the backing source with an eager in-memory list and resets internal state
-     * accordingly. On a paginator built with an async source this discards the async supplier —
-     * the configured loading item, error callback, timeout and cache become inert.
+     * Returns whether a previous page exists, i.e. {@code currentPage > 1}. Before
+     * initialization this reports whether the pending target is above page 1.
+     *
+     * @param context the context of the session to read
+     * @return {@code true} when {@link #back} would move backward
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    void setSource(List<T> source);
+    boolean canBack(@NotNull ViewContext context);
 
     /**
-     * @return an unmodifiable view of the elements currently loaded locally — the full backing
-     * list for eager sources, the items of the most recently delivered page for async sources.
-     * Mutations must go through {@link #setSource(List)}; use {@link #getTotalElements()} for
-     * counts.
+     * Navigates one page forward, clamped exactly like {@link #switchTo}. Before
+     * initialization the pending target is incremented instead. Main thread only.
+     *
+     * @param context the context of the session to navigate
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
+     * @throws IllegalStateException when invoked off the main server thread
      */
-    List<T> getSource();
+    void advance(@NotNull ViewContext context);
 
     /**
-     * @return the maximum number of items rendered per page
+     * Navigates one page backward, clamped exactly like {@link #switchTo}. Before
+     * initialization the pending target is decremented instead (never below 1). Main thread
+     * only.
+     *
+     * @param context the context of the session to navigate
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
+     * @throws IllegalStateException when invoked off the main server thread
      */
-    int getItemPageLimit();
+    void back(@NotNull ViewContext context);
 
     /**
-     * @return the fallback item for empty slots, or {@code null} if none was configured
+     * Switches to the given page. The target is clamped exactly as the 2.x {@code changePage}:
+     * lower-clamped to page 1 always, upper-clamped to {@link #totalPages} only once the
+     * source's totals are known (always for eager sources; after the first successful load for
+     * async sources — an overshooting target is re-clamped downward when that load settles).
+     * Re-requesting the page already shown is a no-op while that page is still loading. Before
+     * initialization the lower-clamped target is recorded and replayed at initialization. Main
+     * thread only.
+     *
+     * @param context the context of the session to navigate
+     * @param page    the 1-indexed target page; out-of-range values are clamped, not rejected
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
+     * @throws IllegalStateException when invoked off the main server thread
      */
-    InventoryItem getFallbackItem();
+    void switchTo(@NotNull ViewContext context, int page);
 
     /**
-     * @return {@code true} while an async page load for this paginator is in flight; always
-     * {@code false} for eager sources
+     * Returns whether the latest page request has not settled yet. Always {@code false} for
+     * eager sources and before initialization.
+     *
+     * @param context the context of the session to read
+     * @return {@code true} while a page load is in flight
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    default boolean isLoading() {
-        return false;
-    }
+    boolean isLoading(@NotNull ViewContext context);
 
     /**
-     * @return the failure of the most recent async page load, or {@code null}; cleared when a new
-     * load is dispatched. Always {@code null} for eager sources.
+     * Returns the failure of the most recently settled page load, or {@code null}; cleared
+     * when a new request is dispatched. Always {@code null} for eager sources and before
+     * initialization.
+     *
+     * @param context the context of the session to read
+     * @return the last page-load failure, or {@code null}
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
      */
-    default Throwable lastError() {
-        return null;
-    }
+    @Nullable Throwable lastError(@NotNull ViewContext context);
 
     /**
-     * @return the total number of elements in the backing source, independent of how many are
-     * loaded locally
+     * Forces a reload of the current page. Before initialization this is a no-op. After
+     * initialization the behavior depends on the source kind: lazy sources
+     * ({@code View.paginate(Function)}) re-invoke the source function against this context and
+     * swap the fresh result in; async sources invalidate their page cache; every kind then
+     * re-requests the current page, forced — the same-page dedupe is bypassed. Main thread
+     * only.
+     *
+     * @param context the context of the session to refresh
+     * @throws StaleContextException if {@code context} belongs to another view or is closed
+     * @throws IllegalStateException when invoked off the main server thread
      */
-    default int getTotalElements() {
-        return getSource().size();
-    }
-
-    /**
-     * Re-requests the current page, invalidating any cached copy first. For async sources this is
-     * the supported idiom to re-query after the backing store changed; for eager sources it
-     * re-renders the current page.
-     */
-    default void refresh() {
-        changePage(getCurrentPage());
-    }
+    void refresh(@NotNull ViewContext context);
 }

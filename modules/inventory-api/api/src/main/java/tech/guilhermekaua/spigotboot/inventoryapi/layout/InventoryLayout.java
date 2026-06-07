@@ -34,8 +34,8 @@ import java.util.Objects;
 /**
  * Defines where and in what order pagination items are placed inside an inventory.
  *
- * <p>The core contract is {@link #getSlots()}: an ordered list of fill positions. Consumers such
- * as {@code InventoryEditor#fillPage} place the i-th page item into the i-th slot of that list.
+ * <p>The core contract is {@link #getSlots()}: an ordered list of fill positions. Consumers
+ * place the i-th page item into the i-th slot of that list.
  *
  * <p>Use {@link #ofGrid(String...)} to build a layout from a visual row-by-row ASCII grid whose
  * letters define the fill order alphabetically.

@@ -26,10 +26,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.InventoryItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.item.callback.ItemCallback;
-import tech.guilhermekaua.spigotboot.inventoryapi.layout.InventoryLayout;
-import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
-
-import java.util.List;
 
 /**
  * Owns the per-viewer Bukkit {@link Inventory} and the slot-to-callback mapping. Implementations
@@ -65,8 +61,6 @@ public interface InventoryEditor {
      * @throws IllegalArgumentException if {@code slot} is outside {@code [0, inventory.getSize())}
      */
     void setEmptyItem(int slot);
-
-    void fillPage(List<InventoryItem> inventoryItems, InventoryLayout layout, Pagination<?> pagination);
 
     void updateItemStack(int slot);
 

@@ -23,51 +23,21 @@
 package tech.guilhermekaua.spigotboot.testPlugin.listener;
 
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.inventoryapi.service.InventoryService;
-import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleAsyncPagedInventory;
-import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalPagedInventory;
-import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePagedInventory;
-import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternPagedInventory;
 import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
 
 @Component
 @RequiredArgsConstructor
 public class JoinListener implements Listener {
     private final UserService userService;
-    private final InventoryService inventoryService;
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        final Material blockType = event.getBlock().getType();
-        final Player player = event.getPlayer();
-
-        if (blockType == Material.DIAMOND_BLOCK) {
-            player.sendMessage("[ApxPlugin] - opening scroll pagination sample");
-            inventoryService.open(player, SamplePagedInventory.class);
-            return;
-        }
-
-        if (blockType == Material.EMERALD_BLOCK) {
-            player.sendMessage("[ApxPlugin] - opening normal pagination sample");
-            inventoryService.open(player, SampleNormalPagedInventory.class);
-            return;
-        }
-
-        if (blockType == Material.GOLD_BLOCK) {
-            player.sendMessage("[ApxPlugin] - opening pattern pagination sample");
-            inventoryService.open(player, SamplePatternPagedInventory.class);
-        }
-
-        if (blockType == Material.NETHERITE_BLOCK) {
-            player.sendMessage("[ApxPlugin] - opening normal async pagination sample");
-            inventoryService.open(player, SampleAsyncPagedInventory.class);
-        }
+        // the 2.x paged samples were deleted with the old pagination API; the v3 pagination
+        // samples return in Task 14, opened through ViewService
 
 //        try {
 //            bungeeChannel.sendMessage(player, new GetPlayerServerAction(player.getName())).thenAccept(serverName -> {
