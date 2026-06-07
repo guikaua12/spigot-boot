@@ -69,12 +69,11 @@ public final class ViewConfigBuilder {
     }
 
     /**
-     * Sets the layout rows; each row must be exactly {@link Layout#ROW_WIDTH} characters,
-     * validated at {@link #build()}. Layout rows must not be null.
+     * Sets the layout rows; each row must be non-null and exactly {@link Layout#ROW_WIDTH}
+     * characters, validated at {@link #build()}.
      *
      * @param rows the layout rows
      * @return this builder
-     * @throws ViewConfigurationException if any layout row is null
      */
     public @NotNull ViewConfigBuilder layout(@NotNull String... rows) {
         Objects.requireNonNull(rows, "rows");
