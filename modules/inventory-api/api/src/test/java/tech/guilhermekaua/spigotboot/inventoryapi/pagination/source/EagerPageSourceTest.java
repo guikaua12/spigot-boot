@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EagerPageSourceTest {
 
     private static PageRequest request(int page, int pageSize, int offset) {
-        return new PageRequest(page, pageSize, offset, null);
+        return new PageRequest(page, pageSize, offset, null, null);
     }
 
     private static <T> PageResult<T> settleOf(EagerPageSource<T> source, PageRequest request) {

@@ -48,6 +48,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -331,13 +332,16 @@ class AsyncPaginationIntegrationTest {
         assertEquals(3, pagination.getCurrentPage());
 
         Viewer viewer = mockViewer(mock(InventoryEditor.class), mock(CustomInventory.class));
+        UUID playerId = UUID.randomUUID();
+        lenient().when(viewer.getUniqueId()).thenReturn(playerId);
         pagination.init(viewer);
 
         assertEquals(1, supplier.requests.size());
         PageRequest request = supplier.requests.get(0);
         assertEquals(3, request.getPage());
         assertEquals(6, request.getOffset(), "page 3 of size 3 => offset 6");
-        assertEquals(viewer, request.getViewer(), "the dispatched request must carry the bound viewer");
+        assertEquals(playerId, request.playerId(), "the dispatched request must carry the viewer's player id");
+        assertEquals(plugin, request.plugin(), "the dispatched request must carry the owning plugin");
     }
 
     @Test

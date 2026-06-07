@@ -24,8 +24,8 @@ package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
 /**
  * Invoked when an async page load fails (exceptional completion, {@code null} future, synchronous
- * throw, or timeout). Runs on the same thread that applies the settle — the main server thread
- * unless the owning inventory opted into async ticking.
+ * throw, or timeout). Runs on the same thread that applies the settle — always the main server
+ * thread for settles routed through {@link BukkitSettleDispatcher}.
  */
 @FunctionalInterface
 public interface PaginationErrorCallback {

@@ -24,18 +24,20 @@ package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.IllegalPluginAccessException;
-import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
-import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
-import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default {@link SettleDispatcher}: applies asynchronously completed page loads on the main
- * server thread, mirroring how click-triggered updates always run there. Inventories that opted
- * into {@link InventoryConfiguration#tickAsync()} settle directly on the completing thread, the
- * same trust the async tick task already extends to them.
+ * Default {@link SettleDispatcher}: settles always route to the main server thread — inline
+ * when the load already completed there, otherwise through the Bukkit scheduler on behalf of
+ * the request's owning plugin. A request without a plugin (engine-external test usage only)
+ * settles inline on the completing thread.
+ *
+ * <p>Dispatch order is FIFO: inline settles run immediately and the Bukkit scheduler runs
+ * same-tick tasks in submission order. {@link AsyncPageSource} relies on this — a request's
+ * timeout settle must reach the dispatcher before the cancellation settle it triggers, so the
+ * at-most-once check discards the latter.
  *
  * <p>A settle completing while the owning plugin is disabling is dropped with a warning: the
  * scheduler rejects new tasks at that point and the inventory is about to be closed by the
@@ -47,26 +49,16 @@ public final class BukkitSettleDispatcher implements SettleDispatcher {
 
     @Override
     public void dispatch(PageRequest request, Runnable task) {
-        Viewer viewer = request.getViewer();
-        if (viewer == null || Bukkit.isPrimaryThread() || tickAsync(viewer)) {
+        if (request.plugin() == null || Bukkit.isPrimaryThread()) {
             task.run();
             return;
         }
         try {
-            Bukkit.getScheduler().runTask(viewer.getPlugin(), task);
+            Bukkit.getScheduler().runTask(request.plugin(), task);
         } catch (IllegalPluginAccessException e) {
             // thrown inside whenComplete or a timeout task this would otherwise vanish into
             // an unobserved future
             LOGGER.log(Level.WARNING, "Dropped a page-load settle: the owning plugin is disabled.", e);
         }
-    }
-
-    private static boolean tickAsync(Viewer viewer) {
-        CustomInventory customInventory = viewer.getCustomInventory();
-        if (customInventory == null) {
-            return false;
-        }
-        InventoryConfiguration configuration = customInventory.getConfiguration();
-        return configuration != null && configuration.tickAsync();
     }
 }

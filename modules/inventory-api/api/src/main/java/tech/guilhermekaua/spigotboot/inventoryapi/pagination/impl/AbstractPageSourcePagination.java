@@ -225,8 +225,10 @@ abstract class AbstractPageSourcePagination<T, S> implements Pagination<T> {
     }
 
     private void dispatch(S rollback, boolean render) {
-        PageRequest request = new PageRequest(
-                this.currentPage, this.itemPageLimit, requestOffset(), this.viewer);
+        // the viewer is always bound here: init dispatches after binding it, and both
+        // changePageInternal and setSource guard the unbound case before dispatching
+        PageRequest request = new PageRequest(this.currentPage, this.itemPageLimit, requestOffset(),
+                this.viewer.getUniqueId(), this.viewer.getPlugin());
         this.dispatchingThread = Thread.currentThread();
         try {
             this.pageSource.request(request, (result, error) -> onSettle(rollback, result, error));

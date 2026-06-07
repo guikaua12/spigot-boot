@@ -22,18 +22,14 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
-import be.seeseemelk.mockbukkit.MockPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import tech.guilhermekaua.spigotboot.inventoryapi.viewer.Viewer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -41,30 +37,16 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BukkitSettleDispatcherTest {
 
-    private MockPlugin plugin;
-
-    @BeforeEach
-    void setUp() {
-        MockBukkit.mock();
-        plugin = MockBukkit.createMockPlugin("TestPlugin");
-    }
-
-    @AfterEach
-    void tearDown() {
-        MockBukkit.unmock();
-    }
-
-    private PageRequest requestFor(MockPlugin plugin) {
-        Viewer viewer = mock(Viewer.class);
-        lenient().when(viewer.getPlugin()).thenReturn(plugin);
-        lenient().when(viewer.getCustomInventory()).thenReturn(null);
-        return new PageRequest(1, 3, 0, viewer);
+    private static PageRequest requestWith(Plugin plugin) {
+        return new PageRequest(1, 3, 0, null, plugin);
     }
 
     @Test
@@ -72,21 +54,66 @@ class BukkitSettleDispatcherTest {
         BukkitSettleDispatcher dispatcher = new BukkitSettleDispatcher();
         AtomicBoolean ran = new AtomicBoolean();
 
-        dispatcher.dispatch(requestFor(plugin), () -> ran.set(true));
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
 
-        assertTrue(ran.get());
+            dispatcher.dispatch(requestWith(mock(Plugin.class)), () -> ran.set(true));
+
+            bukkit.verify(Bukkit::getScheduler, never());
+        }
+
+        assertTrue(ran.get(), "a settle completing on the main thread must run inline");
+    }
+
+    @Test
+    void dispatch_nullPluginOffThread_runsInline() {
+        BukkitSettleDispatcher dispatcher = new BukkitSettleDispatcher();
+        AtomicBoolean ran = new AtomicBoolean();
+
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(false);
+
+            dispatcher.dispatch(requestWith(null), () -> ran.set(true));
+
+            bukkit.verify(Bukkit::getScheduler, never());
+        }
+
+        assertTrue(ran.get(), "engine-external requests without a plugin must settle on the calling thread");
+    }
+
+    @Test
+    void dispatch_offMainWithPlugin_schedulesOntoMainThread() {
+        BukkitSettleDispatcher dispatcher = new BukkitSettleDispatcher();
+        Plugin plugin = mock(Plugin.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        AtomicBoolean ran = new AtomicBoolean();
+
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(false);
+            bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+
+            dispatcher.dispatch(requestWith(plugin), () -> ran.set(true));
+
+            assertFalse(ran.get(), "the settle must not run inline on the completing thread");
+            ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+            verify(scheduler).runTask(eq(plugin), task.capture());
+            task.getValue().run();
+        }
+
+        assertTrue(ran.get(), "the scheduled task must carry the settle onto the main thread");
     }
 
     @Test
     void dispatch_whilePluginDisabling_dropsSettleInsteadOfThrowing() {
-        // MockBukkit's scheduler does not validate plugin state, so the real server's
-        // rejection is reproduced by stubbing the scheduler to throw what CraftBukkit
-        // throws when a disabling plugin registers a task
+        // the real scheduler rejects tasks registered by a disabling plugin with
+        // IllegalPluginAccessException; the dispatcher must swallow it (a throw inside
+        // whenComplete or a timeout task would vanish into an unobserved future) and the
+        // settle is dropped
         BukkitSettleDispatcher dispatcher = new BukkitSettleDispatcher();
-        PageRequest request = requestFor(plugin);
+        Plugin plugin = mock(Plugin.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         AtomicBoolean ran = new AtomicBoolean();
 
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.runTask(any(Plugin.class), any(Runnable.class)))
                 .thenThrow(new IllegalPluginAccessException("Plugin attempted to register task while disabled"));
 
@@ -94,7 +121,7 @@ class BukkitSettleDispatcherTest {
             bukkit.when(Bukkit::isPrimaryThread).thenReturn(false);
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
 
-            assertDoesNotThrow(() -> dispatcher.dispatch(request, () -> ran.set(true)),
+            assertDoesNotThrow(() -> dispatcher.dispatch(requestWith(plugin), () -> ran.set(true)),
                     "a disabling plugin must not blow up the completing thread");
         }
 
