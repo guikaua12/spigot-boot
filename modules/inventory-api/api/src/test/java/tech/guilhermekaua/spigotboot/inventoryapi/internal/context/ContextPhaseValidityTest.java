@@ -109,6 +109,9 @@ class ContextPhaseValidityTest {
 
     @AfterEach
     void tearDown() {
+        // the deferral tests schedule end-of-tick ops that must never run here (they target
+        // an empty registry); cancel them before unmock drains the scheduler queue
+        server.getScheduler().cancelTasks(plugin);
         MockBukkit.unmock();
     }
 
@@ -242,7 +245,7 @@ class ContextPhaseValidityTest {
         PlainViewContextImpl context = new PlainViewContextImpl(session, engine);
         engine.clickDispatch(true);
 
-        // the skeleton engine close throws UnsupportedOperationException; deferral must not reach it
+        // the close is scheduled for end of tick, not executed; deferral must not run it here
         assertDoesNotThrow(context::close);
 
         assertEquals(ViewSession.Status.TRANSITIONING, session.status());
@@ -256,7 +259,7 @@ class ContextPhaseValidityTest {
         PlainViewContextImpl context = new PlainViewContextImpl(session, engine);
         engine.clickDispatch(true);
 
-        // the skeleton engine open throws UnsupportedOperationException; deferral must not reach it
+        // the open is scheduled for end of tick, not executed; deferral must not run it here
         assertDoesNotThrow(() -> context.openView(TargetView.class));
 
         assertEquals(ViewSession.Status.TRANSITIONING, session.status());

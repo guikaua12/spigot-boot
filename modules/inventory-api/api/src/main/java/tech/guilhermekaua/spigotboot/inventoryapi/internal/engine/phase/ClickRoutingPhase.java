@@ -22,22 +22,37 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.inventoryapi.View;
+import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
+import tech.guilhermekaua.spigotboot.inventoryapi.context.SlotClickContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.SlotClickContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Click policy and routing (spec §6). Skeleton in this task; the body lands in plan
- * task 14. Constructed and invoked only by {@link ViewEngine}.
+ * Click policy and routing (spec §6): pre-cancel from config and per-component override,
+ * handler dispatch with last-writer-wins cancellation, the safety-floor actions
+ * force-cancelled after handlers, and end-of-tick post-actions. Constructed and invoked
+ * only by {@link ViewEngine}.
  */
 @ApiStatus.Internal
 public final class ClickRoutingPhase {
 
-    // stored for the task 14 implementation
+    private static final Logger LOGGER = Logger.getLogger(ClickRoutingPhase.class.getName());
+
     private final ViewEngine engine;
 
     /**
@@ -56,6 +71,89 @@ public final class ClickRoutingPhase {
      * @param event   the Bukkit event
      */
     public void route(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        throw new UnsupportedOperationException("implemented in Task 14");
+        // clicks on a non-ACTIVE session (OPENING/TRANSITIONING/CLOSED) are swallowed
+        if (session.status() != ViewSession.Status.ACTIVE) {
+            event.setCancelled(true);
+            return;
+        }
+        Inventory inventory = session.inventory();
+        if (inventory == null) {
+            // defensive: an ACTIVE session always has its container; swallow if not
+            event.setCancelled(true);
+            return;
+        }
+
+        int topSize = inventory.getSize();
+        boolean bottom = event.getRawSlot() >= topSize;
+        InventoryAction action = event.getAction();
+        // safety floor (§6): these item movements are force-cancelled after handlers,
+        // regardless of any setCancelled(false) decision
+        boolean forced = (bottom && action == InventoryAction.MOVE_TO_OTHER_INVENTORY)
+                || action == InventoryAction.COLLECT_TO_CURSOR
+                || ((action == InventoryAction.HOTBAR_SWAP
+                || action == InventoryAction.HOTBAR_MOVE_AND_READD)
+                && event.getRawSlot() < topSize);
+
+        ComponentInstance component = bottom ? null
+                : session.components().componentAt(event.getRawSlot());
+        SlotClickContextImpl ctx = new SlotClickContextImpl(session, engine, event, bottom,
+                preCancel(session, component, bottom) || forced);
+        if (component != null && !component.isVisible(ctx)) {
+            // hidden components get no clicks; the slot degrades to component-less and
+            // the pre-cancel decision falls back to the config default
+            component = null;
+            ctx = new SlotClickContextImpl(session, engine, event, bottom,
+                    preCancel(session, null, bottom) || forced);
+        }
+
+        dispatch(session, component, ctx, event);
+
+        event.setCancelled(forced || ctx.isCancelled());
+    }
+
+    // pre-cancel policy: bottom always pre-cancelled; component override beats config
+    private static boolean preCancel(ViewSession session, @Nullable ComponentInstance component,
+                                     boolean bottom) {
+        if (bottom) {
+            return true;
+        }
+        if (component != null && component.cancelOnClick() != null) {
+            return component.cancelOnClick();
+        }
+        return session.effectiveConfig().cancelOnClick();
+    }
+
+    // component handler, then view-level onClick, then deferred post-actions; a throw
+    // anywhere force-cancels and skips everything remaining (§6, §9)
+    private void dispatch(ViewSession session, @Nullable ComponentInstance component,
+                          SlotClickContextImpl ctx, InventoryClickEvent event) {
+        View view = session.registered().instance();
+        try {
+            if (component != null) {
+                Consumer<SlotClickContext> handler = component.handlerFor(event.getClick());
+                if (handler != null) {
+                    handler.accept(ctx);
+                }
+            }
+            HandlerInvoker.invoke(HandlerInvoker.ON_CLICK, view, ctx);
+            if (component != null) {
+                queuePostActions(session, component);
+            }
+        } catch (RuntimeException ex) {
+            LOGGER.log(Level.SEVERE, "click handler failed for view " + view.getClass().getName()
+                    + " at raw slot " + event.getRawSlot(), ex);
+            ctx.setCancelled(true);
+        }
+    }
+
+    private void queuePostActions(ViewSession session, ComponentInstance component) {
+        if (component.closeOnClick()) {
+            engine.defer(session, () -> engine.close(session, CloseReason.API));
+        }
+        Class<? extends View> target = component.openOnClickTarget();
+        if (target != null) {
+            engine.defer(session, () -> engine.open(session.player(), target,
+                    component.openOnClickArguments()));
+        }
     }
 }

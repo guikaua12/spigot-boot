@@ -27,6 +27,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -54,8 +55,7 @@ import java.util.Objects;
  * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
  * sole mutator of sessions. All entry points assert the main thread.
  *
- * <p>Click and drag routing plus end-of-tick deferral are completed in plan task 14;
- * dirty-state and shared-state flushing in plan task 16.
+ * <p>Dirty-state and shared-state flushing are completed in plan task 16.
  */
 @Component
 @ApiStatus.Internal
@@ -148,23 +148,52 @@ public final class ViewEngine {
     }
 
     /**
-     * Routes a Bukkit click event into the session per the click policy.
+     * Routes a Bukkit click event into the session per the click policy. Context
+     * {@code close()}/{@code openView()} calls and component post-actions made while this
+     * method runs are deferred to end of tick; dirty state written by handlers is flushed
+     * after dispatch completes.
      *
      * @param session the clicked session
      * @param event   the Bukkit event
      */
     public void click(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        throw new UnsupportedOperationException("implemented in Task 14");
+        assertMainThread("ViewEngine.click");
+        clickDispatch(true);
+        try {
+            clickRoutingPhase.route(session, event);
+        } finally {
+            clickDispatch(false);
+        }
+        // coalesced reactive flush; guarded so handler-less clicks never hit the
+        // not-yet-implemented flush (plan task 16)
+        if (session.stateStore().hasDirty()) {
+            flushDirty(session);
+        }
     }
 
     /**
-     * Applies the drag policy of a session to a Bukkit drag event.
+     * Applies the drag policy of a session: when {@code cancelOnDrag} is enabled, any drag
+     * touching the top container is cancelled (mirrors the 2.x listener behavior).
      *
      * @param session the affected session
      * @param event   the Bukkit event
      */
     public void drag(@NotNull ViewSession session, @NotNull InventoryDragEvent event) {
-        throw new UnsupportedOperationException("implemented in Task 14");
+        assertMainThread("ViewEngine.drag");
+        if (!session.effectiveConfig().cancelOnDrag()) {
+            return;
+        }
+        Inventory inventory = session.inventory();
+        if (inventory == null) {
+            return;
+        }
+        int topSize = inventory.getSize();
+        for (Integer rawSlot : event.getRawSlots()) {
+            if (rawSlot < topSize) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     /**
@@ -209,26 +238,25 @@ public final class ViewEngine {
      * @param op      the operation to run at end of tick
      */
     public void defer(@NotNull ViewSession session, @NotNull Runnable op) {
+        assertMainThread("ViewEngine.defer");
         session.status(ViewSession.Status.TRANSITIONING);
         session.deferredOps().add(op);
-        // the Bukkit scheduler call activates when close() and open() are real (Task 12);
-        // the skeleton only establishes the deferral invariants that are tested in Task 11
-        // TODO(Task 14): Bukkit.getScheduler().runTask(plugin, op);
+        Bukkit.getScheduler().runTask(plugin, op);
     }
 
     /**
      * Returns whether a click event is currently being dispatched (drives operation
      * deferral).
      *
-     * @return always {@code false} until click dispatch lands in plan task 14
+     * @return {@code true} while a click is being dispatched
      */
     public boolean isInClickDispatch() {
         return inClickDispatch;
     }
 
     /**
-     * Marks the engine as inside or outside click dispatch; toggled by the click routing
-     * phase (plan task 14) around handler execution.
+     * Marks the engine as inside or outside click dispatch; toggled by {@link #click}
+     * around routing.
      *
      * @param active {@code true} while a click is being dispatched
      */
