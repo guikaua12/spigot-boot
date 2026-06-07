@@ -22,19 +22,22 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.state;
 
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
 
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * Mutable state token bound from {@code ViewArguments} at open; the argument type is
- * validated at the open site. An absent key reads as {@code null} until set.
+ * Mutable state token bound from {@code ViewArguments} at open: the open phase validates
+ * the argument type and writes the value straight into the session's {@link StateStore}.
+ * An absent key reads as {@code null} until set.
  *
  * @param <T> the value type
  */
@@ -60,7 +63,7 @@ public final class InitialStateImpl<T> implements MutableState<T> {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.key = Objects.requireNonNull(key, "key");
         this.type = Objects.requireNonNull(type, "type");
-        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
+        this.id = Objects.requireNonNull(table, "table").register(this);
     }
 
     /**
@@ -92,16 +95,42 @@ public final class InitialStateImpl<T> implements MutableState<T> {
 
     @Override
     public @Nullable T get(@NotNull ViewContext context) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        Objects.requireNonNull(context, "context");
+        StateStore store = storeFor(context);
+        return type.cast(store.get(id));
     }
 
     @Override
     public void set(@NotNull ViewContext context, @Nullable T value) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        Objects.requireNonNull(context, "context");
+        StateStore store = storeFor(context);
+        assertMainThread();
+        store.set(id, value);
+        store.markDirty(id);
     }
 
     @Override
     public void update(@NotNull ViewContext context, @NotNull UnaryOperator<T> fn) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        Objects.requireNonNull(fn, "fn");
+        set(context, fn.apply(get(context)));
+    }
+
+    private StateStore storeFor(ViewContext context) {
+        View contextOwner = ContextStateAccess.ownerOf(context);
+        if (contextOwner != owner) {
+            throw new StaleContextException("state token of " + owner.getClass().getName()
+                    + " used with a context of " + contextOwner.getClass().getName());
+        }
+        if (!ContextStateAccess.isActive(context)) {
+            throw new StaleContextException("context of " + owner.getClass().getName() + " is closed");
+        }
+        return ContextStateAccess.storeOf(context);
+    }
+
+    private static void assertMainThread() {
+        // the server null-check keeps pure unit tests (no Bukkit) working on any thread
+        if (Bukkit.getServer() != null && !Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("MutableState.set/update must run on the main thread");
+        }
     }
 }

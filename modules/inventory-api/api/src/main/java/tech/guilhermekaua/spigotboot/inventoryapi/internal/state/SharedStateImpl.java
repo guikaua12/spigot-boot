@@ -33,7 +33,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 
 /**
- * Shared state token: one atomic value per view singleton, visible to all viewers.
+ * Shared state token: one atomic value per view singleton, readable and writable from any
+ * thread. Every successful write invokes the flush hook so open sessions of the owning
+ * view repaint their watchers.
  *
  * @param <T> the value type
  */
@@ -43,6 +45,10 @@ public final class SharedStateImpl<T> implements SharedState<T> {
     private final View owner;
     private final AtomicReference<T> value;
     private final int id;
+
+    // wired by ViewEngine at registration (plan task 16) to flush every open session of
+    // the owning view; null until the engine wires it
+    @Nullable Runnable flushHook;
 
     /**
      * Creates and registers the token.
@@ -55,7 +61,7 @@ public final class SharedStateImpl<T> implements SharedState<T> {
     public SharedStateImpl(@NotNull View owner, @NotNull TokenTable table, @Nullable T initialValue) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.value = new AtomicReference<>(initialValue);
-        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
+        this.id = Objects.requireNonNull(table, "table").register(this);
     }
 
     /**
@@ -69,16 +75,31 @@ public final class SharedStateImpl<T> implements SharedState<T> {
 
     @Override
     public @Nullable T get() {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        return value.get();
     }
 
     @Override
-    public void set(@Nullable T value) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+    public void set(@Nullable T newValue) {
+        value.set(newValue);
+        runFlushHook();
     }
 
     @Override
     public void update(@NotNull UnaryOperator<T> fn) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        Objects.requireNonNull(fn, "fn");
+        T current;
+        T next;
+        do {
+            current = value.get();
+            next = fn.apply(current);
+        } while (!value.compareAndSet(current, next));
+        runFlushHook();
+    }
+
+    private void runFlushHook() {
+        Runnable hook = flushHook;
+        if (hook != null) {
+            hook.run();
+        }
     }
 }

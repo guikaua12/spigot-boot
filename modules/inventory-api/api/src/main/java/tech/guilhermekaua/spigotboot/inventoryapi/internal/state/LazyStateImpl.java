@@ -27,18 +27,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.State;
 
 import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Read-only state token computed once per context on first read.
+ * Read-only state token computed once per context on the first read and stored in the
+ * session's {@link StateStore}; a {@code null} result is cached via a private sentinel so
+ * the computation never re-runs for that context.
  *
  * @param <T> the value type
  */
 @ApiStatus.Internal
 public final class LazyStateImpl<T> implements State<T> {
+
+    private static final Object NULL_VALUE = new Object();
 
     private final View owner;
     private final Function<ViewContext, T> computation;
@@ -56,7 +61,7 @@ public final class LazyStateImpl<T> implements State<T> {
                          @NotNull Function<ViewContext, T> computation) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.computation = Objects.requireNonNull(computation, "computation");
-        this.id = Objects.requireNonNull(table, "table").register(this); // safe this-escape: register only stores the reference, no method dispatch
+        this.id = Objects.requireNonNull(table, "table").register(this);
     }
 
     /**
@@ -69,7 +74,28 @@ public final class LazyStateImpl<T> implements State<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public @Nullable T get(@NotNull ViewContext context) {
-        throw new UnsupportedOperationException("implemented in Task 6");
+        Objects.requireNonNull(context, "context");
+        StateStore store = storeFor(context);
+        Object raw = store.get(id);
+        if (raw == null) {
+            T computed = computation.apply(context);
+            raw = computed == null ? NULL_VALUE : computed;
+            store.set(id, raw);
+        }
+        return raw == NULL_VALUE ? null : (T) raw;
+    }
+
+    private StateStore storeFor(ViewContext context) {
+        View contextOwner = ContextStateAccess.ownerOf(context);
+        if (contextOwner != owner) {
+            throw new StaleContextException("state token of " + owner.getClass().getName()
+                    + " used with a context of " + contextOwner.getClass().getName());
+        }
+        if (!ContextStateAccess.isActive(context)) {
+            throw new StaleContextException("context of " + owner.getClass().getName() + " is closed");
+        }
+        return ContextStateAccess.storeOf(context);
     }
 }
