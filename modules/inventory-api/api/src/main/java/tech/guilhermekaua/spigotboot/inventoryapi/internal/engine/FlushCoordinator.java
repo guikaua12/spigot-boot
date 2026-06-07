@@ -142,7 +142,8 @@ final class FlushCoordinator {
      * guarded), off-main writes coalesce into one scheduled flush per view per tick. Already
      * wired tokens are skipped to avoid redundant re-wiring. The flush is watcher-scoped: each
      * hook captures its token id and passes it as a singleton dirty set so only components
-     * watching that token are repainted.
+     * watching that token are repainted. Called on the main thread via {@code ViewEngine.open};
+     * no separate assertion here.
      *
      * @param registered the registration whose view instance is being opened
      */
