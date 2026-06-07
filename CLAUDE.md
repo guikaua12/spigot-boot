@@ -9,7 +9,7 @@ Use the Maven wrapper from the repo root; on Windows prefer `mvnw.cmd`, on Unix 
 - `mvnw.cmd clean test`: builds all modules and runs the full suite. CI runs `mvn test -B`.
 - `mvnw.cmd -pl core -am test`: tests one module plus any required upstream modules.
 - `mvnw.cmd package -DskipTests`: packages jars without running tests.
-- `mvnw.cmd -pl test-plugin -am package`: packages the sample plugin for local verification. On a fresh clone, first run `mvnw.cmd -f modules/inventory-api/pom.xml -pl spigot-api-1_8-signature install` (the spigot-api 1.8.8 API-check signature is build-internal, never published), or skip the check with `-Danimal.sniffer.skip=true`.
+- `mvnw.cmd -pl test-plugin -am package`: packages the sample plugin for local verification. On a fresh clone, first run `mvnw.cmd -pl spigot-api-1_8-signature install` (the spigot-api 1.8.8 API-check signature is build-internal, never published), or skip the check with `-Danimal.sniffer.skip=true`.
 
 ## Coding Style & Naming Conventions
 Follow the existing Java style: 4-space indentation, same-line braces, `UpperCamelCase` for types, `lowerCamelCase` for methods and fields, and package names under `tech.guilhermekaua.spigotboot.*`. Keep public APIs null-safe where the codebase already does so (`@NotNull`, `Objects.requireNonNull`). Write complete Javadocs for public and protected APIs with tags such as `@param`, `@return`, `@throws`, and `@deprecated` when applicable. Normal comments must start with lowercase. Do not use fully qualified inline types such as `private final java.util.List<String> list;`; import classes with the `import` keyword instead. No formatter is enforced, so match surrounding code and preserve Java license headers.
