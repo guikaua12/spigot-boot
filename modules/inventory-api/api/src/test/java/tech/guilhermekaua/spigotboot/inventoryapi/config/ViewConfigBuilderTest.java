@@ -197,4 +197,30 @@ class ViewConfigBuilderTest {
 
         assertThrows(ViewConfigurationException.class, () -> original.withOverrides(null, 0));
     }
+
+    @Test
+    void withOverrides_rowsMismatchingLayout_throwsNamingBothCounts() {
+        ViewConfig original = new ViewConfigBuilder()
+                .title("Shop")
+                .layout("         ", "   AAA   ")
+                .build();
+
+        ViewConfigurationException ex = assertThrows(ViewConfigurationException.class,
+                () -> original.withOverrides(null, 3));
+
+        assertTrue(ex.getMessage().contains("3"));
+        assertTrue(ex.getMessage().contains("2"));
+    }
+
+    @Test
+    void withOverrides_rowsMatchingLayout_passes() {
+        ViewConfig original = new ViewConfigBuilder()
+                .title("Shop")
+                .layout("         ", "   AAA   ")
+                .build();
+
+        ViewConfig overridden = original.withOverrides(null, 2);
+
+        assertEquals(2, overridden.rows());
+    }
 }

@@ -30,7 +30,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
-import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.RenderContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
@@ -39,8 +39,6 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.schedule.ViewUpdateTa
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,7 +81,7 @@ public final class FirstRenderPhase {
         View view = session.registered().instance();
         RenderContextImpl renderContext = new RenderContextImpl(session, engine);
         try {
-            invokeOnFirstRender(view, renderContext);
+            HandlerInvoker.invoke(HandlerInvoker.ON_FIRST_RENDER, view, renderContext);
             renderContext.materializeAll();
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onFirstRender failed for view " + view.getClass().getName()
@@ -124,25 +122,5 @@ public final class FirstRenderPhase {
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(engine.plugin(),
                 new ViewUpdateTask(engine, session), interval, interval);
         session.updateTask(task);
-    }
-
-    // onFirstRender is protected on the public View type; the phase dispatches reflectively
-    private static void invokeOnFirstRender(View view, RenderContext context) {
-        try {
-            Method method = View.class.getDeclaredMethod("onFirstRender", RenderContext.class);
-            method.setAccessible(true);
-            method.invoke(view, context);
-        } catch (InvocationTargetException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new IllegalStateException("onFirstRender failed for view " + view.getClass().getName(), cause);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("failed to dispatch onFirstRender for view " + view.getClass().getName(), ex);
-        }
     }
 }

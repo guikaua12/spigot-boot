@@ -39,6 +39,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.OpenContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
@@ -70,6 +71,7 @@ class ViewEngineOpenOrderingTest {
     private PlayerMock player;
     private List<String> log;
     private ViewB viewB;
+    private ViewD viewD;
 
     static final class ViewA extends View {
         private final List<String> log;
@@ -93,6 +95,7 @@ class ViewEngineOpenOrderingTest {
         private final List<String> log;
         boolean cancelNext;
         boolean throwNext;
+        Integer overrideRowsNext;
 
         ViewB(List<String> log) {
             this.log = log;
@@ -112,11 +115,33 @@ class ViewEngineOpenOrderingTest {
             if (cancelNext) {
                 context.cancelOpen();
             }
+            if (overrideRowsNext != null) {
+                context.overrideRows(overrideRowsNext);
+            }
         }
 
         @Override
         protected void onFirstRender(@NotNull RenderContext context) {
             log.add("B.onFirstRender");
+        }
+    }
+
+    static final class ViewD extends View {
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("D").rows(1);
+        }
+
+        @Override
+        protected void onFirstRender(@NotNull RenderContext context) {
+            context.openView(ViewE.class);
+        }
+    }
+
+    static final class ViewE extends View {
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("E").rows(1);
         }
     }
 
@@ -139,9 +164,12 @@ class ViewEngineOpenOrderingTest {
         views = new ViewRegistry();
         log = new ArrayList<>();
         viewB = new ViewB(log);
+        viewD = new ViewD();
         views.register(new ViewA(log));
         views.register(viewB);
         views.register(new InitialStateView());
+        views.register(viewD);
+        views.register(new ViewE());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
         });
@@ -202,6 +230,39 @@ class ViewEngineOpenOrderingTest {
         assertSame(viewB, current.registered().instance());
         assertEquals(ViewSession.Status.ACTIVE, current.status());
         assertSame(current.inventory(), player.getOpenInventory().getTopInventory());
+    }
+
+    @Test
+    void overrideRows_invalid_abortsOpenAndKeepsPreviousActive() {
+        ViewSession previous = openViewA();
+        viewB.overrideRowsNext = 7;
+
+        // the override is validated before the commit point, so the failed open has zero
+        // side effects: A was never closed and stays the registered session
+        assertThrows(ViewConfigurationException.class,
+                () -> engine.open(player, ViewB.class, ViewArguments.empty()));
+
+        assertEquals(ViewSession.Status.ACTIVE, previous.status());
+        assertSame(previous, sessions.find(player.getUniqueId()).orElseThrow());
+        assertSame(previous.inventory(), player.getOpenInventory().getTopInventory());
+        assertEquals(Collections.singletonList("B.onOpen"), log,
+                "an invalid override must abort before the previous session is replaced");
+    }
+
+    @Test
+    void openViewDuringFirstRender_isDeferredAndReplaces() {
+        engine.open(player, ViewD.class, ViewArguments.empty());
+
+        // the inner open was deferred, not executed: D completed its own open and is the
+        // current session; an immediate inner open would have registered E and then
+        // orphaned it when D's open finished activating
+        ViewSession session = sessions.find(player.getUniqueId()).orElseThrow();
+        assertSame(viewD, session.registered().instance());
+        assertEquals(ViewSession.Status.ACTIVE, session.status());
+        assertEquals(1, session.deferredOps().size(),
+                "the openView from onFirstRender must be captured as one deferred op");
+        // Task 14 wires the end-of-tick scheduler that actually runs the deferred op,
+        // closing D with REPLACED and opening E (last-wins semantics)
     }
 
     @Test

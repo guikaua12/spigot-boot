@@ -151,6 +151,13 @@ class ViewEngineOpenCloseTest {
         }
     }
 
+    static final class ColoredTitleView extends View {
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("&aColored").rows(1);
+        }
+    }
+
     static final class UnregisteredView extends View {
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
@@ -173,6 +180,7 @@ class ViewEngineOpenCloseTest {
         views.register(throwOnOpenView);
         views.register(throwOnRenderView);
         views.register(new ScheduledView());
+        views.register(new ColoredTitleView());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
         });
@@ -196,9 +204,23 @@ class ViewEngineOpenCloseTest {
         assertSame(simpleView, session.registered().instance());
         Inventory inventory = session.inventory();
         assertNotNull(inventory);
+        // the container is sized rows * 9 and the configured title round-trips untouched
+        assertEquals(1 * 9, inventory.getSize());
+        assertEquals("&aSimple", session.effectiveConfig().title());
         assertNotNull(inventory.getItem(0));
         assertEquals(Material.STONE, inventory.getItem(0).getType());
         assertSame(inventory, player.getOpenInventory().getTopInventory());
+    }
+
+    @Test
+    void open_colorCodedTitle_paintsTitleAndActivates() {
+        // the title path runs placeholders first, then '&' color translation; it must not throw
+        engine.open(player, ColoredTitleView.class, ViewArguments.empty());
+
+        ViewSession session = session();
+        assertEquals(ViewSession.Status.ACTIVE, session.status());
+        assertEquals("&aColored", session.effectiveConfig().title());
+        assertSame(session.inventory(), player.getOpenInventory().getTopInventory());
     }
 
     @Test
@@ -215,6 +237,20 @@ class ViewEngineOpenCloseTest {
         // closing an already closed session is a no-op
         engine.close(session, CloseReason.API);
         assertEquals(1, simpleView.closeCount);
+    }
+
+    @Test
+    void engineInitiatedClose_closesTheOrphanedContainer() {
+        engine.open(player, SimpleView.class, ViewArguments.empty());
+        ViewSession session = session();
+        assertSame(session.inventory(), player.getOpenInventory().getTopInventory());
+
+        engine.close(session, CloseReason.API);
+
+        // an API close tears the session down while the client still shows the container;
+        // teardown must close it so the player is not left with a dead screen
+        assertNotSame(session.inventory(), player.getOpenInventory().getTopInventory());
+        assertEquals(ViewSession.Status.CLOSED, session.status());
     }
 
     @Test

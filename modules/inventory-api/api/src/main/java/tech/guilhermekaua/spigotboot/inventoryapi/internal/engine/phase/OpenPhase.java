@@ -32,11 +32,13 @@ import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
-import tech.guilhermekaua.spigotboot.inventoryapi.context.OpenContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.OpenContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.layout.ResolvedLayout;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.RegisteredView;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.InitialStateImpl;
@@ -45,8 +47,6 @@ import tech.guilhermekaua.spigotboot.inventoryapi.layout.Layout;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -65,16 +65,20 @@ public final class OpenPhase {
 
     private final ViewEngine engine;
     private final SessionRegistry sessions;
+    private final SlotPainter painter;
 
     /**
      * Creates the phase.
      *
      * @param engine   the owning engine, used to close a replaced previous session
      * @param sessions the per-player session registry
+     * @param painter  the slot painter, used to apply placeholders to the container title
      */
-    public OpenPhase(@NotNull ViewEngine engine, @NotNull SessionRegistry sessions) {
+    public OpenPhase(@NotNull ViewEngine engine, @NotNull SessionRegistry sessions,
+                     @NotNull SlotPainter painter) {
         this.engine = Objects.requireNonNull(engine, "engine");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
+        this.painter = Objects.requireNonNull(painter, "painter");
     }
 
     /**
@@ -87,8 +91,11 @@ public final class OpenPhase {
      * @return the new session ready for first render, or {@code null} when the open was
      *         cancelled (by {@code cancelOpen()} or a throwing {@code onOpen}) with zero
      *         side effects
-     * @throws IllegalArgumentException when an {@code initialState} argument is present
-     *                                  with a mismatching type (propagates before any side effect)
+     * @throws IllegalArgumentException   when an {@code initialState} argument is present
+     *                                    with a mismatching type (propagates before any side effect)
+     * @throws ViewConfigurationException when a per-open override recorded in {@code onOpen}
+     *                                    is invalid (propagates before the previous session
+     *                                    is replaced)
      */
     public @Nullable ViewSession openSession(@NotNull Player player, @NotNull RegisteredView registered,
                                              @NotNull ViewArguments arguments) {
@@ -105,7 +112,7 @@ public final class OpenPhase {
         OpenContextImpl openContext = new OpenContextImpl(session, engine);
         boolean failed = false;
         try {
-            invokeOnOpen(view, openContext);
+            HandlerInvoker.invoke(HandlerInvoker.ON_OPEN, view, openContext);
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onOpen failed for view " + view.getClass().getName()
                     + "; treating the open as cancelled", ex);
@@ -116,19 +123,25 @@ public final class OpenPhase {
             return null;
         }
 
+        // validate the per-open overrides before the commit point: an invalid override aborts
+        // the open with the previous session untouched, the same zero-side-effects semantics
+        // as cancelOpen
+        ViewConfig effective = registered.config()
+                .withOverrides(openContext.overriddenTitle(), openContext.overriddenRows());
+
         // commit point: replace the previous session before the new container exists
         Optional<ViewSession> previous = sessions.find(player.getUniqueId());
         if (previous.isPresent()) {
             engine.close(previous.get(), CloseReason.REPLACED);
         }
 
-        ViewConfig effective = registered.config()
-                .withOverrides(openContext.overriddenTitle(), openContext.overriddenRows());
         session.effectiveConfig(effective);
         session.layout(ResolvedLayout.resolve(effective));
 
+        // placeholders first, then color codes: PAPI output may itself contain '&' codes (§7 step 6)
         Inventory inventory = Bukkit.createInventory(null, effective.rows() * Layout.ROW_WIDTH,
-                ChatColor.translateAlternateColorCodes('&', effective.title()));
+                ChatColor.translateAlternateColorCodes('&',
+                        painter.applyText(player, effective.title(), effective.applyPlaceholders())));
         session.inventory(inventory);
         return session;
     }
@@ -143,26 +156,6 @@ public final class OpenPhase {
                     store.set(initial.tokenId(), value);
                 }
             }
-        }
-    }
-
-    // onOpen is protected on the public View type; the phase dispatches reflectively
-    private static void invokeOnOpen(View view, OpenContext context) {
-        try {
-            Method method = View.class.getDeclaredMethod("onOpen", OpenContext.class);
-            method.setAccessible(true);
-            method.invoke(view, context);
-        } catch (InvocationTargetException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new IllegalStateException("onOpen failed for view " + view.getClass().getName(), cause);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("failed to dispatch onOpen for view " + view.getClass().getName(), ex);
         }
     }
 }

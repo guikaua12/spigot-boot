@@ -91,9 +91,8 @@ public final class ViewEngine {
         this.views = Objects.requireNonNull(views, "views");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
-        Objects.requireNonNull(painter, "painter");
         this.closePhase = new ClosePhase(this, sessions);
-        this.openPhase = new OpenPhase(this, sessions);
+        this.openPhase = new OpenPhase(this, sessions, painter);
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
         this.updatePhase = new UpdatePhase(this);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
@@ -257,7 +256,8 @@ public final class ViewEngine {
     }
 
     /**
-     * Throws when not on the main server thread.
+     * Throws when not on the main server thread; when no server is present (pure unit
+     * tests), the check is skipped.
      *
      * @param operation the operation name used in the error message
      * @throws IllegalStateException when called off the main server thread

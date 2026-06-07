@@ -26,15 +26,13 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
-import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.CloseContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,8 +40,9 @@ import java.util.logging.Logger;
 /**
  * Session teardown: idempotent on closed sessions, cancels the update task, marks the
  * session closed, runs {@code onClose} (a throw is logged, teardown always completes),
- * unregisters the session and drops pending deferred operations. Constructed and invoked
- * only by {@link ViewEngine}.
+ * unregisters the session, drops pending deferred operations and closes a container the
+ * client still shows after an engine-initiated close. Constructed and invoked only by
+ * {@link ViewEngine}.
  */
 @ApiStatus.Internal
 public final class ClosePhase {
@@ -84,7 +83,7 @@ public final class ClosePhase {
         View view = session.registered().instance();
         CloseContextImpl closeContext = new CloseContextImpl(session, engine, reason);
         try {
-            invokeOnClose(view, closeContext);
+            HandlerInvoker.invoke(HandlerInvoker.ON_CLOSE, view, closeContext);
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onClose failed for view " + view.getClass().getName()
                     + "; teardown continues", ex);
@@ -92,25 +91,25 @@ public final class ClosePhase {
 
         sessions.unregister(session);
         session.deferredOps().clear();
+        closeOrphanedContainer(session, reason);
     }
 
-    // onClose is protected on the public View type; the phase dispatches reflectively
-    private static void invokeOnClose(View view, CloseContext context) {
-        try {
-            Method method = View.class.getDeclaredMethod("onClose", CloseContext.class);
-            method.setAccessible(true);
-            method.invoke(view, context);
-        } catch (InvocationTargetException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new IllegalStateException("onClose failed for view " + view.getClass().getName(), cause);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("failed to dispatch onClose for view " + view.getClass().getName(), ex);
+    // an engine-initiated close (API, PLUGIN_DISABLE, ...) tears the session down while the
+    // client still shows the container; close it so the player is not left with a dead screen.
+    // PLAYER means Bukkit is already closing it, REPLACED means the successor's openInventory
+    // swaps the screen, DISCONNECT means the player is gone. The re-entrant InventoryCloseEvent
+    // this triggers is safe: the session is already CLOSED (idempotent) and unregistered.
+    private static void closeOrphanedContainer(ViewSession session, CloseReason reason) {
+        if (reason == CloseReason.PLAYER || reason == CloseReason.REPLACED
+                || reason == CloseReason.DISCONNECT) {
+            return;
+        }
+        if (!session.player().isOnline()) {
+            return;
+        }
+        if (session.inventory() != null
+                && session.player().getOpenInventory().getTopInventory() == session.inventory()) {
+            session.player().closeInventory();
         }
     }
 }

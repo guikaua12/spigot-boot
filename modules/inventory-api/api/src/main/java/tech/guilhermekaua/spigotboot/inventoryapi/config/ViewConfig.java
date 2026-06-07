@@ -126,11 +126,17 @@ public final class ViewConfig {
      * @param title the title override, or {@code null} to keep the current title
      * @param rows  the rows override, or {@code null} to keep the current rows
      * @return a new config with the overrides applied
-     * @throws ViewConfigurationException if a non-null rows override is outside 1-6
+     * @throws ViewConfigurationException if a non-null rows override is outside 1-6, or
+     *                                    does not match the row count of a non-empty layout
      */
     public @NotNull ViewConfig withOverrides(@Nullable String title, @Nullable Integer rows) {
         if (rows != null) {
             validateRows(rows);
+            // a layout paints fixed slots; a mismatching container size would overflow at paint
+            if (!layout.isEmpty() && rows != layout.size()) {
+                throw new ViewConfigurationException("rows override " + rows
+                        + " does not match the declared layout of " + layout.size() + " rows");
+            }
         }
         return new ViewConfig(
                 title != null ? title : this.title,

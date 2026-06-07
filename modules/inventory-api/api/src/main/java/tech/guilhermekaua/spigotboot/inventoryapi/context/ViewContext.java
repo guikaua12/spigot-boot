@@ -128,8 +128,9 @@ public interface ViewContext {
     /**
      * Navigates to another registered view: this session closes with
      * {@link CloseReason#REPLACED}, then the target opens. Deferred to the end of the tick
-     * during click dispatch. Calling this method from within {@code onClose} is illegal;
-     * the call is logged SEVERE and dropped to prevent navigation loops. Main thread only.
+     * during click dispatch, or while the session is not yet active (opening/rendering).
+     * Calling this method from within {@code onClose} is illegal; the call is logged
+     * SEVERE and dropped to prevent navigation loops. Main thread only.
      *
      * @param target the registered view class to open
      * @throws UnknownViewException when the target class is not registered
@@ -137,9 +138,10 @@ public interface ViewContext {
     void openView(@NotNull Class<? extends View> target);
 
     /**
-     * Same as {@link #openView(Class)}, passing arguments to the target view.
-     * Calling this method from within {@code onClose} is illegal; the call is logged
-     * SEVERE and dropped to prevent navigation loops.
+     * Same as {@link #openView(Class)}, passing arguments to the target view. Deferred to
+     * the end of the tick during click dispatch, or while the session is not yet active
+     * (opening/rendering). Calling this method from within {@code onClose} is illegal;
+     * the call is logged SEVERE and dropped to prevent navigation loops.
      *
      * @param target    the registered view class to open
      * @param arguments the arguments handed to the target's contexts

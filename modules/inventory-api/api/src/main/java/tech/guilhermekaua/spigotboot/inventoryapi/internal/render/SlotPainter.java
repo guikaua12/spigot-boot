@@ -82,4 +82,22 @@ public final class SlotPainter {
 
         inventory.setItem(slot, copy);
     }
+
+    /**
+     * Applies placeholders to a single text fragment (e.g. a container title) when
+     * requested; the input is returned unchanged when placeholder application is disabled
+     * or the applier yields {@code null}.
+     *
+     * @param player            the viewer whose context resolves player-scoped placeholders
+     * @param text              the text to process
+     * @param applyPlaceholders whether placeholders should be applied
+     * @return the processed text, never {@code null}
+     */
+    public @NotNull String applyText(@NotNull Player player, @NotNull String text, boolean applyPlaceholders) {
+        if (!applyPlaceholders) {
+            return text;
+        }
+        String applied = placeholderApplier.apply(player, text);
+        return applied != null ? applied : text;
+    }
 }

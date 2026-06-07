@@ -29,9 +29,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -75,7 +74,7 @@ public final class ViewRegistry {
         }
         instance.tokenTable().freeze();
         ViewConfigBuilder builder = new ViewConfigBuilder();
-        invokeOnInit(instance, builder);
+        HandlerInvoker.invoke(HandlerInvoker.ON_INIT, instance, builder);
         ViewConfig config = builder.build();
         views.put(type, new RegisteredView(type, instance, config));
     }
@@ -97,25 +96,5 @@ public final class ViewRegistry {
      */
     public @NotNull Collection<RegisteredView> all() {
         return Collections.unmodifiableCollection(views.values());
-    }
-
-    // onInit is protected on the public View type; the registry dispatches reflectively
-    private static void invokeOnInit(View instance, ViewConfigBuilder builder) {
-        try {
-            Method method = View.class.getDeclaredMethod("onInit", ViewConfigBuilder.class);
-            method.setAccessible(true);
-            method.invoke(instance, builder);
-        } catch (InvocationTargetException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new IllegalStateException("onInit failed for view " + instance.getClass().getName(), cause);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("failed to dispatch onInit for view " + instance.getClass().getName(), ex);
-        }
     }
 }

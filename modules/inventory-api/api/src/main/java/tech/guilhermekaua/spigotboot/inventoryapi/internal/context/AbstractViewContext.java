@@ -48,7 +48,8 @@ import java.util.UUID;
  * without casting to concrete context classes.
  *
  * <p>Deferral policy (§5.4): {@link #close()} and {@link #openView} are deferred to the end
- * of the tick during click dispatch; {@link #update()} is never deferred because an update
+ * of the tick during click dispatch, and {@link #openView} additionally while the session is
+ * not yet active (opening/rendering); {@link #update()} is never deferred because an update
  * pass is safe mid-click.
  */
 @ApiStatus.Internal
@@ -160,7 +161,10 @@ public abstract class AbstractViewContext implements ViewContext, StateBackedCon
 
     @Override
     public void openView(@NotNull Class<? extends View> target, @NotNull ViewArguments arguments) {
-        if (engine.isInClickDispatch()) {
+        // also defer while the session is still opening/rendering: an immediate inner open
+        // would be orphaned when the outer open completes and activates its own session;
+        // deferral keeps last-wins semantics (the inner open later replaces the outer one)
+        if (engine.isInClickDispatch() || session.status() != ViewSession.Status.ACTIVE) {
             engine.defer(session, () -> engine.open(player(), target, arguments));
             return;
         }
