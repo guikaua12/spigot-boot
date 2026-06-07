@@ -46,29 +46,45 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.SharedStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
+import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
  * sole mutator of sessions. All entry points assert the main thread.
- *
- * <p>Dirty-state and shared-state flushing are completed in plan task 16.
  */
 @Component
 @ApiStatus.Internal
 public final class ViewEngine {
 
+    private static final Logger LOGGER = Logger.getLogger(ViewEngine.class.getName());
+    private static final int CASCADE_CAP = 8;
+
     private final Plugin plugin;
     private final ViewRegistry views;
-    // used by the flush implementations added in plan task 16
     private final SessionRegistry sessions;
     private final TitleUpdater titleUpdater;
 
     private boolean inClickDispatch;
+
+    // re-entrancy guard for main-thread shared flushes: a renderer writing shared state
+    // while its view is being flushed must not recurse; main thread only
+    private final Set<View> sharedFlushPending = new HashSet<>();
+    // per-tick coalescing of off-main shared writes; touched from any thread
+    private final Set<View> sharedFlushScheduled =
+            Collections.newSetFromMap(new ConcurrentHashMap<View, Boolean>());
 
     // fixed-order phase handlers, engine-owned
     final OpenPhase openPhase;
@@ -95,7 +111,7 @@ public final class ViewEngine {
         this.closePhase = new ClosePhase(this, sessions);
         this.openPhase = new OpenPhase(this, sessions, painter);
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
-        this.updatePhase = new UpdatePhase(this);
+        this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
     }
 
@@ -118,6 +134,7 @@ public final class ViewEngine {
         Objects.requireNonNull(arguments, "arguments");
         RegisteredView registered = views.find(viewType).orElseThrow(() ->
                 new UnknownViewException("view " + viewType.getName() + " is not registered"));
+        wireSharedFlush(registered);
         ViewSession session = openPhase.openSession(player, registered, arguments);
         if (session == null) {
             // cancelled with zero side effects; the previous session stays untouched
@@ -138,7 +155,7 @@ public final class ViewEngine {
     }
 
     /**
-     * Runs an update pass on a session.
+     * Runs an update pass on a session, then flushes any state the handlers dirtied.
      *
      * @param session the session to update
      * @param trigger the cause of the update
@@ -146,6 +163,7 @@ public final class ViewEngine {
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
         assertMainThread("ViewEngine.update");
         updatePhase.update(session, trigger, null);
+        flushDirty(session);
     }
 
     /**
@@ -165,11 +183,9 @@ public final class ViewEngine {
         } finally {
             clickDispatch(false);
         }
-        // coalesced reactive flush; guarded so handler-less clicks never hit the
-        // not-yet-implemented flush (plan task 16)
-        if (session.stateStore().hasDirty()) {
-            flushDirty(session);
-        }
+        // coalesced reactive flush: handlers write state during routing and the flush
+        // runs once at the end of the entry point (§5.5)
+        flushDirty(session);
     }
 
     /**
@@ -214,21 +230,79 @@ public final class ViewEngine {
     }
 
     /**
-     * Flushes dirty state tokens of a session (STATE_CHANGE re-render, cascade cap 8).
+     * Flushes dirty state tokens of a session: each pass drains the dirty set and runs a
+     * STATE_CHANGE update over the watchers; passes repeat while handlers re-dirty tokens,
+     * capped at {@value #CASCADE_CAP} cascades per flush, after which the remaining dirty
+     * tokens are dropped with a WARNING.
      *
      * @param session the session to flush
      */
     public void flushDirty(@NotNull ViewSession session) {
-        throw new UnsupportedOperationException("implemented in Task 16");
+        assertMainThread("ViewEngine.flushDirty");
+        int cascades = 0;
+        while (session.stateStore().hasDirty()) {
+            if (++cascades > CASCADE_CAP) {
+                LOGGER.log(Level.WARNING, "state feedback loop detected for view {0}; "
+                                + "dropping remaining dirty tokens after {1} cascaded flush passes",
+                        new Object[]{session.registered().type().getName(), CASCADE_CAP});
+                session.stateStore().drainDirty();
+                break;
+            }
+            Set<Integer> dirty = session.stateStore().drainDirty();
+            updatePhase.update(session, UpdateTrigger.STATE_CHANGE, dirty);
+        }
     }
 
     /**
-     * Flushes shared-state watchers of every open session of a view.
+     * Runs a full STATE_CHANGE repaint pass on every active session of the given view;
+     * invoked after a {@code SharedState} write through the wired flush hook.
      *
      * @param owner the view singleton whose sessions should flush
      */
     public void flushShared(@NotNull View owner) {
-        throw new UnsupportedOperationException("implemented in Task 16");
+        assertMainThread("ViewEngine.flushShared");
+        // snapshot: an onUpdate handler may close a session and mutate the registry
+        List<ViewSession> snapshot = new ArrayList<>(sessions.all());
+        for (ViewSession session : snapshot) {
+            if (session.registered().instance() == owner && session.isActive()) {
+                updatePhase.update(session, UpdateTrigger.STATE_CHANGE, null);
+            }
+        }
+    }
+
+    /**
+     * Wires the flush hook of every {@code SharedState} token of the view so writes fan out
+     * to all of the view's open sessions: main-thread writes flush immediately (re-entrancy
+     * guarded), off-main writes coalesce into one scheduled flush per view per tick. The
+     * overwrite is idempotent and re-applied on every open.
+     *
+     * @param registered the registration whose view instance is being opened
+     */
+    void wireSharedFlush(@NotNull RegisteredView registered) {
+        final View owner = registered.instance();
+        for (StateToken token : owner.tokenTable().tokens()) {
+            if (!(token instanceof SharedStateImpl)) {
+                continue;
+            }
+            ((SharedStateImpl<?>) token).flushHook(() -> {
+                if (Bukkit.isPrimaryThread()) {
+                    if (sharedFlushPending.add(owner)) {
+                        try {
+                            flushShared(owner);
+                        } finally {
+                            sharedFlushPending.remove(owner);
+                        }
+                    }
+                } else {
+                    if (sharedFlushScheduled.add(owner)) {
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            sharedFlushScheduled.remove(owner);
+                            flushShared(owner);
+                        });
+                    }
+                }
+            });
+        }
     }
 
     /**
