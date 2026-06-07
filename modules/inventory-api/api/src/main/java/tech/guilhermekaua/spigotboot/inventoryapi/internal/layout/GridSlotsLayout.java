@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * Grid-parsed {@link Layout} backing {@link Layout#ofGrid}: {@code ' '} is empty, every
- * other character is a fill slot ordered alphabetically by character, then occurrence.
+ * other character is a fill slot ordered by character code point (Unicode value), then occurrence.
  */
 @ApiStatus.Internal
 public final class GridSlotsLayout implements Layout {
@@ -51,6 +51,9 @@ public final class GridSlotsLayout implements Layout {
 
         for (int row = 0; row < rows.length; row++) {
             String line = rows[row];
+            if (line == null) {
+                throw new IllegalArgumentException("row " + row + " must not be null");
+            }
             if (line.length() != ROW_WIDTH) {
                 throw new IllegalArgumentException(
                         "layout row " + row + " must be exactly " + ROW_WIDTH

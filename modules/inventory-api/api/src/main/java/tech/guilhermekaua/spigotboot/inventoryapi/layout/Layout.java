@@ -48,7 +48,7 @@ public interface Layout {
 
     /**
      * Parses a row-by-row ASCII grid: {@code ' '} marks an empty slot, every other character
-     * is a fill slot; fill order is alphabetical by character, then occurrence order.
+     * is a fill slot; fill order is by character code point (Unicode value), then occurrence order.
      *
      * @param rows the grid rows, each exactly {@link #ROW_WIDTH} characters wide
      * @return the parsed layout

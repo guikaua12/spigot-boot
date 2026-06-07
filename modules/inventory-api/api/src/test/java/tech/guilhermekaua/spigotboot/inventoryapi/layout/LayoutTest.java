@@ -84,6 +84,13 @@ class LayoutTest {
     }
 
     @Test
+    void ofGrid_nullRow_throws() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> Layout.ofGrid("         ", null));
+        assertTrue(error.getMessage().contains("row 1"));
+    }
+
+    @Test
     void ofSlots_returnsOrderedSlotsLayout() {
         assertTrue(Layout.ofSlots(0) instanceof OrderedSlotsLayout);
     }
