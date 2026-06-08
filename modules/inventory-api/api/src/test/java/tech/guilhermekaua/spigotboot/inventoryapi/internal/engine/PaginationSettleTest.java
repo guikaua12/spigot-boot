@@ -64,6 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -85,6 +86,7 @@ class PaginationSettleTest {
     private CachedCounterView cachedCounterView;
     private EagerNavView eagerNavView;
     private ElementWatcherView elementWatcherView;
+    private RollbackView rollbackView;
 
     @BeforeEach
     void setUp() {
@@ -98,11 +100,13 @@ class PaginationSettleTest {
         cachedCounterView = new CachedCounterView();
         eagerNavView = new EagerNavView();
         elementWatcherView = new ElementWatcherView();
+        rollbackView = new RollbackView();
         views.register(eagerPaintView);
         views.register(asyncSettleView);
         views.register(cachedCounterView);
         views.register(eagerNavView);
         views.register(elementWatcherView);
+        views.register(rollbackView);
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
         });
@@ -249,6 +253,35 @@ class PaginationSettleTest {
         protected void onFirstRender(@NotNull RenderContext context) {
             context.slot(8, new ItemStack(Material.STONE))
                     .onClick(ctx -> badge.set(ctx, 5));
+        }
+    }
+
+    /**
+     * Controllable async view that captures every future in a list so individual in-flight
+     * requests can be completed or failed independently. Wires an onError callback to verify
+     * the error path end-to-end through the ViewEngine.
+     */
+    static final class RollbackView extends View {
+        final List<CompletableFuture<PageResult<String>>> futures = new CopyOnWriteArrayList<>();
+        final AtomicInteger errorCallbackCount = new AtomicInteger();
+        volatile Throwable lastCallbackError;
+        final Pagination<String> pagination = this.<String>paginateAsync(request -> {
+            CompletableFuture<PageResult<String>> future = new CompletableFuture<>();
+            futures.add(future);
+            return future;
+        })
+                .loadingItem(ctx -> new ItemStack(Material.CLOCK))
+                .onError((request, error) -> {
+                    lastCallbackError = error;
+                    errorCallbackCount.incrementAndGet();
+                })
+                .itemRenderer((ctx, item, index, value) ->
+                        item.item(new ItemStack(Material.PAPER, index + 1)))
+                .build();
+
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("Rollback").layout("OOO      ");
         }
     }
 
@@ -415,5 +448,50 @@ class PaginationSettleTest {
                 "both element item functions re-evaluate on the watched flush");
         assertEquals(2, elementWatcherView.rendererCalls.get(),
                 "the pagination renderer must not re-run for an element-watcher repaint");
+    }
+
+    @Test
+    void failedSettleAfterOptimisticAdvances_rollsBackToLastRequestedPage_throughTheEngine() {
+        // mirrors AsyncPaginationEngineTest#failedLoad_rollsBackToLastRequestedPageAndInvokesErrorCallback
+        // but drives the same quirk through the full ViewEngine path with MockBukkit
+        engine.open(player, RollbackView.class, ViewArguments.empty());
+        ViewSession session = session();
+        PlainViewContextImpl ctx = new PlainViewContextImpl(session, engine);
+
+        // future[0]: page-1 initial load — complete inline on the primary thread so the settle
+        // runs synchronously via BukkitSettleDispatcher (isPrimaryThread → runs inline, no tick)
+        rollbackView.futures.get(0).complete(PageResult.of(Arrays.asList("a", "b", "c"), 9));
+        // drain the repaint task queued by the inline settle before advancing
+        server.getScheduler().performOneTick();
+
+        assertEquals(1, rollbackView.pagination.currentPage(ctx),
+                "page 1 must be current after the initial settle");
+
+        // advance twice while both loads are in flight — future[1] = page 2, future[2] = page 3
+        rollbackView.pagination.advance(ctx); // page 2 dispatched; future[1] created
+        rollbackView.pagination.advance(ctx); // page 3 dispatched; future[2] created, supersedes page 2
+        assertEquals(3, rollbackView.pagination.currentPage(ctx),
+                "optimistic cursor must sit at page 3 before either advance settles");
+
+        // fail the page-3 load inline on the primary thread (isPrimaryThread → inline settle,
+        // no tick needed for the state rollback itself)
+        rollbackView.futures.get(2).completeExceptionally(new RuntimeException("db down"));
+
+        // preserved 2.x quirk (navigationSnapshot / restoreNavigation — do NOT "correct" this):
+        // the rollback target is the last REQUESTED page (page 2, whose load was superseded),
+        // NOT the last successfully rendered page (page 1).
+        assertEquals(2, rollbackView.pagination.currentPage(ctx),
+                "failed navigation must roll back to the last requested page (2.x quirk)");
+        assertNotNull(rollbackView.pagination.lastError(ctx),
+                "lastError must be set after a failed settle");
+        assertFalse(rollbackView.pagination.isLoading(ctx),
+                "pagination must not remain in the loading state after failure");
+        assertNotNull(rollbackView.lastCallbackError,
+                "the onError callback must have fired");
+        assertEquals(1, rollbackView.errorCallbackCount.get(),
+                "the onError callback must fire exactly once for the one failed load");
+
+        // drain any repaint task queued by the rollback settle so tearDown stays clean
+        server.getScheduler().performOneTick();
     }
 }
