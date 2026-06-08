@@ -216,6 +216,8 @@ class PaginationImplTest {
             }).get(5, TimeUnit.SECONDS);
             assertTrue(thrown.get() instanceof IllegalStateException,
                     "off-main mutator must throw IllegalStateException, got " + thrown.get());
+            assertTrue(thrown.get().getMessage().contains("must be called on the main server thread"),
+                    "exception message must contain 'must be called on the main server thread', got: " + thrown.get().getMessage());
         } finally {
             executor.shutdownNow();
         }

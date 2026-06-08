@@ -106,6 +106,16 @@ class PaginationBuilderImplTest {
     }
 
     @Test
+    void patternsConflict_evenWhenLayoutCharExplicitlySetToTheDefaultValue() {
+        PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
+        builder.itemRenderer(renderer()).layoutChar('O').patterns(nonEmptyLayout());
+
+        ViewConfigurationException thrown = assertThrows(ViewConfigurationException.class, builder::build);
+        assertTrue(thrown.getMessage().contains("patterns"));
+        // the conflict keys on the explicit CALL, not the value: 'O' is the default yet still conflicts
+    }
+
+    @Test
     void build_patternsCombinedWithLayout_throws() {
         PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
         builder.itemRenderer(renderer()).layout(nonEmptyLayout()).patterns(nonEmptyLayout());
