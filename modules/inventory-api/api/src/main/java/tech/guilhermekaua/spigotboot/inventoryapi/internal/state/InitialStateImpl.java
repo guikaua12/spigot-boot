@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
-import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
 
@@ -123,14 +122,6 @@ public final class InitialStateImpl<T> implements MutableState<T>, IdentifiableT
     }
 
     private StateStore storeFor(ViewContext context) {
-        View contextOwner = ContextStateAccess.ownerOf(context);
-        if (contextOwner != owner) {
-            throw new StaleContextException("state token of " + owner.getClass().getName()
-                    + " used with a context of " + contextOwner.getClass().getName());
-        }
-        if (!ContextStateAccess.isActive(context)) {
-            throw new StaleContextException("context of " + owner.getClass().getName() + " is closed");
-        }
-        return ContextStateAccess.storeOf(context);
+        return ContextStateAccess.storeFor(context, owner);
     }
 }

@@ -22,18 +22,45 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.state;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.StaleContextException;
 
 /**
- * Package-visible resolver from a public {@link ViewContext} to its state backing; state
- * token impls never cast to concrete context classes, only to {@link StateBackedContext}.
+ * Resolver from a public {@link ViewContext} to its state backing; token impls never cast
+ * to concrete context classes, only to {@link StateBackedContext}. Public so token
+ * implementations outside this package (the pagination token) can run the shared
+ * owner/liveness guard via {@link #storeFor(ViewContext, View)}.
  */
-final class ContextStateAccess {
+@ApiStatus.Internal
+public final class ContextStateAccess {
 
     private ContextStateAccess() {
+    }
+
+    /**
+     * Resolves the state store of a context after validating that the context belongs to
+     * the given owning view and is still open — the single guard shared by every
+     * per-context token implementation.
+     *
+     * @param context the context a token was invoked with
+     * @param owner   the view declaring the token
+     * @return the backing state store
+     * @throws StaleContextException when the context belongs to another view, is already
+     *                               closed, or carries no state backing
+     */
+    public static @NotNull StateStore storeFor(@NotNull ViewContext context, @NotNull View owner) {
+        View contextOwner = ownerOf(context);
+        if (contextOwner != owner) {
+            throw new StaleContextException("state token of " + owner.getClass().getName()
+                    + " used with a context of " + contextOwner.getClass().getName());
+        }
+        if (!isActive(context)) {
+            throw new StaleContextException("context of " + owner.getClass().getName() + " is closed");
+        }
+        return storeOf(context);
     }
 
     /**
