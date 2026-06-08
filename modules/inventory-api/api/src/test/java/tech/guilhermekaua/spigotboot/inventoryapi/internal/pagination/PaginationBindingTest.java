@@ -575,6 +575,35 @@ class PaginationBindingTest {
         assertTrue(view.triggers.isEmpty(), "OPENING and CLOSED sessions drop settles entirely");
     }
 
+    @Test
+    void targetSlots_patternGeometry_isTheDeduplicatedUnionInFirstEncounterOrder() {
+        // overlapping slots across patterns are not rejected by checkBounds (it only checks
+        // bounds, not cross-pattern duplicates), so the overlap path is legal; the
+        // LinkedHashSet union in resolveTargetSlots preserves first-encounter order and
+        // deduplicates slot 4, which appears in both pattern A and pattern B
+        ViewSession session = sessionFor(new PagedView(), rowsConfig());
+        // pattern A: slots 2, 3, 4 — pattern B: slots 4, 5; slot 4 overlaps; all fit in 1 row
+        PaginationSpec<Integer> spec = specOf(PaginationSpec.Geometry.PATTERN,
+                PaginationSpec.Target.PATTERNS, 'O', null,
+                Arrays.asList(Layout.ofSlots(2, 3, 4), Layout.ofSlots(4, 5)),
+                amountRenderer(), null,
+                PaginationSourceSpec.eager(Arrays.asList(1, 2, 3, 4)));
+        PaginationBinding binding = new PaginationBinding(spec, 0, session, engine);
+
+        // before initialize the array must be empty
+        assertArrayEquals(new int[0], binding.targetSlots());
+
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        // expected union in first-encounter order: 2, 3, 4 (from A), then 5 (from B); 4 deduped
+        assertArrayEquals(new int[]{2, 3, 4, 5}, binding.targetSlots());
+
+        // defensive copy: mutating the returned array does not corrupt the binding
+        int[] copy = binding.targetSlots();
+        copy[0] = 99;
+        assertArrayEquals(new int[]{2, 3, 4, 5}, binding.targetSlots());
+    }
+
     private static final class CapturingHandler extends Handler {
         private final List<LogRecord> records = new ArrayList<>();
 
