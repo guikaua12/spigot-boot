@@ -36,12 +36,9 @@ import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleScrollView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.ShopView;
-import tech.guilhermekaua.spigotboot.testPlugin.services.UserService;
-
 @Component
 @RequiredArgsConstructor
 public class JoinListener implements Listener {
-    private final UserService userService;
     private final ViewService viewService;
 
     @EventHandler
