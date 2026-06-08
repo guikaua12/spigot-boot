@@ -35,7 +35,8 @@ import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
         name = "TestPlugin",
         version = "1.0.0",
         description = "A test plugin for ApxPlugin framework.",
-        authors = {"Approximations"}
+        authors = {"Approximations"},
+        apiVersion = "1.13"
 )
 public class Main extends JavaPlugin {
     private SpigotBootPlugin bootPlugin;

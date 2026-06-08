@@ -5,20 +5,12 @@
     <file url="file://$USER_HOME$/Desktop/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/annotation-processor/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/annotation-processor/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/commands/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/commands/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/config-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/config-spigot/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/config/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/config/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/core/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/core/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/data/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/data/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/di/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/di/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/modules/data-jdbc/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/modules/data-jdbc/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/modules/data-orm-lite/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/modules/data-orm-lite/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/modules/data/src/main/java" charset="UTF-8" />
@@ -27,22 +19,6 @@
     <file url="file://$PROJECT_DIR$/modules/placeholder/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/modules/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/modules/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/annotation-processor/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/annotation-processor/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/commands-config-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/commands-config-spigot/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/commands-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/commands-spigot/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/config-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/config-spigot/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/core-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/core-spigot/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/placeholder/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/placeholder/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/pmc/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/pmc/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/platform-spigot/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/pmc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/pmc/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />

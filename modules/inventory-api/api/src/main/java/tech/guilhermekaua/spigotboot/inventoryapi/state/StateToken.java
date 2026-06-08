@@ -20,23 +20,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPlugin.configuration;
+package tech.guilhermekaua.spigotboot.inventoryapi.state;
 
-import tech.guilhermekaua.spigotboot.data.ormLite.config.PersistenceConfig;
-
-public class PersistenceConfigImpl implements PersistenceConfig {
-    @Override
-    public String getAddress() {
-        return "jdbc:h2:mem:test";
-    }
-
-    @Override
-    public String getUsername() {
-        return "sa";
-    }
-
-    @Override
-    public String getPassword() {
-        return "";
-    }
+/**
+ * Marker for watchable per-view tokens; implemented by {@link State} and pagination
+ * tokens. Pass tokens to {@code ItemComponentBuilder.updateOnStateChange(StateToken...)}
+ * to re-render a component when the token changes.
+ */
+public interface StateToken {
 }
