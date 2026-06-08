@@ -32,15 +32,21 @@ import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.SlotClickContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.UpdateContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBuilderImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationSourceSpec;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.InitialStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.LazyStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.MutableStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.SharedStateImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.TokenTable;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.PaginationBuilder;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSupplier;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.SharedState;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.State;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -175,6 +181,82 @@ public abstract class View {
      */
     protected final <T> SharedState<T> sharedState(@Nullable T initialValue) {
         return new SharedStateImpl<>(this, tokenTable, initialValue);
+    }
+
+    /**
+     * Declares paginated rendering over a fixed element list. The list is copied
+     * defensively when this factory runs and becomes one immutable page source shared by
+     * every context; later mutations of the original list are never observed. Use
+     * {@link #paginate(Function)} when elements differ per viewer or must be refreshable.
+     *
+     * <p>Like the state factories, pagination declarations are legal only in field
+     * initializers or the constructor: the returned builder's
+     * {@link PaginationBuilder#build()} registers the token and throws
+     * {@link IllegalStateException} once registration froze the token table.
+     *
+     * @param source the elements to paginate, copied defensively
+     * @param <T>    the element type
+     * @return the pagination declaration builder
+     */
+    protected final <T> PaginationBuilder<T> paginate(@NotNull List<T> source) {
+        return new PaginationBuilderImpl<>(this, tokenTable, PaginationSourceSpec.eager(source));
+    }
+
+    /**
+     * Declares paginated rendering over a per-context element list: the function runs
+     * once per context at pagination initialization, on the main thread, and runs again
+     * for that context only when {@code Pagination.refresh(context)} is called.
+     *
+     * <p>Like the state factories, pagination declarations are legal only in field
+     * initializers or the constructor: the returned builder's
+     * {@link PaginationBuilder#build()} registers the token and throws
+     * {@link IllegalStateException} once registration froze the token table.
+     *
+     * @param source the per-context element list factory; must not return {@code null}
+     * @param <T>    the element type
+     * @return the pagination declaration builder
+     */
+    protected final <T> PaginationBuilder<T> paginate(@NotNull Function<ViewContext, List<T>> source) {
+        return new PaginationBuilderImpl<>(this, tokenTable, PaginationSourceSpec.lazy(source));
+    }
+
+    /**
+     * Declares paginated rendering over an asynchronously loaded source: every context
+     * gets its own fresh {@code AsyncPageSource} at pagination initialization, so request
+     * ids, page caches, loading state and errors are never shared between viewers. The
+     * async-only builder options ({@code loadingItem}, {@code onError},
+     * {@code requestTimeout}, {@code cacheTtl}, {@code cacheMaxPages}) are legal only on
+     * the builder returned here.
+     *
+     * <p>Like the state factories, pagination declarations are legal only in field
+     * initializers or the constructor: the returned builder's
+     * {@link PaginationBuilder#build()} registers the token and throws
+     * {@link IllegalStateException} once registration froze the token table.
+     *
+     * @param source the page loader invoked per page request
+     * @param <T>    the element type
+     * @return the pagination declaration builder
+     */
+    protected final <T> PaginationBuilder<T> paginateAsync(@NotNull AsyncPageSupplier<T> source) {
+        return new PaginationBuilderImpl<>(this, tokenTable, PaginationSourceSpec.async(source));
+    }
+
+    /**
+     * Escape hatch declaring paginated rendering over a custom {@link PageSource}: the
+     * factory runs once per context at pagination initialization and must return the
+     * source instance serving exactly that context.
+     *
+     * <p>Like the state factories, pagination declarations are legal only in field
+     * initializers or the constructor: the returned builder's
+     * {@link PaginationBuilder#build()} registers the token and throws
+     * {@link IllegalStateException} once registration froze the token table.
+     *
+     * @param factory the per-context page source factory; must not return {@code null}
+     * @param <T>     the element type
+     * @return the pagination declaration builder
+     */
+    protected final <T> PaginationBuilder<T> paginateSource(@NotNull Function<ViewContext, PageSource<T>> factory) {
+        return new PaginationBuilderImpl<>(this, tokenTable, PaginationSourceSpec.custom(factory));
     }
 
     /**

@@ -23,20 +23,35 @@
 package tech.guilhermekaua.spigotboot.inventoryapi;
 
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationSourceSpec;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.IdentifiableToken;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.TokenTable;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.Pagination;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.PaginationBuilder;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.PaginationItemRenderer;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageResult;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.MutableState;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.SharedState;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.State;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class ViewTest {
 
@@ -96,5 +111,109 @@ class ViewTest {
         view.mutableState("a");
 
         assertThrows(UnsupportedOperationException.class, () -> view.tokenTable().tokens().clear());
+    }
+
+    private static <T> PaginationItemRenderer<T> noopRenderer() {
+        return (context, item, index, value) -> {
+        };
+    }
+
+    @Test
+    void paginateFactories_buildersRegisterExactlyOneTokenEach() {
+        BlankView view = new BlankView();
+
+        PaginationBuilder<String> eager = view.paginate(Arrays.asList("a", "b"));
+        PaginationBuilder<String> lazy = view.paginate(context -> Arrays.asList("a"));
+        PaginationBuilder<String> async = view.paginateAsync(request ->
+                CompletableFuture.completedFuture(PageResult.of(Collections.<String>emptyList(), 0)));
+        PaginationBuilder<String> custom = view.paginateSource(context ->
+                new EagerPageSource<>(Arrays.asList("x")));
+
+        // factory calls only return builders; build() is what registers
+        assertEquals(0, view.tokenTable().size());
+
+        Pagination<String> eagerToken = eager.itemRenderer(noopRenderer()).build();
+        assertEquals(1, view.tokenTable().size());
+        Pagination<String> lazyToken = lazy.itemRenderer(noopRenderer()).build();
+        assertEquals(2, view.tokenTable().size());
+        Pagination<String> asyncToken = async.itemRenderer(noopRenderer()).build();
+        assertEquals(3, view.tokenTable().size());
+        Pagination<String> customToken = custom.itemRenderer(noopRenderer()).build();
+        assertEquals(4, view.tokenTable().size());
+
+        List<StateToken> tokens = view.tokenTable().tokens();
+        assertSame(eagerToken, tokens.get(0));
+        assertSame(lazyToken, tokens.get(1));
+        assertSame(asyncToken, tokens.get(2));
+        assertSame(customToken, tokens.get(3));
+        for (int i = 0; i < tokens.size(); i++) {
+            assertTrue(tokens.get(i) instanceof Pagination,
+                    "token " + i + " must implement Pagination");
+            assertTrue(tokens.get(i) instanceof IdentifiableToken,
+                    "token " + i + " must implement IdentifiableToken");
+            assertEquals(i, ((IdentifiableToken) tokens.get(i)).tokenId());
+        }
+    }
+
+    @Test
+    void paginateFactories_mapToTheMatchingSourceKind() {
+        BlankView view = new BlankView();
+
+        assertEquals(PaginationSourceSpec.Kind.EAGER_STATIC,
+                kindOf(view.paginate(Arrays.asList("a"))));
+        assertEquals(PaginationSourceSpec.Kind.EAGER_LAZY,
+                kindOf(view.paginate(context -> Arrays.asList("a"))));
+        assertEquals(PaginationSourceSpec.Kind.ASYNC,
+                kindOf(view.paginateAsync(request ->
+                        CompletableFuture.completedFuture(PageResult.of(Collections.<String>emptyList(), 0)))));
+        assertEquals(PaginationSourceSpec.Kind.CUSTOM,
+                kindOf(view.paginateSource(context -> new EagerPageSource<>(Arrays.asList("x")))));
+    }
+
+    private static <T> PaginationSourceSpec.Kind kindOf(PaginationBuilder<T> builder) {
+        PaginationImpl<T> token = (PaginationImpl<T>) builder.itemRenderer(noopRenderer()).build();
+        return token.spec().source().kind();
+    }
+
+    @Test
+    void paginateList_takesDefensiveCopy_andSharesOneEagerSourceAcrossContexts() {
+        BlankView view = new BlankView();
+        List<String> original = new ArrayList<>(Arrays.asList("a", "b"));
+
+        PaginationBuilder<String> builder = view.paginate(original);
+        original.add("mutated-after-the-factory-call");
+
+        PaginationImpl<String> token = (PaginationImpl<String>) builder.itemRenderer(noopRenderer()).build();
+        ViewContext context = mock(ViewContext.class);
+        PageSource<String> first = token.spec().source().createSource(context, token.spec());
+        PageSource<String> second = token.spec().source().createSource(context, token.spec());
+
+        assertEquals(Arrays.asList("a", "b"), first.elements());
+        // EAGER_STATIC serves the one shared immutable source to every context
+        assertSame(first, second);
+    }
+
+    @Test
+    void paginateBuilders_buildAfterFreeze_throwIllegalStateException() {
+        BlankView view = new BlankView();
+        PaginationBuilder<String> builder = view.paginate(Arrays.asList("a")).itemRenderer(noopRenderer());
+
+        view.tokenTable().freeze();
+
+        assertThrows(IllegalStateException.class, builder::build);
+        assertEquals(0, view.tokenTable().size());
+    }
+
+    @Test
+    void twoPaginateCalls_buildDistinctTokensWithSequentialIds() {
+        BlankView view = new BlankView();
+
+        Pagination<String> first = view.paginate(Arrays.asList("a")).itemRenderer(noopRenderer()).build();
+        Pagination<Integer> second = view.paginate(Arrays.asList(1, 2)).itemRenderer(noopRenderer()).build();
+
+        assertNotSame(first, second);
+        assertEquals(0, ((IdentifiableToken) first).tokenId());
+        assertEquals(1, ((IdentifiableToken) second).tokenId());
+        assertEquals(2, view.tokenTable().size());
     }
 }
