@@ -30,6 +30,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewService;
+import tech.guilhermekaua.spigotboot.testPlugin.inventory.LeaderboardView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleAsyncView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternView;
@@ -75,6 +76,11 @@ public class JoinListener implements Listener {
             player.sendMessage("[ApxPlugin] - opening shop navigation sample");
             viewService.open(player, ShopView.class);
             return;
+        }
+
+        if (blockType == Material.LAPIS_BLOCK) {
+            player.sendMessage("[ApxPlugin] - opening leaderboard sample");
+            viewService.open(player, LeaderboardView.class);
         }
     }
 }
