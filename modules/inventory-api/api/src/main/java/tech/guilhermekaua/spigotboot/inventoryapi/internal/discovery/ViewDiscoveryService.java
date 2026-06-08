@@ -79,8 +79,6 @@ public final class ViewDiscoveryService {
         return views;
     }
 
-    // boot guard (§5.1): the INVENTORY index category is shared with 2.x @Inventory classes,
-    // so only candidates that explicitly carry @RegisterView are a user mistake worth a SEVERE
     private static boolean isViewOrWarn(Class<?> candidate) {
         if (View.class.isAssignableFrom(candidate)) {
             return true;
