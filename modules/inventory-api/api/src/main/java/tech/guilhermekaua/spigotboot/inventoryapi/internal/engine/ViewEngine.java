@@ -41,6 +41,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.ClickRou
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.ClosePhase;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.FirstRenderPhase;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.OpenPhase;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.PaginationInitPhase;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.UpdatePhase;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.RegisteredView;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry;
@@ -77,6 +78,7 @@ public final class ViewEngine {
     final UpdatePhase updatePhase;
     final ClickRoutingPhase clickRoutingPhase;
     final ClosePhase closePhase;
+    final PaginationInitPhase paginationInitPhase;
 
     // flush machinery extracted behind a dedicated coordinator (single responsibility);
     // the flush entry points below delegate to it after asserting the main thread
@@ -103,6 +105,7 @@ public final class ViewEngine {
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
         this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
+        this.paginationInitPhase = new PaginationInitPhase(this, sessions);
         this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase);
     }
 
@@ -143,6 +146,10 @@ public final class ViewEngine {
         ViewSession session = openPhase.openSession(player, registered, arguments);
         if (session == null) {
             // cancelled with zero side effects; the previous session stays untouched
+            return;
+        }
+        if (!paginationInitPhase.init(session)) {
+            // a failed init already aborted the open with an OPEN_FAILED close
             return;
         }
         firstRenderPhase.firstRender(session);

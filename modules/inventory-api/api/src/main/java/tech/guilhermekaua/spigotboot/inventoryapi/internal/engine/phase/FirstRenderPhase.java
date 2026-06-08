@@ -29,7 +29,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
-import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.RenderContextImpl;
@@ -86,15 +85,7 @@ public final class FirstRenderPhase {
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onFirstRender failed for view " + view.getClass().getName()
                     + "; aborting the open", ex);
-            // teardown through the close phase; the session was never registered
-            engine.close(session, CloseReason.OPEN_FAILED);
-            // REPLACED -> OPEN_FAILED dead container: the commit point already closed the
-            // previous session, so the player may still be staring at its container with no
-            // session protecting it (free item theft); close the screen unless another
-            // session took over in the meantime
-            if (session.player().isOnline() && !sessions.find(session.player().getUniqueId()).isPresent()) {
-                session.player().closeInventory();
-            }
+            OpenFailureHandler.abort(engine, sessions, session);
             return;
         }
 

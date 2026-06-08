@@ -37,6 +37,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.OpenContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.layout.ResolvedLayout;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBinding;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.RegisteredView;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
@@ -108,6 +110,9 @@ public final class OpenPhase {
 
         // a type mismatch propagates here, before any observable side effect
         bindInitialState(view, arguments, store);
+        // pagination bindings exist before onOpen so pre-init navigation calls have a
+        // recording target; the init phase replays the recorded target after layout resolution
+        bindPaginationTokens(view, session, store);
 
         OpenContextImpl openContext = new OpenContextImpl(session, engine);
         boolean failed = false;
@@ -155,6 +160,18 @@ public final class OpenPhase {
                 if (value != null) {
                     store.set(initial.tokenId(), value);
                 }
+            }
+        }
+    }
+
+    // creates one binding per pagination token; the binding records pre-init navigation
+    // and is initialized by the pagination init phase after layout resolution
+    private void bindPaginationTokens(View view, ViewSession session, StateStore store) {
+        for (StateToken token : view.tokenTable().tokens()) {
+            if (token instanceof PaginationImpl) {
+                PaginationImpl<?> pagination = (PaginationImpl<?>) token;
+                store.set(pagination.tokenId(),
+                        new PaginationBinding(pagination.spec(), pagination.tokenId(), session, engine));
             }
         }
     }

@@ -37,6 +37,10 @@ import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.discovery.ViewDiscoveryService;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.layout.ResolvedLayout;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationSpec;
+import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
 import java.lang.reflect.Constructor;
 import java.util.Collection;
@@ -167,6 +171,8 @@ public final class ViewRegistry {
      *
      * @param instance the view singleton to register
      * @throws ViewConfigurationException when the built config violates the validation rules
+     *                                    or a pagination layout-char target does not match
+     *                                    the declared layout
      * @throws IllegalStateException      when the view class is already registered
      */
     public void register(@NotNull View instance) {
@@ -179,7 +185,34 @@ public final class ViewRegistry {
         ViewConfigBuilder builder = new ViewConfigBuilder();
         HandlerInvoker.invoke(HandlerInvoker.ON_INIT, instance, builder);
         ViewConfig config = builder.build();
+        validatePaginationTargets(instance, config);
         views.put(type, new RegisteredView(type, instance, config));
+    }
+
+    // registration-time guard (spec §5.3): a LAYOUT_CHAR pagination target must name a
+    // char that exists in the declared layout; explicit layouts and patterns carry their
+    // own slots and are bounds-checked per open instead, because rows may vary per open
+    private static void validatePaginationTargets(View instance, ViewConfig config) {
+        for (StateToken token : instance.tokenTable().tokens()) {
+            if (!(token instanceof PaginationImpl)) {
+                continue;
+            }
+            PaginationSpec<?> spec = ((PaginationImpl<?>) token).spec();
+            if (spec.target() != PaginationSpec.Target.LAYOUT_CHAR) {
+                continue;
+            }
+            char character = spec.layoutChar();
+            if (config.layout().isEmpty()) {
+                throw new ViewConfigurationException("view " + instance.getClass().getName()
+                        + " declares pagination on layout char '" + character
+                        + "' but has no layout");
+            }
+            if (!ResolvedLayout.resolve(config).hasChar(character)) {
+                throw new ViewConfigurationException("pagination layout char '" + character
+                        + "' is not present in the layout of view "
+                        + instance.getClass().getName());
+            }
+        }
     }
 
     /**
