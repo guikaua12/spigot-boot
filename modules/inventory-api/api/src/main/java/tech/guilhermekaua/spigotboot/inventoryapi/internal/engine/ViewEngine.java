@@ -51,6 +51,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 import tech.guilhermekaua.spigotboot.inventoryapi.title.TitleUpdater;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -192,6 +193,26 @@ public final class ViewEngine {
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
         ThreadUtils.assertMainThread("ViewEngine.update");
         updatePhase.update(session, trigger, null);
+        flushDirty(session);
+    }
+
+    /**
+     * Runs a pagination-settle update pass scoped to the settled token, then flushes any
+     * state the handlers dirtied. ACTIVE and TRANSITIONING sessions receive the settle;
+     * CLOSED and OPENING sessions drop it entirely — no paint, no watcher marking, no
+     * {@code onUpdate} (§7).
+     *
+     * @param session the session whose pagination token settled
+     * @param tokenId the token id of the settled pagination declaration
+     * @throws IllegalStateException when called off the main thread
+     */
+    public void paginationSettle(@NotNull ViewSession session, int tokenId) {
+        ThreadUtils.assertMainThread("ViewEngine.paginationSettle");
+        ViewSession.Status status = session.status();
+        if (status == ViewSession.Status.CLOSED || status == ViewSession.Status.OPENING) {
+            return;
+        }
+        updatePhase.update(session, UpdateTrigger.PAGINATION_SETTLE, Collections.singleton(tokenId));
         flushDirty(session);
     }
 
@@ -347,6 +368,16 @@ public final class ViewEngine {
     @ApiStatus.Internal
     public void clickDispatch(boolean active) {
         this.inClickDispatch = active;
+    }
+
+    /**
+     * Returns the slot painter used by the rendering phases; pagination bindings paint
+     * their page frames through it.
+     *
+     * @return the slot painter
+     */
+    public @NotNull SlotPainter painter() {
+        return painter;
     }
 
     /**
