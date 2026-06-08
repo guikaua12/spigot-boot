@@ -33,6 +33,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.RenderContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBinding;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBindings;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.schedule.ViewUpdateTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
@@ -108,6 +110,14 @@ public final class FirstRenderPhase {
             }
             for (int slot : component.slots()) {
                 painter.paint(session.player(), inventory, slot, item, applyPlaceholders);
+            }
+        }
+        // pagination areas paint after the static components: eager sources show their
+        // items before the container is shown to the player; async sources paint the
+        // loading frame
+        for (PaginationBinding binding : PaginationBindings.of(session)) {
+            if (binding.isInitialized()) {
+                binding.repaint();
             }
         }
     }

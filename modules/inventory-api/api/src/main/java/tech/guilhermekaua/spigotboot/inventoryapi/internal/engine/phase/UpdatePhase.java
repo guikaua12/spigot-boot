@@ -33,6 +33,8 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.UpdateContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBinding;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBindings;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 
@@ -44,8 +46,9 @@ import java.util.logging.Logger;
 
 /**
  * Update pass: invokes {@code View.onUpdate} with the trigger, then repaints components —
- * all of them, or only the watchers of a dirty token set during a state flush. An
- * {@code onUpdate} failure is logged and the repaint still runs (§9 error table).
+ * all of them plus every pagination area on a full pass, or only the watchers of a dirty
+ * token set (plus dirty pagination areas and their element watchers) during a scoped
+ * flush. An {@code onUpdate} failure is logged and the repaint still runs (§9 error table).
  */
 @ApiStatus.Internal
 public final class UpdatePhase {
@@ -70,8 +73,10 @@ public final class UpdatePhase {
      * Runs one update pass on a session. CLOSED sessions are skipped entirely — neither
      * {@code onUpdate} nor a repaint runs on a torn-down session. Other non-active sessions
      * skip every trigger except {@link UpdateTrigger#STATE_CHANGE}, which flushes are
-     * allowed to deliver: TRANSITIONING and OPENING sessions still receive STATE_CHANGE
-     * passes.
+     * allowed to deliver to TRANSITIONING and OPENING sessions, and
+     * {@link UpdateTrigger#PAGINATION_SETTLE}, which is delivered to TRANSITIONING
+     * sessions only — a page settling while a deferred navigation is pending still
+     * paints, while OPENING sessions never observe a settle pass (spec §7).
      *
      * @param session     the session to update
      * @param trigger     the cause of this pass
@@ -84,7 +89,10 @@ public final class UpdatePhase {
         if (session.status() == ViewSession.Status.CLOSED) {
             return;
         }
-        if (!session.isActive() && trigger != UpdateTrigger.STATE_CHANGE) {
+        if (!session.isActive()
+                && trigger != UpdateTrigger.STATE_CHANGE
+                && !(trigger == UpdateTrigger.PAGINATION_SETTLE
+                && session.status() == ViewSession.Status.TRANSITIONING)) {
             return;
         }
 
@@ -111,16 +119,50 @@ public final class UpdatePhase {
             return;
         }
 
-        List<ComponentInstance> targets = dirtyOrNull == null
-                ? session.components().all()
-                : session.components().watchersOf(dirtyOrNull);
         Player player = session.player();
         boolean applyPlaceholders = session.effectiveConfig().applyPlaceholders();
 
+        List<ComponentInstance> targets = dirtyOrNull == null
+                ? session.components().all()
+                : session.components().watchersOf(dirtyOrNull);
+        paintComponents(targets, context, player, inventory, applyPlaceholders);
+
+        if (dirtyOrNull == null) {
+            // full pass: every pagination area re-renders after the static components
+            for (PaginationBinding binding : PaginationBindings.of(session)) {
+                if (binding.isInitialized()) {
+                    binding.repaint();
+                }
+            }
+            return;
+        }
+
+        for (PaginationBinding binding : PaginationBindings.of(session)) {
+            if (!binding.isInitialized()) {
+                continue;
+            }
+            if (dirtyOrNull.contains(binding.tokenId())) {
+                // the binding's own token settled or was dirtied: re-render the whole area;
+                // the fresh element components are painted by the fill itself, so running
+                // the watcher pass too would evaluate them a second time in one flush
+                // (§5.5: at most one re-render per component per flush) — skip it
+                binding.repaint();
+                continue;
+            }
+            // element components watching a dirty token repaint exactly like static
+            // watchers: the item function re-evaluates, the user renderer does not re-run
+            paintComponents(binding.elementWatchersOf(dirtyOrNull), context, player,
+                    inventory, applyPlaceholders);
+        }
+    }
+
+    // the shared renderForPaint loop of both pass kinds: the RENDER_FAILURE identity
+    // sentinel skips the paint so the slots keep their previous content (§9)
+    private void paintComponents(List<ComponentInstance> targets, UpdateContextImpl context,
+                                 Player player, Inventory inventory, boolean applyPlaceholders) {
         for (ComponentInstance component : targets) {
             ItemStack item = component.renderForPaint(context);
             if (item == ComponentInstance.RENDER_FAILURE) {
-                // identity check: render failed, keep the previous slot content (§9)
                 continue;
             }
             for (int slot : component.slots()) {
