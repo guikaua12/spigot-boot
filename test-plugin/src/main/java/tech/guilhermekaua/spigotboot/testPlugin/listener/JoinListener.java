@@ -36,6 +36,7 @@ import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleNormalView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SamplePatternView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.SampleScrollView;
 import tech.guilhermekaua.spigotboot.testPlugin.inventory.ShopView;
+
 @Component
 @RequiredArgsConstructor
 public class JoinListener implements Listener {
@@ -67,6 +68,7 @@ public class JoinListener implements Listener {
         if (blockType == Material.NETHERITE_BLOCK) {
             player.sendMessage("[ApxPlugin] - opening async pagination sample");
             viewService.open(player, SampleAsyncView.class);
+            return;
         }
 
         if (blockType == Material.IRON_BLOCK) {
