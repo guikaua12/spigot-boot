@@ -95,7 +95,7 @@ public final class FirstRenderPhase {
         try {
             HandlerInvoker.invoke(HandlerInvoker.ON_FIRST_RENDER, view, renderContext);
             renderContext.materializeAll();
-            validatePaginationOverlap(session);                                   // NEW
+            validatePaginationOverlap(session);
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onFirstRender failed for view " + view.getClass().getName()
                     + "; aborting the open", ex);
@@ -103,7 +103,7 @@ public final class FirstRenderPhase {
             return;
         }
 
-        warnUnboundLayoutChars(session, renderContext);                           // NEW
+        warnUnboundLayoutChars(session, renderContext);
 
         paintAll(session, renderContext);
 

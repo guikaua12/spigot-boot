@@ -80,6 +80,7 @@ class PaginationClickRoutingTest {
     private ThrowingElementView throwingElementView;
     private HiddenElementView hiddenElementView;
     private OverlapView overlapView;
+    private ForceUncancelView forceUncancelView;
 
     // two items over three 'O' slots: slots 0-1 hold elements, slot 2 holds the frame fallback
     static final class ElementHandlersView extends View {
@@ -118,6 +119,21 @@ class PaginationClickRoutingTest {
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
             config.title("CancelOverride").layout("O        ");
+        }
+    }
+
+    // cancelOnClick(false) + explicit setCancelled(false) in the handler: both are overridden by the floor
+    static final class ForceUncancelView extends View {
+        final Pagination<String> pagination = paginate(Arrays.asList("item"))
+                .itemRenderer((context, item, index, value) -> item
+                        .item(new ItemStack(Material.STONE))
+                        .cancelOnClick(false)
+                        .onClick(ctx -> ctx.setCancelled(false)))
+                .build();
+
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("ForceUncancel").layout("O        ");
         }
     }
 
@@ -269,12 +285,14 @@ class PaginationClickRoutingTest {
         throwingElementView = new ThrowingElementView();
         hiddenElementView = new HiddenElementView();
         overlapView = new OverlapView();
+        forceUncancelView = new ForceUncancelView();
         views.register(elementHandlersView);
         views.register(cancelOverrideView);
         views.register(throwingElementView);
         views.register(new CloseOnClickElementView());
         views.register(hiddenElementView);
         views.register(overlapView);
+        views.register(forceUncancelView);
         views.register(new UnboundCharView());
         views.register(new BoundCharsView());
         engine = new ViewEngine(plugin, views, sessions,
@@ -288,6 +306,14 @@ class PaginationClickRoutingTest {
         // assertion must not run against a torn-down registry
         server.getScheduler().cancelTasks(plugin);
         MockBukkit.unmock();
+        // the once-per-view-class warning set is static; clear it so warning tests are order-independent
+        try {
+            java.lang.reflect.Field f = FirstRenderPhase.class.getDeclaredField("UNBOUND_CHAR_WARNED");
+            f.setAccessible(true);
+            ((java.util.Set<?>) f.get(null)).clear();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ViewSession open(Class<? extends View> type) {
@@ -364,6 +390,21 @@ class PaginationClickRoutingTest {
 
         assertEquals(1, cancelOverrideView.elementClicks);
         assertFalse(event.isCancelled(), "the element override beats the config default");
+    }
+
+    @Test
+    void elementWithCancelFalse_isStillForceCancelledBySafetyFloor() {
+        // COLLECT_TO_CURSOR (ClickType.DOUBLE_CLICK / InventoryAction.COLLECT_TO_CURSOR) is a
+        // safety-floor action regardless of which slot is clicked (see ClickRoutingPhase line 93).
+        // even though the element declares cancelOnClick(false) and its handler calls
+        // setCancelled(false), the floor must override both and keep the event cancelled.
+        ViewSession session = open(ForceUncancelView.class);
+        InventoryClickEvent event = click(0, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR);
+
+        engine.click(session, event);
+
+        assertTrue(event.isCancelled(),
+                "safety floor must override cancelOnClick(false) and the handler's setCancelled(false)");
     }
 
     @Test
