@@ -223,7 +223,7 @@ public interface ViewContext {
     @NotNull ViewArguments arguments();
     @NotNull Inventory inventory();            // throws IllegalStateException before container creation / after close
     boolean isActive();
-    void update();                             // schedules a full update pass (coalesced, same tick)
+    void update();                             // runs a full update pass immediately (synchronous; each call is its own pass)
     void close();                              // deferred to end of tick when called during click dispatch
     void updateTitle(@NotNull String title);   // NMS TitleUpdater, no reopen; placeholders applied
     void openView(@NotNull Class<? extends View> target);                     // closes this context with REPLACED
@@ -273,6 +273,10 @@ naming the phase (e.g. `inventory()` inside `onOpen`). There is no close cancell
 `InventoryClickEvent`); the session is marked TRANSITIONING immediately so further clicks
 are swallowed. `openView` from inside `onClose` is illegal: logged SEVERE and dropped
 immediately — never deferred (prevents close→onClose→openView→REPLACED-close loops).
+Decision record (Plan 2, reviewer backlog #2): `update()` is deliberately synchronous —
+each call runs one full pass immediately and nothing coalesces same-tick calls, which is
+safe because settle-driven passes are token-scoped and never multiply full passes — the
+implementation truth was kept and the `update()` comment above amended to match.
 
 ### 5.5 State
 
@@ -641,7 +645,7 @@ untouched.
 | Settle thread routing | `BukkitSettleDispatcher` | **modified**: `tickAsync` consultation deleted (feature cut), plugin read from slim `PageRequest`; disable-drop + FIFO contract unchanged |
 | Plugin-disable settle drop | `BukkitSettleDispatcher` catch | unchanged |
 | Navigation rollback on failed load | `navigationSnapshot`/`restoreNavigation` | same algorithm, same class |
-| Deferred pre-init navigation | `changePageInternal` viewer-null branch | same branch, keyed on unbound host |
+| Deferred pre-init navigation | `changePageInternal` viewer-null branch | same branch, keyed on unbound host; the record-only check moved AHEAD of the totals-known clamp (pre-bind `itemPageLimit` is 0 — the 2.x order divides by zero for a non-empty eager source; observably equivalent: no in-flight request exists pre-bind and overshoot is corrected by the settle's downward re-clamp) |
 | Downward re-clamp when totals shrink | `onSettle` | same |
 | Inline-settle detection | `AbstractPageSourcePagination.dispatch` | same |
 | Loading frame rendering | `insertPageItems` | same, via `PaginationHost.fillPage` |
