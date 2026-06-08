@@ -29,18 +29,25 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
+import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.RenderContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBinding;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBindings;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationImpl;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationSpec;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.schedule.ViewUpdateTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
+import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,6 +61,10 @@ import java.util.logging.Logger;
 public final class FirstRenderPhase {
 
     private static final Logger LOGGER = Logger.getLogger(FirstRenderPhase.class.getName());
+
+    // warn once per view class per classloader: a full server reload re-creates the plugin
+    // classloader and warns again; re-registering views inside the same JVM does not
+    private static final Set<Class<?>> UNBOUND_CHAR_WARNED = ConcurrentHashMap.newKeySet();
 
     private final ViewEngine engine;
     private final SessionRegistry sessions;
@@ -84,12 +95,15 @@ public final class FirstRenderPhase {
         try {
             HandlerInvoker.invoke(HandlerInvoker.ON_FIRST_RENDER, view, renderContext);
             renderContext.materializeAll();
+            validatePaginationOverlap(session);                                   // NEW
         } catch (RuntimeException ex) {
             LOGGER.log(Level.SEVERE, "onFirstRender failed for view " + view.getClass().getName()
                     + "; aborting the open", ex);
             OpenFailureHandler.abort(engine, sessions, session);
             return;
         }
+
+        warnUnboundLayoutChars(session, renderContext);                           // NEW
 
         paintAll(session, renderContext);
 
@@ -119,6 +133,56 @@ public final class FirstRenderPhase {
             if (binding.isInitialized()) {
                 binding.repaint();
             }
+        }
+    }
+
+    // overlap validation (§5.3/§6): a slot cannot be both statically bound and a pagination
+    // target; runs inside the try so the failure flows into the OPEN_FAILED abort path.
+    // bindings have no element components yet at this point (the first fill happens in
+    // paintAll), so the check uses the binding's resolved target slots
+    private void validatePaginationOverlap(ViewSession session) {
+        for (PaginationBinding binding : PaginationBindings.of(session)) {
+            for (int slot : binding.targetSlots()) {
+                if (session.components().componentAt(slot) != null) {
+                    throw new ViewConfigurationException(
+                            "slot " + slot + " is bound to both a component and pagination");
+                }
+            }
+        }
+    }
+
+    // unbound-layout-char warning (§5.3): chars present in the effective layout but bound by
+    // neither a layoutSlot(...) declaration nor a LAYOUT_CHAR pagination target
+    private void warnUnboundLayoutChars(ViewSession session, RenderContextImpl renderContext) {
+        Set<Character> unbound = new LinkedHashSet<>();
+        for (String row : session.effectiveConfig().layout()) {
+            for (int column = 0; column < row.length(); column++) {
+                char character = row.charAt(column);
+                if (character != ' ') {
+                    unbound.add(character);
+                }
+            }
+        }
+        if (unbound.isEmpty()) {
+            return;
+        }
+        unbound.removeAll(renderContext.boundLayoutChars());
+        for (StateToken token : session.registered().instance().tokenTable().tokens()) {
+            if (!(token instanceof PaginationImpl)) {
+                continue;
+            }
+            PaginationSpec<?> spec = ((PaginationImpl<?>) token).spec();
+            if (spec.target() == PaginationSpec.Target.LAYOUT_CHAR) {
+                unbound.remove(spec.layoutChar());
+            }
+        }
+        if (unbound.isEmpty()) {
+            return;
+        }
+        Class<?> viewClass = session.registered().type();
+        if (UNBOUND_CHAR_WARNED.add(viewClass)) {
+            LOGGER.warning("view " + viewClass.getName() + " declares layout chars " + unbound
+                    + " that are bound to neither a component nor pagination");
         }
     }
 

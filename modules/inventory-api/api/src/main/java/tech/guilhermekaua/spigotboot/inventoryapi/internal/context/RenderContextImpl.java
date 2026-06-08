@@ -35,7 +35,10 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.Layout;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Context for {@code View.onFirstRender}: collects component declarations in order and
@@ -46,6 +49,7 @@ import java.util.List;
 public final class RenderContextImpl extends AbstractViewContext implements RenderContext {
 
     private final List<PendingComponent> pending = new ArrayList<>();
+    private final Set<Character> boundLayoutChars = new LinkedHashSet<>();
 
     /**
      * Creates the context for one first render.
@@ -88,6 +92,8 @@ public final class RenderContextImpl extends AbstractViewContext implements Rend
             throw new ViewConfigurationException("layout character '" + character
                     + "' is not present in the layout of " + view().getClass().getName());
         }
+        // successful bindings feed the first-render unbound-layout-char warning
+        boundLayoutChars.add(character);
         return register(layout.slotsOf(character));
     }
 
@@ -108,6 +114,17 @@ public final class RenderContextImpl extends AbstractViewContext implements Rend
             session().components().add(declaration.builder.materialize(declaration.slots));
         }
         pending.clear();
+    }
+
+    /**
+     * Returns the layout characters successfully bound through {@link #layoutSlot(char)}
+     * during this render, in declaration order; the first-render phase subtracts them when
+     * warning about layout characters bound to neither a component nor pagination.
+     *
+     * @return an unmodifiable view of the bound layout characters
+     */
+    public @NotNull Set<Character> boundLayoutChars() {
+        return Collections.unmodifiableSet(boundLayoutChars);
     }
 
     private ItemComponentBuilder register(int[] slots) {

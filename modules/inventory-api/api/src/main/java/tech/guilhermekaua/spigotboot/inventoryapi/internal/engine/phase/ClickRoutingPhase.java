@@ -35,6 +35,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentInstance;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.context.SlotClickContextImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.ViewEngine;
+import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationBindings;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 
 import java.util.Objects;
@@ -96,6 +97,10 @@ public final class ClickRoutingPhase {
 
         ComponentInstance component = bottom ? null
                 : session.components().componentAt(event.getRawSlot());
+        if (!bottom && component == null) {
+            // pagination page elements live in the per-token bindings, not the static table
+            component = PaginationBindings.componentAt(session, event.getRawSlot());
+        }
         SlotClickContextImpl ctx = new SlotClickContextImpl(session, engine, event, bottom,
                 preCancel(session, component, bottom) || forced);
         if (component != null && !component.isVisible(ctx)) {
