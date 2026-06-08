@@ -289,6 +289,13 @@ class PaginationSampleFlowsTest {
         assertSlotEmpty(inventory, 3);
         assertSlotEmpty(inventory, 15);
         assertSlotEmpty(inventory, 11);
+        // complete stale-slot-clearing proof for page 1→2: slots 4, 5, 21, 22, 23 were in
+        // the ring pattern but are absent from the X pattern and must be cleared
+        assertSlotEmpty(inventory, 4);
+        assertSlotEmpty(inventory, 5);
+        assertSlotEmpty(inventory, 21);
+        assertSlotEmpty(inventory, 22);
+        assertSlotEmpty(inventory, 23);
 
         // page 3 — serpentine block (A=3,B=4,C=5,D=14,E=13,F=12,G=21,H=22,I=23) with items 18..26
         listener.onClick(click(35));
@@ -301,6 +308,10 @@ class PaginationSampleFlowsTest {
         assertItem(inventory, 23, Material.DIAMOND, 26);
         assertSlotEmpty(inventory, 2);
         assertSlotEmpty(inventory, 6);
+        // complete stale-slot-clearing proof for page 2→3: slots 20 and 24 were in
+        // the X pattern but are absent from the serpentine block and must be cleared
+        assertSlotEmpty(inventory, 20);
+        assertSlotEmpty(inventory, 24);
 
         service.close(player);
         assertFalse(sessions.find(player.getUniqueId()).isPresent());
