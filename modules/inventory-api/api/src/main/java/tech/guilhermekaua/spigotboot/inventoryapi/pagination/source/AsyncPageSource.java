@@ -22,6 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -265,6 +267,24 @@ public final class AsyncPageSource<T> implements PageSource<T> {
             }
         }
         return shared;
+    }
+
+    /**
+     * Shuts the shared timeout scheduler down and clears it so the next timeout-bearing
+     * request lazily recreates a fresh one. Called from the inventory-api module disable
+     * hook; before 3.0.0 the shared daemon thread outlived the plugin and pinned its
+     * classloader across reloads. Safe to call repeatedly and when no scheduler was ever
+     * created.
+     */
+    @ApiStatus.Internal
+    public static void shutdownSharedTimeoutScheduler() {
+        synchronized (AsyncPageSource.class) {
+            ScheduledExecutorService shared = sharedTimeoutScheduler;
+            if (shared != null) {
+                shared.shutdownNow();
+                sharedTimeoutScheduler = null;
+            }
+        }
     }
 
     private PageResult<T> cachedResult(String key) {

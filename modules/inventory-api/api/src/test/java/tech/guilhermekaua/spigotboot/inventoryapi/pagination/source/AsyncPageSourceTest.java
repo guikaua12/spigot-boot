@@ -38,6 +38,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -509,6 +512,40 @@ class AsyncPageSourceTest {
         source.request(request(1), (result, error) -> { });
 
         assertEquals(2, calls.get(), "an entry older than the TTL must not be served");
+    }
+
+    @Test
+    void shutdownSharedTimeoutScheduler_lazilyRecreatesForNewTimeouts() throws Exception {
+        // force the shared scheduler into existence (no test-scheduler seam), then kill it
+        AsyncPageSource<Integer> first = new AsyncPageSource<>(req -> new CompletableFuture<>(),
+                null, Duration.ofMillis(30), null, 128, SettleDispatcher.inline());
+        CountDownLatch firstSettled = new CountDownLatch(1);
+        first.request(request(1), (result, error) -> firstSettled.countDown());
+        assertTrue(firstSettled.await(2, TimeUnit.SECONDS),
+                "the shared scheduler must fire the priming timeout");
+
+        AsyncPageSource.shutdownSharedTimeoutScheduler();
+
+        CountDownLatch settled = new CountDownLatch(1);
+        AtomicReference<Throwable> settledError = new AtomicReference<>();
+        AsyncPageSource<Integer> source = new AsyncPageSource<>(req -> new CompletableFuture<>(),
+                null, Duration.ofMillis(30), null, 128, SettleDispatcher.inline());
+        source.request(request(1), (result, error) -> {
+            settledError.set(error);
+            settled.countDown();
+        });
+
+        assertTrue(settled.await(2, TimeUnit.SECONDS),
+                "lazy init must recreate the shared scheduler after shutdown");
+        assertInstanceOf(TimeoutException.class, settledError.get());
+    }
+
+    @Test
+    void shutdownSharedTimeoutScheduler_isIdempotent() {
+        assertDoesNotThrow(() -> {
+            AsyncPageSource.shutdownSharedTimeoutScheduler();
+            AsyncPageSource.shutdownSharedTimeoutScheduler();
+        });
     }
 
     private static <T> CompletableFuture<T> failedFuture(Throwable error) {

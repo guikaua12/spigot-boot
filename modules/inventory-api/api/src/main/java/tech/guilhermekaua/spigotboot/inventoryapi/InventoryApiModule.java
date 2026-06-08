@@ -27,7 +27,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.annotations.OnDisable;
 import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.CustomInventory;
 import tech.guilhermekaua.spigotboot.inventoryapi.inventory.configuration.InventoryConfiguration;
@@ -85,5 +87,17 @@ public final class InventoryApiModule implements Module {
                 scheduler.runTaskTimer(plugin, task, 0L, tickUpdate);
             }
         }
+    }
+
+    /**
+     * Shuts the shared pagination timeout scheduler down when the host plugin disables.
+     * Open sessions are already closed when this runs: {@code ViewListener.onPluginDisable}
+     * reacts to Bukkit's {@code PluginDisableEvent}, which fires before the context destroys
+     * its beans and invokes this hook, so no session can still be waiting on a timeout. The
+     * scheduler is recreated lazily on the next timeout-bearing request.
+     */
+    @OnDisable
+    public void onDisable() {
+        AsyncPageSource.shutdownSharedTimeoutScheduler();
     }
 }
