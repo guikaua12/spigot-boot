@@ -182,11 +182,21 @@ public final class ComponentInstance {
 
     /**
      * Resolves the handler for a click: the matching per-type handler, else the untyped
-     * default handler, else null.
+     * default handler, else null. {@link ClickType#DOUBLE_CLICK} is the one exception — it
+     * never falls back to the untyped default: Minecraft delivers the collect-to-cursor
+     * double-click as a synthetic second event of a fast double-tap, so routing it to the
+     * untyped handler would run the action twice. A deliberately typed
+     * {@code onClick(DOUBLE_CLICK, ...)} handler still opts in.
      */
     public @Nullable Consumer<SlotClickContext> handlerFor(@NotNull ClickType type) {
         Consumer<SlotClickContext> typed = typedHandlers.get(type);
-        return typed != null ? typed : defaultHandler;
+        if (typed != null) {
+            return typed;
+        }
+        if (type == ClickType.DOUBLE_CLICK) {
+            return null;
+        }
+        return defaultHandler;
     }
 
     /**

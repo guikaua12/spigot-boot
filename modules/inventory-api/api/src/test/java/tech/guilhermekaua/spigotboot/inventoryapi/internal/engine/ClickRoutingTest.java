@@ -74,6 +74,7 @@ class ClickRoutingTest {
         int componentClicks;
         int typedRightClicks;
         int untypedClicks;
+        int explicitDoubleClicks;
         int hiddenClicks;
         int viewClicks;
         boolean uncancelNext;
@@ -97,6 +98,8 @@ class ClickRoutingTest {
                     .displayIf(ctx -> false)
                     .cancelOnClick(false)
                     .onClick(ctx -> hiddenClicks++);
+            render.slot(3, new ItemStack(Material.PAPER))
+                    .onClick(ClickType.DOUBLE_CLICK, ctx -> explicitDoubleClicks++);
         }
 
         @Override
@@ -306,6 +309,49 @@ class ClickRoutingTest {
         engine.click(session, click(1, ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertEquals(1, policyView.typedRightClicks);
         assertEquals(1, policyView.untypedClicks);
+    }
+
+    @Test
+    void untypedHandler_isNotInvokedForCollectToCursorDoubleClick() {
+        // a fast double-tap reaches the server as a left click followed by a synthetic
+        // DOUBLE_CLICK / COLLECT_TO_CURSOR; the untyped handler must fire only for the
+        // real click, not the synthetic second event (otherwise the action runs twice)
+        ViewSession session = open(PolicyView.class);
+
+        InventoryClickEvent doubleClick = click(1, ClickType.DOUBLE_CLICK,
+                InventoryAction.COLLECT_TO_CURSOR);
+        engine.click(session, doubleClick);
+        assertEquals(0, policyView.untypedClicks,
+                "a collect-to-cursor double-click must not re-trigger the untyped handler");
+        assertTrue(doubleClick.isCancelled(), "the double-click stays cancelled by the safety floor");
+
+        engine.click(session, click(1, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertEquals(1, policyView.untypedClicks, "a real left click still fires the untyped handler");
+    }
+
+    @Test
+    void explicitDoubleClickHandler_isStillInvokedForCollectToCursorDoubleClick() {
+        // an explicit onClick(DOUBLE_CLICK, ...) opt-in is honored: only the untyped fallback
+        // is suppressed for the synthetic event, never a deliberately typed handler
+        ViewSession session = open(PolicyView.class);
+
+        engine.click(session, click(3, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR));
+
+        assertEquals(1, policyView.explicitDoubleClicks,
+                "an explicit DOUBLE_CLICK handler still fires for the collect-to-cursor event");
+    }
+
+    @Test
+    void viewOnClick_isNotInvokedForCollectToCursorDoubleClick() {
+        // slot 5 is component-less, so the click degrades to the view-level onClick
+        ViewSession session = open(PolicyView.class);
+
+        engine.click(session, click(5, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR));
+        assertEquals(0, policyView.viewClicks,
+                "a collect-to-cursor double-click must not re-trigger the view-level onClick");
+
+        engine.click(session, click(5, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertEquals(1, policyView.viewClicks, "a real left click still reaches the view-level onClick");
     }
 
     @Test

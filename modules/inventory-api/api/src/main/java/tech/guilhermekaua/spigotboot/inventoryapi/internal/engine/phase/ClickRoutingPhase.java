@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -142,7 +143,12 @@ public final class ClickRoutingPhase {
                     handler.accept(ctx);
                 }
             }
-            HandlerInvoker.invoke(HandlerInvoker.ON_CLICK, view, ctx);
+            // the collect-to-cursor double-click is Minecraft's synthetic second event of a
+            // fast double-tap; it must not re-fire the view-level onClick, or the click is
+            // handled twice (component handlers are filtered in ComponentInstance.handlerFor)
+            if (event.getClick() != ClickType.DOUBLE_CLICK) {
+                HandlerInvoker.invoke(HandlerInvoker.ON_CLICK, view, ctx);
+            }
             if (component != null) {
                 queuePostActions(session, component);
             }

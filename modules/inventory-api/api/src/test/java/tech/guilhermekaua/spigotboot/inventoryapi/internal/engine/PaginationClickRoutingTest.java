@@ -81,6 +81,7 @@ class PaginationClickRoutingTest {
     private HiddenElementView hiddenElementView;
     private OverlapView overlapView;
     private ForceUncancelView forceUncancelView;
+    private ScrollNavView scrollNavView;
 
     // two items over three 'O' slots: slots 0-1 hold elements, slot 2 holds the frame fallback
     static final class ElementHandlersView extends View {
@@ -134,6 +135,32 @@ class PaginationClickRoutingTest {
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
             config.title("ForceUncancel").layout("O        ");
+        }
+    }
+
+    // mirrors SampleScrollView: a layout-slot nav button bound to a watched scroll token,
+    // with an untyped onClick that advances the pagination
+    static final class ScrollNavView extends View {
+        int advanceClicks;
+
+        final Pagination<Integer> numbers = paginate(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+                .scroll()
+                .itemRenderer((context, item, index, value) -> item.item(new ItemStack(Material.GOLD_INGOT)))
+                .build();
+
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("ScrollNav").layout("OOOOO   >");
+        }
+
+        @Override
+        protected void onFirstRender(@NotNull RenderContext render) {
+            render.layoutSlot('>', new ItemStack(Material.ARROW))
+                    .updateOnStateChange(numbers)
+                    .onClick(ctx -> {
+                        advanceClicks++;
+                        numbers.advance(ctx);
+                    });
         }
     }
 
@@ -286,6 +313,7 @@ class PaginationClickRoutingTest {
         hiddenElementView = new HiddenElementView();
         overlapView = new OverlapView();
         forceUncancelView = new ForceUncancelView();
+        scrollNavView = new ScrollNavView();
         views.register(elementHandlersView);
         views.register(cancelOverrideView);
         views.register(throwingElementView);
@@ -293,6 +321,7 @@ class PaginationClickRoutingTest {
         views.register(hiddenElementView);
         views.register(overlapView);
         views.register(forceUncancelView);
+        views.register(scrollNavView);
         views.register(new UnboundCharView());
         views.register(new BoundCharsView());
         engine = new ViewEngine(plugin, views, sessions,
@@ -394,17 +423,30 @@ class PaginationClickRoutingTest {
 
     @Test
     void elementWithCancelFalse_isStillForceCancelledBySafetyFloor() {
-        // COLLECT_TO_CURSOR (ClickType.DOUBLE_CLICK / InventoryAction.COLLECT_TO_CURSOR) is a
-        // safety-floor action regardless of which slot is clicked (see ClickRoutingPhase line 93).
+        // HOTBAR_SWAP on a top slot is a safety-floor action (see ClickRoutingPhase line 93).
         // even though the element declares cancelOnClick(false) and its handler calls
         // setCancelled(false), the floor must override both and keep the event cancelled.
         ViewSession session = open(ForceUncancelView.class);
-        InventoryClickEvent event = click(0, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR);
+        InventoryClickEvent event = click(0, ClickType.NUMBER_KEY, InventoryAction.HOTBAR_SWAP);
 
         engine.click(session, event);
 
         assertTrue(event.isCancelled(),
                 "safety floor must override cancelOnClick(false) and the handler's setCancelled(false)");
+    }
+
+    @Test
+    void scrollNavButton_doesNotDoubleAdvanceOnFastDoubleClick() {
+        // the reported symptom: a fast double-tap on a scroll nav arrow slid the page twice
+        // because the synthetic collect-to-cursor event re-ran the untyped onClick handler
+        ViewSession session = open(ScrollNavView.class);
+        int navSlot = 8; // '>' in "OOOOO   >"
+
+        engine.click(session, click(navSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        engine.click(session, click(navSlot, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR));
+
+        assertEquals(1, scrollNavView.advanceClicks,
+                "a fast double-tap must advance the scroll once, not twice");
     }
 
     @Test
