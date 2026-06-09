@@ -18,7 +18,6 @@
     <modules>
         <module>data-jdbc</module>
         <module>data-orm-lite</module>
-        <module>inventory-api</module>
     </modules>
 
     <properties>

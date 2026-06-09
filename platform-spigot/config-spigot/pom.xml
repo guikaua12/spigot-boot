@@ -53,6 +53,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config</artifactId>
             <version>${project.version}</version>

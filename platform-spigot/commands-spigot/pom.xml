@@ -53,6 +53,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-commands</artifactId>
             <version>${project.version}</version>
@@ -70,6 +75,11 @@
             <version>${project.version}</version>
             <scope>provided</scope>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
         </dependency>
     </dependencies>
 </project>
