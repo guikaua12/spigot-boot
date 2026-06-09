@@ -14,6 +14,12 @@
     <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-inventory-api-nms-1_16_R3</artifactId>
 
+    <properties>
+        <!-- internal NMS impl: not a standalone Central artifact; its classes are bundled into
+             spigot-boot-inventory-api-nms. skipPublishing keeps it out of the Central deployment. -->
+        <skipPublishing>true</skipPublishing>
+    </properties>
+
     <build>
         <plugins>
             <plugin>

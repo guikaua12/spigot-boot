@@ -17,7 +17,9 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <central.publishing.skip>true</central.publishing.skip>
+        <!-- skipPublishing is the property the central-publishing-maven-plugin actually reads;
+             the old central.publishing.skip was a no-op. -->
+        <skipPublishing>true</skipPublishing>
         <spigot.plugins.dir>${project.build.directory}</spigot.plugins.dir>
     </properties>
 

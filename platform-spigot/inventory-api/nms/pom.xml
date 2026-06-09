@@ -58,4 +58,40 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>shade-nms-versions</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- bundle every per-version NMS impl into this single published jar. those
+                                 modules cannot be standalone Central artifacts because they compile against
+                                 the non-redistributable org.spigotmc:spigot. the reduced pom removes them so
+                                 consumers never try to resolve them from Central; the selector picks the
+                                 matching impl reflectively at runtime. nms-api stays a normal dependency. -->
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_8_R3</include>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_12_R1</include>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_16_R3</include>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_17_R1</include>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_18_R2</include>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-inventory-api-nms-1_19_R3</include>
+                                </includes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
