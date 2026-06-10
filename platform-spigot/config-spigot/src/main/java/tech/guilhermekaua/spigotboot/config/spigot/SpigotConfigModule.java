@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.config.spigot;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Order;
 import tech.guilhermekaua.spigotboot.core.module.Module;
 
 import java.util.logging.Logger;
@@ -34,7 +35,14 @@ import java.util.logging.Logger;
  * <p>
  * Scans for @Config and @FolderConfig annotated classes,
  * loads configs, and registers them as beans.
+ * <p>
+ * Runs early (after {@code SpigotCoreModule}, which registers the plugin at {@code @Order(-1000)},
+ * but before default-order modules) so that {@code @Config} beans are registered before any later
+ * module resolves a component that depends on them. Without this, a module such as data-jdbc could
+ * be initialized first and instantiate a config-dependent component with a not-yet-registered
+ * config, reintroducing the null-injection bug this ordering guards against.
  */
+@Order(-500)
 public class SpigotConfigModule implements Module {
 
     @Override

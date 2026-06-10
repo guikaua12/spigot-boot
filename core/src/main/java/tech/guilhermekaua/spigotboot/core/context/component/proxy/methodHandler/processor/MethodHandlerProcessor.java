@@ -62,7 +62,7 @@ public class MethodHandlerProcessor {
 
     public List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
-            Object handler = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
+            String qualifier = BeanUtils.getQualifier(clazz);
 
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(MethodHandler.class))
@@ -71,7 +71,13 @@ public class MethodHandlerProcessor {
                     .map(method -> {
                         MethodHandler annotation = method.getAnnotation(MethodHandler.class);
                         return new RegisteredMethodHandler(
-                                context -> method.invoke(handler, context),
+                                // resolve the handler bean lazily, at invocation time, rather than here.
+                                // processClass runs during the scan phase; resolving the handler now would
+                                // eagerly instantiate it and its transitive dependencies before
+                                // module-registered beans (the native plugin, configs, ...) exist, silently
+                                // injecting nulls. the container caches the singleton, so this stays cheap and
+                                // handlers only ever run once the context is fully initialized.
+                                context -> method.invoke(dependencyManager.resolveDependency(clazz, qualifier), context),
                                 annotation.targetClass(),
                                 annotation.classAnnotatedWith(),
                                 annotation.methodAnnotatedWith(),
