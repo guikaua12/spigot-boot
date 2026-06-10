@@ -12,6 +12,10 @@ on:
       - '**.java'
       - '**/pom.xml'
 
+# least privilege: tests only need to read the repo; nothing writes back to GitHub.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Tests

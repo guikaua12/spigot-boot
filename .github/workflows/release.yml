@@ -6,6 +6,11 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
+# least privilege: only reads the repo to check out; the publish authenticates to
+# Maven Central with its own credentials and never writes back to GitHub.
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Release to Maven Central

@@ -20,6 +20,11 @@ concurrency:
   group: snapshot-${{ github.ref }}
   cancel-in-progress: true
 
+# least privilege: only reads the repo to check out; the publish authenticates to
+# Maven Central with its own credentials and never writes back to GitHub.
+permissions:
+  contents: read
+
 jobs:
   snapshot:
     name: Publish SNAPSHOT
