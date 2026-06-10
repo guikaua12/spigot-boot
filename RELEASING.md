@@ -9,6 +9,9 @@ This is the maintainer runbook for publishing `tech.guilhermekaua.spigot-boot` t
 > [`Release to Maven Central`](.github/workflows/release.yml) workflow does the rest.
 > The one-time setup below is only needed to (re)create the GitHub secrets after you
 > format your PC, or to deploy manually as a fallback.
+>
+> For unreleased **snapshots** you don't even tag — just push to `dev` and CI publishes a
+> `-SNAPSHOT`. See [§1b](#1b-publish-a-snapshot-dev-builds).
 
 ---
 
@@ -37,6 +40,81 @@ This is the maintainer runbook for publishing `tech.guilhermekaua.spigot-boot` t
    `https://repo1.maven.org/maven2/tech/guilhermekaua/spigot-boot/`.
 
 That's the whole day-to-day flow.
+
+---
+
+## 1b. Publish a snapshot (`dev` builds)
+
+Sometimes you want consumers (or another of your projects) to pull in unreleased work without
+cutting a real release. The Central Portal hosts **`-SNAPSHOT`** artifacts for exactly this,
+and a separate workflow keeps it fully automatic.
+
+### How it works
+
+[`.github/workflows/snapshot.yml`](.github/workflows/snapshot.yml) runs on **every push to
+`dev`** that touches `**.java`, `**/pom.xml`, or `**/src/main/resources/**`, and runs
+`mvn clean deploy`. Because the committed version ends in `-SNAPSHOT`, the
+`central-publishing-maven-plugin` (≥ 0.7.0; we're on 0.10.0) automatically routes the upload to
+the snapshot repository `https://central.sonatype.com/repository/maven-snapshots/` instead of
+the validating release path — same `central` user token, same GPG secrets, **no new
+configuration**. The same modules are excluded as for releases ([§3](#3-which-modules-publish-and-which-dont)).
+
+Snapshots are **not validated** (no GPG/sources/javadoc enforcement — ours are still signed,
+which is harmless), `autoPublish` is irrelevant to them, they **can't be browsed** in the portal
+UI, and Central **auto-deletes them after ~90 days**.
+
+### Versioning — one rolling version, not one per commit
+
+A `-SNAPSHOT` is a *moving* coordinate. Every `dev` push deploys the **same** version string
+(e.g. `3.1.0-SNAPSHOT`); the repo keeps each build under a unique Maven **timestamp**
+(`3.1.0-20260610.143022-7`) and points "latest" at the newest. So:
+
+- consumers normally use `3.1.0-SNAPSHOT` → always the freshest `dev` build;
+- a specific commit's build can be pinned via its timestamped coordinate.
+
+You therefore **pick the version once** and bump it only at release time:
+
+1. The `dev` POM carries the *next* unreleased version, `X.Y.Z-SNAPSHOT`.
+2. After you cut release `X.Y.Z` ([§1](#1-cut-a-release-the-normal-path)), bump `dev` to the next
+   snapshot so dev builds don't collide with the release:
+   ```powershell
+   .\mvnw.cmd versions:set "-DnewVersion=<next>-SNAPSHOT" "-DprocessAllModules=true" "-DgenerateBackupPoms=false"
+   ```
+   `snapshot.yml` hard-fails if the `dev` POM version is **not** a `-SNAPSHOT` — that guard stops
+   an accidental real-release publish from `dev` (with `autoPublish=true` it would otherwise go live).
+
+### One-time: enable SNAPSHOTs for the namespace
+
+On [central.sonatype.com](https://central.sonatype.com/) → **Publish → Namespaces** → the
+`tech.guilhermekaua` row → three-dot menu → **Enable SNAPSHOTs** → confirm. This is tied to the
+(already-verified, [§4a](#4a-central-portal-account--namespace)) namespace, so you do it once.
+Until it's enabled, snapshot deploys are rejected.
+
+### Consuming a snapshot
+
+Snapshots are **not** on `repo1.maven.org`; add the portal snapshot repo:
+
+```xml
+<repositories>
+  <repository>
+    <id>central-portal-snapshots</id>
+    <name>Central Portal Snapshots</name>
+    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    <releases><enabled>false</enabled></releases>
+    <snapshots><enabled>true</enabled></snapshots>
+  </repository>
+</repositories>
+```
+
+### Manual / local snapshot deploy
+
+Same as the [emergency release path](#5-manual--emergency-deploy-from-your-machine) but the
+version already ends in `-SNAPSHOT`, so no tag and no `versions:set` are needed. With **JDK 17
+or 21**:
+
+```powershell
+.\mvnw.cmd clean deploy "-Dgpg.passphrase=YOUR_PASSPHRASE"
+```
 
 ---
 
@@ -218,6 +296,11 @@ The user token is wrong or revoked. Generate a new one ([§4b](#4b-generate-a-pu
 `tech.guilhermekaua` isn't verified on the account. Complete DNS verification on the portal
 ([§4a](#4a-central-portal-account--namespace)).
 
+### Snapshot deploy rejected / SNAPSHOTs not allowed
+SNAPSHOTs aren't enabled for the namespace — enable them once in the portal
+([§1b](#1b-publish-a-snapshot-dev-builds)). Also confirm the `dev` POM version actually ends in
+`-SNAPSHOT` (the workflow guards this, but a local deploy doesn't).
+
 ---
 
 ## Pre-release checklist
@@ -227,3 +310,4 @@ The user token is wrong or revoked. Generate a new one ([§4b](#4b-generate-a-pu
 - [ ] Version decided
 - [ ] `git tag vX.Y.Z && git push origin vX.Y.Z`
 - [ ] Actions run green; artifact visible on central.sonatype.com
+- [ ] After release: bump `dev` to the next `-SNAPSHOT` ([§1b](#1b-publish-a-snapshot-dev-builds))
