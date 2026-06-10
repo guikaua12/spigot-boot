@@ -14,6 +14,7 @@ on:
       - '**.java'
       - '**/pom.xml'
       - '**/src/main/resources/**'
+  workflow_dispatch:
 
 # a burst of commits cancels superseded runs instead of queueing N deploys
 concurrency:
