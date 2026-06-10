@@ -18,7 +18,7 @@ This is the maintainer runbook for publishing `tech.guilhermekaua.spigot-boot` t
 ## 1. Cut a release (the normal path)
 
 1. Be on `master` with a clean working tree and **everything committed** — including any
-   publishing-related POM changes (see [§3](#3-which-modules-publish-and-which-dont), this
+   publishing-related POM changes (see [§3](#3-which-modules-publish--and-which-dont), this
    bit us once: a fix that only lived in the working tree was not in the tag CI built from).
 2. Verify the build is green locally (use JDK 17 or 21 — **never 25**, see
    [troubleshooting](#lombok-crashes-with-typetag--unknown)):
@@ -57,7 +57,7 @@ and a separate workflow keeps it fully automatic.
 `central-publishing-maven-plugin` (≥ 0.7.0; we're on 0.10.0) automatically routes the upload to
 the snapshot repository `https://central.sonatype.com/repository/maven-snapshots/` instead of
 the validating release path — same `central` user token, same GPG secrets, **no new
-configuration**. The same modules are excluded as for releases ([§3](#3-which-modules-publish-and-which-dont)).
+configuration**. The same modules are excluded as for releases ([§3](#3-which-modules-publish--and-which-dont)).
 
 Snapshots are **not validated** (no GPG/sources/javadoc enforcement — ours are still signed,
 which is harmless), `autoPublish` is irrelevant to them, they **can't be browsed** in the portal
