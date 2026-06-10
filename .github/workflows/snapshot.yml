@@ -68,7 +68,9 @@ jobs:
           esac
 
       - name: Build and deploy snapshot
-        run: mvn clean deploy -B -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        # tests are skipped here because ci.yml already runs the full suite on the
+        # same push to dev; running them again would just duplicate that work.
+        run: mvn clean deploy -B -DskipTests -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
