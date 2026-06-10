@@ -59,10 +59,20 @@ class MethodHandlerLazyResolutionTest {
                 "handler bean must not be instantiated during processClass (scan phase)");
         assertFalse(handlers.isEmpty(), "expected the @MethodHandler method to be registered");
 
+        // a minimal, non-null context: the handler ignores it, but passing null would break the
+        // moment a handler (or a copy of this test) starts reading the context.
+        MethodHandlerContext context = new MethodHandlerContext(new Object(), null, null, new Object[0], () -> null);
+
         // the bean is resolved lazily, on first invocation
-        Object result = handlers.get(0).getRunnable().handle(null);
+        Object result = handlers.get(0).getRunnable().handle(context);
 
         assertEquals("handled", result);
         assertEquals(1, instantiations, "handler bean must be instantiated exactly once, on first invocation");
+
+        // a second invocation must reuse the cached singleton, not re-instantiate the handler
+        Object secondResult = handlers.get(0).getRunnable().handle(context);
+
+        assertEquals("handled", secondResult);
+        assertEquals(1, instantiations, "handler bean must remain a singleton across invocations");
     }
 }
