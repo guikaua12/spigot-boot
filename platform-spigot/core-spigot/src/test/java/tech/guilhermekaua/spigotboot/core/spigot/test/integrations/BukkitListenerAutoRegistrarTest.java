@@ -136,21 +136,24 @@ class BukkitListenerAutoRegistrarTest {
             }
         };
         plugin.getLogger().addHandler(capture);
+        try {
+            Listener proxiedListener = ComponentProxy.createProxy(
+                    InvalidSignatureListener.class, null, new Class<?>[0], new Object[0]);
 
-        Listener proxiedListener = ComponentProxy.createProxy(
-                InvalidSignatureListener.class, null, new Class<?>[0], new Object[0]);
+            Context context = mock(Context.class);
+            when(context.getBean(Plugin.class)).thenReturn(plugin);
+            when(context.getBeansByType(Listener.class)).thenReturn(Collections.singletonList(proxiedListener));
 
-        Context context = mock(Context.class);
-        when(context.getBean(Plugin.class)).thenReturn(plugin);
-        when(context.getBeansByType(Listener.class)).thenReturn(Collections.singletonList(proxiedListener));
+            new BukkitListenerAutoRegistrar().onContextReady(context);
 
-        new BukkitListenerAutoRegistrar().onContextReady(context);
-
-        assertTrue(
-                records.stream().anyMatch(record -> record.getLevel() == Level.SEVERE
-                        && record.getMessage() != null
-                        && record.getMessage().contains("invalid EventHandler method signature")),
-                "an invalid @EventHandler signature on a proxied listener must be logged, matching bukkit's native path");
+            assertTrue(
+                    records.stream().anyMatch(record -> record.getLevel() == Level.SEVERE
+                            && record.getMessage() != null
+                            && record.getMessage().contains("invalid EventHandler method signature")),
+                    "an invalid @EventHandler signature on a proxied listener must be logged, matching bukkit's native path");
+        } finally {
+            plugin.getLogger().removeHandler(capture);
+        }
     }
 
     // core bundles javassist relocated; a shipped class that references the original javassist.* package throws
