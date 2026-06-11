@@ -33,6 +33,7 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -86,12 +87,8 @@ class ProxiedListenerEventBinder {
     // @EventHandler methods are picked up too. a set dedupes the overlap between both collections.
     private Set<Method> collectCandidateMethods(Class<?> realClass) {
         Set<Method> methods = new LinkedHashSet<>();
-        for (Method method : realClass.getMethods()) {
-            methods.add(method);
-        }
-        for (Method method : realClass.getDeclaredMethods()) {
-            methods.add(method);
-        }
+        methods.addAll(Arrays.asList(realClass.getMethods()));
+        methods.addAll(Arrays.asList(realClass.getDeclaredMethods()));
         return methods;
     }
 
