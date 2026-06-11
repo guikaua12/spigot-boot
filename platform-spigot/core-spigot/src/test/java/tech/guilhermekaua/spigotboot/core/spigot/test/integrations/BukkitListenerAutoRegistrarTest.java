@@ -36,11 +36,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.spigot.integrations.BukkitListenerAutoRegistrar;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,6 +156,18 @@ class BukkitListenerAutoRegistrarTest {
         } finally {
             plugin.getLogger().removeHandler(capture);
         }
+    }
+
+    // the binder is injected through a package-private constructor with a public @Inject default; the container
+    // must instantiate the component via that single @Inject constructor rather than rejecting the class for
+    // declaring more than one constructor (DependencyManager#findInjectConstructor throws otherwise).
+    @Test
+    void containerSelectsTheInjectableDefaultConstructor() {
+        Constructor<?> selected = new DependencyManager().findInjectConstructor(BukkitListenerAutoRegistrar.class);
+
+        assertNotNull(selected, "the container must be able to choose a constructor for the component");
+        assertEquals(0, selected.getParameterCount(),
+                "the @Inject default constructor must be selected so context startup does not fail");
     }
 
     // core bundles javassist relocated; a shipped class that references the original javassist.* package throws

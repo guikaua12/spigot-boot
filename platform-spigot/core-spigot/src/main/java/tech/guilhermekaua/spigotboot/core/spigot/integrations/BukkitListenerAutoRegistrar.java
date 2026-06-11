@@ -6,16 +6,28 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.listeners.ContextReadyListener;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class BukkitListenerAutoRegistrar implements ContextReadyListener {
     private final List<Listener> autoRegisteredListeners = new ArrayList<>();
-    private final ProxiedListenerEventBinder proxiedListenerEventBinder = new ProxiedListenerEventBinder();
+    private final ProxiedListenerEventBinder proxiedListenerEventBinder;
+
+    @Inject
+    public BukkitListenerAutoRegistrar() {
+        this(new ProxiedListenerEventBinder());
+    }
+
+    BukkitListenerAutoRegistrar(@NotNull ProxiedListenerEventBinder proxiedListenerEventBinder) {
+        this.proxiedListenerEventBinder = Objects.requireNonNull(proxiedListenerEventBinder,
+                "proxiedListenerEventBinder cannot be null");
+    }
 
     @Override
     public void onContextReady(@NotNull Context context) {
