@@ -22,18 +22,83 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.Accessors;
-
 import java.lang.reflect.Method;
+import java.util.Objects;
 
-@RequiredArgsConstructor
-@Getter
-@Accessors(fluent = true)
 public class MethodHandlerContext {
     private final Object self;
     private final Method thisMethod;
     private final Method proceed;
     private final Object[] args;
+    private final InvocationStep nextInvocation;
+
+    public MethodHandlerContext(Object self, Method thisMethod, Method proceed, Object[] args) {
+        this(self, thisMethod, proceed, args, createDefaultInvocation(self, thisMethod, proceed, args));
+    }
+
+    public MethodHandlerContext(Object self, Method thisMethod, Method proceed, Object[] args, InvocationStep nextInvocation) {
+        this.self = self;
+        this.thisMethod = thisMethod;
+        this.proceed = proceed;
+        this.args = args == null ? new Object[0] : args;
+        this.nextInvocation = Objects.requireNonNull(nextInvocation, "nextInvocation cannot be null");
+    }
+
+    public Object self() {
+        return self;
+    }
+
+    /**
+     * Returns metadata about the intercepted method.
+     *
+     * @deprecated This accessor does not continue the handler chain. Handlers
+     * should call {@link #invokeNext()} to continue execution.
+     */
+    @Deprecated
+    public Method thisMethod() {
+        return thisMethod;
+    }
+
+    /**
+     * Returns metadata about the underlying invocation target method.
+     *
+     * @deprecated This accessor does not continue the handler chain. Handlers
+     * should call {@link #invokeNext()} to continue execution.
+     */
+    @Deprecated
+    public Method proceed() {
+        return proceed;
+    }
+
+    public Object[] args() {
+        return args;
+    }
+
+    /**
+     * Continue to the next matching handler in the chain. This is the
+     * continuation method handlers should call. If none remain, this invokes
+     * the underlying target method.
+     *
+     * @return the return object of the next handler
+     */
+    public Object invokeNext() throws Throwable {
+        return nextInvocation.invoke();
+    }
+
+    private static InvocationStep createDefaultInvocation(Object self, Method thisMethod, Method proceed, Object[] args) {
+        return () -> {
+            Method targetMethod = proceed != null ? proceed : thisMethod;
+            if (targetMethod == null) {
+                throw new IllegalStateException("No target method available for invocation");
+            }
+
+            targetMethod.setAccessible(true);
+            return targetMethod.invoke(self, args == null ? new Object[0] : args);
+        };
+    }
+
+    @FunctionalInterface
+    public interface InvocationStep {
+        Object invoke() throws Throwable;
+    }
 }

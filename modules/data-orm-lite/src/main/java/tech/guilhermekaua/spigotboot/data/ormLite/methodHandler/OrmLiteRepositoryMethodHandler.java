@@ -28,38 +28,37 @@ import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.OrmLiteRepositoryRegistry;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
+import tech.guilhermekaua.spigotboot.data.ormLite.utils.OrmLiteTypeUtils;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 
 @RequiredArgsConstructor
 @RegisterMethodHandler
 public class OrmLiteRepositoryMethodHandler {
+    private static final int ORDER = 100;
+
     private final OrmLiteRepositoryRegistry repositoryRegistry;
 
-    @MethodHandler(targetClass = OrmLiteRepository.class)
+    @MethodHandler(targetClass = OrmLiteRepository.class, order = ORDER)
     public Object handle(MethodHandlerContext context) throws Throwable {
         if (context.self() == null || context.thisMethod() == null) {
             return null;
         }
 
-        try {
-            return context.proceed().invoke(context.self(), context.args());
-        } catch (IllegalAccessException | IllegalArgumentException | NullPointerException e) {
-            Class<?> self = context.self().getClass().getInterfaces()[0];
-            Type[] types = ((ParameterizedType) self.getGenericInterfaces()[0]).getActualTypeArguments();
-            Class<?> entityType = (Class<?>) types[0];
-
-            OrmLiteRepository<?, ?> repositoryImpl = repositoryRegistry.getDao(entityType);
-
-            if (repositoryImpl == null) {
-                throw new IllegalStateException("No repository found for entity type: " + entityType.getName());
-            }
-
-            Method method = repositoryImpl.getClass().getMethod(context.thisMethod().getName(), context.thisMethod().getParameterTypes());
-            method.setAccessible(true);
-            return method.invoke(repositoryImpl, context.args());
+        if (context.proceed() != null) {
+            return context.invokeNext();
         }
+
+        Class<?> entityType = OrmLiteTypeUtils.resolveEntityType(context.self().getClass());
+
+        OrmLiteRepository<?, ?> repositoryImpl = repositoryRegistry.getDao(entityType);
+
+        if (repositoryImpl == null) {
+            throw new IllegalStateException("No repository found for entity type: " + entityType.getName());
+        }
+
+        Method method = repositoryImpl.getClass().getMethod(context.thisMethod().getName(), context.thisMethod().getParameterTypes());
+        method.setAccessible(true);
+        return method.invoke(repositoryImpl, context.args());
     }
 }

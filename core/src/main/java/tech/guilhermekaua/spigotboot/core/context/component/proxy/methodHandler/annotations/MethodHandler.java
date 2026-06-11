@@ -32,4 +32,10 @@ public @interface MethodHandler {
     Class<? extends Annotation> classAnnotatedWith() default Annotation.class;
 
     Class<? extends Annotation> methodAnnotatedWith() default Annotation.class;
+
+    /**
+     * Lower values run first, allowing outer wrappers such as async execution
+     * to delegate into inner wrappers such as transactions.
+     */
+    int order() default 0;
 }

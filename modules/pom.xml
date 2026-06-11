@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.2</version>
+        <version>3.0.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -16,8 +16,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>data-jdbc</module>
         <module>data-orm-lite</module>
-        <module>placeholder</module>
     </modules>
 
     <properties>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>2.0.2</version>
+            <version>3.0.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

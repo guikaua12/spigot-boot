@@ -23,56 +23,90 @@
 package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
+import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
+import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
+import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
-import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
 import java.lang.annotation.Annotation;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 public class ComponentRegistry {
     private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
-
-    public ComponentRegistry() {
-        this.componentsAnnotations.addAll(discoverComponentsAnnotations());
-    }
+    private DiscoveryIndexReader discoveryIndexReader;
 
     public void registerComponents(String basePackage, DependencyManager dependencyManager) {
-        final Set<Class<?>> componentsClasses = discoverComponentsClasses(basePackage);
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader = ComponentRegistry.class.getClassLoader();
+        }
+
+        ConditionContext conditionContext = new SimpleConditionContext(
+                dependencyManager.getBeanDefinitionRegistry(),
+                null,
+                classLoader
+        );
+
+        // Index covers minimize-jar-safe classes; classpath scan covers package-private classes
+        // the index can't reference (test fixtures, inner classes). Union both for completeness.
+        componentsAnnotations.addAll(discoverComponentsAnnotations(basePackage));
+
+        Set<Class<?>> componentsClasses = new LinkedHashSet<>(discoverComponentsClasses(basePackage));
+
+        DiscoveryIndexReader reader = getDiscoveryIndexReader();
+        if (reader.hasAnyIndex()) {
+            componentsAnnotations.add(Component.class);
+            componentsClasses.addAll(reader.classesInCategory(DiscoveryCategories.COMPONENT, basePackage));
+        }
 
         for (Class<?> componentsClass : componentsClasses) {
-            dependencyManager.registerDependency(
-                    componentsClass,
-                    BeanUtils.getQualifier(componentsClass),
-                    BeanUtils.getIsPrimary(componentsClass),
-                    null,
-                    BeanUtils.createDependencyReloadCallback(componentsClass)
-            );
+            if (ConditionEvaluator.shouldSkip(componentsClass, conditionContext, "ComponentRegistry")) {
+                continue;
+            }
+
+            registerScannedComponent(componentsClass, dependencyManager);
         }
     }
 
-    public void resolveAllComponents(DependencyManager dependencyManager) {
-        dependencyManager.getDependencyMap().values()
-                .stream()
-                .flatMap(Collection::stream)
-                .filter(dep -> dep.getInstance() == null)
-                .collect(Collectors.toList())
-                .forEach(dep -> dependencyManager.resolveDependency(dep.getType(), dep.getQualifierName()));
+    private DiscoveryIndexReader getDiscoveryIndexReader() {
+        if (discoveryIndexReader == null) {
+            discoveryIndexReader = DiscoveryIndexReader.create();
+        }
+        return discoveryIndexReader;
     }
 
-    @SuppressWarnings("unchecked")
-    private Set<Class<? extends Annotation>> discoverComponentsAnnotations() {
-        return ReflectionUtils.getClassesFromPackage("").stream()
-                .filter(clazz -> clazz.isAnnotation() && (clazz.equals(Component.class) || clazz.isAnnotationPresent(Component.class)))
-                .map(clazz -> (Class<? extends Annotation>) clazz)
+    public void resolveAllComponents(DependencyManager dependencyManager) {
+        for (Map.Entry<Class<?>, List<BeanDefinition>> entry : dependencyManager.getBeanDefinitionRegistry().asMapView().entrySet()) {
+            for (BeanDefinition definition : entry.getValue()) {
+                if (dependencyManager.getBeanInstanceRegistry().contains(definition)) {
+                    continue;
+                }
+
+                dependencyManager.resolveDependency(definition.getType(), definition.getQualifierName());
+            }
+        }
+    }
+
+    private Set<Class<? extends Annotation>> discoverComponentsAnnotations(String basePackage) {
+        ClassPathScanner scanner = new ClassPathScanner(getClass().getClassLoader(), basePackage);
+
+        return Stream.concat(
+                        Stream.of(Component.class),
+                        scanner.getTypesAnnotatedWith(Component.class)
+                                .stream()
+                                .filter(Class::isAnnotation)
+                ).map(clazz -> (Class<? extends Annotation>) clazz)
                 .collect(Collectors.toSet());
     }
 
@@ -81,18 +115,27 @@ public class ComponentRegistry {
             return Collections.emptySet();
         }
 
-        return ReflectionUtils.getClassesFromPackage(basePackages)
-                .stream()
+        ClassPathScanner scanner = new ClassPathScanner(getClass().getClassLoader(), basePackages);
+
+        return componentsAnnotations.stream()
+                .map(scanner::getTypesAnnotatedWith)
+                .flatMap(Collection::stream)
                 .filter(clazz -> !clazz.isInterface() && !clazz.isEnum() && !clazz.isAnnotation())
-                .filter(clazz -> componentsAnnotations.stream().anyMatch(clazz::isAnnotationPresent))
                 .collect(Collectors.toSet());
     }
 
-    @RequiredArgsConstructor
-    @Getter
-    public static class RegisterResult {
-        private final Set<Class<?>> registeredClasses;
-        private final Set<Class<? extends Annotation>> registeredAnnotations;
+    @SuppressWarnings("unchecked")
+    private void registerScannedComponent(@NotNull Class<?> componentClass, @NotNull DependencyManager dependencyManager) {
+        registerScannedComponentTyped((Class<Object>) componentClass, dependencyManager);
+    }
 
+    private <T> void registerScannedComponentTyped(@NotNull Class<T> componentClass,
+                                                   @NotNull DependencyManager dependencyManager) {
+        dependencyManager.registerDependency(
+                componentClass,
+                BeanUtils.getQualifier(componentClass),
+                BeanUtils.getIsPrimary(componentClass),
+                (DependencyResolveResolver<T>) null
+        );
     }
 }

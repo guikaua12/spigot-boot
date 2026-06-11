@@ -26,8 +26,15 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.DeleteBuilder;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.UpdateBuilder;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 import tech.guilhermekaua.spigotboot.data.repository.Repository;
 
+/**
+ * @deprecated use {@code JdbcRepository} from data-jdbc.
+ */
+@Deprecated
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.ORM_LITE_REPOSITORY, kind = SpigotBootDiscoveryCategory.Kind.SUBTYPE)
 public interface OrmLiteRepository<T, ID> extends Repository<T, ID> {
     QueryBuilder<T, ID> queryBuilder();
 

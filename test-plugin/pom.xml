@@ -6,19 +6,21 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.2</version>
+        <version>3.0.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
     <artifactId>test-plugin</artifactId>
-    <version>2.0.2</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <central.publishing.skip>true</central.publishing.skip>
+        <!-- skipPublishing is the property the central-publishing-maven-plugin actually reads;
+             the old central.publishing.skip was a no-op. -->
+        <skipPublishing>true</skipPublishing>
+        <spigot.plugins.dir>${project.build.directory}</spigot.plugins.dir>
     </properties>
 
     <build>
@@ -35,12 +37,27 @@
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.36</version>
+                        </path>
+                        <path>
+                            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+                            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -62,23 +79,21 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-jar-plugin</artifactId>-->
-            <!--                <version>2.3.1</version>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <goals>-->
-            <!--                            <goal>jar</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--                <configuration>-->
-            <!--                    <outputDirectory>C:\Users\Approximations\Desktop\minecraft\spigot 1.20\plugins-->
-            <!--                    </outputDirectory>-->
-            <!--                    <finalName>ApxPlugin_Test-${project.version}</finalName>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.3.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${spigot.plugins.dir}</outputDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -92,8 +107,21 @@
     <dependencies>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-core</artifactId>
-            <version>2.0.2</version>
+            <artifactId>spigot-boot-core-spigot</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.20.1-R0.1-20230917.004407-174</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
@@ -109,23 +137,24 @@
             <artifactId>h2</artifactId>
             <version>2.3.232</version>
         </dependency>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-config-spigot</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-inventory-api</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
         <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-plugin-messaging</artifactId>
-            <version>2.0.2</version>
-        </dependency>
-        <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-data-orm-lite</artifactId>
-            <version>2.0.2</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>tech.guilhermekaua.spigot-boot</groupId>
-            <artifactId>spigot-boot-placeholder</artifactId>
-            <version>2.0.2</version>
-            <scope>compile</scope>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
+            <version>3.20.2</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

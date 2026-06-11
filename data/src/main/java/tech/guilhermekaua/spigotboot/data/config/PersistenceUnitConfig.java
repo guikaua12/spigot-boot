@@ -24,6 +24,10 @@ package tech.guilhermekaua.spigotboot.data.config;
 
 import javax.sql.DataSource;
 
+/**
+ * @deprecated use {@link PersistenceConfig} with data-jdbc module configuration.
+ */
+@Deprecated
 public interface PersistenceUnitConfig {
     DataSource configure(String address, String username, String password);
 }

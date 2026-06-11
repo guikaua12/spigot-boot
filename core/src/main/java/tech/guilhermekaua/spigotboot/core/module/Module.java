@@ -22,12 +22,11 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
-import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory;
 
+@SpigotBootDiscoveryCategory(value = DiscoveryCategories.MODULE, kind = SpigotBootDiscoveryCategory.Kind.SUBTYPE)
 public interface Module {
-    default void onLoad(GlobalContext context) throws Exception {
-    }
-
-    void onInitialize(PluginContext context) throws Exception;
+    void onInitialize(Context context) throws Exception;
 }

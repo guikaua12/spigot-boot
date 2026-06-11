@@ -22,108 +22,171 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.dependency.manager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.strategy.BeanProxyDeciderResolver;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.MethodHandlerProxyBeanPostProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
+import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
 import tech.guilhermekaua.spigotboot.core.exceptions.MultipleConstructorException;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
+import tech.guilhermekaua.spigotboot.core.utils.CollectionTypeUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 // Context.initialize -> Context.scan -> DependencyManager.registerDependency -> Context.scan -> DependencyManager.resolveDependency
-
-@RequiredArgsConstructor
 public class DependencyManager {
     @Getter
-    private final Map<Class<?>, List<Dependency>> dependencyMap = new HashMap<>();
+    private final BeanDefinitionRegistry beanDefinitionRegistry;
+
+    @Getter
+    private final BeanInstanceRegistry beanInstanceRegistry;
+
+    @Getter
+    private final CustomInjectorRegistry customInjectorRegistry;
+
+    private final BeanNamingDefiner beanNamingDefiner = new DefaultBeanNamingDefiner();
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+
+    public DependencyManager() {
+        this(new BeanDefinitionRegistry(), new BeanInstanceRegistry(), new BeanProxyDeciderResolver(), new DefaultCustomInjectorRegistry());
+    }
+
+    public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
+                             @NotNull BeanInstanceRegistry beanInstanceRegistry,
+                             @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver) {
+        this(beanDefinitionRegistry, beanInstanceRegistry, beanProxyDeciderResolver, new DefaultCustomInjectorRegistry());
+    }
+
+    public DependencyManager(@NotNull BeanDefinitionRegistry beanDefinitionRegistry,
+                             @NotNull BeanInstanceRegistry beanInstanceRegistry,
+                             @NotNull BeanProxyDeciderResolver beanProxyDeciderResolver,
+                             @NotNull CustomInjectorRegistry customInjectorRegistry) {
+        this.beanDefinitionRegistry = Objects.requireNonNull(beanDefinitionRegistry, "beanDefinitionRegistry cannot be null.");
+        this.beanInstanceRegistry = Objects.requireNonNull(beanInstanceRegistry, "beanInstanceRegistry cannot be null.");
+        this.customInjectorRegistry = Objects.requireNonNull(customInjectorRegistry, "customInjectorRegistry cannot be null.");
+
+        registerBeanPostProcessor(new MethodHandlerProxyBeanPostProcessor(beanProxyDeciderResolver));
+    }
+
+    /**
+     * Registers a custom injector.
+     * <p>
+     * Custom injectors allow modules to provide alternative ways of resolving dependencies.
+     * They are consulted in order before falling back to the default bean resolution.
+     *
+     * @param injector the custom injector to register, not null
+     */
+    public void registerInjector(@NotNull CustomInjector injector) {
+        Objects.requireNonNull(injector, "injector cannot be null");
+        customInjectorRegistry.register(injector);
+    }
+
+    public void registerBeanPostProcessor(@NotNull BeanPostProcessor beanPostProcessor) {
+        Objects.requireNonNull(beanPostProcessor, "beanPostProcessor cannot be null.");
+        beanPostProcessors.add(beanPostProcessor);
+        beanPostProcessors.sort(Comparator.comparingInt(BeanPostProcessor::getOrder));
+    }
+
+    public @NotNull List<BeanPostProcessor> getBeanPostProcessors() {
+        return Collections.unmodifiableList(beanPostProcessors);
+    }
+
+    public @NotNull Object initializeBean(@NotNull BeanDefinition definition, @NotNull Object rawInstance) {
+        Objects.requireNonNull(definition, "definition cannot be null.");
+        Objects.requireNonNull(rawInstance, "rawInstance cannot be null.");
+
+        @SuppressWarnings("unchecked")
+        Class<Object> injectionClass = (Class<Object>) ProxyUtils.getRealClass(rawInstance);
+        injectDependencies(injectionClass, rawInstance);
+
+        Object instance = rawInstance;
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+            instance = Objects.requireNonNull(
+                    beanPostProcessor.postProcess(definition, instance, this),
+                    "BeanPostProcessor returned null for: " + definition.identifier()
+            );
+        }
+
+        return instance;
+    }
+
+    public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
+        return resolveDependency((Type) clazz, qualifier);
+    }
 
     @SuppressWarnings("unchecked")
-    public <T> T resolveDependency(@NotNull Class<T> clazz, @Nullable String qualifier) {
+    private <T> T resolveDependency(@NotNull Type type, @Nullable String qualifier) {
         try {
-            Objects.requireNonNull(clazz, "class cannot be null.");
+            Objects.requireNonNull(type, "type cannot be null.");
 
-            List<Dependency> dependencies = dependencyMap.get(clazz);
+            CollectionTypeUtils.CollectionTypeInfo collectionInfo = CollectionTypeUtils.extractCollectionTypeInfo(type);
+            if (collectionInfo != null) {
+                return (T) resolveCollectionDependency(collectionInfo.getCollectionClass(), collectionInfo.getElementType());
+            }
 
-            if (dependencies == null || dependencies.isEmpty()) {
+            Class<T> clazz = CollectionTypeUtils.getRawClass(type);
+            if (clazz == null) {
+                return null;
+            }
+
+            List<BeanDefinition> definitions = beanDefinitionRegistry.getDefinitions(clazz);
+            if (definitions.isEmpty()) {
                 return null;
             }
 
             if (qualifier != null) {
-                Dependency dependency = dependencies.stream().filter(dep -> qualifier.equals(dep.getQualifierName())).findFirst().orElse(null);
+                BeanDefinition definition = definitions.stream()
+                        .filter(def -> qualifier.equals(def.getQualifierName()))
+                        .findFirst()
+                        .orElse(null);
 
-                if (dependency == null) {
+                if (definition == null) {
                     return null;
                 }
 
-                if (dependency.getInstance() != null) {
-                    return clazz.cast(dependency.getInstance());
-                }
-
-                if (dependency.getResolver() != null) {
-                    T instance = (T) dependency.getResolver().resolve(clazz);
-                    dependency.setInstance(instance);
-                    return instance;
-                }
-
-                return (T) createInstance(dependency.getType());
+                return resolveFromDefinition(clazz, definition);
             }
 
-            if (dependencies.size() == 1) {
-                Dependency singleDependency = dependencies.get(0);
-                if (singleDependency.getInstance() != null) {
-                    return clazz.cast(singleDependency.getInstance());
-                }
-
-                if (singleDependency.getResolver() != null) {
-                    T instance = (T) singleDependency.getResolver().resolve(clazz);
-                    singleDependency.setInstance(instance);
-                    return instance;
-                }
-
-                T instance = (T) createInstance(singleDependency.getType());
-                singleDependency.setInstance(instance);
-                return instance;
+            if (definitions.size() == 1) {
+                return resolveFromDefinition(clazz, definitions.get(0));
             }
 
-            List<Dependency> primary = dependencies.stream().filter(Dependency::isPrimary).collect(Collectors.toList());
+            List<BeanDefinition> primary = definitions.stream().filter(BeanDefinition::isPrimary).collect(Collectors.toList());
 
             if (primary.isEmpty()) {
-                throw new IllegalStateException(String.format("No primary dependency found for class %s and qualifier %s", clazz.getSimpleName(), qualifier));
+                String candidates = definitions.stream()
+                        .map(def -> {
+                            String candidateQualifier = def.getQualifierName();
+                            return candidateQualifier == null ? "<default>" : candidateQualifier;
+                        })
+                        .collect(Collectors.joining(", "));
+                throw new IllegalStateException(String.format(
+                        "Multiple dependencies found for type %s but none is marked as @Primary. Available qualifiers: [%s]. " +
+                                "Add @Primary to one bean or use @Qualifier at the injection point.",
+                        clazz.getName(),
+                        candidates));
             }
 
             if (primary.size() > 1) {
                 throw new IllegalStateException(String.format("Multiple primary dependencies found for class %s and qualifier %s", clazz.getSimpleName(), qualifier));
             }
 
-            Dependency primaryDependency = primary.get(0);
-            if (primaryDependency.getInstance() != null) {
-                return clazz.cast(primaryDependency.getInstance());
-            }
-
-            if (primaryDependency.getResolver() != null) {
-                T instance = (T) primaryDependency.getResolver().resolve(clazz);
-                primaryDependency.setInstance(instance);
-                return instance;
-            }
-
-            T instance = (T) createInstance(primaryDependency.getType());
-            primaryDependency.setInstance(instance);
-            return instance;
+            return resolveFromDefinition(clazz, primary.get(0));
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve type: " + clazz, e);
+            throw new RuntimeException("Failed to resolve type: " + type, e);
         }
     }
 
@@ -144,145 +207,272 @@ public class DependencyManager {
         return registerDependency(instance, qualifier, false);
     }
 
+    /**
+     * Resolves a dependency for the given injection point.
+     * <p>
+     * This method first consults all registered custom injectors in order. If any injector
+     * handles the injection point, its result is returned. Otherwise, the default resolution
+     * using the bean registry is performed.
+     *
+     * @param injectionPoint the injection point to resolve, not null
+     * @return the resolved dependency, or null if not found
+     */
     @SuppressWarnings("unchecked")
+    public <T> @Nullable T resolveDependency(@NotNull InjectionPoint injectionPoint) {
+        Objects.requireNonNull(injectionPoint, "injectionPoint cannot be null");
+
+        for (CustomInjector injector : customInjectorRegistry.getInjectors()) {
+            if (injector.supports(injectionPoint)) {
+                InjectionResult result = injector.resolve(injectionPoint);
+                if (result.isHandled()) {
+                    return (T) result.getValue();
+                }
+            }
+        }
+
+        return resolveDependency(injectionPoint.getType(), injectionPoint.getQualifier());
+    }
+
     public <T> T registerDependency(@NotNull T instance, @Nullable String qualifier, boolean primary) {
         return registerDependency(instance, qualifier, primary, null);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyReloadCallback reloadCallback) {
+    public <T> T registerDependency(@NotNull T instance,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    @Nullable DependencyReloadCallback reloadCallback) {
+        Objects.requireNonNull(instance, "instance cannot be null.");
+
         Class<T> dependencyClass = (Class<T>) instance.getClass();
+        String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, instance, null, qualifier);
 
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency(superInterface, dependencyClass, instance, qualifier, primary, null, reloadCallback);
+            registerDependency(superInterface, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
         }
 
-        return (T) registerDependency(dependencyClass, dependencyClass, instance, qualifier, primary, null, reloadCallback).getInstance();
+        registerDependency(dependencyClass, dependencyClass, instance, resolvedQualifier, primary, null, reloadCallback);
+        return instance;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull T instance, @Nullable String qualifier, boolean primary) {
         return registerDependency(clazz, instance, qualifier, primary, null);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyReloadCallback reloadCallback) {
-        return (T) registerDependency(clazz, (Class<? extends T>) instance.getClass(), instance, qualifier, primary, null, reloadCallback).getInstance();
+    public <T> T registerDependency(@NotNull Class<T> clazz,
+                                    @NotNull T instance,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    @Nullable DependencyReloadCallback reloadCallback) {
+        Objects.requireNonNull(clazz, "clazz cannot be null.");
+        Objects.requireNonNull(instance, "instance cannot be null.");
+
+        registerDependency(clazz, (Class<? extends T>) instance.getClass(), instance, qualifier, primary, null, reloadCallback);
+        return instance;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> dependencyClass, @Nullable String qualifier, boolean primary, DependencyResolveResolver<T> resolver) {
+    public <T> T registerDependency(@NotNull Class<T> dependencyClass,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    DependencyResolveResolver<T> resolver) {
         return registerDependency(dependencyClass, qualifier, primary, resolver, null);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> dependencyClass, @Nullable String qualifier, boolean primary, DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
+    public <T> T registerDependency(@NotNull Class<T> dependencyClass,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    DependencyResolveResolver<T> resolver,
+                                    @Nullable DependencyReloadCallback reloadCallback) {
+        Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
+
+        String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, null, resolver, qualifier);
+
         for (Class<? super T> superInterface : ReflectionUtils.getSuperInterfaces(dependencyClass)) {
-            registerDependency((Class<T>) superInterface, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+            registerDependency((Class<T>) superInterface, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
         }
 
-        return (T) registerDependency(dependencyClass, dependencyClass, null, qualifier, primary, resolver, reloadCallback).getInstance();
+        registerDependency(dependencyClass, dependencyClass, null, resolvedQualifier, primary, resolver, reloadCallback);
+        return null;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver) {
+    public <T> T registerDependency(@NotNull Class<T> clazz,
+                                    @NotNull Class<? extends T> dependencyClass,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    @Nullable DependencyResolveResolver<T> resolver) {
         return registerDependency(clazz, dependencyClass, qualifier, primary, resolver, null);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
-        return (T) registerDependency(clazz, dependencyClass, null, qualifier, primary, resolver, reloadCallback).getInstance();
+    public <T> T registerDependency(@NotNull Class<T> clazz,
+                                    @NotNull Class<? extends T> dependencyClass,
+                                    @Nullable String qualifier,
+                                    boolean primary,
+                                    @Nullable DependencyResolveResolver<T> resolver,
+                                    @Nullable DependencyReloadCallback reloadCallback) {
+        registerDependency(clazz, dependencyClass, null, qualifier, primary, resolver, reloadCallback);
+        return null;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable String qualifier, boolean primary) {
+    public <T> T registerDependency(@NotNull Class<T> clazz,
+                                    @NotNull Class<? extends T> dependencyClass,
+                                    @Nullable String qualifier,
+                                    boolean primary) {
         return registerDependency(clazz, dependencyClass, qualifier, primary, null, null);
     }
 
-    public <T> Dependency registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver) {
+    public <T> BeanDefinition registerDependency(@NotNull Class<T> clazz,
+                                                 @NotNull Class<? extends T> dependencyClass,
+                                                 @Nullable T instance,
+                                                 @Nullable String qualifier,
+                                                 boolean primary,
+                                                 @Nullable DependencyResolveResolver<? extends T> resolver) {
         return registerDependency(clazz, dependencyClass, instance, qualifier, primary, resolver, null);
     }
 
-    public <T> Dependency registerDependency(@NotNull Class<T> clazz, @NotNull Class<? extends T> dependencyClass, @Nullable T instance, @Nullable String qualifier, boolean primary, @Nullable DependencyResolveResolver<T> resolver, @Nullable DependencyReloadCallback reloadCallback) {
+    public <T> BeanDefinition registerDependency(@NotNull Class<T> clazz,
+                                                 @NotNull Class<? extends T> dependencyClass,
+                                                 @Nullable T instance,
+                                                 @Nullable String qualifier,
+                                                 boolean primary,
+                                                 @Nullable DependencyResolveResolver<? extends T> resolver,
+                                                 @Nullable DependencyReloadCallback reloadCallback) {
         try {
             Objects.requireNonNull(clazz, "clazz cannot be null.");
             Objects.requireNonNull(dependencyClass, "dependencyClass cannot be null.");
-            Preconditions.checkArgument(!(dependencyClass.isInterface() && resolver == null), "You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
-
-            BeanUtils.detectCircularDependencies(dependencyClass, dependencyMap);
-
-            List<Dependency> dependencies = dependencyMap.computeIfAbsent(clazz, k -> new ArrayList<>());
-            boolean duplicateDependency = dependencies.stream()
-                    .anyMatch(dependency ->
-                            dependency.getType().equals(dependencyClass) &&
-                                    ((qualifier != null && qualifier.equals(dependency.getQualifierName())) ||
-                                            (qualifier == null && dependency.getQualifierName() == null))
-                    );
-
-            if (duplicateDependency) {
-                throw new IllegalStateException(
-                        "Dependency with qualifier '" + qualifier + "' already exists for class: " + clazz
-                );
+            if (dependencyClass.isInterface() && resolver == null && instance == null) {
+                throw new IllegalArgumentException("You cannot register an interface without a resolver. Use DependencyResolveResolver to provide an implementation.");
             }
 
-            Dependency dependency = new Dependency(dependencyClass, qualifier, primary, instance, resolver, reloadCallback);
-            dependencies.add(dependency);
+            BeanUtils.detectCircularDependencies(dependencyClass, beanDefinitionRegistry.asMapView());
 
-            return dependency;
+            String resolvedQualifier = beanNamingDefiner.defineQualifier(dependencyClass, instance, resolver, qualifier);
+
+            BeanDefinition definition = new BeanDefinition(clazz, dependencyClass, resolvedQualifier, primary, resolver, reloadCallback);
+            beanDefinitionRegistry.register(clazz, definition);
+
+            if (instance != null) {
+                beanInstanceRegistry.put(definition, instance);
+            }
+
+            return definition;
         } catch (Exception e) {
             throw new RuntimeException("Failed to register dependency using (" + clazz + " -> " + dependencyClass + "): ", e);
         }
     }
 
     public void reloadDependencies() {
-        dependencyMap.values().stream()
-                .flatMap(List::stream)
-                .filter(Dependency::isReloadable)
-                .filter(dependency -> !Objects.isNull(dependency.getInstance()))
+        beanInstanceRegistry.asMapView().entrySet().stream()
+                .filter(entry -> entry.getKey().isReloadable())
+                .filter(entry -> entry.getValue() != null)
                 .distinct()
-                .forEach(dependency -> {
+                .forEach(entry -> {
+                    BeanDefinition definition = entry.getKey();
+                    Object instance = entry.getValue();
+
                     try {
-                        dependency.getReloadCallback().reload(dependency.getInstance(), this);
+                        definition.getReloadCallback().reload(instance, this);
+                        beanInstanceRegistry.put(definition, instance);
                     } catch (Exception e) {
-                        throw new RuntimeException("Failed to reload dependency: " + dependency.identifier(), e);
+                        throw new RuntimeException("Failed to reload dependency: " + definition.identifier(), e);
                     }
                 });
     }
 
-    private <T> T createInstance(Class<T> type) throws Exception {
-        Constructor<?> ctor = findInjectConstructor(type);
+    public <T> @NotNull List<T> getInstancesByType(@NotNull Class<T> type) {
+        return beanInstanceRegistry.getInstancesByType(type);
+    }
 
+    public <T> T resolveFromDefinition(@NotNull Class<T> requestedType, @NotNull BeanDefinition definition) throws Exception {
+        Objects.requireNonNull(requestedType, "requestedType cannot be null.");
+        Objects.requireNonNull(definition, "definition cannot be null.");
+
+        if (beanInstanceRegistry.contains(definition)) {
+            return requestedType.cast(beanInstanceRegistry.get(definition));
+        }
+
+        Object instance;
+        if (definition.getResolver() != null) {
+            @SuppressWarnings("unchecked")
+            DependencyResolveResolver<T> resolver = (DependencyResolveResolver<T>) definition.getResolver();
+            instance = resolver.resolve(requestedType);
+
+            if (beanInstanceRegistry.contains(definition)) {
+                return requestedType.cast(beanInstanceRegistry.get(definition));
+            }
+
+            if (instance != null) {
+                instance = initializeBean(definition, instance);
+            }
+        } else {
+            instance = createInstance(definition);
+        }
+
+        if (instance == null) {
+            return null;
+        }
+
+        beanInstanceRegistry.put(definition, instance);
+        return requestedType.cast(instance);
+    }
+
+    public Object[] resolveArguments(@NotNull Parameter[] parameters) {
+        Objects.requireNonNull(parameters, "parameters cannot be null.");
+
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter param = parameters[i];
+            InjectionPoint injectionPoint = InjectionPoint.fromParameter(param);
+            args[i] = resolveDependency(injectionPoint);
+        }
+
+        return args;
+    }
+
+    public Object[] resolveArguments(@NotNull Executable executable) {
+        Objects.requireNonNull(executable, "executable cannot be null.");
+        return resolveArguments(executable.getParameters());
+    }
+
+    private Object createInstance(@NotNull BeanDefinition definition) throws Exception {
+        Objects.requireNonNull(definition, "definition cannot be null.");
+
+        Class<?> type = definition.getType();
+        if (type == null) {
+            return null;
+        }
+
+        Constructor<?> ctor = findInjectConstructor(type);
         if (ctor == null) {
             return null;
         }
 
-        Class<?>[] paramTypes = ctor.getParameterTypes();
-        Object[] params = new Object[paramTypes.length];
-        for (int i = 0; i < paramTypes.length; i++) {
-            params[i] = resolveDependency(paramTypes[i], null);
-        }
+        Object[] ctorArgs = resolveArguments(ctor);
 
         ctor.setAccessible(true);
-        T instance = type.cast(ctor.newInstance(params));
-        injectDependencies(instance);
-        return instance;
+        Object instance = ctor.newInstance(ctorArgs);
+
+        return initializeBean(definition, instance);
+    }
+
+    public <T> void injectDependencies(Class<T> clazz, @NotNull T instance) {
+        Objects.requireNonNull(instance, "instance cannot be null.");
+
+        try {
+            setterInject(clazz, instance);
+            fieldInject(clazz, instance);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException("Failed to inject dependencies for: " + clazz.getName(), e);
+        }
     }
 
     @SuppressWarnings("unchecked")
     public <T> void injectDependencies(@NotNull T instance) {
-        Objects.requireNonNull(instance, "instance cannot be null.");
-
-        Class<T> type = (Class<T>) instance.getClass();
-
-        try {
-            setterInject(type, instance);
-            fieldInject(type, instance);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("Failed to inject dependencies for: " + type.getName(), e);
-        }
+        injectDependencies((Class<T>) instance.getClass(), instance);
     }
 
-    private @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
+    public @Nullable Constructor<?> findInjectConstructor(@NotNull Class<?> type) {
         Objects.requireNonNull(type, "type cannot be null.");
 
         if (type.isInterface()) {
@@ -320,9 +510,17 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Method method : type.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Inject.class) && method.getParameterCount() == 1) {
-                Class<?> depType = method.getParameterTypes()[0];
-                Object dep = resolveDependency(depType, BeanUtils.getQualifier(method));
+            if (method.getParameterCount() != 1) {
+                continue;
+            }
+
+            InjectionPoint injectionPoint = InjectionPoint.fromSetterMethod(method);
+            boolean hasInjectAnnotation = method.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
+
+            if (hasInjectAnnotation || customInjectorSupports) {
+                Object dep = resolveDependency(injectionPoint);
+
                 method.setAccessible(true);
                 method.invoke(instance, dep);
             }
@@ -334,8 +532,13 @@ public class DependencyManager {
         Objects.requireNonNull(instance, "instance cannot be null.");
 
         for (Field field : type.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class)) {
-                Object dep = resolveDependency(field.getType(), BeanUtils.getQualifier(field));
+            InjectionPoint injectionPoint = InjectionPoint.fromField(field);
+            boolean hasInjectAnnotation = field.isAnnotationPresent(Inject.class);
+            boolean customInjectorSupports = customInjectorRegistry.customInjectorSupported(injectionPoint);
+
+            if (hasInjectAnnotation || customInjectorSupports) {
+                Object dep = resolveDependency(injectionPoint);
+
                 field.setAccessible(true);
                 field.set(instance, dep);
             }
@@ -343,6 +546,47 @@ public class DependencyManager {
     }
 
     public void clear() {
-        dependencyMap.clear();
+        beanDefinitionRegistry.clear();
+        beanInstanceRegistry.clear();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Collection<T> resolveCollectionDependency(@NotNull Class<?> collectionClass, @NotNull Class<?> elementType) {
+        List<BeanDefinition> definitions = beanDefinitionRegistry.getDefinitions(elementType);
+
+        List<Object> instances = new ArrayList<>();
+        for (BeanDefinition definition : definitions) {
+            try {
+                Object instance = resolveFromDefinition(elementType, definition);
+                if (instance != null) {
+                    instances.add(instance);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to resolve bean for collection injection: " + definition.identifier(), e);
+            }
+        }
+
+        Collection<Object> collection = createCollectionInstance(collectionClass);
+        collection.addAll(instances);
+        return (Collection<T>) collection;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<Object> createCollectionInstance(@NotNull Class<?> collectionClass) {
+        if (List.class.isAssignableFrom(collectionClass)) {
+            return new ArrayList<>();
+        }
+        if (Set.class.isAssignableFrom(collectionClass)) {
+            return new HashSet<>();
+        }
+        if (Collection.class.isAssignableFrom(collectionClass)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            return (Collection<Object>) collectionClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate collection type: " + collectionClass.getName(), e);
+        }
     }
 }

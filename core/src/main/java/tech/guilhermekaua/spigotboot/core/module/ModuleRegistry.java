@@ -22,102 +22,63 @@
  */
 package tech.guilhermekaua.spigotboot.core.module;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.ComponentRegistry;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.condition.ConditionEvaluator;
+import tech.guilhermekaua.spigotboot.core.context.condition.SimpleConditionContext;
+import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.exceptions.ModuleInitializationException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Logger;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class ModuleRegistry {
-    private final ModuleDiscoveryService moduleDiscoveryService = new ModuleDiscoveryService();
-    @Getter
-    private final Map<Class<? extends Module>, Module> loadedModules = new HashMap<>();
-    private final Logger logger;
+    private final ComponentRegistry componentRegistry;
 
-    public void loadModules(GlobalContext globalContext) {
-        for (Class<? extends Module> moduleClass : moduleDiscoveryService.discoverModules()) {
+    public void initializeModules(@NotNull Context context, @NotNull List<Class<? extends Module>> modulesToLoad) {
+        for (Class<? extends Module> moduleClass : modulesToLoad) {
             try {
-                loadModule(moduleClass, globalContext);
+                initializeModule(moduleClass, context);
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ModuleInitializationException("Failed to load module '" + moduleClass.getName() + "'", e);
             }
         }
     }
 
-    public void initializeModules(PluginContext pluginContext) {
-        for (Module module : loadedModules.values()) {
-            try {
-                initializeModule(module, pluginContext);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+    private void initializeModule(Class<? extends Module> moduleClass, Context context) throws Exception {
+        DependencyManager dm = context.getBean(DependencyManager.class);
+        ConditionContext conditionContext = new SimpleConditionContext(
+                dm.getBeanDefinitionRegistry(),
+                dm.getBeanInstanceRegistry(),
+                moduleClass.getClassLoader()
+        );
 
-    private void loadModule(Class<? extends Module> moduleClass, GlobalContext globalContext) {
-        try {
-            if (!verifyModuleDependencies(moduleClass)) {
-                return;
-            }
-
-            globalContext.scan(moduleClass.getPackage().getName());
-            globalContext.registerBean(moduleClass);
-
-            Module module = globalContext.getBean(moduleClass);
-            module.onLoad(globalContext);
-
-            loadedModules.put(moduleClass, module);
-        } catch (Exception e) {
-            loadedModules.remove(moduleClass);
-            throw new RuntimeException("Failed to load module: '" + moduleClass.getName() + "'", e);
-        }
-    }
-
-    private void initializeModule(Module module, PluginContext pluginContext) {
-        try {
-            module.onInitialize(pluginContext);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load module: '" + module.getClass().getName() + "'", e);
-        }
-    }
-
-    private boolean verifyModuleDependencies(@NotNull Class<? extends Module> moduleClass) {
-        if (!moduleClass.isAnnotationPresent(ConditionalOnClass.class)) {
-            return true;
+        if (ConditionEvaluator.shouldSkip(moduleClass, conditionContext, "ModuleRegistry")) {
+            return;
         }
 
-        ConditionalOnClass conditionalOnClass = moduleClass.getAnnotation(ConditionalOnClass.class);
+        if (componentRegistry.getComponentsAnnotations()
+                .stream()
+                .anyMatch(moduleClass::isAnnotationPresent)) {
+            throw new IllegalStateException("Stereotype annotations are not allowed on module classes.");
+        }
 
-        String className = null;
+        context.registerBean(moduleClass);
 
-        try {
-            for (Class<?> clazz : conditionalOnClass.value()) {
-                className = clazz.getName();
-                Class.forName(clazz.getName());
-            }
-            return true;
-        } catch (TypeNotPresentException e) {
-            logger.info(
-                    conditionalOnClass.message() != null ?
-                            conditionalOnClass.message() :
-                            "Skipping module '" + moduleClass.getName() + "' due to missing class: " + e.typeName()
+        Module module = context.getBean(moduleClass);
+
+        if (module == null) {
+            throw new IllegalStateException(
+                    "Failed to resolve module bean for '" + moduleClass.getName() + "' after registration. " +
+                            "Context.getBean(...) returned null, so the module cannot be initialized."
             );
-            return false;
-        } catch (ClassNotFoundException e) {
-            logger.info(
-                    conditionalOnClass.message() != null ?
-                            conditionalOnClass.message() :
-                            "Skipping module '" + moduleClass.getName() + "' due to missing class: " + className
-            );
-            return false;
         }
+
+        module.onInitialize(context);
     }
 }

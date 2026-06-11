@@ -42,6 +42,13 @@ public final class ProxyUtils {
         }
     }
 
+    public static Class<?> unwrapProxyType(Class<?> type) {
+        if (ProxyObject.class.isAssignableFrom(type)) {
+            return type.getSuperclass();
+        }
+        return type;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> Class<T> getRealClass(T object) {
         if (!isProxy(object)) {

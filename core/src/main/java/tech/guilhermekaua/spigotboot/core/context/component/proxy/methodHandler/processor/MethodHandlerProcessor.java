@@ -22,42 +22,60 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.processor;
 
-import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.RegisterMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.annotations.MethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryCategories;
+import tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexReader;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 
-import java.util.Arrays;
-import java.util.List;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.stream.Collectors;
 
-@Component
 public class MethodHandlerProcessor {
+    private DiscoveryIndexReader discoveryIndexReader;
+
     public List<RegisteredMethodHandler> processFromPackage(String basePackage, DependencyManager dependencyManager) {
-        return ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class)
-                .stream()
+        LinkedHashSet<Class<?>> handlerClasses = new LinkedHashSet<>(
+                ReflectionUtils.getClassesAnnotatedWith(basePackage, RegisterMethodHandler.class));
+        DiscoveryIndexReader reader = getDiscoveryIndexReader();
+        if (reader.hasAnyIndex()) {
+            handlerClasses.addAll(reader.classesInCategory(DiscoveryCategories.METHOD_HANDLER, basePackage));
+        }
+
+        return handlerClasses.stream()
+                .sorted(Comparator.comparing(Class::getName))
                 .flatMap(clazz -> processClass(clazz, dependencyManager).stream())
                 .collect(Collectors.toList());
     }
 
-    private List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
+    private DiscoveryIndexReader getDiscoveryIndexReader() {
+        if (discoveryIndexReader == null) {
+            discoveryIndexReader = DiscoveryIndexReader.create();
+        }
+        return discoveryIndexReader;
+    }
+
+    public List<RegisteredMethodHandler> processClass(Class<?> clazz, DependencyManager dependencyManager) {
         try {
             Object handler = dependencyManager.resolveDependency(clazz, BeanUtils.getQualifier(clazz));
 
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(MethodHandler.class))
                     .filter(method -> method.getParameterCount() == 1 && method.getParameterTypes()[0] == MethodHandlerContext.class)
+                    .sorted(Comparator.comparing(Method::toGenericString))
                     .map(method -> {
                         MethodHandler annotation = method.getAnnotation(MethodHandler.class);
                         return new RegisteredMethodHandler(
                                 context -> method.invoke(handler, context),
                                 annotation.targetClass(),
                                 annotation.classAnnotatedWith(),
-                                annotation.methodAnnotatedWith()
+                                annotation.methodAnnotatedWith(),
+                                annotation.order()
                         );
                     })
                     .collect(Collectors.toList());

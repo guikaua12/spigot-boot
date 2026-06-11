@@ -1,26 +1,36 @@
 package tech.guilhermekaua.spigotboot.core;
 
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.ContextManager;
-import tech.guilhermekaua.spigotboot.core.context.GlobalContext;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
+import java.util.List;
 import java.util.Objects;
 
 public final class SpigotBoot {
     private static final ContextManager CONTEXT_MANAGER = new ContextManager();
 
-    public static void initialize(@NotNull JavaPlugin plugin) {
+    public static Context initialize(@NotNull BootPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
+        return builder(plugin).autoDiscover().initialize();
+    }
 
-        GlobalContext globalContext = CONTEXT_MANAGER.createGlobalContextIfNotExists(plugin);
+    @SafeVarargs
+    public static Context initialize(@NotNull BootPlugin plugin, @NotNull Class<? extends Module>... modulesToLoad) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+        Objects.requireNonNull(modulesToLoad, "modulesToLoad cannot be null");
+        return builder(plugin).modules(modulesToLoad).initialize();
+    }
 
-        if (!globalContext.isInitialized()) {
-            globalContext.initialize();
-        }
+    public static SpigotBootBuilder builder(@NotNull BootPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
+        return new SpigotBootBuilder(plugin);
+    }
 
-        PluginContext ctx = CONTEXT_MANAGER.getContext(plugin);
+    static Context doInitialize(BootPlugin plugin, List<Class<? extends Module>> modules) {
+        Context ctx = CONTEXT_MANAGER.getContext(plugin);
         if (ctx == null) {
             ctx = CONTEXT_MANAGER.createContext(plugin);
         }
@@ -29,36 +39,33 @@ public final class SpigotBoot {
             throw new IllegalStateException("Context is already initialized for plugin: " + plugin.getName());
         }
 
+        ctx.setModulesToLoad(modules);
         ctx.initialize();
+        return ctx;
     }
 
-    public static PluginContext getContext(@NotNull JavaPlugin plugin) {
+    public static Context getContext(@NotNull BootPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
 
         return CONTEXT_MANAGER.getContext(plugin);
     }
 
-    public static void onDisable(@NotNull JavaPlugin plugin) {
+    public static void onDisable(@NotNull BootPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
 
-        PluginContext context = CONTEXT_MANAGER.getContext(plugin);
+        Context context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
-            throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
+            return;
         }
 
         context.destroy();
-
-        GlobalContext globalContext = CONTEXT_MANAGER.getGlobalContext();
-        if (plugin.equals(globalContext.getPlugin())) {
-            CONTEXT_MANAGER.getGlobalContext().destroy();
-        }
     }
 
-    public static void registerShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+    public static void registerShutdownHook(@NotNull BootPlugin plugin, @NotNull Runnable runnable) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
         Objects.requireNonNull(runnable, "runnable cannot be null");
 
-        PluginContext context = CONTEXT_MANAGER.getContext(plugin);
+        Context context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
             throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
         }
@@ -66,11 +73,11 @@ public final class SpigotBoot {
         context.registerShutdownHook(runnable);
     }
 
-    public static void unregisterShutdownHook(@NotNull JavaPlugin plugin, @NotNull Runnable runnable) {
+    public static void unregisterShutdownHook(@NotNull BootPlugin plugin, @NotNull Runnable runnable) {
         Objects.requireNonNull(plugin, "plugin cannot be null");
         Objects.requireNonNull(runnable, "runnable cannot be null");
 
-        PluginContext context = CONTEXT_MANAGER.getContext(plugin);
+        Context context = CONTEXT_MANAGER.getContext(plugin);
         if (context == null || !context.isInitialized()) {
             throw new IllegalStateException("Context is not initialized for plugin: " + plugin.getName());
         }

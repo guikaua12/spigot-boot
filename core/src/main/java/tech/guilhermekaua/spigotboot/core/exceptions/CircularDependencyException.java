@@ -1,10 +1,11 @@
 package tech.guilhermekaua.spigotboot.core.exceptions;
 
-import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 
-@Getter
-public class CircularDependencyException extends RuntimeException {
-    public CircularDependencyException(String message) {
-        super(message);
+import java.util.List;
+
+public class CircularDependencyException extends CycleDetectedException {
+    public CircularDependencyException(@NotNull List<Class<?>> cycle) {
+        super(cycle, Class::getSimpleName, "Circular dependency detected: ");
     }
 }

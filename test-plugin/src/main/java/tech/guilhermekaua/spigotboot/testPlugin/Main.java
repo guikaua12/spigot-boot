@@ -22,43 +22,36 @@
  */
 package tech.guilhermekaua.spigotboot.testPlugin;
 
-import com.j256.ormlite.support.ConnectionSource;
+import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
-import tech.guilhermekaua.spigotboot.annotationprocessor.annotations.Plugin;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.core.spigot.SpigotBootPlugin;
+import tech.guilhermekaua.spigotboot.spigot.annotationprocessor.annotations.Plugin;
+import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
 
+@Getter
 @Plugin(
         name = "TestPlugin",
         version = "1.0.0",
         description = "A test plugin for ApxPlugin framework.",
-        authors = {"Approximations"}
+        authors = {"Approximations"},
+        apiVersion = "1.13"
 )
 public class Main extends JavaPlugin {
-    @Inject
-    private ConnectionSource connectionSource;
+    private SpigotBootPlugin bootPlugin;
 
     @Override
     public void onEnable() {
-        SpigotBoot.initialize(this);
-//        System.out.println(userRepository.findAll());
+        bootPlugin = new SpigotBootPlugin(this);
+        Context ctx = SpigotBoot.initialize(bootPlugin);
 
-//        final BungeeChannel bungeeChannel = new BungeeChannel(this);
-//        bungeeChannel.init();
-//
-//        bungeeChannel.subscribe("test", message -> {
-//            System.out.println("[Subscriber] Received on channel `test` message: " + message.getBody());
-//            message.respond("Response from any server!");
-//        });
-
-//        bungeeChannel.subscribe("test", message -> {
-//            System.out.println("[Subscriber] Received on channel `test` message: " + message.getBody());
-//            message.respond("Response from any server!");
-//        });
+        MainConfig mainConfig = ctx.getBean(MainConfig.class);
+        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
     }
 
     @Override
     public void onDisable() {
-        SpigotBoot.onDisable(this);
+        SpigotBoot.onDisable(bootPlugin);
     }
 }

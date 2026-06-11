@@ -5,12 +5,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
+import tech.guilhermekaua.spigotboot.core.context.component.proxy.decider.BeanProxyDecider;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
 
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,6 +48,25 @@ public class DependencyManagerTest {
         }
     }
 
+    static class QualifiedServiceImpl implements Service {
+        @Override
+        public String getValue() {
+            return "qualified-service";
+        }
+    }
+
+    static class QualifiedConstructorInjected {
+        private final Service service;
+
+        public QualifiedConstructorInjected(@Qualifier("special") Service service) {
+            this.service = service;
+        }
+
+        public Service getService() {
+            return service;
+        }
+    }
+
     static class FieldInjected {
         @Inject
         Service service;
@@ -65,6 +86,23 @@ public class DependencyManagerTest {
 
         public Service getService() {
             return service;
+        }
+    }
+
+    static class PlainBean {
+    }
+
+    static class CountingBeanProxyDecider implements BeanProxyDecider {
+        private final AtomicInteger invocationCount = new AtomicInteger(0);
+
+        @Override
+        public boolean shouldProxy(BeanDefinition definition, DependencyManager dependencyManager) {
+            invocationCount.incrementAndGet();
+            return false;
+        }
+
+        public int getInvocationCount() {
+            return invocationCount.get();
         }
     }
 
@@ -123,7 +161,8 @@ public class DependencyManagerTest {
     void testRegisterSameClassDifferentQualifier() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
 
-        assertDoesNotThrow(() -> dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false));
+        assertDoesNotThrow(
+                () -> dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false));
     }
 
     @Test
@@ -149,8 +188,17 @@ public class DependencyManagerTest {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, "someQualifier", false);
 
-        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.resolveDependency(Service.class, null));
-        assertTrue(exception.getCause().getMessage().contains("No primary dependency found for class"));
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> dependencyManager.resolveDependency(Service.class, null));
+        Throwable cause = exception.getCause();
+        assertNotNull(cause);
+        String message = cause.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("Multiple dependencies found for type " + Service.class.getName()));
+        assertTrue(message.contains("Available qualifiers: ["));
+        assertTrue(message.contains("serviceImpl"));
+        assertTrue(message.contains("someQualifier"));
+        assertTrue(message.contains("Add @Primary to one bean or use @Qualifier at the injection point."));
     }
 
     @Test
@@ -165,7 +213,8 @@ public class DependencyManagerTest {
 
     @Test
     void testRegisterInterfaceWithoutResolver() {
-        Exception exception = assertThrows(RuntimeException.class, () -> dependencyManager.registerDependency(Service.class, null, false, null, null));
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> dependencyManager.registerDependency(Service.class, null, false, null, null));
         assertTrue(exception.getCause().getMessage().contains("cannot register an interface without a resolver"));
     }
 
@@ -178,6 +227,19 @@ public class DependencyManagerTest {
         assertNotNull(obj);
         assertNotNull(obj.getService());
         assertEquals("service", obj.getService().getValue());
+    }
+
+    @Test
+    void testConstructorInjectionWithQualifier() {
+        dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
+        dependencyManager.registerDependency(Service.class, QualifiedServiceImpl.class, "special", false);
+        dependencyManager.registerDependency(QualifiedConstructorInjected.class, null, false, null, null);
+
+        QualifiedConstructorInjected obj = dependencyManager.resolveDependency(QualifiedConstructorInjected.class, null);
+
+        assertNotNull(obj);
+        assertNotNull(obj.getService());
+        assertEquals("qualified-service", obj.getService().getValue());
     }
 
     @Test
@@ -223,6 +285,18 @@ public class DependencyManagerTest {
     }
 
     @Test
+    void testProxyDeciderConsultedOnlyOncePerBeanCreation() {
+        CountingBeanProxyDecider decider = new CountingBeanProxyDecider();
+
+        dependencyManager.registerDependency(BeanProxyDecider.class, decider, "countingDecider", true);
+        dependencyManager.registerDependency(PlainBean.class, null, false, null, null);
+
+        PlainBean bean = dependencyManager.resolveDependency(PlainBean.class, null);
+        assertNotNull(bean);
+        assertEquals(1, decider.getInvocationCount());
+    }
+
+    @Test
     void testResolveUnregisteredTypeReturnsNull() {
         assertNull(dependencyManager.resolveDependency(Service.class, null));
     }
@@ -255,19 +329,12 @@ public class DependencyManagerTest {
     }
 
     @Test
-    void testReloadWithNullCallback() throws Exception {
-        DependencyReloadCallback callback = Mockito.mock(DependencyReloadCallback.class);
+    void testReloadWithNullCallback() {
+        BeanDefinition definition = new BeanDefinition(Service.class, ServiceImpl.class, null, false, null, null);
+        dependencyManager.getBeanDefinitionRegistry().register(Service.class, definition);
+        dependencyManager.getBeanInstanceRegistry().put(definition, new ServiceImpl());
 
-        Dependency mockedDependency = Mockito.mock(Dependency.class);
-        Mockito.doReturn(new ServiceImpl()).when(mockedDependency).getInstance();
-        Mockito.doReturn(false).when(mockedDependency).isReloadable();
-        Mockito.doReturn(callback).when(mockedDependency).getReloadCallback();
-
-        dependencyManager.getDependencyMap().put(Service.class, List.of(mockedDependency));
-
-        dependencyManager.reloadDependencies();
-
-        Mockito.verify(callback, Mockito.never()).reload(Mockito.any(), Mockito.eq(dependencyManager));
+        assertDoesNotThrow(() -> dependencyManager.reloadDependencies());
     }
 
     @Test
@@ -302,12 +369,12 @@ public class DependencyManagerTest {
     @Test
     void testClearDependencies() {
         dependencyManager.registerDependency(Service.class, ServiceImpl.class, null, false);
-        assertEquals(1, dependencyManager.getDependencyMap().size());
+        assertEquals(1, dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().size());
 
         assertNotNull(dependencyManager.resolveDependency(Service.class, null));
         dependencyManager.clear();
 
         assertNull(dependencyManager.resolveDependency(Service.class, null));
-        assertTrue(dependencyManager.getDependencyMap().isEmpty());
+        assertTrue(dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes().isEmpty());
     }
 }

@@ -26,7 +26,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
 import lombok.RequiredArgsConstructor;
-import tech.guilhermekaua.spigotboot.core.context.PluginContext;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
@@ -36,26 +36,28 @@ import tech.guilhermekaua.spigotboot.data.ormLite.annotations.OrmLiteDao;
 import tech.guilhermekaua.spigotboot.data.ormLite.registry.discovery.OrmLiteRepositoryDiscoveryService;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.OrmLiteRepository;
 import tech.guilhermekaua.spigotboot.data.ormLite.repository.impl.OrmLiteRepositoryImpl;
-import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
+import tech.guilhermekaua.spigotboot.data.ormLite.utils.OrmLiteTypeUtils;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Component
 @SuppressWarnings("rawtypes")
 @RequiredArgsConstructor
 public class OrmLiteRepositoryRegistry {
+    private static final Logger LOGGER = Logger.getLogger(OrmLiteRepositoryRegistry.class.getName());
+
     private final Map<Class<?>, OrmLiteRepository<?, ?>> repositoryMap = new HashMap<>();
     private final OrmLiteRepositoryDiscoveryService repositoryDiscoveryService;
 
-    public void initialize(PluginContext context) {
+    public void initialize(Context context) {
         Set<Class<? extends OrmLiteRepository>> repositoryClasses = repositoryDiscoveryService.discoverFromPackage(
-                ProxyUtils.getRealClass(context.getPlugin()).getPackage().getName()
+                context.getPlugin().getMainClass().getPackage().getName(),
+                context.getPlugin().getClassLoader()
         );
 
         ConnectionSource connectionSource = context.getBean(ConnectionSource.class);
@@ -76,8 +78,14 @@ public class OrmLiteRepositoryRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    private void initializeRepository(Class<? extends OrmLiteRepository> repositoryClass, DependencyManager dependencyManager, ConnectionSource connectionSource) throws ClassNotFoundException, SQLException {
+    private void initializeRepository(Class<? extends OrmLiteRepository> repositoryClass, DependencyManager dependencyManager, ConnectionSource connectionSource) {
         try {
+            Class<?> entityClass = OrmLiteTypeUtils.resolveEntityType(repositoryClass);
+            if (entityClass == null) {
+                LOGGER.log(Level.WARNING, "Skipping repository {0}: could not resolve entity type (unbound type variables).", repositoryClass.getName());
+                return;
+            }
+
             dependencyManager.registerDependency(
                     (Class<OrmLiteRepository>) repositoryClass,
                     repositoryClass,
@@ -86,10 +94,6 @@ public class OrmLiteRepositoryRegistry {
                     (clazz) -> ComponentProxy.createProxy(clazz, null, new Class[0], new Object[0])
             );
 
-            Type[] types = ((ParameterizedType) repositoryClass.getGenericInterfaces()[0]).getActualTypeArguments();
-            Type entityType = types[0];
-
-            Class<?> entityClass = Class.forName(entityType.getTypeName());
             Dao<?, ?> dao = DaoManager.createDao(connectionSource, entityClass);
 
             OrmLiteRepository repository = dependencyManager.resolveDependency(repositoryClass, BeanUtils.getQualifier(repositoryClass));

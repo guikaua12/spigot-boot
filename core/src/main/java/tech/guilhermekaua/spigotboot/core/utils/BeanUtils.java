@@ -3,11 +3,9 @@ package tech.guilhermekaua.spigotboot.core.utils;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
-import tech.guilhermekaua.spigotboot.core.context.annotations.OnReload;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Qualifier;
-import tech.guilhermekaua.spigotboot.core.context.dependency.Dependency;
-import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCallback;
+import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.exceptions.CircularDependencyException;
 
 import java.lang.reflect.AnnotatedElement;
@@ -19,8 +17,8 @@ import java.util.*;
 /**
  * Utility class providing helper methods for bean management in the Spigot Boot dependency injection system.
  * <p>
- * This class handles qualifier extraction, primary bean detection, reload callback creation, and circular dependency
- * detection during bean registration. It supports constructor, field, and setter injection analysis.
+ * This class handles qualifier extraction, primary bean detection, and circular dependency detection during bean
+ * registration. It supports constructor, field, and setter injection analysis.
  */
 public final class BeanUtils {
     /**
@@ -54,40 +52,6 @@ public final class BeanUtils {
     }
 
     /**
-     * Creates a reload callback for the specified class that automatically invokes all methods annotated with
-     * {@link OnReload} after dependency reinjection.
-     * <p>
-     * The callback resolves dependencies for method parameters using the provided dependency manager and handles
-     * any exceptions by wrapping them in a {@link RuntimeException}. This enables beans to react to configuration
-     * reloads or dependency updates.
-     *
-     * @param clazz the class for which to generate the reload callback, not null
-     * @return a {@link DependencyReloadCallback} that performs the reload logic for the class
-     */
-    public static DependencyReloadCallback createDependencyReloadCallback(@NotNull Class<?> clazz) {
-        Objects.requireNonNull(clazz);
-
-        return (instance, dependencyManager) -> {
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (!method.isAnnotationPresent(OnReload.class)) {
-                    continue;
-                }
-
-                try {
-                    Object[] dependencies = Arrays.stream(method.getParameters())
-                            .map(param -> dependencyManager.resolveDependency(param.getType(), getQualifier(param)))
-                            .toArray(Object[]::new);
-
-                    method.setAccessible(true);
-                    method.invoke(instance, dependencies);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
-    }
-
-    /**
      * Detects circular dependencies in the dependency graph during bean registration.
      * <p>
      * This method performs a depth-first search to analyze dependencies from constructors, fields, and setter methods
@@ -99,7 +63,7 @@ public final class BeanUtils {
      * @throws CircularDependencyException if a circular dependency path is detected in the graph
      */
     public static void detectCircularDependencies(@NotNull Class<?> newDependencyClass,
-                                                  @NotNull Map<Class<?>, List<Dependency>> dependencyMap) {
+                                                  @NotNull Map<Class<?>, List<BeanDefinition>> dependencyMap) {
         Objects.requireNonNull(newDependencyClass, "newDependencyClass cannot be null");
         Objects.requireNonNull(dependencyMap, "dependencyMap cannot be null");
 
@@ -108,10 +72,7 @@ public final class BeanUtils {
 
         CircularDependencyResult result = hasCircularDependency(newDependencyClass, dependencyMap, visitedClasses, currentPath);
         if (result.hasCircularDependency) {
-            throw new CircularDependencyException("Circular dependency detected: " +
-                    String.join(" -> ", result.circularPath.stream()
-                            .map(Class::getSimpleName)
-                            .toArray(String[]::new)));
+            throw new CircularDependencyException(result.circularPath);
         }
     }
 
@@ -128,7 +89,7 @@ public final class BeanUtils {
      * @return a result containing whether a circular dependency was found and the cycle path if applicable
      */
     private static CircularDependencyResult hasCircularDependency(@NotNull Class<?> currentClass,
-                                                                  @NotNull Map<Class<?>, List<Dependency>> dependencyMap,
+                                                                  @NotNull Map<Class<?>, List<BeanDefinition>> dependencyMap,
                                                                   @NotNull Set<Class<?>> visitedClasses,
                                                                   @NotNull Set<Class<?>> currentPath) {
         if (currentPath.contains(currentClass)) {
@@ -174,9 +135,9 @@ public final class BeanUtils {
 
                 // if the dependency is already registered, check its dependencies recursively
                 if (dependencyMap.containsKey(dependency)) {
-                    List<Dependency> registeredDeps = dependencyMap.get(dependency);
+                    List<BeanDefinition> registeredDeps = dependencyMap.get(dependency);
                     if (registeredDeps != null) {
-                        for (Dependency registeredDep : registeredDeps) {
+                        for (BeanDefinition registeredDep : registeredDeps) {
                             CircularDependencyResult result = hasCircularDependency(registeredDep.getType(), dependencyMap, visitedClasses, currentPath);
                             if (result.hasCircularDependency) {
                                 return result;
