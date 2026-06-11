@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.listeners.ContextReadyListener;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @Component
 public class BukkitListenerAutoRegistrar implements ContextReadyListener {
     private final List<Listener> autoRegisteredListeners = new ArrayList<>();
+    private final ProxiedListenerEventBinder proxiedListenerEventBinder = new ProxiedListenerEventBinder();
 
     @Override
     public void onContextReady(@NotNull Context context) {
@@ -22,7 +24,14 @@ public class BukkitListenerAutoRegistrar implements ContextReadyListener {
         List<Listener> listenerBeans = context.getBeansByType(Listener.class);
 
         for (Listener listener : listenerBeans) {
-            plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+            // a proxied listener hands bukkit a subclass whose method overrides have dropped the @EventHandler
+            // annotation, so registering it natively discovers no handlers. bind those handlers from the real
+            // class instead, keeping the proxy instance as the invocation target.
+            if (ProxyUtils.isProxy(listener)) {
+                proxiedListenerEventBinder.register(plugin, listener);
+            } else {
+                plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+            }
             autoRegisteredListeners.add(listener);
         }
 
