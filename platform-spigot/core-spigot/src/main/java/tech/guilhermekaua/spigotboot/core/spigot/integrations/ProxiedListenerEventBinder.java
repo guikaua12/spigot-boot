@@ -66,6 +66,10 @@ class ProxiedListenerEventBinder {
 
             Class<? extends Event> eventClass = resolveEventClass(method);
             if (eventClass == null) {
+                // mirror bukkit's native diagnostic so a misconfigured handler on a proxied listener is not lost
+                // silently (the plain registerEvents path logs the same case during startup).
+                plugin.getLogger().severe("Attempted to register an invalid EventHandler method signature \""
+                        + method.toGenericString() + "\" in " + realClass.getName());
                 continue;
             }
 

@@ -42,7 +42,12 @@ import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -109,6 +114,45 @@ class BukkitListenerAutoRegistrarTest {
                 "@EventHandler methods on a plain listener must still fire");
     }
 
+    // a misconfigured @EventHandler on a proxied listener must not vanish without a trace: bukkit's native path
+    // logs a SEVERE diagnostic for an invalid handler signature, and the proxied path must keep that parity.
+    @Test
+    void invalidEventHandlerSignatureOnProxiedListenerIsLogged() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+
+        List<LogRecord> records = new ArrayList<>();
+        Handler capture = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                records.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        plugin.getLogger().addHandler(capture);
+
+        Listener proxiedListener = ComponentProxy.createProxy(
+                InvalidSignatureListener.class, null, new Class<?>[0], new Object[0]);
+
+        Context context = mock(Context.class);
+        when(context.getBean(Plugin.class)).thenReturn(plugin);
+        when(context.getBeansByType(Listener.class)).thenReturn(Collections.singletonList(proxiedListener));
+
+        new BukkitListenerAutoRegistrar().onContextReady(context);
+
+        assertTrue(
+                records.stream().anyMatch(record -> record.getLevel() == Level.SEVERE
+                        && record.getMessage() != null
+                        && record.getMessage().contains("invalid EventHandler method signature")),
+                "an invalid @EventHandler signature on a proxied listener must be logged, matching bukkit's native path");
+    }
+
     // core bundles javassist relocated; a shipped class that references the original javassist.* package throws
     // NoClassDefFoundError on a real server even though tests stay green. proxy detection here must go through
     // ProxyUtils (name-based), never a direct javassist import.
@@ -146,6 +190,13 @@ class BukkitListenerAutoRegistrarTest {
 
         public int getHits() {
             return hits;
+        }
+    }
+
+    public static class InvalidSignatureListener implements Listener {
+        // annotated as a handler but missing the single Event parameter, so it can never be registered.
+        @EventHandler
+        public void onBrokenHandler() {
         }
     }
 
