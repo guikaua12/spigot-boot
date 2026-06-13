@@ -8,6 +8,7 @@ import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.FolderConfigInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
@@ -30,10 +31,11 @@ public class ConfigConfiguration {
     }
 
     @Bean
-    public CustomInjectorRegistryCustomizer folderConfigInjector(SpigotConfigManager configManager) {
+    public CustomInjectorRegistryCustomizer configInjectors(SpigotConfigManager configManager) {
         return (registry) -> {
             registry.register(new FolderConfigInjector(configManager));
             registry.register(new ConfigRefInjector(configManager));
+            registry.register(new ConfigValueInjector(configManager));
         };
     }
 

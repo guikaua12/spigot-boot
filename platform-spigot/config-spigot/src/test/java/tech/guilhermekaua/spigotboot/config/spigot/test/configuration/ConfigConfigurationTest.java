@@ -24,9 +24,17 @@ package tech.guilhermekaua.spigotboot.config.spigot.test.configuration;
 
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.configuration.ConfigConfiguration;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.FolderConfigInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjectorRegistryCustomizer;
+import tech.guilhermekaua.spigotboot.core.context.dependency.injector.DefaultCustomInjectorRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistryCustomizer;
 
@@ -36,14 +44,18 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ConfigConfigurationTest {
+
+    @Mock
+    Plugin plugin;
 
     @Test
     void onConfigReloadProcessor_registersProcessor() {
-        Plugin plugin = mock(Plugin.class);
         when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
         SpigotConfigManager configManager = mock(SpigotConfigManager.class);
 
@@ -55,5 +67,20 @@ class ConfigConfigurationTest {
 
         assertEquals(1, registered.size());
         assertTrue(registered.get(0) instanceof OnConfigReloadProcessor);
+    }
+
+    @Test
+    void configInjectors_registersConfigValueInjector() {
+        lenient().when(plugin.getLogger()).thenReturn(Logger.getLogger(ConfigConfigurationTest.class.getName()));
+        SpigotConfigManager configManager = new SpigotConfigManager(plugin);
+
+        CustomInjectorRegistryCustomizer customizer = new ConfigConfiguration().configInjectors(configManager);
+        DefaultCustomInjectorRegistry registry = new DefaultCustomInjectorRegistry();
+        customizer.customize(registry);
+
+        assertEquals(3, registry.getInjectors().size());
+        assertTrue(registry.getInjectors().stream().anyMatch(i -> i instanceof FolderConfigInjector));
+        assertTrue(registry.getInjectors().stream().anyMatch(i -> i instanceof ConfigRefInjector));
+        assertTrue(registry.getInjectors().stream().anyMatch(i -> i instanceof ConfigValueInjector));
     }
 }
