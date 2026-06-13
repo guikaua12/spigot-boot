@@ -28,8 +28,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Method called after a config is reloaded.
- * Method can have zero params or accept the new config instance.
+ * Marks a method on a DI-managed bean to be invoked after a config is reloaded.
+ * <p>
+ * For a simple {@code @Config} target, the method may take zero parameters or accept the new config
+ * instance. For a folder-config target, it may take zero parameters or accept a
+ * {@code FolderConfigItemChange<T>} or {@code FolderConfigSnapshot<T>}.
+ * <p>
+ * It is not invoked on initial load, only on subsequent reloads. Place it on a bean, never on a
+ * {@code @Config}/{@code @FolderConfig} class itself (which is rejected at registration).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
