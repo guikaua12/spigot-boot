@@ -26,6 +26,7 @@ import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfigs;
+import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
@@ -39,6 +40,7 @@ import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.logging.Logger;
@@ -146,6 +148,8 @@ public class ConfigRegistry {
             SpigotConfigManager spigotConfigManager,
             Logger logger) {
         try {
+            rejectOnConfigReloadUsage(itemClass);
+
             List<FolderConfig> annotations = getFolderConfigAnnotations(itemClass);
 
             if (annotations.isEmpty()) {
@@ -191,6 +195,22 @@ public class ConfigRegistry {
                                 " has non-private field '" + field.getName() + "'. " +
                                 "All fields must be private to ensure reload safety."
                 );
+            }
+        }
+
+        rejectOnConfigReloadUsage(configClass);
+    }
+
+    private void rejectOnConfigReloadUsage(Class<?> configClass) {
+        for (Class<?> current = configClass; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (method.isAnnotationPresent(OnConfigReload.class)) {
+                    throw new ConfigException(
+                            "Config class " + configClass.getName() +
+                                    " declares @OnConfigReload on method '" + method.getName() + "'. " +
+                                    "@OnConfigReload is only processed on DI-managed beans, not on @Config/@FolderConfig classes."
+                    );
+                }
             }
         }
     }

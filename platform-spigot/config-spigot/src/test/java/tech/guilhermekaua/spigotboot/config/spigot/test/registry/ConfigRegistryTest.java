@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
@@ -322,5 +323,20 @@ public class ConfigRegistryTest {
     @Test
     void testConfigRegistryIsComponent() {
         assertTrue(ConfigRegistry.class.isAnnotationPresent(Component.class));
+    }
+
+    @Config("reload-hook.yml")
+    static class ConfigWithReloadHook {
+        @OnConfigReload
+        void onReload() { }
+    }
+
+    @Test
+    void processConfigClass_rejectsOnConfigReloadOnConfigPojo() {
+        ConfigException exception = assertThrows(
+                ConfigException.class,
+                () -> configRegistry.processConfigClass(ConfigWithReloadHook.class, context, configManager)
+        );
+        assertTrue(exception.getMessage().contains("@OnConfigReload"));
     }
 }
