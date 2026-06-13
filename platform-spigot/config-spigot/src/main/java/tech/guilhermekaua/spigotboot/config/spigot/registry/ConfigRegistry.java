@@ -39,8 +39,10 @@ import tech.guilhermekaua.spigotboot.core.scanner.ClassPathScanner;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -147,7 +149,7 @@ public class ConfigRegistry {
             SpigotConfigManager spigotConfigManager,
             Logger logger) {
         try {
-            rejectConfigValueFields(itemClass, "@FolderConfig item");
+            rejectConfigValueUsage(itemClass, "@FolderConfig item");
 
             List<FolderConfig> annotations = getFolderConfigAnnotations(itemClass);
 
@@ -187,7 +189,7 @@ public class ConfigRegistry {
     }
 
     private void validateConfigClass(Class<?> configClass) {
-        rejectConfigValueFields(configClass, "@Config");
+        rejectConfigValueUsage(configClass, "@Config");
         for (Field field : configClass.getDeclaredFields()) {
             if (!Modifier.isPrivate(field.getModifiers())) {
                 throw new ConfigException(
@@ -199,15 +201,30 @@ public class ConfigRegistry {
         }
     }
 
-    // declared fields only (consistent with the non-private-field check); inherited fields are out of scope by design
-    private void rejectConfigValueFields(Class<?> targetClass, String kind) {
-        for (Field field : targetClass.getDeclaredFields()) {
-            if (field.isAnnotationPresent(ConfigValue.class)) {
-                throw new ConfigException(
-                        kind + " class " + targetClass.getName() + " has a @ConfigValue field '" +
-                                field.getName() + "'. @ConfigValue is only honored on DI-managed beans " +
-                                "(@Component/@Bean), not on " + kind + " classes."
-                );
+    // @ConfigValue is never honored on @Config/@FolderConfig POJOs (they are bound by the config binder,
+    // not the DI container), so reject it on every supported target: declared and inherited fields, and
+    // constructor parameters (config binding supports constructor binding).
+    private void rejectConfigValueUsage(Class<?> targetClass, String kind) {
+        for (Class<?> current = targetClass; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.isAnnotationPresent(ConfigValue.class)) {
+                    throw new ConfigException(
+                            kind + " class " + targetClass.getName() + " has a @ConfigValue field '" +
+                                    field.getName() + "'. @ConfigValue is only honored on DI-managed beans " +
+                                    "(@Component/@Bean), not on " + kind + " classes."
+                    );
+                }
+            }
+        }
+        for (Constructor<?> constructor : targetClass.getDeclaredConstructors()) {
+            for (Parameter parameter : constructor.getParameters()) {
+                if (parameter.isAnnotationPresent(ConfigValue.class)) {
+                    throw new ConfigException(
+                            kind + " class " + targetClass.getName() + " has a @ConfigValue constructor parameter '" +
+                                    parameter.getName() + "'. @ConfigValue is only honored on DI-managed beans " +
+                                    "(@Component/@Bean), not on " + kind + " classes."
+                    );
+                }
             }
         }
     }

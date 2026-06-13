@@ -173,6 +173,28 @@ public class ConfigRegistryTest {
         }
     }
 
+    public static class BaseConfigWithConfigValueField {
+        @ConfigValue("other:x")
+        private String inheritedInjected;
+    }
+
+    @Config("config-inherited-configvalue.yml")
+    public static class ConfigExtendingConfigValueBase extends BaseConfigWithConfigValueField {
+        private String own;
+
+        public ConfigExtendingConfigValueBase() {
+        }
+    }
+
+    @Config("config-with-configvalue-ctor.yml")
+    public static class ConfigWithConfigValueCtorParam {
+        private final String x;
+
+        public ConfigWithConfigValueCtorParam(@ConfigValue("other:x") String x) {
+            this.x = x;
+        }
+    }
+
     static class MockConfigRef<T> implements ConfigRef<T> {
         private final Class<T> configClass;
         private T instance;
@@ -364,5 +386,21 @@ public class ConfigRegistryTest {
                         Logger.getLogger(ConfigRegistryTest.class.getName())));
         assertTrue(ex.getMessage().contains("@ConfigValue"));
         assertTrue(ex.getMessage().contains("injected"));
+    }
+
+    @Test
+    void processConfigClass_whenInheritedConfigValueField_throwsConfigException() {
+        ConfigException ex = assertThrows(ConfigException.class,
+                () -> configRegistry.processConfigClass(ConfigExtendingConfigValueBase.class, context, configManager));
+        assertTrue(ex.getMessage().contains("@ConfigValue"));
+        assertTrue(ex.getMessage().contains("inheritedInjected"));
+    }
+
+    @Test
+    void processConfigClass_whenConfigValueConstructorParam_throwsConfigException() {
+        ConfigException ex = assertThrows(ConfigException.class,
+                () -> configRegistry.processConfigClass(ConfigWithConfigValueCtorParam.class, context, configManager));
+        assertTrue(ex.getMessage().contains("@ConfigValue"));
+        assertTrue(ex.getMessage().contains("constructor parameter"));
     }
 }
