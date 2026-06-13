@@ -19,10 +19,11 @@
   ROOT="/c/Users/OTI Software/IdeaProjects/spigot-boot/.claude/worktrees/wire-onconfigreload"
   cd "$ROOT"
   ```
-- **Run one test class across the reactor** (builds upstream modules from source so cross-module changes are seen; `-DfailIfNoTests=false` stops upstream modules from failing when they lack the class):
+- **Run one test class across the reactor** (builds upstream modules from source so cross-module changes are seen; the two `failIfNoTests`/`failIfNoSpecifiedTests` flags stop upstream modules from aborting when they lack the named class):
   ```bash
-  "$MVN" -pl <module> -am test -Dtest=<ClassName> -DfailIfNoTests=false -B
+  "$MVN" -pl <module> -am test -Dtest=<ClassName> -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false -B
   ```
+  (Append `-Dsurefire.failIfNoSpecifiedTests=false` to every per-class `-Dtest=...` command below — it is required so the reactor proceeds through upstream modules to the target module.)
 - Commit after each task. Conventional Commit prefixes (`feat:`, `test:`, `docs:`). Normal comments start lowercase. 4-space indent. Full Javadoc on public/protected APIs.
 
 ## File structure
@@ -1379,29 +1380,49 @@ git commit -m "feat(config-spigot): add OnConfigReloadProcessor bean post-proces
 - Modify: `platform-spigot/config-spigot/src/main/java/tech/guilhermekaua/spigotboot/config/spigot/configuration/ConfigConfiguration.java`
 - Test: `platform-spigot/config-spigot/src/test/java/tech/guilhermekaua/spigotboot/config/spigot/test/configuration/ConfigConfigurationTest.java`
 
-- [ ] **Step 1: Add the failing test method**
+- [ ] **Step 1: Create the failing test**
 
-Append this test to the existing `ConfigConfigurationTest` class (add the imports it needs):
+> NOTE: this branch is off `dev`, which does NOT contain the `@ConfigValue` work. There is **no existing `ConfigConfigurationTest`** — create it. The injector customizer bean here is named `folderConfigInjector` and registers only `FolderConfigInjector` + `ConfigRefInjector`.
+
+Create `ConfigConfigurationTest.java` (prepend the MIT license header):
 ```java
-    @org.junit.jupiter.api.Test
+package tech.guilhermekaua.spigotboot.config.spigot.test.configuration;
+
+import org.bukkit.plugin.Plugin;
+import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
+import tech.guilhermekaua.spigotboot.config.spigot.configuration.ConfigConfiguration;
+import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistryCustomizer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class ConfigConfigurationTest {
+
+    @Test
     void onConfigReloadProcessor_registersProcessor() {
-        org.bukkit.plugin.Plugin plugin = org.mockito.Mockito.mock(org.bukkit.plugin.Plugin.class);
-        org.mockito.Mockito.when(plugin.getLogger())
-                .thenReturn(java.util.logging.Logger.getLogger("test"));
-        tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager configManager =
-                org.mockito.Mockito.mock(tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager.class);
+        Plugin plugin = mock(Plugin.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
+        SpigotConfigManager configManager = mock(SpigotConfigManager.class);
 
         ConfigConfiguration configuration = new ConfigConfiguration();
-        tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistryCustomizer customizer =
-                configuration.onConfigReloadProcessor(configManager, plugin);
+        BeanPostProcessorRegistryCustomizer customizer = configuration.onConfigReloadProcessor(configManager, plugin);
 
-        java.util.List<tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor> registered =
-                new java.util.ArrayList<>();
+        List<BeanPostProcessor> registered = new ArrayList<>();
         customizer.customize(registered::add);
 
         assertEquals(1, registered.size());
-        assertTrue(registered.get(0) instanceof tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor);
+        assertTrue(registered.get(0) instanceof OnConfigReloadProcessor);
     }
+}
 ```
 
 (`BeanPostProcessorRegistry` is a single-method interface, so `registered::add` is a valid lambda for `customize`.)
@@ -1419,7 +1440,7 @@ import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcesso
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistryCustomizer;
 ```
 
-Add this method to the class (after `configInjectors`):
+Add this method to the class (after the `folderConfigInjector` `@Bean`):
 ```java
     @Bean
     public BeanPostProcessorRegistryCustomizer onConfigReloadProcessor(SpigotConfigManager configManager, Plugin plugin) {
@@ -1446,7 +1467,7 @@ git commit -m "feat(config-spigot): register OnConfigReloadProcessor in ConfigCo
 
 ## Task 8: config-spigot — reject `@OnConfigReload` on config POJOs
 
-`@Config`/`@FolderConfig` classes are built by the binder, not the DI container, so a callback there would silently never fire. Fail fast at registration, next to `rejectConfigValueUsage`.
+`@Config`/`@FolderConfig` classes are built by the binder, not the DI container, so a callback there would silently never fire. Fail fast at registration, next to `validateConfigClass`. (NOTE: this branch is off `dev` and has no `rejectConfigValueUsage` — `validateConfigClass` only does the field-privacy check. Add a brand-new `rejectOnConfigReloadUsage` method; do not look for an existing one.)
 
 **Files:**
 - Modify: `platform-spigot/config-spigot/src/main/java/tech/guilhermekaua/spigotboot/config/spigot/registry/ConfigRegistry.java`
