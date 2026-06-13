@@ -30,8 +30,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.ConfigValue;
+import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
+import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
@@ -41,6 +44,7 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyM
 
 import java.lang.reflect.Modifier;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -148,6 +152,24 @@ public class ConfigRegistryTest {
     @Config("empty-config.yml")
     public static class EmptyConfig {
         public EmptyConfig() {
+        }
+    }
+
+    @Config("config-with-configvalue.yml")
+    public static class ConfigWithConfigValueField {
+        @ConfigValue("other:x")
+        private String injected;
+
+        public ConfigWithConfigValueField() {
+        }
+    }
+
+    @FolderConfig(name = "items_with_configvalue", folder = "items-with-configvalue")
+    public static class FolderItemWithConfigValueField {
+        @ConfigValue("other:x")
+        private String injected;
+
+        public FolderItemWithConfigValueField() {
         }
     }
 
@@ -322,5 +344,25 @@ public class ConfigRegistryTest {
     @Test
     void testConfigRegistryIsComponent() {
         assertTrue(ConfigRegistry.class.isAnnotationPresent(Component.class));
+    }
+
+    @Test
+    void processConfigClass_whenConfigValueField_throwsConfigException() {
+        ConfigException ex = assertThrows(ConfigException.class,
+                () -> configRegistry.processConfigClass(ConfigWithConfigValueField.class, context, configManager));
+        assertTrue(ex.getMessage().contains("@ConfigValue"));
+        assertTrue(ex.getMessage().contains("injected"));
+    }
+
+    @Test
+    void processFolderConfigClass_whenConfigValueField_throwsConfigException() {
+        SpigotConfigManager spigotConfigManager = mock(SpigotConfigManager.class);
+        ConfigException ex = assertThrows(ConfigException.class,
+                () -> configRegistry.processFolderConfigClass(
+                        FolderItemWithConfigValueField.class,
+                        spigotConfigManager,
+                        Logger.getLogger(ConfigRegistryTest.class.getName())));
+        assertTrue(ex.getMessage().contains("@ConfigValue"));
+        assertTrue(ex.getMessage().contains("injected"));
     }
 }

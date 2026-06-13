@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.config.spigot.registry;
 
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
+import tech.guilhermekaua.spigotboot.config.annotation.ConfigValue;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfigs;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
@@ -146,6 +147,8 @@ public class ConfigRegistry {
             SpigotConfigManager spigotConfigManager,
             Logger logger) {
         try {
+            rejectConfigValueFields(itemClass, "@FolderConfig item");
+
             List<FolderConfig> annotations = getFolderConfigAnnotations(itemClass);
 
             if (annotations.isEmpty()) {
@@ -184,12 +187,26 @@ public class ConfigRegistry {
     }
 
     private void validateConfigClass(Class<?> configClass) {
+        rejectConfigValueFields(configClass, "@Config");
         for (Field field : configClass.getDeclaredFields()) {
             if (!Modifier.isPrivate(field.getModifiers())) {
                 throw new ConfigException(
                         "Config class " + configClass.getName() +
                                 " has non-private field '" + field.getName() + "'. " +
                                 "All fields must be private to ensure reload safety."
+                );
+            }
+        }
+    }
+
+    // declared fields only (consistent with the non-private-field check); inherited fields are out of scope by design
+    private void rejectConfigValueFields(Class<?> targetClass, String kind) {
+        for (Field field : targetClass.getDeclaredFields()) {
+            if (field.isAnnotationPresent(ConfigValue.class)) {
+                throw new ConfigException(
+                        kind + " class " + targetClass.getName() + " has a @ConfigValue field '" +
+                                field.getName() + "'. @ConfigValue is only honored on DI-managed beans " +
+                                "(@Component/@Bean), not on " + kind + " classes."
                 );
             }
         }
