@@ -38,14 +38,26 @@ public final class TypeUtil {
         }
     }
 
+    /**
+     * Resolves a {@link Material} from a config name, preferring the modern (non-legacy) material.
+     * <p>
+     * The modern name is tried first so that names such as {@code BEDROCK} resolve to
+     * {@link Material#BEDROCK} instead of {@code LEGACY_BEDROCK} on post-flattening servers (1.13+).
+     * Only when no modern material matches is a {@code LEGACY_}-prefixed lookup attempted, so that
+     * pre-1.13 names still resolve. On 1.8.8 (no {@code LEGACY_*} constants exist) the first lookup
+     * already returns the native material.
+     *
+     * @param materialName the material name from config, may be null or empty
+     * @return the resolved material, or null if the name is null, empty, or unknown
+     */
     public static Material getMaterialFromLegacy(String materialName) {
         if (materialName == null || materialName.equalsIgnoreCase("")) return null;
 
         try {
-            return Material.valueOf("LEGACY_" + materialName);
+            return Material.valueOf(materialName);
         } catch (Exception error) {
             try {
-                return Material.getMaterial(materialName);
+                return Material.valueOf("LEGACY_" + materialName);
             } catch (Exception exception) {
                 Logger.getGlobal().warning("Material " + materialName + " is invalid!");
                 return null;
