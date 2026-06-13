@@ -32,6 +32,7 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyReloadCal
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.*;
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.MethodHandlerProxyBeanPostProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanDefinitionRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.registry.BeanInstanceRegistry;
@@ -47,7 +48,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 // Context.initialize -> Context.scan -> DependencyManager.registerDependency -> Context.scan -> DependencyManager.resolveDependency
-public class DependencyManager {
+public class DependencyManager implements BeanPostProcessorRegistry {
     @Getter
     private final BeanDefinitionRegistry beanDefinitionRegistry;
 
@@ -102,6 +103,15 @@ public class DependencyManager {
 
     public @NotNull List<BeanPostProcessor> getBeanPostProcessors() {
         return Collections.unmodifiableList(beanPostProcessors);
+    }
+
+    @Override
+    public void register(@NotNull BeanPostProcessor beanPostProcessor) {
+        registerBeanPostProcessor(beanPostProcessor);
+    }
+
+    public @NotNull BeanPostProcessorRegistry getBeanPostProcessorRegistry() {
+        return this;
     }
 
     public @NotNull Object initializeBean(@NotNull BeanDefinition definition, @NotNull Object rawInstance) {
