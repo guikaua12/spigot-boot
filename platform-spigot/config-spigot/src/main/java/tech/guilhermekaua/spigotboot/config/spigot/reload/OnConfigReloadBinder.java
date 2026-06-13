@@ -36,6 +36,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -128,7 +129,7 @@ public class OnConfigReloadBinder {
                                          @Nullable Class<?> simpleParamType, @Nullable Class<?> paramItemType) {
         Class<?>[] declared = method.getAnnotation(OnConfigReload.class).value();
         if (declared.length > 0) {
-            return new LinkedHashSet<>(java.util.Arrays.asList(declared));
+            return new LinkedHashSet<>(Arrays.asList(declared));
         }
         switch (payload) {
             case SIMPLE_INSTANCE:
