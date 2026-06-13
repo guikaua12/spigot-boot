@@ -105,11 +105,25 @@ public class DependencyManager implements BeanPostProcessorRegistry {
         return Collections.unmodifiableList(beanPostProcessors);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Delegates to {@link #registerBeanPostProcessor(BeanPostProcessor)}, which keeps the
+     * registered processors ordered by {@link BeanPostProcessor#getOrder()}.
+     *
+     * @param beanPostProcessor the post-processor to register, not null
+     */
     @Override
     public void register(@NotNull BeanPostProcessor beanPostProcessor) {
         registerBeanPostProcessor(beanPostProcessor);
     }
 
+    /**
+     * Returns this manager viewed as a {@link BeanPostProcessorRegistry}, so callers can contribute
+     * post-processors without depending on the rest of the manager's API.
+     *
+     * @return the bean post-processor registry, never null
+     */
     public @NotNull BeanPostProcessorRegistry getBeanPostProcessorRegistry() {
         return this;
     }

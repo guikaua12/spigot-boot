@@ -55,6 +55,9 @@ public class OnConfigReloadInvoker {
      * @param args   the arguments to pass, not null (may be empty)
      */
     public void invoke(@NotNull Object bean, @NotNull Method method, @NotNull Object[] args) {
+        Objects.requireNonNull(bean, "bean cannot be null");
+        Objects.requireNonNull(method, "method cannot be null");
+        Objects.requireNonNull(args, "args cannot be null");
         try {
             method.setAccessible(true);
             method.invoke(bean, args);

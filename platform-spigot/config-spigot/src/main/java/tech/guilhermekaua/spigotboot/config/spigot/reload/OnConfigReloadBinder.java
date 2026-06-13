@@ -36,8 +36,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -85,6 +87,10 @@ public class OnConfigReloadBinder {
 
         Set<Class<?>> targets = resolveTargets(bean, method, payload, simpleParamType, paramItemType);
 
+        // validate every target before registering any listener, so a later invalid target never
+        // leaves earlier targets partially bound
+        List<Class<?>> simpleTargets = new ArrayList<>();
+        List<Class<?>> folderTargets = new ArrayList<>();
         for (Class<?> target : targets) {
             ConfigKind kind = configKind(target);
             if (kind == null) {
@@ -92,10 +98,17 @@ public class OnConfigReloadBinder {
             }
             validatePayloadForKind(bean, method, payload, kind, target, simpleParamType, paramItemType);
             if (kind == ConfigKind.SIMPLE) {
-                bindSimple(bean, method, payload, target);
+                simpleTargets.add(target);
             } else {
-                bindFolder(bean, method, payload, target);
+                folderTargets.add(target);
             }
+        }
+
+        for (Class<?> target : simpleTargets) {
+            bindSimple(bean, method, payload, target);
+        }
+        for (Class<?> target : folderTargets) {
+            bindFolder(bean, method, payload, target);
         }
     }
 

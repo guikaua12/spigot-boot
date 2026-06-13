@@ -42,9 +42,9 @@ class OnConfigReloadProcessorTest {
     static class MainConfig { }
 
     static class Base {
-        // public so the getMethods()-based scan (inherited public + own declared) finds it
+        // package-private so this exercises discovery of non-public *inherited* callbacks
         @OnConfigReload(MainConfig.class)
-        public void inherited() { }
+        void inherited() { }
     }
 
     static class Bean extends Base {
@@ -93,5 +93,28 @@ class OnConfigReloadProcessorTest {
         Object result = processor.postProcess(mock(BeanDefinition.class), plain, mock(DependencyManager.class));
         assertSame(plain, result);
         verify(cm, never()).getRef(any());
+    }
+
+    static class OverrideBase {
+        @OnConfigReload(MainConfig.class)
+        void hook() { }
+    }
+
+    static class OverrideChild extends OverrideBase {
+        @Override
+        @OnConfigReload(MainConfig.class)
+        void hook() { }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void overriddenReannotatedMethodRegistersExactlyOnce() {
+        ConfigRef<MainConfig> ref = mock(ConfigRef.class);
+        when(cm.getRef(MainConfig.class)).thenReturn(ref);
+
+        processor.postProcess(mock(BeanDefinition.class), new OverrideChild(), mock(DependencyManager.class));
+
+        // hook() is annotated on both the override and the superclass; it must bind only once
+        verify(ref, times(1)).addListener(any());
     }
 }

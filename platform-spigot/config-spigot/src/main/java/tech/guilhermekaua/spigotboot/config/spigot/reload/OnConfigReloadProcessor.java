@@ -31,10 +31,10 @@ import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanP
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -77,12 +77,28 @@ public class OnConfigReloadProcessor implements BeanPostProcessor {
         return 100;
     }
 
-    // mirrors the bukkit listener discovery: public (incl. inherited) plus declared methods, so
-    // private @OnConfigReload methods are picked up too. a set dedupes the overlap.
-    private static Set<Method> collectMethods(Class<?> realClass) {
-        Set<Method> methods = new LinkedHashSet<>();
-        methods.addAll(Arrays.asList(realClass.getMethods()));
-        methods.addAll(Arrays.asList(realClass.getDeclaredMethods()));
-        return methods;
+    // scans the whole class hierarchy so an @OnConfigReload method declared protected or
+    // package-private on a superclass is still discovered (getMethods alone only sees public
+    // inherited ones, getDeclaredMethods only the concrete class). dedupes by signature keeping the
+    // most-derived declaration, so an overridden + re-annotated callback is registered only once.
+    private static Collection<Method> collectMethods(Class<?> realClass) {
+        Map<String, Method> bySignature = new LinkedHashMap<>();
+        for (Method method : realClass.getMethods()) {
+            bySignature.putIfAbsent(signatureOf(method), method);
+        }
+        for (Class<?> current = realClass; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                bySignature.putIfAbsent(signatureOf(method), method);
+            }
+        }
+        return bySignature.values();
+    }
+
+    private static String signatureOf(Method method) {
+        StringBuilder signature = new StringBuilder(method.getName());
+        for (Class<?> parameterType : method.getParameterTypes()) {
+            signature.append('|').append(parameterType.getName());
+        }
+        return signature.toString();
     }
 }

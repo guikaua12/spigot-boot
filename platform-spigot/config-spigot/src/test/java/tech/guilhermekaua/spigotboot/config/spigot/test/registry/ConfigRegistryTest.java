@@ -325,6 +325,7 @@ public class ConfigRegistryTest {
         assertTrue(ConfigRegistry.class.isAnnotationPresent(Component.class));
     }
 
+    @Config("reload-hook.yml")
     static class ConfigWithReloadHook {
         @OnConfigReload
         void onReload() { }
@@ -332,9 +333,10 @@ public class ConfigRegistryTest {
 
     @Test
     void processConfigClass_rejectsOnConfigReloadOnConfigPojo() {
-        assertThrows(
+        ConfigException exception = assertThrows(
                 ConfigException.class,
                 () -> configRegistry.processConfigClass(ConfigWithReloadHook.class, context, configManager)
         );
+        assertTrue(exception.getMessage().contains("@OnConfigReload"));
     }
 }
