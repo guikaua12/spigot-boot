@@ -193,6 +193,25 @@ class BinderReferenceIntegrationTest {
         }
 
         @Test
+        @DisplayName("fires onTypeMismatch when a reference resolves to a value incompatible with the field")
+        void firesTypeMismatchForIncompatibleReference() {
+            lookup.addConfig("label", "not a number");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("count", "${label}");
+
+            ConfigNode node = testNode(data);
+            BindingResult<ConfigWithInt> result = binder.bind(node, ConfigWithInt.class, NamingStrategy.IDENTITY);
+
+            assertTrue(errorHandler.typeMismatchCalled);
+            assertEquals("${label}", errorHandler.typeMismatchContext.getFullReference());
+            assertEquals(String.class, errorHandler.typeMismatchContext.getActualType());
+            // default handler returns null, so the incompatible value binds to the field default (no crash)
+            assertTrue(result.isSuccess());
+            assertEquals(0, result.get().getCount());
+        }
+
+        @Test
         @DisplayName("resolves reference inside list element")
         void resolvesReferenceInsideListElement() {
             lookup.addConfig("other", "resolved value");
@@ -270,7 +289,9 @@ class BinderReferenceIntegrationTest {
             if (value == null || !resolver.isReference(value)) {
                 return null;
             }
-            return resolver.resolveIfReference(node, ReferenceKey.singleConfig("test"), field);
+            ConfigNode resolved = resolver.resolveIfReference(node, ReferenceKey.singleConfig("test"), field, expectedType);
+            // mirror the production preprocessor: a null resolution binds to a null node, not the raw "${...}" string
+            return resolved != null ? resolved : new TestConfigNode(null);
         }
     }
 
