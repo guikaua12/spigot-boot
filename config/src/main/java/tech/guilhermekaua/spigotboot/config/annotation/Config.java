@@ -75,12 +75,4 @@ public @interface Config {
      * @return the resource path
      */
     String resource() default "";
-
-    /**
-     * Active profile name (e.g., "dev", "prod").
-     * If set, will also load config-{profile}.yml and merge.
-     *
-     * @return the profile name
-     */
-    String profile() default "";
 }
