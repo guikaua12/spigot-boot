@@ -57,11 +57,13 @@ public class ConfigValueInjector implements CustomInjector {
 
     @Override
     public boolean supports(@NotNull InjectionPoint injectionPoint) {
+        Objects.requireNonNull(injectionPoint, "injectionPoint cannot be null");
         return injectionPoint.getAnnotatedElement().isAnnotationPresent(ConfigValue.class);
     }
 
     @Override
     public @NotNull InjectionResult resolve(@NotNull InjectionPoint injectionPoint) {
+        Objects.requireNonNull(injectionPoint, "injectionPoint cannot be null");
         return InjectionResult.handled(resolver.resolve(injectionPoint));
     }
 
