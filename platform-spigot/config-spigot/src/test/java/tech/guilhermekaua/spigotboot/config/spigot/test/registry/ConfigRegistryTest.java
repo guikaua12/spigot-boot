@@ -323,4 +323,17 @@ public class ConfigRegistryTest {
     void testConfigRegistryIsComponent() {
         assertTrue(ConfigRegistry.class.isAnnotationPresent(Component.class));
     }
+
+    static class ConfigWithReloadHook {
+        @tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload
+        void onReload() { }
+    }
+
+    @org.junit.jupiter.api.Test
+    void processConfigClass_rejectsOnConfigReloadOnConfigPojo() {
+        assertThrows(
+                tech.guilhermekaua.spigotboot.config.exception.ConfigException.class,
+                () -> configRegistry.processConfigClass(ConfigWithReloadHook.class, context, configManager)
+        );
+    }
 }
