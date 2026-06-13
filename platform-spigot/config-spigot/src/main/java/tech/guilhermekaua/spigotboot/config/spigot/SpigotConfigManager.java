@@ -951,6 +951,19 @@ public class SpigotConfigManager implements ConfigManager {
         return Collections.unmodifiableSet(names);
     }
 
+    /**
+     * Returns the distinct item types across all registered folder configs.
+     *
+     * @return an unmodifiable set of folder-config item types, never null
+     */
+    public @NotNull Set<Class<?>> getRegisteredFolderConfigItemTypes() {
+        Set<Class<?>> types = new LinkedHashSet<>();
+        for (FolderConfigKey key : folderConfigs.keySet()) {
+            types.add(key.itemType);
+        }
+        return Collections.unmodifiableSet(types);
+    }
+
     // ==================== Internal Classes ====================
 
     /**
