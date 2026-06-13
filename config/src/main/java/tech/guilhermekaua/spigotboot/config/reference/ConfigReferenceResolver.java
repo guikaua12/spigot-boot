@@ -27,11 +27,14 @@ import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigCircularReferenceContext;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigReferenceNotFoundContext;
+import tech.guilhermekaua.spigotboot.config.reference.context.ConfigTypeMismatchContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ResolutionTarget;
 import tech.guilhermekaua.spigotboot.config.spigot.node.SnapshotConfigNode;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -83,7 +86,29 @@ public class ConfigReferenceResolver {
             @NotNull ConfigNode node,
             @NotNull ReferenceKey sourceKey,
             @Nullable Field sourceField) {
-        return resolveIfReference(node, sourceKey, sourceField, new LinkedHashSet<>());
+        return resolveIfReference(node, sourceKey, sourceField, null);
+    }
+
+    /**
+     * Resolves a config node if it's a reference, checking the resolved value against
+     * an expected target type.
+     * <p>
+     * Behaves like {@link #resolveIfReference(ConfigNode, ReferenceKey, Field)}, but when
+     * {@code expectedType} is provided and the resolved value cannot be coerced into it,
+     * {@link ConfigReferenceErrorHandler#onTypeMismatch(ConfigTypeMismatchContext)} is invoked.
+     *
+     * @param node         the node to potentially resolve
+     * @param sourceKey    the key of the config containing this node
+     * @param sourceField  the field being bound (may be null)
+     * @param expectedType the expected target type, or null to skip the type-mismatch check
+     * @return the resolved node, or null if reference not found
+     */
+    public @Nullable ConfigNode resolveIfReference(
+            @NotNull ConfigNode node,
+            @NotNull ReferenceKey sourceKey,
+            @Nullable Field sourceField,
+            @Nullable Type expectedType) {
+        return resolveIfReference(node, sourceKey, sourceField, expectedType, new LinkedHashSet<>());
     }
 
     /**
@@ -92,6 +117,7 @@ public class ConfigReferenceResolver {
      * @param node            the node to potentially resolve
      * @param sourceKey       the key of the config containing this node
      * @param sourceField     the field being bound (may be null)
+     * @param expectedType    the expected target type, or null to skip the type-mismatch check
      * @param resolutionStack the stack of keys currently being resolved (for cycle detection)
      * @return the resolved node, or null if reference not found
      */
@@ -99,6 +125,7 @@ public class ConfigReferenceResolver {
             @NotNull ConfigNode node,
             @NotNull ReferenceKey sourceKey,
             @Nullable Field sourceField,
+            @Nullable Type expectedType,
             @NotNull Set<ResolutionTarget> resolutionStack) {
 
         if (!node.isScalar()) {
@@ -139,7 +166,113 @@ public class ConfigReferenceResolver {
         Set<ResolutionTarget> newStack = new LinkedHashSet<>(resolutionStack);
         newStack.add(target);
 
-        return deepResolve(targetNode, targetKey, newStack);
+        ConfigNode resolved = deepResolve(targetNode, targetKey, newStack);
+        return checkTypeMismatch(resolved, ref, sourceKey, sourceField, expectedType);
+    }
+
+    /**
+     * Verifies a resolved reference value against the expected target type.
+     * <p>
+     * When the resolved value is a scalar that cannot be coerced into the expected
+     * scalar/primitive type, {@link ConfigReferenceErrorHandler#onTypeMismatch} is
+     * invoked and its fallback value (typically null) is used instead.
+     *
+     * @param resolved     the resolved node (may be null)
+     * @param ref          the reference that produced the value
+     * @param sourceKey    the key of the config containing the reference
+     * @param sourceField  the field being bound (may be null)
+     * @param expectedType the expected target type, or null to skip the check
+     * @return the resolved node, the wrapped fallback value, or null
+     */
+    private @Nullable ConfigNode checkTypeMismatch(
+            @Nullable ConfigNode resolved,
+            @NotNull ConfigReference ref,
+            @NotNull ReferenceKey sourceKey,
+            @Nullable Field sourceField,
+            @Nullable Type expectedType) {
+
+        if (resolved == null || expectedType == null || !resolved.isScalar()) {
+            return resolved;
+        }
+
+        Class<?> expectedClass = rawClassOf(expectedType);
+        if (expectedClass == null || !isScalarTarget(expectedClass)) {
+            return resolved;
+        }
+
+        Object actualValue = resolved.raw();
+        if (actualValue == null || canCoerce(actualValue, expectedClass)) {
+            return resolved;
+        }
+
+        ConfigTypeMismatchContext ctx = new ConfigTypeMismatchContext(
+                sourceKey, sourceField, ref.getRawToken(), expectedType, actualValue.getClass(), actualValue);
+        Object fallback = errorHandler.onTypeMismatch(ctx);
+        if (fallback == null) {
+            return null;
+        }
+        return SnapshotConfigNode.of(fallback, resolved.path());
+    }
+
+    private static @Nullable Class<?> rawClassOf(@NotNull Type type) {
+        if (type instanceof Class) {
+            return (Class<?>) type;
+        }
+        if (type instanceof ParameterizedType) {
+            Type raw = ((ParameterizedType) type).getRawType();
+            if (raw instanceof Class) {
+                return (Class<?>) raw;
+            }
+        }
+        return null;
+    }
+
+    // only primitives and java.lang scalar wrappers are coerced by the binder via
+    // ConfigNode#get; complex types, collections, and enums use other binding paths
+    private static boolean isScalarTarget(@NotNull Class<?> type) {
+        return type.isPrimitive() || type.getName().startsWith("java.lang.");
+    }
+
+    // mirrors AbstractValueConfigNode#get coercion rules so detection is independent
+    // of the concrete ConfigNode implementation
+    private static boolean canCoerce(@NotNull Object value, @NotNull Class<?> targetType) {
+        if (targetType.isInstance(value)) {
+            return true;
+        }
+        if (targetType == String.class || targetType == CharSequence.class || targetType == Object.class) {
+            return true;
+        }
+        if (targetType == Boolean.class || targetType == boolean.class) {
+            return true;
+        }
+        if (isNumericType(targetType)) {
+            return value instanceof Number || canParseNumber(String.valueOf(value), targetType);
+        }
+        return false;
+    }
+
+    private static boolean isNumericType(@NotNull Class<?> type) {
+        return type == Integer.class || type == int.class
+                || type == Long.class || type == long.class
+                || type == Double.class || type == double.class
+                || type == Float.class || type == float.class;
+    }
+
+    private static boolean canParseNumber(@NotNull String value, @NotNull Class<?> targetType) {
+        try {
+            if (targetType == Integer.class || targetType == int.class) {
+                Integer.valueOf(value);
+            } else if (targetType == Long.class || targetType == long.class) {
+                Long.valueOf(value);
+            } else if (targetType == Double.class || targetType == double.class) {
+                Double.valueOf(value);
+            } else if (targetType == Float.class || targetType == float.class) {
+                Float.valueOf(value);
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /**
@@ -176,7 +309,7 @@ public class ConfigReferenceResolver {
         }
 
         if (node.isScalar()) {
-            ConfigNode resolved = resolveIfReference(node, sourceKey, null, resolutionStack);
+            ConfigNode resolved = resolveIfReference(node, sourceKey, null, null, resolutionStack);
             return resolved != null ? resolved : node;
         }
 

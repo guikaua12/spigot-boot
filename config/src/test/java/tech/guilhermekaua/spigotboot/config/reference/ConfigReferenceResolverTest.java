@@ -22,12 +22,14 @@
  */
 package tech.guilhermekaua.spigotboot.config.reference;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
+import tech.guilhermekaua.spigotboot.config.reference.context.ConfigTypeMismatchContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.test.TestConfigNode;
 import tech.guilhermekaua.spigotboot.config.test.TestConfigReferenceLookup;
@@ -421,7 +423,130 @@ class ConfigReferenceResolverTest {
         }
     }
 
+    @Nested
+    @DisplayName("type mismatch")
+    class TypeMismatch {
+
+        @Test
+        @DisplayName("calls onTypeMismatch when resolved scalar cannot coerce to expected type")
+        void callsOnTypeMismatchForIncompatibleScalar() {
+            lookup.addConfig("label", "not a number");
+
+            ConfigNode node = testNode("${label}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertNull(result);
+            assertTrue(errorHandler.typeMismatchCalled);
+            assertEquals("${label}", errorHandler.typeMismatchContext.getFullReference());
+            assertEquals(Integer.class, errorHandler.typeMismatchContext.getExpectedType());
+            assertEquals(String.class, errorHandler.typeMismatchContext.getActualType());
+            assertEquals("not a number", errorHandler.typeMismatchContext.getActualValue());
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch when resolved scalar matches expected type")
+        void doesNotCallForMatchingScalar() {
+            lookup.addConfig("count", 42);
+
+            ConfigNode node = testNode("${count}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+            assertEquals(42, result.get(Integer.class));
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch when scalar string is coercible to expected type")
+        void doesNotCallForCoercibleNumericString() {
+            lookup.addConfig("count", "5");
+
+            ConfigNode node = testNode("${count}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+            assertEquals("5", result.raw());
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch when expected type is null")
+        void doesNotCallForUntypedResolution() {
+            lookup.addConfig("label", "not a number");
+
+            ConfigNode node = testNode("${label}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, null);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+            assertEquals("not a number", result.get(String.class));
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch when expected type is a complex (non-scalar) type")
+        void doesNotCallForComplexExpectedType() {
+            lookup.addConfig("label", "text");
+
+            ConfigNode node = testNode("${label}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            // a user-defined type is bound through the binder's recursive path, not scalar coercion
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, SamplePojo.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+            assertEquals("text", result.get(String.class));
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch when resolved value is not a scalar")
+        void doesNotCallForNonScalarResolvedValue() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("name", "sword");
+            lookup.addConfig("item", data);
+
+            ConfigNode node = testNode("${item}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = resolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+            assertTrue(result.isMap());
+        }
+
+        @Test
+        @DisplayName("uses the handler fallback value when one is returned")
+        void usesHandlerFallbackValue() {
+            TrackingConfigReferenceErrorHandler fallbackHandler = new TrackingConfigReferenceErrorHandler() {
+                @Override
+                public @Nullable Object onTypeMismatch(@NotNull ConfigTypeMismatchContext context) {
+                    super.onTypeMismatch(context);
+                    return 7;
+                }
+            };
+            ConfigReferenceResolver fallbackResolver = new ConfigReferenceResolver(lookup, parser, fallbackHandler);
+            lookup.addConfig("label", "not a number");
+
+            ConfigNode node = testNode("${label}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            ConfigNode result = fallbackResolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertTrue(fallbackHandler.typeMismatchCalled);
+            assertNotNull(result);
+            assertEquals(7, result.get(Integer.class));
+        }
+    }
+
     private ConfigNode testNode(@Nullable Object value) {
         return new TestConfigNode(value);
+    }
+
+    public static class SamplePojo {
+        private String name;
     }
 }
