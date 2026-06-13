@@ -227,26 +227,28 @@ public class ConfigReferenceResolver {
         return null;
     }
 
-    // only primitives and java.lang scalar wrappers are coerced by the binder via
-    // ConfigNode#get; complex types, collections, and enums use other binding paths
+    // only primitives and java.lang scalar wrappers are coerced by the built-in
+    // scalar serializers; complex types, collections, and enums use other binding paths
     private static boolean isScalarTarget(@NotNull Class<?> type) {
         return type.isPrimitive() || type.getName().startsWith("java.lang.");
     }
 
-    // mirrors AbstractValueConfigNode#get coercion rules so detection is independent
-    // of the concrete ConfigNode implementation
+    // mirrors the built-in scalar serializers (see PrimitiveSerializers) so detection
+    // matches how the binder actually coerces these targets
     private static boolean canCoerce(@NotNull Object value, @NotNull Class<?> targetType) {
         if (targetType.isInstance(value)) {
             return true;
         }
-        if (targetType == String.class || targetType == CharSequence.class || targetType == Object.class) {
-            return true;
-        }
-        if (targetType == Boolean.class || targetType == boolean.class) {
+        // String/CharSequence accept any value (String.valueOf); boolean parsing is lenient;
+        // char takes the first character of any non-empty scalar, so it never fails to coerce
+        if (targetType == String.class || targetType == CharSequence.class || targetType == Object.class
+                || targetType == Boolean.class || targetType == boolean.class
+                || targetType == Character.class || targetType == char.class) {
             return true;
         }
         if (isNumericType(targetType)) {
-            return value instanceof Number || canParseNumber(String.valueOf(value), targetType);
+            // numeric serializers accept any Number and trim string values before parsing
+            return value instanceof Number || canParseNumber(String.valueOf(value).trim(), targetType);
         }
         return false;
     }
@@ -255,19 +257,25 @@ public class ConfigReferenceResolver {
         return type == Integer.class || type == int.class
                 || type == Long.class || type == long.class
                 || type == Double.class || type == double.class
-                || type == Float.class || type == float.class;
+                || type == Float.class || type == float.class
+                || type == Short.class || type == short.class
+                || type == Byte.class || type == byte.class;
     }
 
     private static boolean canParseNumber(@NotNull String value, @NotNull Class<?> targetType) {
         try {
             if (targetType == Integer.class || targetType == int.class) {
-                Integer.valueOf(value);
+                Integer.parseInt(value);
             } else if (targetType == Long.class || targetType == long.class) {
-                Long.valueOf(value);
+                Long.parseLong(value);
             } else if (targetType == Double.class || targetType == double.class) {
-                Double.valueOf(value);
+                Double.parseDouble(value);
             } else if (targetType == Float.class || targetType == float.class) {
-                Float.valueOf(value);
+                Float.parseFloat(value);
+            } else if (targetType == Short.class || targetType == short.class) {
+                Short.parseShort(value);
+            } else if (targetType == Byte.class || targetType == byte.class) {
+                Byte.parseByte(value);
             }
             return true;
         } catch (NumberFormatException e) {

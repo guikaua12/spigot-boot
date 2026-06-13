@@ -519,6 +519,46 @@ class ConfigReferenceResolverTest {
         }
 
         @Test
+        @DisplayName("does not call onTypeMismatch for a whitespace-padded numeric string")
+        void doesNotCallForWhitespacePaddedNumericString() {
+            // the numeric serializers trim before parsing, so " 5 " binds successfully
+            lookup.addConfig("count", "  5  ");
+
+            ConfigNode node = testNode("${count}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            resolver.resolveIfReference(node, sourceKey, null, Integer.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch for short and byte targets the binder can coerce")
+        void doesNotCallForShortAndByteTargets() {
+            lookup.addConfig("small", 1);
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            resolver.resolveIfReference(testNode("${small}"), sourceKey, null, Short.class);
+            resolver.resolveIfReference(testNode("${small}"), sourceKey, null, Byte.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+        }
+
+        @Test
+        @DisplayName("does not call onTypeMismatch for a char target")
+        void doesNotCallForCharTarget() {
+            // the character serializer takes the first character of any non-empty value
+            lookup.addConfig("letter", "x");
+
+            ConfigNode node = testNode("${letter}");
+            ReferenceKey sourceKey = ReferenceKey.singleConfig("myconfig");
+
+            resolver.resolveIfReference(node, sourceKey, null, Character.class);
+
+            assertFalse(errorHandler.typeMismatchCalled);
+        }
+
+        @Test
         @DisplayName("uses the handler fallback value when one is returned")
         void usesHandlerFallbackValue() {
             TrackingConfigReferenceErrorHandler fallbackHandler = new TrackingConfigReferenceErrorHandler() {
@@ -546,7 +586,6 @@ class ConfigReferenceResolverTest {
         return new TestConfigNode(value);
     }
 
-    public static class SamplePojo {
-        private String name;
+    private static final class SamplePojo {
     }
 }
