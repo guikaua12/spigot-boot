@@ -88,6 +88,9 @@ class OnConfigReloadBinderTest {
 
         @OnConfigReload(String.class)
         void unregisteredTarget() { }
+
+        @OnConfigReload(MainConfig.class)
+        static void staticHook() { }
     }
 
     private SpigotConfigManager cm;
@@ -223,5 +226,11 @@ class OnConfigReloadBinderTest {
     void rejectsUnregisteredTarget() {
         assertThrows(ConfigException.class,
                 () -> binder.bind(new BadBean(), method(BadBean.class, "unregisteredTarget")));
+    }
+
+    @Test
+    void rejectsStaticMethod() {
+        assertThrows(ConfigException.class,
+                () -> binder.bind(new BadBean(), method(BadBean.class, "staticHook")));
     }
 }
