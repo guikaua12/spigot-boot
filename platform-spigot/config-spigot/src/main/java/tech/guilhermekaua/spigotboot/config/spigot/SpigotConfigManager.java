@@ -44,6 +44,7 @@ import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.SingleConfigKey;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
 import tech.guilhermekaua.spigotboot.config.reload.DefaultConfigRef;
+import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
@@ -428,9 +429,22 @@ public class SpigotConfigManager implements ConfigManager {
         Objects.requireNonNull(path, "path cannot be null");
         Objects.requireNonNull(type, "type cannot be null");
 
+        ConfigNode node = resolveNode(path);
+        return node == null ? null : node.get(type);
+    }
+
+    /**
+     * Resolves the raw {@link ConfigNode} at a {@code "configName:path"} (or bare {@code "path"})
+     * location.
+     *
+     * @param path the lookup path
+     * @return the node (which may be virtual when the path is absent), or null when the config name
+     *         is unknown / not loaded / no configs are registered
+     * @throws ConfigException if a bare path is given while multiple configs are registered
+     */
+    private @Nullable ConfigNode resolveNode(@NotNull String path) {
         String configName;
         String nodePath;
-
 
         int colonIndex = path.indexOf(':');
         if (colonIndex > 0) {
@@ -464,8 +478,73 @@ public class SpigotConfigManager implements ConfigManager {
         Object[] pathSegments = new Object[parts.length];
         System.arraycopy(parts, 0, pathSegments, 0, parts.length);
 
-        ConfigNode node = entry.getNode().node(pathSegments);
-        return node.get(type);
+        return entry.getNode().node(pathSegments);
+    }
+
+    /**
+     * Returns the registered config name for a {@code @Config} class.
+     *
+     * @param configClass the config class
+     * @return the registered config name
+     * @throws ConfigException if the class is not a registered config
+     */
+    public @NotNull String getConfigName(@NotNull Class<?> configClass) {
+        Objects.requireNonNull(configClass, "configClass cannot be null");
+        ConfigEntry<?> entry = configs.get(configClass);
+        if (entry == null) {
+            throw new ConfigException("Config not registered: " + configClass.getName());
+        }
+        return entry.getConfigName();
+    }
+
+    /**
+     * Reads the value at a path and deserializes it to the target type using the serializer registry.
+     * Unlike {@link #get(String, Class)} (which uses the node's built-in scalar conversion), this
+     * supports every type with a registered {@link TypeSerializer}.
+     *
+     * @param path the {@code "configName:path"} (or bare {@code "path"}) location
+     * @param type the target type
+     * @param <T>  the target type parameter
+     * @return the deserialized value, or null when the path is absent / null
+     * @throws ConfigException if no serializer is registered for the type, or on a bad bare path
+     */
+    public <T> @Nullable T deserializeAt(@NotNull String path, @NotNull Class<T> type) {
+        Objects.requireNonNull(path, "path cannot be null");
+        Objects.requireNonNull(type, "type cannot be null");
+
+        ConfigNode node = resolveNode(path);
+        if (node == null || node.isVirtual() || node.isNull()) {
+            return null;
+        }
+
+        TypeSerializer<T> serializer = serializers.getWithInheritance(type);
+        if (serializer == null) {
+            throw new ConfigException("No serializer registered for type: " + type.getName());
+        }
+        return serializer.deserialize(node, type);
+    }
+
+    /**
+     * Coerces a raw string into the target type using the serializer registry (used for
+     * {@code @ConfigValue} defaults).
+     *
+     * @param raw  the raw string
+     * @param type the target type
+     * @param <T>  the target type parameter
+     * @return the coerced value
+     * @throws ConfigException if no serializer is registered for the type, or the value cannot be parsed
+     */
+    public <T> @NotNull T coerceDefault(@NotNull String raw, @NotNull Class<T> type) {
+        Objects.requireNonNull(raw, "raw cannot be null");
+        Objects.requireNonNull(type, "type cannot be null");
+
+        TypeSerializer<T> serializer = serializers.getWithInheritance(type);
+        if (serializer == null) {
+            throw new ConfigException("No serializer registered for type: " + type.getName());
+        }
+        MutableConfigNode node = loader.createNode();
+        node.set(raw);
+        return serializer.deserialize(node, type);
     }
 
     @Override
