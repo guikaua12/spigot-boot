@@ -39,9 +39,11 @@ import java.util.regex.Pattern;
  * Picks the right {@link InventoryTitleUpdater} for the running server. The strategy is:
  *
  * <ol>
- *     <li>If the Bukkit minor version is 20 or newer (1.20+), return {@link BukkitInventoryTitleUpdater}
- *         which uses the public Bukkit API ({@code InventoryView#setTitle}) added in 1.20.</li>
- *     <li>Otherwise, look up the CraftBukkit package suffix (e.g. {@code v1_19_R3}) and
+ *     <li>If the server exposes the modern public Bukkit API — the parsed minor version is 20 or
+ *         newer (1.20+), or the CraftBukkit package is un-versioned (Paper 1.20.5+, where no
+ *         {@code vX_Y_RZ} suffix is present) — return {@link BukkitInventoryTitleUpdater}, which
+ *         uses {@code InventoryView#setTitle} (added in 1.20).</li>
+ *     <li>Otherwise, look up the legacy CraftBukkit package suffix (e.g. {@code v1_19_R3}) and
  *         instantiate the matching per-version NMS class.</li>
  * </ol>
  *
@@ -68,21 +70,34 @@ public final class InventoryApiNMS {
      *                               classpath
      */
     public static InventoryTitleUpdater getTitleUpdater() {
-        int minor = detectMinorVersion();
-        if (minor >= 20) {
-            return new BukkitInventoryTitleUpdater();
-        }
+        return resolveTitleUpdater(detectMinorVersion(), detectPackageSuffix());
+    }
 
-        String suffix = detectPackageSuffix();
-        if (suffix == null) {
-            // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
-            // getClass() must resolve via the java.* ignore (see root pom)
-            Object server = Bukkit.getServer();
-            throw new IllegalStateException(
-                    "Unable to detect CraftBukkit package suffix (server.class=" +
-                            server.getClass().getName() +
-                            "); register a custom TitleUpdater bean to bypass the selector"
-            );
+    /**
+     * Selects the title updater from the detected server coordinates. Package-private so the
+     * branch logic can be exercised without a live server.
+     *
+     * <p>Modern servers (Minecraft 1.20+) expose {@code InventoryView#setTitle} and, since Paper
+     * 1.20.5, no longer relocate CraftBukkit into a versioned {@code org.bukkit.craftbukkit.vX_Y_RZ}
+     * package — {@link #detectPackageSuffix()} returns {@code null} there. The public Bukkit API is
+     * therefore selected whenever the parsed minor version is &ge; 20 <em>or</em> the versioned NMS
+     * package is absent. This keeps working on renumbered version schemes (e.g. Paper/Folia
+     * {@code "26.x"}) whose version string makes the {@code 1.MINOR} heuristic parse a misleading
+     * minor of {@code 1}, which would otherwise fall through to the dead NMS branch.
+     *
+     * @param minor  the detected Bukkit minor version, or {@code -1} if it could not be parsed
+     * @param suffix the detected CraftBukkit package suffix (e.g. {@code v1_19_R3}), or
+     *               {@code null} on un-versioned modern servers
+     * @return the resolved updater
+     * @throws IllegalStateException when a legacy versioned server reports a package suffix that
+     *                               has no matching per-version implementation
+     */
+    static InventoryTitleUpdater resolveTitleUpdater(int minor, String suffix) {
+        // prefer the public Bukkit API on any modern server: either the version parses as 1.20+,
+        // or the versioned CraftBukkit package is absent (Paper 1.20.5+, including renumbered
+        // schemes whose version string defeats the minor-version parse).
+        if (minor >= 20 || suffix == null) {
+            return new BukkitInventoryTitleUpdater();
         }
 
         // dispatch via static references so shade's minimizer keeps these classes in the

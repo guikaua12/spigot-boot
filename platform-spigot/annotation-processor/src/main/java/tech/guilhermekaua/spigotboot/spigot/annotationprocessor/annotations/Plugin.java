@@ -57,5 +57,15 @@ public @interface Plugin {
     String[] libraries() default {};
 
     String apiVersion() default "";
+
+    /**
+     * Whether the generated {@code plugin.yml} should declare support for Folia's regionized
+     * threading. Folia refuses to enable a plugin that does not opt in via
+     * {@code folia-supported: true}; set this to {@code true} only once the plugin is verified
+     * Folia-safe.
+     *
+     * @return {@code true} to emit {@code folia-supported: true} into {@code plugin.yml}
+     */
+    boolean foliaSupported() default false;
 }
 
