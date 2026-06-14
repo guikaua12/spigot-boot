@@ -76,7 +76,7 @@ public final class InventoryApiNMS {
         String suffix = detectPackageSuffix();
         if (suffix == null) {
             // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
-            // getClass() must resolve via the java.* ignore (see inventory-api parent pom)
+            // getClass() must resolve via the java.* ignore (see root pom)
             Object server = Bukkit.getServer();
             throw new IllegalStateException(
                     "Unable to detect CraftBukkit package suffix (server.class=" +
