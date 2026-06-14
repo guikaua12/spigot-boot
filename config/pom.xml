@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>3.2.0-SNAPSHOT</version>
+        <version>3.2.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>3.2.0-SNAPSHOT</version>
+            <version>3.2.0</version>
         </dependency>
     </dependencies>
 
