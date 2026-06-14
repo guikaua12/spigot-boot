@@ -59,10 +59,8 @@ public final class ItemUtils {
             return head;
         }
         final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        try {
-            headMeta.setOwningPlayer(player);
-        } catch (NoSuchMethodError e) {
+        final OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+        if (!trySetOwningPlayer(headMeta, player)) {
             // 1.8.8: setOwningPlayer (1.12.1+) is absent; fall back to the name-based owner.
             // the name can be null for an uncached uuid-only player on 1.8.8 - skip in that
             // case (there is no uuid-based skull api there, so the head stays owner-less)
@@ -74,5 +72,25 @@ public final class ItemUtils {
 
         head.setItemMeta(headMeta);
         return head;
+    }
+
+    /**
+     * Sets the skull owner via {@code SkullMeta#setOwningPlayer(OfflinePlayer)} (1.12.1+),
+     * invoked reflectively on purpose: keeping a direct bytecode reference out of this module
+     * lets the animal-sniffer 1.8.8 check keep covering the rest of the {@link SkullMeta} API
+     * surface (a class-level {@code <ignore>} would blind all of it). Returns {@code false} on
+     * 1.8.8, where the method is absent, so the caller can fall back to {@code setOwner}.
+     *
+     * @param meta   the skull meta to mutate
+     * @param player the owning player
+     * @return {@code true} if the owning player was set, {@code false} if the API is unavailable
+     */
+    private static boolean trySetOwningPlayer(SkullMeta meta, OfflinePlayer player) {
+        try {
+            SkullMeta.class.getMethod("setOwningPlayer", OfflinePlayer.class).invoke(meta, player);
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
     }
 }

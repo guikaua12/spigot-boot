@@ -86,13 +86,13 @@
                 <configuration>
                     <!-- TypeUtil#convertFromLegacy: UnsafeValues#fromLegacy (1.13+) is data-gated -
                          Material.valueOf("LEGACY_"+name) throws on 1.8.8 before the call is reached.
-                         ItemUtils#getHeadByUuid: SkullMeta#setOwningPlayer (1.12.1+) is guarded by a
-                         runtime NoSuchMethodError fallback to setOwner.
+                         (ItemUtils#getHeadByUuid calls the 1.12.1+ SkullMeta#setOwningPlayer
+                         reflectively instead of ignoring the class, so the rest of the SkullMeta
+                         api stays checked - see ItemUtils#trySetOwningPlayer.)
                          combine.children="append" merges with the managed java.*/javax.* ignores
                          instead of replacing them -->
                     <ignores combine.children="append">
                         <ignore>org.bukkit.UnsafeValues</ignore>
-                        <ignore>org.bukkit.inventory.meta.SkullMeta</ignore>
                     </ignores>
                 </configuration>
             </plugin>
