@@ -48,11 +48,4 @@ public @interface ConfigProperty {
      * @return true if hidden
      */
     boolean hidden() default false;
-
-    /**
-     * If true, field is written to config but marked as advanced/internal.
-     *
-     * @return true if advanced
-     */
-    boolean advanced() default false;
 }

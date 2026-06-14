@@ -1,0 +1,76 @@
+name: Publish SNAPSHOT to Maven Central
+
+# Publishes a -SNAPSHOT build to the Central Portal snapshot repository
+# (https://central.sonatype.com/repository/maven-snapshots/) on every push to dev
+# that touches source, POMs, or main resources. The version is whatever -SNAPSHOT
+# string is committed in the POM; each push overwrites that rolling version, and
+# Maven's snapshot timestamping keeps every individual build resolvable. See
+# RELEASING.md "1b. Publish a snapshot".
+
+on:
+  push:
+    branches: [ dev ]
+    paths:
+      - '**.java'
+      - '**/pom.xml'
+      - '**/src/main/resources/**'
+  workflow_dispatch:
+
+# a burst of commits cancels superseded runs instead of queueing N deploys
+concurrency:
+  group: snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+# least privilege: only reads the repo to check out; the publish authenticates to
+# Maven Central with its own credentials and never writes back to GitHub.
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: Publish SNAPSHOT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # this job only reads the repo and publishes to Maven Central with its
+          # own credentials — don't persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      # safety net: a non-SNAPSHOT version would route to the validating RELEASE
+      # path and, with autoPublish=true, could publish a real release from dev.
+      # fail loudly instead. bump dev to the next -SNAPSHOT after each release.
+      - name: Verify POM version is a SNAPSHOT
+        run: |
+          VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "POM version: $VERSION"
+          case "$VERSION" in
+            *-SNAPSHOT) ;;
+            *) echo "::error::dev POM version ($VERSION) must end in -SNAPSHOT — bump it after the last release"; exit 1 ;;
+          esac
+
+      - name: Build and deploy snapshot
+        # tests are skipped here because ci.yml already runs the full suite on the
+        # same push to dev; running them again would just duplicate that work.
+        run: mvn clean deploy -B -DskipTests -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}

@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.2</version>
+        <version>3.2.0-SNAPSHOT</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -17,7 +17,9 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <central.publishing.skip>true</central.publishing.skip>
+        <!-- skipPublishing is the property the central-publishing-maven-plugin actually reads;
+             the old central.publishing.skip was a no-op. -->
+        <skipPublishing>true</skipPublishing>
         <spigot.plugins.dir>${project.build.directory}</spigot.plugins.dir>
     </properties>
 
@@ -134,12 +136,18 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>2.3.232</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-config-spigot</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-data-jdbc</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>

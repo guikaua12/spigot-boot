@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>2.0.2</version>
+        <version>3.2.0-SNAPSHOT</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -23,6 +23,7 @@
         <module>pmc</module>
         <module>placeholder</module>
         <module>annotation-processor</module>
+        <module>inventory-api</module>
     </modules>
 
     <properties>
@@ -42,20 +43,22 @@
         </repository>
     </repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-20230917.004407-174</version>
-            <scope>provided</scope>
-        </dependency>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.papermc.paper</groupId>
+                <artifactId>paper-api</artifactId>
+                <version>1.20.1-R0.1-20230917.004407-174</version>
+                <scope>provided</scope>
+            </dependency>
 
-        <dependency>
-            <groupId>com.github.seeseemelk</groupId>
-            <artifactId>MockBukkit-v1.20</artifactId>
-            <version>3.20.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+            <dependency>
+                <groupId>com.github.seeseemelk</groupId>
+                <artifactId>MockBukkit-v1.20</artifactId>
+                <version>3.20.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

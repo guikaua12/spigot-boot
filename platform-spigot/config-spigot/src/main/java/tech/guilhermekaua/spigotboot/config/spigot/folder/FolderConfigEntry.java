@@ -578,7 +578,13 @@ public final class FolderConfigEntry<T> {
     private void copyResourceFile(String resourcePath, String fileName) {
         try (InputStream is = plugin.getResource(resourcePath)) {
             if (is != null) {
-                Path targetPath = folder.resolve(fileName);
+                Path normalizedFolder = folder.toAbsolutePath().normalize();
+                Path targetPath = normalizedFolder.resolve(fileName).normalize();
+                if (!targetPath.startsWith(normalizedFolder)) {
+                    logger.warning("Skipping suspicious resource path outside target folder: " + fileName);
+                    return;
+                }
+
                 Files.copy(is, targetPath);
                 logger.info("Copied default: " + fileName);
             }

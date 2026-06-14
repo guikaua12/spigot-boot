@@ -112,7 +112,7 @@ public class ReferenceResolvingPreprocessor implements ConfigNodePreprocessor {
             sourceKey = ReferenceKey.singleConfig("unknown");
         }
 
-        ConfigNode resolved = resolver.resolveIfReference(node, sourceKey, field);
+        ConfigNode resolved = resolver.resolveIfReference(node, sourceKey, field, expectedType);
 
         // if resolver returns null, it means the reference was not found
         // we must return a "null node" (not java null) so the binder binds to null.

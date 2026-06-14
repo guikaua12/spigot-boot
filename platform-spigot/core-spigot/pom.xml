@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot-platform-spigot</artifactId>
-        <version>2.0.2</version>
+        <version>3.2.0-SNAPSHOT</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -48,6 +48,37 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>shade-nbteditor</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- nbteditor is only on the CodeMC repo, not on Maven Central, so it cannot
+                                 stay a normal transitive dependency. bundle it into this jar (and drop it
+                                 from the published pom) so consumers need no extra repository, and relocate
+                                 it so it cannot clash with other plugins that also shade NBTEditor. -->
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.github.bananapuncher714:nbteditor</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>io.github.bananapuncher714.nbteditor</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.nbteditor</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -77,6 +108,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
             <version>${project.version}</version>
@@ -94,6 +130,11 @@
             <version>${project.version}</version>
             <scope>provided</scope>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
         </dependency>
     </dependencies>
 

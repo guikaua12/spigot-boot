@@ -14,4 +14,7 @@ public class MainConfig {
     @Comment("Maximum players allowed on the server")
     @Range(min = 1, max = 1000)
     private int maxPlayers = 100;
+
+    @Comment("Database connection settings")
+    private DatabaseConfig database = new DatabaseConfig();
 }

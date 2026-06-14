@@ -1,0 +1,9 @@
+spigot-boot
+Copyright © 2025 Guilherme Kauã da Silva
+
+This product includes software developed as part of spigot-boot, licensed under the MIT License.
+
+The spigot-boot-inventory-api module's public API design is inspired by
+devnatan/inventory-framework (https://github.com/devnatan/inventory-framework), licensed
+under the MIT License. The implementation is clean-room; no source code or documentation
+text was copied.

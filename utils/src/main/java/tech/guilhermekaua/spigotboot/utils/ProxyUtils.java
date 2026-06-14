@@ -22,14 +22,18 @@
  */
 package tech.guilhermekaua.spigotboot.utils;
 
-import javassist.util.proxy.ProxyObject;
-
 public final class ProxyUtils {
+    // javassist marks every generated proxy with the ProxyObject interface. it is matched by name (not by a
+    // compile-time class reference) so detection keeps working after the javassist package is relocated into
+    // a downstream plugin jar (e.g. tech.guilhermekaua.spigotboot.shaded.javassist.util.proxy.ProxyObject).
+    private static final String PROXY_OBJECT_CLASS_NAME = "javassist.util.proxy.ProxyObject";
+    private static final String RELOCATED_PROXY_OBJECT_SUFFIX = "." + PROXY_OBJECT_CLASS_NAME;
+
     public static boolean isProxy(Object object) {
         try {
             Class<?> clazz = object.getClass();
 
-            if (ProxyObject.class.isAssignableFrom(clazz)) {
+            if (isJavassistProxy(clazz)) {
                 return true;
             }
 
@@ -43,7 +47,7 @@ public final class ProxyUtils {
     }
 
     public static Class<?> unwrapProxyType(Class<?> type) {
-        if (ProxyObject.class.isAssignableFrom(type)) {
+        if (isJavassistProxy(type)) {
             return type.getSuperclass();
         }
         return type;
@@ -56,5 +60,19 @@ public final class ProxyUtils {
         }
 
         return (Class<T>) object.getClass().getSuperclass();
+    }
+
+    // walks the type hierarchy looking for javassist's ProxyObject marker interface, matching by name so
+    // both the original (javassist.util.proxy.ProxyObject) and the shaded/relocated name are recognized.
+    private static boolean isJavassistProxy(Class<?> type) {
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Class<?> iface : current.getInterfaces()) {
+                String name = iface.getName();
+                if (name.equals(PROXY_OBJECT_CLASS_NAME) || name.endsWith(RELOCATED_PROXY_OBJECT_SUFFIX)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -62,11 +62,14 @@ public interface ConfigReferenceErrorHandler {
     void onCircularReference(@NotNull ConfigCircularReferenceContext context);
 
     /**
-     * Called when the resolved value's type doesn't match the expected
-     * type of the target field.
+     * Called when a resolved reference value cannot be coerced into the
+     * scalar or primitive type expected by the target field (for example, a
+     * non-numeric resolved value bound to an {@code int} field).
      * <p>
-     * Note: The binder may still attempt type coercion after this method
-     * returns. This is called when the raw types are incompatible.
+     * The returned value is used in place of the resolved value (typically
+     * {@code null}, which binds the field to its default); the binder will then
+     * bind/coerce that fallback as usual. Implementations may also throw to
+     * abort binding.
      *
      * @param context context information about the type mismatch
      * @return a fallback value to use (typically null), or throw an exception
