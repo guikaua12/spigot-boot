@@ -51,6 +51,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1069,9 +1070,11 @@ class FolderConfigEntryTest {
         lenient().when(plugin.getResource("items/evil.yml")).thenReturn(
                 new ByteArrayInputStream("name: Evil".getBytes(StandardCharsets.UTF_8)));
 
-        Path outside = tempDir.getParent().resolve("deep-escape.yml");
+        String uniqueName = "deep-escape-" + UUID.randomUUID() + ".yml";
+        Path outside = tempDir.getParent().resolve(uniqueName);
+        Files.deleteIfExists(outside);
 
-        invokeCopyResourceFile(entry, "items/evil.yml", "../../deep-escape.yml");
+        invokeCopyResourceFile(entry, "items/evil.yml", "../../" + uniqueName);
 
         assertFalse(Files.exists(outside),
                 "guard must not write resources outside the target folder via '..' segments");

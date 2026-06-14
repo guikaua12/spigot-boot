@@ -70,7 +70,8 @@ jobs:
       - name: Build and deploy snapshot
         # tests are skipped here because ci.yml already runs the full suite on the
         # same push to dev; running them again would just duplicate that work.
-        run: mvn clean deploy -B -DskipTests -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        run: mvn clean deploy -B -DskipTests -Dgpg.passphrase="$GPG_PASSPHRASE"
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
