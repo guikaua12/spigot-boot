@@ -91,6 +91,21 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <configuration>
+                    <!-- BukkitInventoryTitleUpdater intentionally calls InventoryView#setTitle (1.20+);
+                         InventoryApiNMS only selects it when the server minor version is >= 20.
+                         combine.children="append" merges with the managed java.*/javax.* ignores
+                         instead of replacing them -->
+                    <ignores combine.children="append">
+                        <ignore>org.bukkit.inventory.InventoryView</ignore>
+                    </ignores>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

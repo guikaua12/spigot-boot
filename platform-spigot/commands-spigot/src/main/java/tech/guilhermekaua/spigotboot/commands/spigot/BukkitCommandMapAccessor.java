@@ -14,7 +14,10 @@ public class BukkitCommandMapAccessor {
 
         try {
             PluginManager pluginManager = Bukkit.getPluginManager();
-            Field field = findField(pluginManager.getClass(), "commandMap");
+            // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+            // getClass() must resolve via the java.* ignore (see root pom)
+            Object pluginManagerObject = pluginManager;
+            Field field = findField(pluginManagerObject.getClass(), "commandMap");
             if (field != null) {
                 field.setAccessible(true);
                 return (CommandMap) field.get(pluginManager);
@@ -40,7 +43,10 @@ public class BukkitCommandMapAccessor {
     @SuppressWarnings("unchecked")
     public Map<String, Command> getKnownCommands(CommandMap commandMap) {
         try {
-            Field field = findField(commandMap.getClass(), "knownCommands");
+            // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+            // getClass() must resolve via the java.* ignore (see root pom)
+            Object commandMapObject = commandMap;
+            Field field = findField(commandMapObject.getClass(), "knownCommands");
             field.setAccessible(true);
             return (Map<String, Command>) field.get(commandMap);
         } catch (ReflectiveOperationException e) {
