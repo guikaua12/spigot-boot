@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot-modules</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.1-SNAPSHOT</version>
     </parent>
 
     <name>${project.artifactId}</name>
