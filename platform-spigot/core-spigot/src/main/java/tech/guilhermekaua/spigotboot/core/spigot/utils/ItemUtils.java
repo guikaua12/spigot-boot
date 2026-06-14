@@ -63,8 +63,13 @@ public final class ItemUtils {
         try {
             headMeta.setOwningPlayer(player);
         } catch (NoSuchMethodError e) {
-            // 1.8.8: setOwningPlayer (1.12.1+) is absent; fall back to the name-based owner
-            headMeta.setOwner(player.getName());
+            // 1.8.8: setOwningPlayer (1.12.1+) is absent; fall back to the name-based owner.
+            // the name can be null for an uncached uuid-only player on 1.8.8 - skip in that
+            // case (there is no uuid-based skull api there, so the head stays owner-less)
+            final String name = player.getName();
+            if (name != null) {
+                headMeta.setOwner(name);
+            }
         }
 
         head.setItemMeta(headMeta);
