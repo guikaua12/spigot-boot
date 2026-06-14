@@ -11,7 +11,7 @@ Add the module to your plugin:
 <dependency>
     <groupId>tech.guilhermekaua.spigot-boot</groupId>
     <artifactId>spigot-boot-commands-spigot</artifactId>
-    <version>3.1.0</version>
+    <version>3.2.0</version>
 </dependency>
 ```
 
