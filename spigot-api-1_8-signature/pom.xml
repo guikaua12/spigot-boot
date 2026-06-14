@@ -21,10 +21,14 @@
     </properties>
 
     <repositories>
-        <!-- the root pom declares no repositories; only this module needs the spigot snapshots -->
+        <!-- the root pom declares no repositories; only this module needs spigot. point at the
+             public GROUP, not the snapshots-only repo: spigot-api 1.8.8 drags in the ancient
+             net.md-5:bungeecord-chat:1.8-SNAPSHOT transitive (a 2016 build) which the snapshots
+             repo no longer hosts but the public group still serves. CI has no settings.xml mirror,
+             so the pom itself must point at a repo that resolves spigot-api and all its transitives. -->
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>spigotmc-public</id>
+            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
     </repositories>
 
