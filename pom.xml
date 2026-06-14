@@ -36,8 +36,11 @@
     </scm>
 
     <modules>
-        <!-- listed first: generates the 1.8.8 signature every check consumes in-reactor
-             (declaration order guarantees this only for sequential builds; -T is not supported) -->
+        <!-- listed first: generates the 1.8.8 signature every check consumes in-reactor.
+             declaration order only guarantees this for sequential builds; do NOT use -T
+             (parallel): a parallel reactor can run a consumer's check before this module has
+             generated and attached the signature, failing the build with
+             "Could not find artifact ...spigot-boot-spigot-api-1_8-signature". -->
         <module>spigot-api-1_8-signature</module>
         <module>core</module>
         <module>commands</module>

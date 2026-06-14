@@ -141,7 +141,7 @@ public final class InventoryApiNMS {
      */
     static String detectPackageSuffix() {
         // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
-        // getClass() must resolve via the java.* ignore (see inventory-api parent pom)
+        // getClass() must resolve via the java.* ignore (see root pom)
         Object server = Bukkit.getServer();
         String pkg = server.getClass().getPackage().getName();
         int lastDot = pkg.lastIndexOf('.');
