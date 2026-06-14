@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.config.exception.SerializationException;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
+import tech.guilhermekaua.spigotboot.core.spigot.utils.TypeUtil;
 
 /**
  * Serializer for {@link Material} enum.
@@ -41,15 +42,12 @@ public class MaterialSerializer implements TypeSerializer<Material> {
             return null;
         }
 
-        try {
-            return Material.valueOf("LEGACY_" + value);
-        } catch (Exception e) {
-            try {
-                return Material.getMaterial(value);
-            } catch (Exception exception) {
-                throw new SerializationException("Unknown material: " + value);
-            }
+        // resolve the modern material first, falling back to a LEGACY_ name; see TypeUtil#getMaterialFromLegacy
+        Material material = TypeUtil.getMaterialFromLegacy(value);
+        if (material == null) {
+            throw new SerializationException("Unknown material: " + value);
         }
+        return material;
     }
 
     @Override

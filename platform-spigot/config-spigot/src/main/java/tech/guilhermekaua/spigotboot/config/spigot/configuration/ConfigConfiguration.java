@@ -8,11 +8,14 @@ import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueInjector;
 import tech.guilhermekaua.spigotboot.config.spigot.injector.FolderConfigInjector;
+import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjectorRegistryCustomizer;
+import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessorRegistryCustomizer;
 
 import java.util.List;
 
@@ -28,11 +31,17 @@ public class ConfigConfiguration {
     }
 
     @Bean
-    public CustomInjectorRegistryCustomizer folderConfigInjector(SpigotConfigManager configManager) {
+    public CustomInjectorRegistryCustomizer configInjectors(SpigotConfigManager configManager) {
         return (registry) -> {
             registry.register(new FolderConfigInjector(configManager));
             registry.register(new ConfigRefInjector(configManager));
+            registry.register(new ConfigValueInjector(configManager));
         };
+    }
+
+    @Bean
+    public BeanPostProcessorRegistryCustomizer onConfigReloadProcessor(SpigotConfigManager configManager, Plugin plugin) {
+        return registry -> registry.register(new OnConfigReloadProcessor(configManager, plugin.getLogger()));
     }
 
     @Bean

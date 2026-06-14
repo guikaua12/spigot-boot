@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot-platform-spigot</artifactId>
-        <version>3.1.0</version>
+        <version>3.2.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -113,6 +113,11 @@
             <version>${project.version}</version>
             <scope>provided</scope>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.20</artifactId>
         </dependency>
     </dependencies>
 

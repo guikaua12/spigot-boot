@@ -40,14 +40,18 @@ import tech.guilhermekaua.spigotboot.config.folder.ItemChangeType;
 import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
 import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1006,5 +1010,73 @@ class FolderConfigEntryTest {
         entry.saveItem("new-item", item);
 
         assertTrue(receivedChanges.isEmpty());
+    }
+
+    // ========== Resource-Copy Containment Guard Tests ==========
+
+    private void invokeCopyResourceFile(FolderConfigEntry<?> entry, String resourcePath, String fileName)
+            throws Exception {
+        Method method = FolderConfigEntry.class
+                .getDeclaredMethod("copyResourceFile", String.class, String.class);
+        method.setAccessible(true);
+        method.invoke(entry, resourcePath, fileName);
+    }
+
+    @Test
+    void copyResourceFile_BenignFileName_WritesInsideFolder() throws Exception {
+        Files.createDirectories(itemsFolder);
+
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
+
+        lenient().when(plugin.getResource("items/default.yml")).thenReturn(
+                new ByteArrayInputStream("name: Default\npriority: 1".getBytes(StandardCharsets.UTF_8)));
+
+        invokeCopyResourceFile(entry, "items/default.yml", "default.yml");
+
+        assertTrue(Files.exists(itemsFolder.resolve("default.yml")));
+    }
+
+    @Test
+    void copyResourceFile_FileNameEscapesFolder_SkipsAndDoesNotWriteOutside() throws Exception {
+        Files.createDirectories(itemsFolder);
+
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
+
+        lenient().when(plugin.getResource("items/evil.yml")).thenReturn(
+                new ByteArrayInputStream("name: Evil".getBytes(StandardCharsets.UTF_8)));
+
+        // resolves to tempDir/escape.yml, i.e. outside the items folder
+        invokeCopyResourceFile(entry, "items/evil.yml", "../escape.yml");
+
+        assertFalse(Files.exists(tempDir.resolve("escape.yml")),
+                "guard must not write resources outside the target folder");
+        try (var entries = Files.list(itemsFolder)) {
+            assertTrue(entries.findFirst().isEmpty(), "skipped resource must not write anything");
+        }
+    }
+
+    @Test
+    void copyResourceFile_DeepEscapeFileName_SkipsAndDoesNotWriteOutside() throws Exception {
+        Files.createDirectories(itemsFolder);
+
+        FolderConfig annotation = createDefaultAnnotation();
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
+
+        lenient().when(plugin.getResource("items/evil.yml")).thenReturn(
+                new ByteArrayInputStream("name: Evil".getBytes(StandardCharsets.UTF_8)));
+
+        String uniqueName = "deep-escape-" + UUID.randomUUID() + ".yml";
+        Path outside = tempDir.getParent().resolve(uniqueName);
+        Files.deleteIfExists(outside);
+
+        invokeCopyResourceFile(entry, "items/evil.yml", "../../" + uniqueName);
+
+        assertFalse(Files.exists(outside),
+                "guard must not write resources outside the target folder via '..' segments");
     }
 }

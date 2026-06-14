@@ -121,6 +121,17 @@ class UserService {
 }
 ```
 
+## Shading & javassist (relocation safety)
+`spigot-boot-core` bundles javassist **relocated** to `tech.guilhermekaua.spigotboot.shaded.javassist` (see `core/pom.xml`). Inside a downstream plugin jar that relocated copy is the **only** javassist present — the original `javassist.*` classes are never shipped. Any *shipped* module whose compiled bytecode references the original `javassist.*` package throws `NoClassDefFoundError: javassist/util/proxy/...` on a real server, even though it passes tests (where the original javassist is still on the classpath). Green tests do **not** prove runtime safety, because shading happens in the `package` phase, after tests run.
+
+When a module needs javassist, pick the matching rule:
+
+- **Only detecting/inspecting proxies (no proxy creation):** do **not** `import javassist.*`. Match javassist's `ProxyObject` marker interface by name so it recognizes both the original and the relocated name. See `utils/ProxyUtils#isJavassistProxy`; keep javassist at `test` scope there.
+- **Creating proxies or using the javassist API directly:** the module's own bytecode must reference the **shaded** names at runtime. Add a `maven-shade-plugin` execution that relocates `javassist` → `tech.guilhermekaua.spigotboot.shaded.javassist` and bundles nothing (`<artifactSet>` includes only the module's own `groupId:artifactId`, so `core` keeps ownership of the single bundled copy), and declare javassist as `provided`. See `platform-spigot/config-spigot/pom.xml` and `core/pom.xml`.
+- **Never** add javassist as a shipped `compile`-scope dependency without one of the above — that ships un-relocated references and reintroduces the crash.
+
+When touching proxy code, add a regression guard like `ProxyUtilsTest#proxyUtilsClassMustNotReferenceUnrelocatedJavassistPackage`, which asserts the compiled class carries no `javassist/` (slashed, internal-form) reference.
+
 ## Testing Guidelines
 Tests use JUnit 5, Mockito, and MockBukkit for Spigot-facing modules. Name test classes `*Test` or `*IntegrationTest` and place them beside the module they validate. Add focused regression coverage for every behavior change; there is no hard coverage threshold, but CI must stay green across modules.
 

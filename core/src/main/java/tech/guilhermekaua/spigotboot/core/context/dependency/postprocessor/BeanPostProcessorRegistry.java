@@ -20,24 +20,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.loader;
+package tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Strategy for merging configuration sources.
+ * Registration surface for {@link BeanPostProcessor} instances.
+ * <p>
+ * Exposed to modules through {@link BeanPostProcessorRegistryCustomizer} so they can contribute
+ * post-processors without depending on the whole dependency manager.
  */
-public enum MergeStrategy {
-    /**
-     * Use value from new source if present.
-     */
-    OVERRIDE,
+public interface BeanPostProcessorRegistry {
 
     /**
-     * Keep value from old source if present.
+     * Registers a post-processor. Implementations keep processors ordered by
+     * {@link BeanPostProcessor#getOrder()}.
+     *
+     * @param beanPostProcessor the post-processor to register, not null
      */
-    KEEP_EXISTING,
-
-    /**
-     * Deep merge maps and lists.
-     */
-    DEEP_MERGE
+    void register(@NotNull BeanPostProcessor beanPostProcessor);
 }

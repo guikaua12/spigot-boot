@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot-platform-spigot</artifactId>
-        <version>3.1.0</version>
+        <version>3.2.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -48,10 +48,55 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- version managed by the parent pluginManagement -->
+                <executions>
+                    <execution>
+                        <id>relocate-javassist-references</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- ConfigProxy uses the javassist proxy API directly. javassist ships only as the
+                                 relocated copy bundled inside spigot-boot-core, so this module's own bytecode must
+                                 reference the shaded names too; otherwise it throws NoClassDefFoundError:
+                                 javassist/util/proxy/* at runtime. nothing is bundled here (core owns the shaded
+                                 javassist) — this execution only rewrites this module's references. -->
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <!-- include only this module's own classes so nothing is bundled; the execution
+                                 exists purely to rewrite this module's javassist references to the shaded package. -->
+                            <artifactSet>
+                                <includes>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-config-spigot</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <dependencies>
+        <!-- ConfigProxy uses the javassist proxy API; it is provided (never bundled) because the relocated
+             copy is supplied at runtime by spigot-boot-core, and this module's references are rewritten to the
+             shaded package by the maven-shade-plugin execution above. -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
