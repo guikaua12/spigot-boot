@@ -25,11 +25,13 @@ package tech.guilhermekaua.spigotboot.config.spigot.serialization;
 import org.bukkit.Sound;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tech.guilhermekaua.spigotboot.config.exception.SerializationException;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +52,20 @@ class SoundSerializerTest {
         MutableConfigNode out = Mockito.mock(MutableConfigNode.class);
         serializer.serialize(sound, out);
         verify(out).set("ENTITY_PLAYER_LEVELUP");
+    }
+
+    @Test
+    void deserializes_unknown_sound_throws() {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn("NOT_A_REAL_SOUND_XYZ");
+        assertThrows(SerializationException.class, () -> serializer.deserialize(node, Sound.class));
+    }
+
+    @Test
+    void deserializes_null_input_returns_null() throws Exception {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn(null);
+        assertNull(serializer.deserialize(node, Sound.class));
     }
 
     private ConfigNode mockNode(String value) {
