@@ -40,7 +40,7 @@ import java.util.Objects;
  * region thread. The scheduler accessors on {@link Bukkit}/{@link Entity} are invoked reflectively
  * (so the 1.8.8 animal-sniffer net over {@code org.bukkit.*} stays intact); the scheduler
  * interfaces themselves are used with normal typed calls. Instantiated only when the Folia
- * scheduler API is present (see {@code PlatformSchedulers}).
+ * scheduler API is present (see {@link PlatformSchedulers}).
  */
 public final class FoliaPlatformScheduler implements PlatformScheduler {
 
