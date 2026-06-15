@@ -45,6 +45,7 @@
         <module>core</module>
         <module>commands</module>
         <module>platform-spigot</module>
+        <module>platform-bungee</module>
         <module>data</module>
         <module>modules</module>
         <module>utils</module>
