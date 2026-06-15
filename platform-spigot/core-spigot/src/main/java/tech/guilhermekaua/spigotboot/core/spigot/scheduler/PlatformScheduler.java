@@ -47,16 +47,69 @@ public interface PlatformScheduler {
      */
     @NotNull PlatformTask runOnEntity(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired);
 
+    /**
+     * Runs a task on the thread owning the entity's region (Folia) or the main thread (legacy),
+     * after a delay.
+     *
+     * @param entity      the entity whose region owns the task
+     * @param task        the work to run
+     * @param retired     run instead of {@code task} if the entity is removed before it fires
+     *                    (Folia only); ignored on legacy
+     * @param delayTicks  delay in ticks before the task fires; clamped to at least 1
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runOnEntityLater(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks);
 
+    /**
+     * Runs a task repeatedly on the thread owning the entity's region (Folia) or the main thread
+     * (legacy).
+     *
+     * @param entity      the entity whose region owns the task
+     * @param task        the work to run each period
+     * @param retired     run instead of {@code task} if the entity is removed before it fires
+     *                    (Folia only); ignored on legacy
+     * @param delayTicks  delay in ticks before the first execution; clamped to at least 1
+     * @param periodTicks interval in ticks between subsequent executions; clamped to at least 1
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runOnEntityAtFixedRate(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks, long periodTicks);
 
+    /**
+     * Runs a task on the thread owning the given location's region (Folia) or the main thread
+     * (legacy).
+     *
+     * @param location the location whose region owns the task
+     * @param task     the work to run
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runAtRegion(@NotNull Location location, @NotNull Runnable task);
 
+    /**
+     * Runs a task on the thread owning the given location's region (Folia) or the main thread
+     * (legacy), after a delay.
+     *
+     * @param location   the location whose region owns the task
+     * @param task       the work to run
+     * @param delayTicks delay in ticks before the task fires; clamped to at least 1
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runAtRegionLater(@NotNull Location location, @NotNull Runnable task, long delayTicks);
 
+    /**
+     * Runs a task on the global region thread (Folia) or the main thread (legacy).
+     *
+     * @param task the work to run
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runGlobal(@NotNull Runnable task);
 
+    /**
+     * Runs a task on the global region thread (Folia) or the main thread (legacy), after a delay.
+     *
+     * @param task       the work to run
+     * @param delayTicks delay in ticks before the task fires; clamped to at least 1
+     * @return a cancellable handle
+     */
     @NotNull PlatformTask runGlobalLater(@NotNull Runnable task, long delayTicks);
 
     /**
@@ -65,5 +118,10 @@ public interface PlatformScheduler {
      */
     boolean ownsRegion(@NotNull Entity entity);
 
+    /**
+     * @param location the location to check
+     * @return {@code true} if the current thread owns the given location's region (Folia) or is
+     * the main thread (legacy) — i.e. it is safe to touch that location now.
+     */
     boolean ownsRegion(@NotNull Location location);
 }

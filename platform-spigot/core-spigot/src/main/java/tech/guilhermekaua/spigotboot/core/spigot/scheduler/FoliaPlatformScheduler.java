@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.core.spigot.scheduler;
 import io.papermc.paper.threadedregions.scheduler.EntityScheduler;
 import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
 import io.papermc.paper.threadedregions.scheduler.RegionScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -94,17 +95,20 @@ public final class FoliaPlatformScheduler implements PlatformScheduler {
 
     @Override
     public @NotNull PlatformTask runOnEntity(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired) {
-        return new FoliaPlatformTask(entityScheduler(entity).run(plugin, scheduled -> task.run(), retired));
+        ScheduledTask scheduled = entityScheduler(entity).run(plugin, st -> task.run(), retired);
+        return scheduled == null ? CancelledPlatformTask.INSTANCE : new FoliaPlatformTask(scheduled);
     }
 
     @Override
     public @NotNull PlatformTask runOnEntityLater(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks) {
-        return new FoliaPlatformTask(entityScheduler(entity).runDelayed(plugin, scheduled -> task.run(), retired, Math.max(1L, delayTicks)));
+        ScheduledTask scheduled = entityScheduler(entity).runDelayed(plugin, st -> task.run(), retired, Math.max(1L, delayTicks));
+        return scheduled == null ? CancelledPlatformTask.INSTANCE : new FoliaPlatformTask(scheduled);
     }
 
     @Override
     public @NotNull PlatformTask runOnEntityAtFixedRate(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks, long periodTicks) {
-        return new FoliaPlatformTask(entityScheduler(entity).runAtFixedRate(plugin, scheduled -> task.run(), retired, Math.max(1L, delayTicks), Math.max(1L, periodTicks)));
+        ScheduledTask scheduled = entityScheduler(entity).runAtFixedRate(plugin, st -> task.run(), retired, Math.max(1L, delayTicks), Math.max(1L, periodTicks));
+        return scheduled == null ? CancelledPlatformTask.INSTANCE : new FoliaPlatformTask(scheduled);
     }
 
     @Override

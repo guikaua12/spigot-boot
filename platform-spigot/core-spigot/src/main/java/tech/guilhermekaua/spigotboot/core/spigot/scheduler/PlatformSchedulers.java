@@ -51,6 +51,7 @@ public final class PlatformSchedulers {
         return foliaApiPresent ? new FoliaPlatformScheduler(plugin) : new BukkitPlatformScheduler(plugin);
     }
 
+    // RegionScheduler is probed as the representative class of the Folia scheduler API
     static boolean isFoliaSchedulerApiPresent() {
         try {
             Class.forName(FOLIA_SCHEDULER_CLASS, false, PlatformSchedulers.class.getClassLoader());

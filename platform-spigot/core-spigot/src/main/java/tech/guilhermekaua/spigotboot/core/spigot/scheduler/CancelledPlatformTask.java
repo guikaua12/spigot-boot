@@ -22,26 +22,25 @@
  */
 package tech.guilhermekaua.spigotboot.core.spigot.scheduler;
 
-import org.bukkit.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
-import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnMissingBean;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
-
 /**
- * Registers the platform {@link PlatformScheduler}. Guarded by {@code @ConditionalOnMissingBean}
- * so a plugin may register its own implementation.
+ * A {@link PlatformTask} representing work that was never scheduled — returned when the Folia
+ * entity scheduler reports the target entity was already removed (its {@code retired} callback
+ * is or will be invoked by the platform). Cancelling it is a no-op.
  */
-@Configuration
-public class SpigotSchedulerConfiguration {
+final class CancelledPlatformTask implements PlatformTask {
 
-    /**
-     * @param plugin the host plugin
-     * @return the {@link PlatformScheduler} for the running server — Folia-aware when the modern
-     *         scheduler API is present, otherwise a legacy Bukkit-backed implementation
-     */
-    @Bean
-    @ConditionalOnMissingBean(PlatformScheduler.class)
-    public PlatformScheduler platformScheduler(Plugin plugin) {
-        return PlatformSchedulers.create(plugin);
+    static final CancelledPlatformTask INSTANCE = new CancelledPlatformTask();
+
+    private CancelledPlatformTask() {
+    }
+
+    @Override
+    public void cancel() {
+        // nothing was scheduled
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return true;
     }
 }

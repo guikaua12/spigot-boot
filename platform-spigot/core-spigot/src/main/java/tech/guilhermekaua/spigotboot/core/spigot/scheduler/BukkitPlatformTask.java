@@ -41,6 +41,13 @@ final class BukkitPlatformTask implements PlatformTask {
         task.cancel();
     }
 
+    /**
+     * Returns whether this handle has been cancelled via {@link #cancel()}. External cancellation
+     * (e.g. {@code BukkitScheduler#cancelTasks}) is not observed here because {@code BukkitTask}
+     * does not expose {@code isCancelled()} on 1.8.8.
+     *
+     * @return {@code true} if {@link #cancel()} was called on this handle
+     */
     @Override
     public boolean isCancelled() {
         return cancelled;
