@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class SoundCompatTest {
 
@@ -40,5 +41,18 @@ class SoundCompatTest {
     void serializes_enum_sound_to_its_name() {
         Sound sound = SoundCompat.resolve("ENTITY_PLAYER_LEVELUP");
         assertEquals("ENTITY_PLAYER_LEVELUP", SoundCompat.toKey(sound));
+    }
+
+    @Test
+    void resolves_namespaced_key_on_enum_server() {
+        // the enum branch upper-cases, replaces separators, and strips a MINECRAFT_ prefix
+        Sound sound = SoundCompat.resolve("minecraft:entity.player.levelup");
+        assertNotNull(sound);
+        assertEquals("ENTITY_PLAYER_LEVELUP", SoundCompat.toKey(sound));
+    }
+
+    @Test
+    void returns_null_for_unknown_sound() {
+        assertNull(SoundCompat.resolve("not_a_real_sound_xyz"));
     }
 }

@@ -44,6 +44,10 @@ public final class SoundCompat {
      * {@code ENTITY_PLAYER_LEVELUP}) or a namespaced key (e.g.
      * {@code minecraft:entity.player.levelup}).
      *
+     * <p>Note: bare enum-constant names (e.g. {@code ENTITY_PLAYER_LEVELUP}) are only accepted on
+     * enum-{@code Sound} servers (MC &lt;= 1.21.2); on interface-{@code Sound} servers (&gt;= 1.21.3)
+     * supply a namespaced key (e.g. {@code minecraft:entity.player.levelup}).
+     *
      * @param value the config value
      * @return the resolved sound, or {@code null} if unknown
      */
@@ -98,8 +102,8 @@ public final class SoundCompat {
             if (registry == null) {
                 return null;
             }
-            Method get = registry.getClass().getMethod("get", namespacedKey);
-            get.setAccessible(true);
+            Class<?> registryInterface = Class.forName("org.bukkit.Registry");
+            Method get = registryInterface.getMethod("get", namespacedKey);
             return (Sound) get.invoke(registry, key);
         } catch (ReflectiveOperationException e) {
             return null;
