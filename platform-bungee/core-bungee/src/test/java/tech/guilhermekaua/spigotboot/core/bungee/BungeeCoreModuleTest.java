@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 class BungeeCoreModuleTest {
 
-    public static class TestPlugin extends Plugin {
+    static class TestPlugin extends Plugin {
     }
 
     @Test
