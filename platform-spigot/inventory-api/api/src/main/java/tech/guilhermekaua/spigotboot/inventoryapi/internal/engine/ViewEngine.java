@@ -71,7 +71,9 @@ public final class ViewEngine {
     private final TitleUpdater titleUpdater;
     private final PlatformScheduler scheduler;
 
-    private boolean inClickDispatch;
+    // per-thread: under Folia region concurrency one ViewEngine instance serves multiple region
+    // threads at once, so a shared flag would leak click-dispatch state across concurrent sessions.
+    private final ThreadLocal<Boolean> inClickDispatch = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     // fixed-order phase handlers, engine-owned
     final OpenPhase openPhase;
@@ -367,7 +369,7 @@ public final class ViewEngine {
      * @return {@code true} while a click is being dispatched
      */
     public boolean isInClickDispatch() {
-        return inClickDispatch;
+        return inClickDispatch.get();
     }
 
     /**
@@ -378,7 +380,11 @@ public final class ViewEngine {
      */
     @ApiStatus.Internal
     public void clickDispatch(boolean active) {
-        this.inClickDispatch = active;
+        if (active) {
+            inClickDispatch.set(Boolean.TRUE);
+        } else {
+            inClickDispatch.remove();
+        }
     }
 
     /**
