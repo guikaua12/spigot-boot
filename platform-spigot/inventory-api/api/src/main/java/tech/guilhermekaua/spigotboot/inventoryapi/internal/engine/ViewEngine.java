@@ -33,6 +33,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.UpdateTrigger;
@@ -69,6 +70,7 @@ public final class ViewEngine {
     private final SessionRegistry sessions;
     private final SlotPainter painter;
     private final TitleUpdater titleUpdater;
+    private final PlatformScheduler scheduler;
 
     private boolean inClickDispatch;
 
@@ -92,21 +94,24 @@ public final class ViewEngine {
      * @param sessions     the per-player session registry
      * @param painter      the slot painter used by the rendering phases
      * @param titleUpdater the in-place title update strategy
+     * @param scheduler    the platform scheduler
      */
     public ViewEngine(@NotNull Plugin plugin, @NotNull ViewRegistry views, @NotNull SessionRegistry sessions,
-                      @NotNull SlotPainter painter, @NotNull TitleUpdater titleUpdater) {
+                      @NotNull SlotPainter painter, @NotNull TitleUpdater titleUpdater,
+                      @NotNull PlatformScheduler scheduler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.views = Objects.requireNonNull(views, "views");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.painter = Objects.requireNonNull(painter, "painter");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.closePhase = new ClosePhase(this, sessions);
         this.openPhase = new OpenPhase(this, sessions, painter);
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
         this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
         this.paginationInitPhase = new PaginationInitPhase(this, sessions);
-        this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase);
+        this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase, scheduler);
     }
 
     /**
@@ -394,6 +399,15 @@ public final class ViewEngine {
      */
     public @NotNull Plugin plugin() {
         return plugin;
+    }
+
+    /**
+     * Returns the platform scheduler used by this engine.
+     *
+     * @return the platform scheduler
+     */
+    public @NotNull PlatformScheduler scheduler() {
+        return scheduler;
     }
 
     /**

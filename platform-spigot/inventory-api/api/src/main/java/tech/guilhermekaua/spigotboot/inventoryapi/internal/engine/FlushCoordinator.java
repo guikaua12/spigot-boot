@@ -26,6 +26,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.UpdateTrigger;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase.UpdatePhase;
@@ -61,6 +62,7 @@ final class FlushCoordinator {
     private final Plugin plugin;
     private final SessionRegistry sessions;
     private final UpdatePhase updatePhase;
+    private final PlatformScheduler scheduler;
 
     // re-entrancy guard for main-thread shared flushes: a renderer writing shared state
     // while its view is being flushed must not recurse; main thread only
@@ -75,12 +77,14 @@ final class FlushCoordinator {
      * @param plugin      the plugin owning the inventory-api runtime
      * @param sessions    the per-player session registry
      * @param updatePhase the update phase running the repaint passes
+     * @param scheduler   the platform scheduler
      */
     FlushCoordinator(@NotNull Plugin plugin, @NotNull SessionRegistry sessions,
-                     @NotNull UpdatePhase updatePhase) {
+                     @NotNull UpdatePhase updatePhase, @NotNull PlatformScheduler scheduler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.updatePhase = Objects.requireNonNull(updatePhase, "updatePhase");
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
     }
 
     /**
