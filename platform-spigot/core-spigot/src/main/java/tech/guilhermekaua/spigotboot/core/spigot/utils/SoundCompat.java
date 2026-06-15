@@ -98,10 +98,6 @@ public final class SoundCompat {
         try {
             Class<?> namespacedKey = Class.forName("org.bukkit.NamespacedKey");
             Method fromString = namespacedKey.getMethod("fromString", String.class);
-            Object key = fromString.invoke(null, value.toLowerCase(Locale.ROOT));
-            if (key == null) {
-                return null;
-            }
             Method getRegistry = Bukkit.class.getMethod("getRegistry", Class.class);
             Object registry = getRegistry.invoke(null, Sound.class);
             if (registry == null) {
@@ -109,9 +105,29 @@ public final class SoundCompat {
             }
             Class<?> registryInterface = Class.forName("org.bukkit.Registry");
             Method get = registryInterface.getMethod("get", namespacedKey);
-            return (Sound) get.invoke(registry, key);
+
+            String lower = value.toLowerCase(Locale.ROOT);
+            // try the value as given first — this resolves namespaced keys and registry keys that
+            // legitimately contain underscores (e.g. block.note_block.harp) — then fall back to
+            // translating a bare enum-constant name (ENTITY_PLAYER_LEVELUP) to its dotted key form
+            // (entity.player.levelup), so configs written for enum-Sound servers keep working here.
+            Sound resolved = lookupRegistry(fromString, get, registry, lower);
+            if (resolved == null && lower.indexOf('_') >= 0) {
+                resolved = lookupRegistry(fromString, get, registry, lower.replace('_', '.'));
+            }
+            return resolved;
         } catch (ReflectiveOperationException e) {
             return null;
         }
+    }
+
+    private static @Nullable Sound lookupRegistry(@NotNull Method fromString, @NotNull Method get,
+                                                  @NotNull Object registry, @NotNull String key)
+            throws ReflectiveOperationException {
+        Object namespaced = fromString.invoke(null, key);
+        if (namespaced == null) {
+            return null;
+        }
+        return (Sound) get.invoke(registry, namespaced);
     }
 }
