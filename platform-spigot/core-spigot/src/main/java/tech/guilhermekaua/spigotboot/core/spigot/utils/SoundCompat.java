@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.Locale;
 
 /**
  * Cross-version {@link Sound} resolution. {@code Sound} is an enum up to MC 1.21.2 and an
@@ -55,7 +56,7 @@ public final class SoundCompat {
     public static @Nullable Sound resolve(@NotNull String value) {
         String trimmed = value.trim();
         if (Sound.class.isEnum()) {
-            String name = trimmed.toUpperCase().replace('.', '_').replace(' ', '_').replace(':', '_');
+            String name = trimmed.toUpperCase(Locale.ROOT).replace('.', '_').replace(' ', '_').replace(':', '_');
             // strip a namespace prefix like MINECRAFT_ if present
             if (name.startsWith("MINECRAFT_")) {
                 name = name.substring("MINECRAFT_".length());
@@ -97,7 +98,7 @@ public final class SoundCompat {
         try {
             Class<?> namespacedKey = Class.forName("org.bukkit.NamespacedKey");
             Method fromString = namespacedKey.getMethod("fromString", String.class);
-            Object key = fromString.invoke(null, value.toLowerCase());
+            Object key = fromString.invoke(null, value.toLowerCase(Locale.ROOT));
             if (key == null) {
                 return null;
             }
