@@ -22,7 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -130,7 +129,7 @@ public final class ViewEngine {
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> viewType,
                      @NotNull ViewArguments arguments) {
-        ThreadUtils.assertMainThread("ViewEngine.open");
+        ThreadUtils.assertOwnsRegion(scheduler, player, "ViewEngine.open");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(arguments, "arguments");
         if (isInClickDispatch()) {
@@ -141,7 +140,7 @@ public final class ViewEngine {
             if (current != null) {
                 defer(current, () -> open(player, viewType, arguments));
             } else {
-                Bukkit.getScheduler().runTask(plugin, () -> open(player, viewType, arguments));
+                scheduler.runOnEntity(player, () -> open(player, viewType, arguments), null);
             }
             return;
         }
@@ -169,7 +168,7 @@ public final class ViewEngine {
      * @param reason  the close reason
      */
     public void close(@NotNull ViewSession session, @NotNull CloseReason reason) {
-        ThreadUtils.assertMainThread("ViewEngine.close");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.close");
         if (isInClickDispatch()) {
             // self-defer: the deferred op runs at end of tick, when click dispatch is
             // over, so it cannot re-defer
@@ -189,7 +188,7 @@ public final class ViewEngine {
      * @throws IllegalStateException when called off the main thread
      */
     public void updateTitle(@NotNull ViewSession session, @NotNull String title) {
-        ThreadUtils.assertMainThread("ViewEngine.updateTitle");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.updateTitle");
         // placeholders first, then color codes: PAPI output may itself contain '&' codes
         String resolved = ChatColor.translateAlternateColorCodes('&',
                 painter.applyText(session.player(), title, session.effectiveConfig().applyPlaceholders()));
@@ -203,7 +202,7 @@ public final class ViewEngine {
      * @param trigger the cause of the update
      */
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
-        ThreadUtils.assertMainThread("ViewEngine.update");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.update");
         updatePhase.update(session, trigger, null);
         flushDirty(session);
     }
@@ -219,7 +218,7 @@ public final class ViewEngine {
      * @throws IllegalStateException when called off the main thread
      */
     public void paginationSettle(@NotNull ViewSession session, int tokenId) {
-        ThreadUtils.assertMainThread("ViewEngine.paginationSettle");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.paginationSettle");
         ViewSession.Status status = session.status();
         if (status == ViewSession.Status.CLOSED || status == ViewSession.Status.OPENING) {
             return;
@@ -238,7 +237,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void click(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.click");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.click");
         clickDispatch(true);
         try {
             clickRoutingPhase.route(session, event);
@@ -258,7 +257,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void drag(@NotNull ViewSession session, @NotNull InventoryDragEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.drag");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.drag");
         if (!session.effectiveConfig().cancelOnDrag()) {
             return;
         }
@@ -284,7 +283,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void bukkitClose(@NotNull ViewSession session, @NotNull InventoryCloseEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.bukkitClose");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.bukkitClose");
         if (event.getInventory() != session.inventory()) {
             return;
         }
@@ -300,7 +299,7 @@ public final class ViewEngine {
      * @param session the session to flush
      */
     public void flushDirty(@NotNull ViewSession session) {
-        ThreadUtils.assertMainThread("ViewEngine.flushDirty");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.flushDirty");
         flushCoordinator.flushDirty(session);
     }
 
@@ -311,7 +310,6 @@ public final class ViewEngine {
      * @param owner the view singleton whose sessions should flush
      */
     public void flushShared(@NotNull View owner) {
-        ThreadUtils.assertMainThread("ViewEngine.flushShared");
         flushCoordinator.flushShared(owner);
     }
 
@@ -337,7 +335,7 @@ public final class ViewEngine {
      * @param op      the operation to run at end of tick
      */
     public void defer(@NotNull ViewSession session, @NotNull Runnable op) {
-        ThreadUtils.assertMainThread("ViewEngine.defer");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.defer");
         if (session.status() == ViewSession.Status.ACTIVE) {
             session.status(ViewSession.Status.TRANSITIONING);
         }
@@ -347,7 +345,7 @@ public final class ViewEngine {
                 op.run();
             }
         });
-        Bukkit.getScheduler().runTask(plugin, () -> drainDeferred(session));
+        scheduler.runOnEntity(session.player(), () -> drainDeferred(session), null);
     }
 
     private void drainDeferred(ViewSession session) {
