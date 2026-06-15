@@ -34,11 +34,15 @@ import tech.guilhermekaua.spigotboot.commands.metadata.CommandAliasSet;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,14 +71,18 @@ class BungeeCommandRegistrarTest {
         BungeeCommandRegistrar registrar = new BungeeCommandRegistrar(
                 mock(CommandDispatcher.class), mock(CommandPlatformSupport.class));
 
-        RegisteredCommandSet set = registrar.register(context, Collections.singletonList(rootNamed("server")));
+        RegisteredCommandSet set = registrar.register(
+                context, Arrays.asList(rootNamed("server"), rootNamed("network")));
 
-        assertEquals(1, set.getCommands().size());
+        assertEquals(2, set.getCommands().size());
         ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
-        verify(pluginManager).registerCommand(eq(plugin), captor.capture());
-        assertEquals("server", captor.getValue().getName());
+        verify(pluginManager, times(2)).registerCommand(eq(plugin), captor.capture());
+        List<String> names = captor.getAllValues().stream().map(Command::getName).toList();
+        assertTrue(names.contains("server"));
+        assertTrue(names.contains("network"));
 
         registrar.unregister(context, set);
         verify(pluginManager).unregisterCommand(set.getCommands().get(0));
+        verify(pluginManager).unregisterCommand(set.getCommands().get(1));
     }
 }

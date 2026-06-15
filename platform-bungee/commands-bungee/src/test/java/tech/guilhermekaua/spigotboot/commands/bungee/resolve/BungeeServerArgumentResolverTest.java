@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,6 +57,9 @@ class BungeeServerArgumentResolverTest {
     @Test
     void supportsOnlyServerInfo() {
         assertTrue(resolver.supports(parameter));
+        CommandParameterMetadata stringParam = new CommandParameterMetadata(
+                null, 0, "s", "s", String.class, String.class, false, false, false, null, null);
+        assertFalse(resolver.supports(stringParam));
     }
 
     @Test
