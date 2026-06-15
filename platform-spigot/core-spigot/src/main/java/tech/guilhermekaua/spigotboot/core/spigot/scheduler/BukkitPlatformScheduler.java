@@ -51,12 +51,12 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
 
     @Override
     public @NotNull PlatformTask runOnEntityLater(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks) {
-        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks));
+        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, Math.max(1L, delayTicks)));
     }
 
     @Override
     public @NotNull PlatformTask runOnEntityAtFixedRate(@NotNull Entity entity, @NotNull Runnable task, @Nullable Runnable retired, long delayTicks, long periodTicks) {
-        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskTimer(plugin, task, delayTicks, periodTicks));
+        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskTimer(plugin, task, Math.max(1L, delayTicks), Math.max(1L, periodTicks)));
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
 
     @Override
     public @NotNull PlatformTask runAtRegionLater(@NotNull Location location, @NotNull Runnable task, long delayTicks) {
-        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks));
+        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, Math.max(1L, delayTicks)));
     }
 
     @Override
@@ -76,7 +76,7 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
 
     @Override
     public @NotNull PlatformTask runGlobalLater(@NotNull Runnable task, long delayTicks) {
-        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks));
+        return new BukkitPlatformTask(Bukkit.getScheduler().runTaskLater(plugin, task, Math.max(1L, delayTicks)));
     }
 
     @Override
