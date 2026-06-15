@@ -50,7 +50,7 @@ import java.util.logging.Logger;
  * Flush machinery extracted from {@link ViewEngine}: the dirty-token cascade loop, the
  * shared-state fan-out flush with its re-entrancy guard and per-tick coalescing, and the
  * shared flush-hook wiring. Behavior-preserving extraction — {@link ViewEngine} keeps the
- * public entry points (and their main-thread asserts) and delegates here.
+ * public entry points (and their region-ownership asserts) and delegates here.
  */
 final class FlushCoordinator {
 
@@ -91,8 +91,8 @@ final class FlushCoordinator {
      * Flushes dirty state tokens of a session: each pass drains the dirty set and runs a
      * STATE_CHANGE update over the watchers; passes repeat while handlers re-dirty tokens,
      * capped at {@value #CASCADE_CAP} cascades per flush, after which the remaining dirty
-     * tokens are dropped with a WARNING. Main thread only; the {@link ViewEngine} entry
-     * point asserts it.
+     * tokens are dropped with a WARNING. The {@link ViewEngine} entry point asserts
+     * the calling thread owns the viewer's region.
      *
      * @param session the session to flush
      */
@@ -113,8 +113,8 @@ final class FlushCoordinator {
 
     /**
      * Runs a full STATE_CHANGE repaint pass on every active session of the given view; full-pass
-     * fallback — the wired hooks use the watcher-scoped overload. Main thread only; the
-     * {@link ViewEngine} entry point asserts it.
+     * fallback — the wired hooks use the watcher-scoped overload. The {@link ViewEngine}
+     * entry point asserts the calling thread owns the viewer's region.
      *
      * @param owner the view singleton whose sessions should flush
      */

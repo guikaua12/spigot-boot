@@ -24,9 +24,9 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;

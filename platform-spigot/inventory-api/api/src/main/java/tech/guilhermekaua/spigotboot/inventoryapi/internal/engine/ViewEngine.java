@@ -58,7 +58,7 @@ import java.util.Objects;
 
 /**
  * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
- * sole mutator of sessions. All entry points assert the main thread.
+ * sole mutator of sessions. All entry points assert that the calling thread owns the viewer's region.
  */
 @Component
 @ApiStatus.Internal
@@ -82,7 +82,7 @@ public final class ViewEngine {
     final PaginationInitPhase paginationInitPhase;
 
     // flush machinery extracted behind a dedicated coordinator (single responsibility);
-    // the flush entry points below delegate to it after asserting the main thread
+    // the flush entry points below delegate to it after asserting region ownership
     private final FlushCoordinator flushCoordinator;
 
     /**
@@ -125,7 +125,7 @@ public final class ViewEngine {
      * @throws UnknownViewException     when the view class is not registered
      * @throws IllegalArgumentException when an {@code initialState} argument has a
      *                                  mismatching type
-     * @throws IllegalStateException    when called off the main thread
+     * @throws IllegalStateException    when called off the thread owning the viewer's region
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> viewType,
                      @NotNull ViewArguments arguments) {
@@ -140,6 +140,7 @@ public final class ViewEngine {
             if (current != null) {
                 defer(current, () -> open(player, viewType, arguments));
             } else {
+                // no retired callback: a player logging out before this runs leaves nothing to clean up (no session yet)
                 scheduler.runOnEntity(player, () -> open(player, viewType, arguments), null);
             }
             return;
@@ -185,7 +186,7 @@ public final class ViewEngine {
      *
      * @param session the session whose container title is updated
      * @param title   the new title, legacy color codes supported
-     * @throws IllegalStateException when called off the main thread
+     * @throws IllegalStateException when called off the thread owning the viewer's region
      */
     public void updateTitle(@NotNull ViewSession session, @NotNull String title) {
         ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.updateTitle");
@@ -215,7 +216,7 @@ public final class ViewEngine {
      *
      * @param session the session whose pagination token settled
      * @param tokenId the token id of the settled pagination declaration
-     * @throws IllegalStateException when called off the main thread
+     * @throws IllegalStateException when called off the thread owning the viewer's region
      */
     public void paginationSettle(@NotNull ViewSession session, int tokenId) {
         ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.paginationSettle");

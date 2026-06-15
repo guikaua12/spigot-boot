@@ -23,8 +23,8 @@
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
 import org.jetbrains.annotations.ApiStatus;
-import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
