@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
@@ -63,7 +64,7 @@ class SharedStateFlowTest {
         views.register(leaderboard);
         ViewEngine engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
         service = new ViewService(engine, sessions);
     }
 
@@ -86,8 +87,10 @@ class SharedStateFlowTest {
         assertEquals("nobody".length(), invA.getItem(0).getAmount());
         assertEquals("nobody".length(), invB.getItem(0).getAmount());
 
-        // a single shared write must repaint the watching component of BOTH open sessions
+        // a single shared write must repaint the watching component of BOTH open sessions;
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
         leaderboard.topName.set("champion");
+        server.getScheduler().performTicks(1);
 
         assertEquals("champion".length(), invA.getItem(0).getAmount());
         assertEquals("champion".length(), invB.getItem(0).getAmount());

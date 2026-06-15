@@ -22,7 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.config.spigot.serialization;
 
-import org.bukkit.*;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 

@@ -27,6 +27,7 @@ import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -53,6 +54,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.StateStore;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.util.ThreadUtils;
 import tech.guilhermekaua.spigotboot.inventoryapi.placeholder.NoopPlaceholderApplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
@@ -75,6 +77,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -102,8 +105,10 @@ class ContextPhaseValidityTest {
         server = MockBukkit.mock();
         plugin = mock(Plugin.class);
         titleUpdater = mock(TitleUpdater.class);
+        PlatformScheduler scheduler = mock(PlatformScheduler.class);
+        when(scheduler.ownsRegion(any(Entity.class))).thenReturn(true);
         engine = new ViewEngine(plugin, new ViewRegistry(), new SessionRegistry(),
-                new SlotPainter(new NoopPlaceholderApplier()), titleUpdater);
+                new SlotPainter(new NoopPlaceholderApplier()), titleUpdater, scheduler);
         player = server.addPlayer("tester");
     }
 
@@ -230,8 +235,10 @@ class ContextPhaseValidityTest {
     @Test
     void updateTitle_appliesPlaceholdersAndColorCodesBeforeTheTitleUpdater() {
         List<String> received = new ArrayList<>();
+        PlatformScheduler recordingScheduler = mock(PlatformScheduler.class);
+        when(recordingScheduler.ownsRegion(any(Entity.class))).thenReturn(true);
         ViewEngine recordingEngine = new ViewEngine(plugin, new ViewRegistry(), new SessionRegistry(),
-                new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> received.add(title));
+                new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> received.add(title), recordingScheduler);
         ViewSession session = sessionFor(new ProbeView(), config());
         session.status(ViewSession.Status.ACTIVE);
         PlainViewContextImpl context = new PlainViewContextImpl(session, recordingEngine);

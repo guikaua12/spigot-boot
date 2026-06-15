@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSupplier;
@@ -200,21 +201,26 @@ public final class PaginationSourceSpec<T> {
      *       defensive copy).</li>
      *   <li>{@link Kind#ASYNC}: constructs a fresh {@link AsyncPageSource} from the supplier
      *       and the spec's async options, dispatching settles through a
-     *       {@link BukkitSettleDispatcher}.</li>
+     *       {@link BukkitSettleDispatcher} backed by the given scheduler.</li>
      *   <li>{@link Kind#CUSTOM}: invokes the factory with {@code context} and returns its
      *       result as-is.</li>
      * </ul>
      *
-     * @param context the context the source will serve
-     * @param spec    the owning spec, read for the async options
+     * @param context   the context the source will serve
+     * @param spec      the owning spec, read for the async options
+     * @param scheduler the platform scheduler used to route async settles to the viewer's
+     *                  region thread; passed through to the {@link BukkitSettleDispatcher}
+     *                  for {@link Kind#ASYNC} sources
      * @return the page source for this context
      * @throws NullPointerException if the lazy function returns null
      *         ("lazy pagination source function returned null"), or the custom factory
      *         returns null ("paginateSource factory returned null"), or an argument is null
      */
-    public @NotNull PageSource<T> createSource(@NotNull ViewContext context, @NotNull PaginationSpec<T> spec) {
+    public @NotNull PageSource<T> createSource(@NotNull ViewContext context, @NotNull PaginationSpec<T> spec,
+                                               @NotNull PlatformScheduler scheduler) {
         Objects.requireNonNull(context, "context is required.");
         Objects.requireNonNull(spec, "spec is required.");
+        Objects.requireNonNull(scheduler, "scheduler is required.");
         switch (kind) {
             case EAGER_STATIC:
                 return sharedEagerSource;
@@ -223,7 +229,7 @@ public final class PaginationSourceSpec<T> {
                         "lazy pagination source function returned null"));
             case ASYNC:
                 return new AsyncPageSource<>(asyncSupplier, spec.errorCallback(), spec.requestTimeout(),
-                        spec.cacheTtl(), spec.cacheMaxPages(), new BukkitSettleDispatcher());
+                        spec.cacheTtl(), spec.cacheMaxPages(), new BukkitSettleDispatcher(scheduler));
             case CUSTOM:
                 return Objects.requireNonNull(customFactory.apply(context),
                         "paginateSource factory returned null");

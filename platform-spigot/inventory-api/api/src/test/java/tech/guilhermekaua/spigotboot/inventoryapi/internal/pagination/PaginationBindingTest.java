@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
@@ -162,7 +163,7 @@ class PaginationBindingTest {
         player = server.addPlayer("tester");
         engine = new ViewEngine(plugin, new ViewRegistry(), new SessionRegistry(),
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
     }
 
     @AfterEach

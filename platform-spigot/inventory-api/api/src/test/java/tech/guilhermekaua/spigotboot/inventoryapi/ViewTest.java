@@ -23,6 +23,7 @@
 package tech.guilhermekaua.spigotboot.inventoryapi;
 
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationImpl;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.PaginationSourceSpec;
@@ -185,8 +186,9 @@ class ViewTest {
 
         PaginationImpl<String> token = (PaginationImpl<String>) builder.itemRenderer(noopRenderer()).build();
         ViewContext context = mock(ViewContext.class);
-        PageSource<String> first = token.spec().source().createSource(context, token.spec());
-        PageSource<String> second = token.spec().source().createSource(context, token.spec());
+        PlatformScheduler scheduler = mock(PlatformScheduler.class);
+        PageSource<String> first = token.spec().source().createSource(context, token.spec(), scheduler);
+        PageSource<String> second = token.spec().source().createSource(context, token.spec(), scheduler);
 
         assertEquals(Arrays.asList("a", "b"), first.elements());
         // EAGER_STATIC serves the one shared immutable source to every context

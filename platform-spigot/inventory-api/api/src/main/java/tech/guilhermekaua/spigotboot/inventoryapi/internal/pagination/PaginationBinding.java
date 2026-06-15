@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -198,7 +199,7 @@ public final class PaginationBinding implements PaginationHost {
         this.targetSlots = resolveTargetSlots(fillLayout, patterns);
 
         this.plainContext = new PlainViewContextImpl(session, engine);
-        PageSource<Object> source = spec.source().createSource(plainContext, spec);
+        PageSource<Object> source = spec.source().createSource(plainContext, spec, engine.scheduler());
         this.fallbackSupplier = frameSupplier(spec.fallbackItem(), "fallback item");
         this.loadingSupplier = frameSupplier(spec.loadingItem(), "loading item");
         PageItemFactory<Object> factory = elementFactory();
@@ -383,7 +384,12 @@ public final class PaginationBinding implements PaginationHost {
 
     @Override
     public @Nullable UUID playerId() {
-        return session.player().getUniqueId();
+        return player().getUniqueId();
+    }
+
+    @Override
+    public @NotNull Player player() {
+        return session.player();
     }
 
     @Override

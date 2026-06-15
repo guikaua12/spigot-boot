@@ -90,6 +90,12 @@
         </dependency>
 
         <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-core-spigot</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.seeseemelk</groupId>
             <artifactId>MockBukkit-v1.20</artifactId>
         </dependency>

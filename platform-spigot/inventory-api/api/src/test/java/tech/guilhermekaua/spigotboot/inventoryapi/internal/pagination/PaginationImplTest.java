@@ -25,10 +25,12 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
@@ -60,7 +62,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PaginationImplTest {
 
@@ -98,8 +102,10 @@ class PaginationImplTest {
     void setUp() {
         server = MockBukkit.mock();
         plugin = mock(Plugin.class);
+        PlatformScheduler scheduler = mock(PlatformScheduler.class);
+        when(scheduler.ownsRegion(any(Entity.class))).thenReturn(true);
         engine = new ViewEngine(plugin, new ViewRegistry(), new SessionRegistry(),
-                new SlotPainter(new NoopPlaceholderApplier()), mock(TitleUpdater.class));
+                new SlotPainter(new NoopPlaceholderApplier()), mock(TitleUpdater.class), scheduler);
         player = server.addPlayer("paginator");
     }
 

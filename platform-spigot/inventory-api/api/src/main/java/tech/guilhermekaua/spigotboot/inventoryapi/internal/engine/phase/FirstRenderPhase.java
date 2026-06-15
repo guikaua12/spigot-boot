@@ -22,12 +22,11 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.HandlerInvoker;
@@ -191,8 +190,8 @@ public final class FirstRenderPhase {
         if (interval <= 0) {
             return;
         }
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(engine.plugin(),
-                new ViewUpdateTask(engine, session), interval, interval);
+        PlatformTask task = engine.scheduler().runOnEntityAtFixedRate(session.player(),
+                new ViewUpdateTask(engine, session), null, interval, interval);
         session.updateTask(task);
     }
 }

@@ -36,7 +36,8 @@ import tech.guilhermekaua.spigotboot.testPlugin.configuration.MainConfig;
         version = "1.0.0",
         description = "A test plugin for ApxPlugin framework.",
         authors = {"Approximations"},
-        apiVersion = "1.13"
+        apiVersion = "1.13",
+        foliaSupported = true
 )
 public class Main extends JavaPlugin {
     private SpigotBootPlugin bootPlugin;
@@ -47,7 +48,7 @@ public class Main extends JavaPlugin {
         Context ctx = SpigotBoot.initialize(bootPlugin);
 
         MainConfig mainConfig = ctx.getBean(MainConfig.class);
-        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
+        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers() + ". Level-up sound: " + mainConfig.getLevelUpSound());
     }
 
     @Override

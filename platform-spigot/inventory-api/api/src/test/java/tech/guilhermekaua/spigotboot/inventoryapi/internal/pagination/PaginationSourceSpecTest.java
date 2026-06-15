@@ -23,6 +23,7 @@
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.EagerPageSource;
@@ -50,6 +51,7 @@ import static org.mockito.Mockito.mock;
 class PaginationSourceSpecTest {
 
     private final ViewContext context = mock(ViewContext.class);
+    private final PlatformScheduler scheduler = mock(PlatformScheduler.class);
 
     // pins the package-private PaginationSpec constructor order Task 8's builder must use:
     // (geometry, target, layoutChar, explicitLayout, patterns, renderer, fallbackItem,
@@ -66,8 +68,8 @@ class PaginationSourceSpecTest {
         PaginationSourceSpec<Integer> sourceSpec = PaginationSourceSpec.eager(Arrays.asList(1, 2, 3));
         PaginationSpec<Integer> spec = specOf(sourceSpec);
 
-        PageSource<Integer> first = sourceSpec.createSource(context, spec);
-        PageSource<Integer> second = sourceSpec.createSource(mock(ViewContext.class), spec);
+        PageSource<Integer> first = sourceSpec.createSource(context, spec, scheduler);
+        PageSource<Integer> second = sourceSpec.createSource(mock(ViewContext.class), spec, scheduler);
 
         assertTrue(first instanceof EagerPageSource);
         assertSame(first, second);
@@ -80,7 +82,7 @@ class PaginationSourceSpecTest {
 
         backing.add(4);
 
-        PageSource<Integer> source = sourceSpec.createSource(context, specOf(sourceSpec));
+        PageSource<Integer> source = sourceSpec.createSource(context, specOf(sourceSpec), scheduler);
         assertEquals(Arrays.asList(1, 2, 3), source.elements());
     }
 
@@ -102,8 +104,8 @@ class PaginationSourceSpecTest {
         });
         PaginationSpec<Integer> spec = specOf(sourceSpec);
 
-        PageSource<Integer> first = sourceSpec.createSource(context, spec);
-        PageSource<Integer> second = sourceSpec.createSource(context, spec);
+        PageSource<Integer> first = sourceSpec.createSource(context, spec, scheduler);
+        PageSource<Integer> second = sourceSpec.createSource(context, spec, scheduler);
 
         assertTrue(first instanceof EagerPageSource);
         assertNotSame(first, second);
@@ -117,7 +119,7 @@ class PaginationSourceSpecTest {
         PaginationSpec<Integer> spec = specOf(sourceSpec);
 
         NullPointerException error = assertThrows(NullPointerException.class,
-                () -> sourceSpec.createSource(context, spec));
+                () -> sourceSpec.createSource(context, spec, scheduler));
 
         assertEquals("lazy pagination source function returned null", error.getMessage());
     }
@@ -144,8 +146,8 @@ class PaginationSourceSpecTest {
                 (ctx, item, index, value) -> { }, null, null, sourceSpec,
                 (request, error) -> { }, Duration.ofSeconds(5), Duration.ofSeconds(30), 64);
 
-        PageSource<Integer> first = sourceSpec.createSource(context, spec);
-        PageSource<Integer> second = sourceSpec.createSource(context, spec);
+        PageSource<Integer> first = sourceSpec.createSource(context, spec, scheduler);
+        PageSource<Integer> second = sourceSpec.createSource(context, spec, scheduler);
 
         assertTrue(first instanceof AsyncPageSource);
         assertNotSame(first, second);
@@ -162,7 +164,7 @@ class PaginationSourceSpecTest {
             return made;
         });
 
-        PageSource<Integer> created = sourceSpec.createSource(context, specOf(sourceSpec));
+        PageSource<Integer> created = sourceSpec.createSource(context, specOf(sourceSpec), scheduler);
 
         assertSame(made, created);
         assertSame(context, seen.get());
@@ -175,7 +177,7 @@ class PaginationSourceSpecTest {
         PaginationSourceSpec<Integer> sourceSpec = PaginationSourceSpec.custom(ctx -> null);
 
         NullPointerException error = assertThrows(NullPointerException.class,
-                () -> sourceSpec.createSource(context, specOf(sourceSpec)));
+                () -> sourceSpec.createSource(context, specOf(sourceSpec), scheduler));
 
         assertEquals("paginateSource factory returned null", error.getMessage());
     }

@@ -39,6 +39,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
@@ -76,7 +77,7 @@ class NavigationPairFlowTest {
         views.register(new ConfirmFlowView());
         ViewEngine engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
         service = new ViewService(engine, sessions);
         listener = new ViewListener(sessions, engine);
     }

@@ -222,7 +222,7 @@ abstract class AbstractPageSourcePagination<T, S> implements Paginator<T> {
     private void dispatch(S rollback, boolean render) {
         // the host is always bound here: bind dispatches after setting it, and changePageInternal records-only when unbound
         PageRequest request = new PageRequest(this.currentPage, this.itemPageLimit,
-                requestOffset(), this.host.playerId(), this.host.plugin());
+                requestOffset(), this.host.playerId(), this.host.plugin(), this.host.player());
         this.dispatchingThread = Thread.currentThread();
         try {
             this.pageSource.request(request, (result, error) -> onSettle(rollback, result, error));

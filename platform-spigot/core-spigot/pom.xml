@@ -93,6 +93,13 @@
                          instead of replacing them -->
                     <ignores combine.children="append">
                         <ignore>org.bukkit.UnsafeValues</ignore>
+                        <!-- Folia scheduler API; referenced only by FoliaPlatformScheduler/FoliaPlatformTask,
+                             which load only when the API is present at runtime -->
+                        <ignore>io.papermc.paper.threadedregions.scheduler.EntityScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.RegionScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask$CancelledState</ignore>
                     </ignores>
                 </configuration>
             </plugin>

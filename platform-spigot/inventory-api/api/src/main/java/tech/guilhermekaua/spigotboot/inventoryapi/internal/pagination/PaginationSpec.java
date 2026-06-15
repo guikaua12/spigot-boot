@@ -41,7 +41,7 @@ import java.util.function.Function;
 /**
  * Immutable pagination declaration built by {@code PaginationBuilderImpl.build()}: geometry,
  * paint target, renderer and frame items, the source declaration, and the async plumbing
- * consumed by {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec)}. All
+ * consumed by {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec, tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler)}. All
  * combination validation happens in the builder before a spec is constructed; the spec only
  * carries the validated values.
  *
@@ -237,7 +237,7 @@ public final class PaginationSpec<T> {
 
     /**
      * Returns the async error callback, consumed by
-     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec)}.
+     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec, tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler)}.
      *
      * @return the callback, or null
      */
@@ -247,7 +247,7 @@ public final class PaginationSpec<T> {
 
     /**
      * Returns the async per-request timeout, consumed by
-     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec)}.
+     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec, tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler)}.
      *
      * @return the timeout, or null when disabled
      */
@@ -257,7 +257,7 @@ public final class PaginationSpec<T> {
 
     /**
      * Returns the async cache TTL, consumed by
-     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec)}.
+     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec, tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler)}.
      *
      * @return the TTL, or null when caching is disabled
      */
@@ -267,7 +267,7 @@ public final class PaginationSpec<T> {
 
     /**
      * Returns the async cache LRU bound, consumed by
-     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec)}.
+     * {@link PaginationSourceSpec#createSource(ViewContext, PaginationSpec, tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler)}.
      *
      * @return the bound; 128 unless overridden (the 2.x {@code DEFAULT_CACHE_MAX_PAGES})
      */

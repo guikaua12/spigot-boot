@@ -1,0 +1,76 @@
+/*
+ * The MIT License
+ * Copyright © 2025 Guilherme Kauã da Silva
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package tech.guilhermekaua.spigotboot.config.spigot.serialization;
+
+import org.bukkit.Sound;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import tech.guilhermekaua.spigotboot.config.exception.SerializationException;
+import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
+import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class SoundSerializerTest {
+
+    private final SoundSerializer serializer = new SoundSerializer();
+
+    @Test
+    void deserializes_enum_name() throws Exception {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn("ENTITY_PLAYER_LEVELUP");
+        assertNotNull(serializer.deserialize(node, Sound.class));
+    }
+
+    @Test
+    void serializes_to_stable_key() throws Exception {
+        Sound sound = serializer.deserialize(mockNode("ENTITY_PLAYER_LEVELUP"), Sound.class);
+        MutableConfigNode out = Mockito.mock(MutableConfigNode.class);
+        serializer.serialize(sound, out);
+        verify(out).set("ENTITY_PLAYER_LEVELUP");
+    }
+
+    @Test
+    void deserializes_unknown_sound_throws() {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn("NOT_A_REAL_SOUND_XYZ");
+        assertThrows(SerializationException.class, () -> serializer.deserialize(node, Sound.class));
+    }
+
+    @Test
+    void deserializes_null_input_returns_null() throws Exception {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn(null);
+        assertNull(serializer.deserialize(node, Sound.class));
+    }
+
+    private ConfigNode mockNode(String value) {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn(value);
+        return node;
+    }
+}

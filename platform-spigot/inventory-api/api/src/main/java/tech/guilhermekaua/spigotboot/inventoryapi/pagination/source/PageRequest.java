@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,8 +36,9 @@ import java.util.UUID;
  * {@code page} is informational only: scroll paginators advance one element per page, so
  * deriving the offset as {@code (page - 1) * pageSize} is wrong for them.
  *
- * <p>{@code playerId} identifies who the page is loaded for and {@code plugin} owns the load
- * (the settle dispatcher schedules onto the main thread on its behalf). Both are {@code null}
+ * <p>{@code playerId} identifies who the page is loaded for and {@code plugin} owns the load.
+ * {@code viewer} is the live {@link Player} the settle dispatcher uses to route the settle to
+ * the viewer's region thread (Folia) or the main thread (legacy). All three are {@code null}
  * only for engine-external test usage — requests dispatched by the built-in paginators always
  * populate them.
  */
@@ -47,6 +49,7 @@ public final class PageRequest {
     private final int offset;
     private final UUID playerId;
     private final Plugin plugin;
+    private final Player viewer;
 
     /**
      * Creates a page request.
@@ -58,13 +61,18 @@ public final class PageRequest {
      *                 engine-external test usage
      * @param plugin   the plugin owning the load, or {@code null} only for engine-external
      *                 test usage
+     * @param viewer   the live {@link Player} the settle dispatcher routes the settle for;
+     *                 {@code null} only for engine-external test usage, in which case the
+     *                 settle runs inline on the completing thread
      */
-    public PageRequest(int page, int pageSize, int offset, @Nullable UUID playerId, @Nullable Plugin plugin) {
+    public PageRequest(int page, int pageSize, int offset, @Nullable UUID playerId,
+                       @Nullable Plugin plugin, @Nullable Player viewer) {
         this.page = page;
         this.pageSize = pageSize;
         this.offset = offset;
         this.playerId = playerId;
         this.plugin = plugin;
+        this.viewer = viewer;
     }
 
     /**
@@ -107,12 +115,26 @@ public final class PageRequest {
     }
 
     /**
-     * Returns the plugin owning the load; the settle dispatcher schedules onto the main
-     * thread on its behalf.
+     * Returns the plugin that owns the load. Informational: the built-in
+     * {@link BukkitSettleDispatcher} routes settles by {@link #viewer()} via the platform
+     * scheduler and does not use this; a custom {@link SettleDispatcher} may use it.
      *
      * @return the owning plugin, or {@code null} only for engine-external test usage
      */
     public @Nullable Plugin plugin() {
         return plugin;
+    }
+
+    /**
+     * Returns the live viewer the settle dispatcher uses to route the settle to the correct
+     * region thread. On Folia each player's inventory is owned by the region containing the
+     * player; the settle must run on that region's thread. On legacy Spigot/Paper the
+     * dispatcher falls back to the main thread.
+     *
+     * @return the viewing player, or {@code null} only for engine-external test usage
+     *         (in which case the settle runs inline on the completing thread)
+     */
+    public @Nullable Player viewer() {
+        return viewer;
     }
 }

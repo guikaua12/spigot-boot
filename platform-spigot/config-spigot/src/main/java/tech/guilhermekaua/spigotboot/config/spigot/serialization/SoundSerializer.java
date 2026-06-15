@@ -28,9 +28,12 @@ import tech.guilhermekaua.spigotboot.config.exception.SerializationException;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
+import tech.guilhermekaua.spigotboot.core.spigot.utils.SoundCompat;
 
 /**
- * Serializer for {@link Sound} enum.
+ * Cross-version serializer for {@link Sound}. {@code Sound} is an enum up to MC 1.21.2 and an
+ * interface from 1.21.3 on; resolution is delegated to {@link SoundCompat} so the same config
+ * works on every supported server.
  */
 public class SoundSerializer implements TypeSerializer<Sound> {
 
@@ -40,19 +43,15 @@ public class SoundSerializer implements TypeSerializer<Sound> {
         if (value == null || value.isEmpty()) {
             return null;
         }
-
-        try {
-            return Sound.valueOf(value.trim().toUpperCase().replace(" ", "_").replace(".", "_"));
-        } catch (Exception e) {
-            throw new SerializationException("Unknown sound: " + value, e);
+        Sound sound = SoundCompat.resolve(value);
+        if (sound == null) {
+            throw new SerializationException("Unknown sound: " + value);
         }
+        return sound;
     }
 
     @Override
     public void serialize(@NotNull Sound value, @NotNull MutableConfigNode node) throws SerializationException {
-        // Enum-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
-        // name() must resolve via the java.* ignore (see root pom)
-        Enum<?> enumValue = value;
-        node.set(enumValue.name());
+        node.set(SoundCompat.toKey(value));
     }
 }
