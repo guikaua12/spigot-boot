@@ -29,7 +29,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.jetbrains.annotations.NotNull;
@@ -298,7 +297,7 @@ class ViewEngineOpenCloseTest {
     void scheduledUpdates_taskStartsOnOpenAndIsCancelledOnClose() {
         engine.open(player, ScheduledView.class, ViewArguments.empty());
         ViewSession session = session();
-        BukkitTask task = session.updateTask();
+        PlatformTask task = session.updateTask();
         assertNotNull(task);
         assertFalse(task.isCancelled());
 

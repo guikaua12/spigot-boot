@@ -22,8 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine.phase;
 
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
@@ -73,7 +73,7 @@ public final class ClosePhase {
         if (session.status() == ViewSession.Status.CLOSED) {
             return;
         }
-        BukkitTask updateTask = session.updateTask();
+        PlatformTask updateTask = session.updateTask();
         if (updateTask != null) {
             updateTask.cancel();
             session.updateTask(null);
