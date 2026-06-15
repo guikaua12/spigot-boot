@@ -110,7 +110,7 @@ public final class ViewEngine {
         this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
         this.paginationInitPhase = new PaginationInitPhase(this, sessions);
-        this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase, scheduler);
+        this.flushCoordinator = new FlushCoordinator(sessions, updatePhase, scheduler);
     }
 
     /**

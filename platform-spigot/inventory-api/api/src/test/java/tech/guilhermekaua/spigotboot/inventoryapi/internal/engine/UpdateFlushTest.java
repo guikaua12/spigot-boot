@@ -223,6 +223,8 @@ class UpdateFlushTest {
         assertEquals(2, sharedView.renders.get());
 
         sharedView.shared.set("changed");
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
+        server.getScheduler().performTicks(1);
 
         assertEquals(4, sharedView.renders.get(),
                 "both sessions of the owning view must repaint exactly once");
@@ -274,6 +276,8 @@ class UpdateFlushTest {
         assertEquals(1, twoSlotSharedView.unwatchedRenders.get());
 
         twoSlotSharedView.shared.set("changed");
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
+        server.getScheduler().performTicks(1);
 
         assertEquals(2, twoSlotSharedView.watchedRenders.get(),
                 "slot 0 watches the shared token and must repaint");

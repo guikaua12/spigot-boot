@@ -87,8 +87,10 @@ class SharedStateFlowTest {
         assertEquals("nobody".length(), invA.getItem(0).getAmount());
         assertEquals("nobody".length(), invB.getItem(0).getAmount());
 
-        // a single shared write must repaint the watching component of BOTH open sessions
+        // a single shared write must repaint the watching component of BOTH open sessions;
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
         leaderboard.topName.set("champion");
+        server.getScheduler().performTicks(1);
 
         assertEquals("champion".length(), invA.getItem(0).getAmount());
         assertEquals("champion".length(), invB.getItem(0).getAmount());
