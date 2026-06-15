@@ -48,7 +48,7 @@ public class Main extends JavaPlugin {
         Context ctx = SpigotBoot.initialize(bootPlugin);
 
         MainConfig mainConfig = ctx.getBean(MainConfig.class);
-        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers());
+        getLogger().info("MainConfig - Server name: " + mainConfig.getServerName() + ". Max players: " + mainConfig.getMaxPlayers() + ". Level-up sound: " + mainConfig.getLevelUpSound());
     }
 
     @Override
