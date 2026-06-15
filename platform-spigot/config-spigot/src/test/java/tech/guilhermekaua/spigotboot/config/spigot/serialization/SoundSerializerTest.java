@@ -23,35 +23,38 @@
 package tech.guilhermekaua.spigotboot.config.spigot.serialization;
 
 import org.bukkit.Sound;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.exception.SerializationException;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
-import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
-import tech.guilhermekaua.spigotboot.core.spigot.utils.SoundCompat;
 
-/**
- * Cross-version serializer for {@link Sound}. {@code Sound} is an enum up to MC 1.21.2 and an
- * interface from 1.21.3 on; resolution is delegated to {@link SoundCompat} so the same config
- * works on every supported server.
- */
-public class SoundSerializer implements TypeSerializer<Sound> {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-    @Override
-    public Sound deserialize(@NotNull ConfigNode node, @NotNull Class<Sound> type) throws SerializationException {
-        String value = node.get(String.class);
-        if (value == null || value.isEmpty()) {
-            return null;
-        }
-        Sound sound = SoundCompat.resolve(value);
-        if (sound == null) {
-            throw new SerializationException("Unknown sound: " + value);
-        }
-        return sound;
+class SoundSerializerTest {
+
+    private final SoundSerializer serializer = new SoundSerializer();
+
+    @Test
+    void deserializes_enum_name() throws Exception {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn("ENTITY_PLAYER_LEVELUP");
+        assertNotNull(serializer.deserialize(node, Sound.class));
     }
 
-    @Override
-    public void serialize(@NotNull Sound value, @NotNull MutableConfigNode node) throws SerializationException {
-        node.set(SoundCompat.toKey(value));
+    @Test
+    void serializes_to_stable_key() throws Exception {
+        Sound sound = serializer.deserialize(mockNode("ENTITY_PLAYER_LEVELUP"), Sound.class);
+        MutableConfigNode out = Mockito.mock(MutableConfigNode.class);
+        serializer.serialize(sound, out);
+        verify(out).set("ENTITY_PLAYER_LEVELUP");
+    }
+
+    private ConfigNode mockNode(String value) {
+        ConfigNode node = Mockito.mock(ConfigNode.class);
+        when(node.get(String.class)).thenReturn(value);
+        return node;
     }
 }
