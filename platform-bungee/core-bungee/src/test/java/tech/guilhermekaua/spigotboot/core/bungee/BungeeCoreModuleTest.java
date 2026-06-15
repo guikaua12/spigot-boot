@@ -39,9 +39,12 @@ import static org.mockito.Mockito.when;
 
 class BungeeCoreModuleTest {
 
+    public static class TestPlugin extends Plugin {
+    }
+
     @Test
     void registersNativePluginAndScheduler() throws Exception {
-        Plugin plugin = mock(Plugin.class);
+        TestPlugin plugin = mock(TestPlugin.class);
         ProxyServer proxy = mock(ProxyServer.class);
         TaskScheduler scheduler = mock(TaskScheduler.class);
         when(plugin.getProxy()).thenReturn(proxy);
@@ -58,6 +61,7 @@ class BungeeCoreModuleTest {
         new BungeeCoreModule().onInitialize(context);
 
         verify(dependencyManager).registerDependency(eq(Plugin.class), same(plugin), isNull(), eq(false));
+        verify(dependencyManager).registerDependency(eq(TestPlugin.class), same(plugin), isNull(), eq(false));
         verify(dependencyManager).registerDependency(eq(TaskScheduler.class), same(scheduler), isNull(), eq(false));
     }
 }

@@ -46,13 +46,9 @@ public class BungeeCoreModule implements Module {
         DependencyManager dependencyManager = context.getDependencyManager();
 
         Plugin plugin = (Plugin) nativePlugin;
-        @SuppressWarnings("unchecked")
-        Class<Object> realClass = (Class<Object>) ProxyUtils.getRealClass(nativePlugin);
 
         dependencyManager.registerDependency(Plugin.class, plugin, null, false);
-        if (!Plugin.class.equals(realClass)) {
-            dependencyManager.registerDependency(realClass, nativePlugin, null, false);
-        }
+        dependencyManager.registerDependency(ProxyUtils.getRealClass(nativePlugin), nativePlugin, null, false);
         dependencyManager.registerDependency(TaskScheduler.class, plugin.getProxy().getScheduler(), null, false);
     }
 }
