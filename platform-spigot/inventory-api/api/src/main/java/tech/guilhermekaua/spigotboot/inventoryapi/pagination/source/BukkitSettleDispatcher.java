@@ -22,42 +22,67 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.pagination.source;
 
-import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.IllegalPluginAccessException;
+import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default {@link SettleDispatcher}: settles always route to the main server thread — inline
- * when the load already completed there, otherwise through the Bukkit scheduler on behalf of
- * the request's owning plugin. A request without a plugin (engine-external test usage only)
- * settles inline on the completing thread.
+ * Default {@link SettleDispatcher}: settles route to the viewer's region thread (Folia) or
+ * the main thread (legacy Spigot/Paper) via the injected {@link PlatformScheduler}.
  *
- * <p>Dispatch order is FIFO: inline settles run immediately and the Bukkit scheduler runs
- * same-tick tasks in submission order. {@link AsyncPageSource} relies on this — a request's
- * timeout settle must reach the dispatcher before the cancellation settle it triggers, so the
- * at-most-once check discards the latter.
+ * <p>Routing rules:
+ * <ol>
+ *   <li>No viewer ({@link PageRequest#viewer()} is {@code null}) — engine-external test
+ *       usage: settle runs inline on the completing thread.</li>
+ *   <li>The calling thread already owns the viewer's region — settle runs inline.</li>
+ *   <li>Otherwise — the settle is dispatched to the viewer's entity scheduler.</li>
+ * </ol>
  *
- * <p>A settle completing while the owning plugin is disabling is dropped with a warning: the
- * scheduler rejects new tasks at that point and the inventory is about to be closed by the
- * shutdown anyway.
+ * <p>Dispatch order is FIFO: inline settles run immediately; the scheduler runs same-tick
+ * tasks in submission order. {@link AsyncPageSource} relies on this — a request's timeout
+ * settle must reach the dispatcher before the cancellation settle it triggers.
+ *
+ * <p>A settle that is rejected because the owning plugin is disabling
+ * ({@link IllegalPluginAccessException}) is dropped with a warning: the scheduler will not
+ * accept new tasks at that point and the inventory is about to be closed anyway.
  */
 public final class BukkitSettleDispatcher implements SettleDispatcher {
 
     private static final Logger LOGGER = Logger.getLogger(BukkitSettleDispatcher.class.getName());
 
+    private final PlatformScheduler scheduler;
+
+    /**
+     * Creates the dispatcher.
+     *
+     * @param scheduler the platform scheduler used to route settles to the viewer's region
+     */
+    public BukkitSettleDispatcher(@NotNull PlatformScheduler scheduler) {
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+    }
+
     @Override
     public void dispatch(PageRequest request, Runnable task) {
-        if (request.plugin() == null || Bukkit.isPrimaryThread()) {
+        Player viewer = request.viewer();
+        if (viewer == null) {
+            // engine-external test usage: settle inline on the completing thread
+            task.run();
+            return;
+        }
+        if (scheduler.ownsRegion(viewer)) {
             task.run();
             return;
         }
         try {
-            Bukkit.getScheduler().runTask(request.plugin(), task);
+            scheduler.runOnEntity(viewer, task, null);
         } catch (IllegalPluginAccessException e) {
-            // thrown inside whenComplete or a timeout task this would otherwise vanish into
-            // an unobserved future
+            // thrown inside whenComplete or a timeout task; swallow so the completing thread
+            // does not blow up — the session is about to be closed during plugin disable
             LOGGER.log(Level.WARNING, "Dropped a page-load settle: the owning plugin is disabled.", e);
         }
     }

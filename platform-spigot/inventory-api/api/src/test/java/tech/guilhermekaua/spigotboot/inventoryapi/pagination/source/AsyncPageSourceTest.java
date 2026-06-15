@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AsyncPageSourceTest {
 
     private static PageRequest request(int page) {
-        return new PageRequest(page, 3, (page - 1) * 3, null, null);
+        return new PageRequest(page, 3, (page - 1) * 3, null, null, null);
     }
 
     private static <T> AsyncPageSource<T> source(AsyncPageSupplier<T> supplier) {
