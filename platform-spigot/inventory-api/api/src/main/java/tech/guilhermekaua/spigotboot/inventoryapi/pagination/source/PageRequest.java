@@ -115,8 +115,9 @@ public final class PageRequest {
     }
 
     /**
-     * Returns the plugin owning the load; the settle dispatcher schedules onto the main
-     * thread on its behalf.
+     * Returns the plugin that owns the load. Informational: the built-in
+     * {@link BukkitSettleDispatcher} routes settles by {@link #viewer()} via the platform
+     * scheduler and does not use this; a custom {@link SettleDispatcher} may use it.
      *
      * @return the owning plugin, or {@code null} only for engine-external test usage
      */

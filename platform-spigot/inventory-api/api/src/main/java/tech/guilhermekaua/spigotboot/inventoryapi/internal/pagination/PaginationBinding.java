@@ -384,7 +384,7 @@ public final class PaginationBinding implements PaginationHost {
 
     @Override
     public @Nullable UUID playerId() {
-        return session.player().getUniqueId();
+        return player().getUniqueId();
     }
 
     @Override
