@@ -23,8 +23,10 @@
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.util;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 
 /**
  * Shared threading assertions for the inventory-api internals.
@@ -45,6 +47,20 @@ public final class ThreadUtils {
     public static void assertMainThread(@NotNull String operation) {
         if (Bukkit.getServer() != null && !Bukkit.isPrimaryThread()) {
             throw new IllegalStateException(operation + " must be called on the main server thread");
+        }
+    }
+
+    /**
+     * Throws when the current thread does not own the entity's region.
+     *
+     * @param scheduler the platform scheduler used for the ownership check
+     * @param entity    the entity whose region must be owned (the viewer)
+     * @param operation the operation name used in the error message
+     * @throws IllegalStateException when the current thread does not own the entity's region
+     */
+    public static void assertOwnsRegion(@NotNull PlatformScheduler scheduler, @NotNull Entity entity, @NotNull String operation) {
+        if (!scheduler.ownsRegion(entity)) {
+            throw new IllegalStateException(operation + " must be called on the thread owning the viewer's region");
         }
     }
 }
