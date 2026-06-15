@@ -32,9 +32,14 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.ComponentProxy;
 import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.logging.Logger;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
@@ -97,5 +102,26 @@ class BungeeListenerAutoRegistrarTest {
 
         verify(logger).warning(contains("Proxied listener"));
         verify(pluginManager).registerListener(plugin, proxiedListener);
+    }
+
+    // core bundles javassist relocated; a shipped class that references the original javassist.* package throws
+    // NoClassDefFoundError on a real server even though tests stay green. proxy detection here must go through
+    // ProxyUtils (name-based), never a direct javassist import.
+    @Test
+    void proxyAwareRegistrarClassMustNotReferenceUnrelocatedJavassistPackage() throws IOException {
+        assertNoUnrelocatedJavassistReference(
+                "tech/guilhermekaua/spigotboot/core/bungee/integrations/BungeeListenerAutoRegistrar.class");
+    }
+
+    private void assertNoUnrelocatedJavassistReference(String classResource) throws IOException {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(classResource)) {
+            assertNotNull(in, "compiled class not found on the test classpath: " + classResource);
+
+            byte[] bytecode = in.readAllBytes();
+            String constantPool = new String(bytecode, StandardCharsets.ISO_8859_1);
+
+            assertFalse(constantPool.contains("javassist/"),
+                    classResource + " references the unrelocated javassist package; use ProxyUtils instead.");
+        }
     }
 }
