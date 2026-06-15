@@ -113,6 +113,7 @@ public interface PlatformScheduler {
     @NotNull PlatformTask runGlobalLater(@NotNull Runnable task, long delayTicks);
 
     /**
+     * @param entity the entity to check
      * @return {@code true} if the current thread owns the entity's region (Folia) or is the
      * main thread (legacy) — i.e. it is safe to touch the entity now.
      */
