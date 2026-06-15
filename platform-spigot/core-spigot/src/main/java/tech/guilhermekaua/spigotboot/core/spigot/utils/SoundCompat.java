@@ -78,7 +78,11 @@ public final class SoundCompat {
      */
     public static @NotNull String toKey(@NotNull Sound sound) {
         if (sound instanceof Enum) {
-            return ((Enum<?>) sound).name();
+            // cast via Object so the compiler emits a checkcast: Sound is an enum on the compile
+            // classpath, so a direct (Enum) cast would be a no-op upcast and the bytecode would
+            // invokevirtual Enum.name() on a Sound operand — a VerifyError on servers (>=1.21.3)
+            // where Sound is an interface, even though this branch never runs there.
+            return ((Enum<?>) (Object) sound).name();
         }
         try {
             Method getKey = sound.getClass().getMethod("getKey");
