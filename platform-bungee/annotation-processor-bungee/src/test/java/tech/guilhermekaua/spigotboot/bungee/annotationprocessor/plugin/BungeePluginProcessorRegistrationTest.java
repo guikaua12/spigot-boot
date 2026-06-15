@@ -26,24 +26,38 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BungeePluginProcessorRegistrationTest {
 
     // proves the SPI service file is present and names the processor, so javac auto-discovers it from a
     // downstream plugin's annotationProcessorPaths exactly as it does the Spigot PluginAnnotationProcessor.
+    // SPI service files are merged across the classpath, so we scan every entry (getResources), not just the
+    // first match — a transitive dependency (e.g. auto-value via compile-testing) ships its own processor
+    // service file that would otherwise shadow ours depending on classpath order.
     @Test
     void processorIsRegisteredAsAnnotationProcessorService() throws IOException {
-        try (InputStream in = getClass().getClassLoader()
-                .getResourceAsStream("META-INF/services/javax.annotation.processing.Processor")) {
-            assertNotNull(in, "the SPI registration file must be present on the classpath");
-            String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(content.contains(BungeePluginAnnotationProcessor.class.getName()),
-                    "META-INF/services/javax.annotation.processing.Processor must register "
-                            + "BungeePluginAnnotationProcessor so javac auto-discovers it");
+        Enumeration<URL> resources = getClass().getClassLoader()
+                .getResources("META-INF/services/javax.annotation.processing.Processor");
+        assertTrue(resources.hasMoreElements(), "the SPI registration file must be present on the classpath");
+
+        boolean registered = false;
+        while (resources.hasMoreElements()) {
+            try (InputStream in = resources.nextElement().openStream()) {
+                if (new String(in.readAllBytes(), StandardCharsets.UTF_8)
+                        .contains(BungeePluginAnnotationProcessor.class.getName())) {
+                    registered = true;
+                    break;
+                }
+            }
         }
+
+        assertTrue(registered,
+                "META-INF/services/javax.annotation.processing.Processor must register "
+                        + "BungeePluginAnnotationProcessor so javac auto-discovers it");
     }
 }
