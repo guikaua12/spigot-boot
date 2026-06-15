@@ -75,7 +75,8 @@ class BungeeBootPluginTest {
         BungeeBootPlugin bootPlugin = new BungeeBootPlugin(plugin);
 
         assertSame(plugin, bootPlugin.getNativePlugin());
-        // a plain (non-proxied) plugin resolves to its own runtime class, and the classloader follows from it.
+        // a Mockito mock is not a javassist proxy and its classloader name does not contain "mockbukkit",
+        // so ProxyUtils.isProxy() returns false and getRealClass() returns mock.getClass() directly.
         assertEquals(plugin.getClass(), bootPlugin.getMainClass());
         assertSame(plugin.getClass().getClassLoader(), bootPlugin.getClassLoader());
     }
