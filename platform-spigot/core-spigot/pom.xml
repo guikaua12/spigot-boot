@@ -100,8 +100,6 @@
                         <ignore>io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler</ignore>
                         <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask</ignore>
                         <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask$CancelledState</ignore>
-                        <!-- BukkitTask#isCancelled() was added after 1.8.8; used only in BukkitPlatformTask -->
-                        <ignore>org.bukkit.scheduler.BukkitTask</ignore>
                     </ignores>
                 </configuration>
             </plugin>

@@ -29,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 final class BukkitPlatformTask implements PlatformTask {
 
     private final BukkitTask task;
+    private volatile boolean cancelled = false;
 
     BukkitPlatformTask(@NotNull BukkitTask task) {
         this.task = task;
@@ -36,11 +37,12 @@ final class BukkitPlatformTask implements PlatformTask {
 
     @Override
     public void cancel() {
+        cancelled = true;
         task.cancel();
     }
 
     @Override
     public boolean isCancelled() {
-        return task.isCancelled();
+        return cancelled;
     }
 }
