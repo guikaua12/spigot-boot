@@ -17,7 +17,6 @@
 
     <modules>
         <module>core-bungee</module>
-        <module>config-bungee</module>
     </modules>
 
     <properties>
