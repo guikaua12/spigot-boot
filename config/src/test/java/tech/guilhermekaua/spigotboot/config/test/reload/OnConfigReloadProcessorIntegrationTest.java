@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.reload;
+package tech.guilhermekaua.spigotboot.config.test.reload;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,8 +31,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
@@ -49,9 +49,9 @@ import static org.mockito.Mockito.mock;
 
 /**
  * End-to-end integration test for {@code @OnConfigReload} that exercises the real config machinery:
- * a real {@link SpigotConfigManager} over a temp data folder, a real {@code @Config} fixture loaded
+ * a real {@link DefaultConfigManager} over a temp data folder, a real {@code @Config} fixture loaded
  * from a YAML file, the real {@link OnConfigReloadProcessor} binding listeners, and a real
- * {@link SpigotConfigManager#reload(Class)} dispatching to those listeners. Nothing about the config
+ * {@link DefaultConfigManager#reload(Class)} dispatching to those listeners. Nothing about the config
  * manager or its reload pipeline is mocked.
  */
 @ExtendWith(MockitoExtension.class)
@@ -61,9 +61,9 @@ class OnConfigReloadProcessorIntegrationTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
     private OnConfigReloadProcessor processor;
 
     @BeforeEach
@@ -71,7 +71,7 @@ class OnConfigReloadProcessorIntegrationTest {
         Logger logger = Logger.getLogger(OnConfigReloadProcessorIntegrationTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
         processor = new OnConfigReloadProcessor(configManager, logger);
     }
 

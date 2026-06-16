@@ -20,16 +20,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.manager;
+package tech.guilhermekaua.spigotboot.config.test.manager;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
 
 import java.nio.file.Path;
 import java.util.Set;
@@ -39,20 +39,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
-class SpigotConfigManagerFolderItemTypesTest {
+class DefaultConfigManagerFolderItemTypesTest {
 
     @TempDir
     Path tempDir;
     @Mock
-    Plugin plugin;
-    private SpigotConfigManager configManager;
+    BootPlugin plugin;
+    private DefaultConfigManager configManager;
 
     @BeforeEach
     void setUp() {
-        Logger logger = Logger.getLogger(SpigotConfigManagerFolderItemTypesTest.class.getName());
+        Logger logger = Logger.getLogger(DefaultConfigManagerFolderItemTypesTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
     }
 
     @Test

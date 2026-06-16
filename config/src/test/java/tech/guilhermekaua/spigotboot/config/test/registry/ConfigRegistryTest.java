@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.registry;
+package tech.guilhermekaua.spigotboot.config.test.registry;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +35,8 @@ import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Primary;
@@ -394,7 +394,7 @@ public class ConfigRegistryTest {
 
     @Test
     void processFolderConfigClass_whenConfigValueField_throwsConfigException() {
-        SpigotConfigManager spigotConfigManager = mock(SpigotConfigManager.class);
+        DefaultConfigManager spigotConfigManager = mock(DefaultConfigManager.class);
         ConfigException ex = assertThrows(ConfigException.class,
                 () -> configRegistry.processFolderConfigClass(
                         FolderItemWithConfigValueField.class,

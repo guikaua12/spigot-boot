@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.manager;
+package tech.guilhermekaua.spigotboot.config.test.manager;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,22 +43,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
-class SpigotConfigManagerValueAccessTest {
+class DefaultConfigManagerValueAccessTest {
 
     @TempDir
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
 
     @BeforeEach
     void setUp() throws IOException {
-        Logger logger = Logger.getLogger(SpigotConfigManagerValueAccessTest.class.getName());
+        Logger logger = Logger.getLogger(DefaultConfigManagerValueAccessTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
         Files.writeString(tempDir.resolve("app.yml"),
                 "name: hello\nport: 25565\nenabled: true\nratio: 1.5\n");
         configManager.register(AppConfig.class);

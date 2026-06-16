@@ -1,8 +1,8 @@
-package tech.guilhermekaua.spigotboot.config.spigot.test.node;
+package tech.guilhermekaua.spigotboot.config.test.node;
 
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
-import tech.guilhermekaua.spigotboot.config.spigot.node.YamlConfigNode;
+import tech.guilhermekaua.spigotboot.config.node.YamlConfigNode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

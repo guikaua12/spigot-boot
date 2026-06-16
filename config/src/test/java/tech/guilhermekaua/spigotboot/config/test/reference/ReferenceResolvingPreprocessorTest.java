@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.reference;
+package tech.guilhermekaua.spigotboot.config.test.reference;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,8 +35,8 @@ import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceParser;
 import tech.guilhermekaua.spigotboot.config.reference.ConfigReferenceResolver;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigTypeMismatchContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
-import tech.guilhermekaua.spigotboot.config.spigot.node.YamlConfigNode;
-import tech.guilhermekaua.spigotboot.config.spigot.reference.ReferenceResolvingPreprocessor;
+import tech.guilhermekaua.spigotboot.config.node.YamlConfigNode;
+import tech.guilhermekaua.spigotboot.config.reference.ReferenceResolvingPreprocessor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;

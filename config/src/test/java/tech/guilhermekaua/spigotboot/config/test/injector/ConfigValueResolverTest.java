@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.injector;
+package tech.guilhermekaua.spigotboot.config.test.injector;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,8 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.ConfigValue;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueResolver;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.injector.ConfigValueResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
 
 import java.io.IOException;
@@ -52,9 +52,9 @@ class ConfigValueResolverTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
     private ConfigValueResolver resolver;
 
     @BeforeEach
@@ -62,7 +62,7 @@ class ConfigValueResolverTest {
         Logger logger = Logger.getLogger(ConfigValueResolverTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
         Files.writeString(tempDir.resolve("app.yml"),
                 "name: hello\nport: 25565\nenabled: true\nratio: 1.5\n");
         configManager.register(AppConfig.class);
@@ -139,7 +139,7 @@ class ConfigValueResolverTest {
     @Test
     void notInitialized_throws() throws IOException, NoSuchFieldException {
         Files.writeString(tempDir.resolve("late.yml"), "name: x\n");
-        SpigotConfigManager notInit = new SpigotConfigManager(plugin);
+        DefaultConfigManager notInit = new DefaultConfigManager(plugin);
         notInit.register(LateConfig.class); // registered but NOT initialized
         ConfigValueResolver lateResolver = new ConfigValueResolver(notInit);
 
@@ -152,7 +152,7 @@ class ConfigValueResolverTest {
     void barePathWithMultipleConfigs_throwsNamingSite() throws IOException, NoSuchFieldException {
         Files.writeString(tempDir.resolve("a.yml"), "k: 1\n");
         Files.writeString(tempDir.resolve("b.yml"), "k: 2\n");
-        SpigotConfigManager multi = new SpigotConfigManager(plugin);
+        DefaultConfigManager multi = new DefaultConfigManager(plugin);
         multi.register(AConfig.class);
         multi.register(BConfig.class);
         multi.initializeAll();

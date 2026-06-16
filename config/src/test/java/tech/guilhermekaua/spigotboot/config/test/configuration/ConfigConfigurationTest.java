@@ -20,19 +20,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.configuration;
+package tech.guilhermekaua.spigotboot.config.test.configuration;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.configuration.ConfigConfiguration;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigRefInjector;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueInjector;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.FolderConfigInjector;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.configuration.ConfigConfiguration;
+import tech.guilhermekaua.spigotboot.config.injector.ConfigRefInjector;
+import tech.guilhermekaua.spigotboot.config.injector.ConfigValueInjector;
+import tech.guilhermekaua.spigotboot.config.injector.FolderConfigInjector;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.CustomInjectorRegistryCustomizer;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.DefaultCustomInjectorRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.postprocessor.BeanPostProcessor;
@@ -52,12 +52,12 @@ import static org.mockito.Mockito.when;
 class ConfigConfigurationTest {
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
     @Test
     void onConfigReloadProcessor_registersProcessor() {
         when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
-        SpigotConfigManager configManager = mock(SpigotConfigManager.class);
+        DefaultConfigManager configManager = mock(DefaultConfigManager.class);
 
         ConfigConfiguration configuration = new ConfigConfiguration();
         BeanPostProcessorRegistryCustomizer customizer = configuration.onConfigReloadProcessor(configManager, plugin);
@@ -72,7 +72,7 @@ class ConfigConfigurationTest {
     @Test
     void configInjectors_registersConfigValueInjector() {
         lenient().when(plugin.getLogger()).thenReturn(Logger.getLogger(ConfigConfigurationTest.class.getName()));
-        SpigotConfigManager configManager = new SpigotConfigManager(plugin);
+        DefaultConfigManager configManager = new DefaultConfigManager(plugin);
 
         CustomInjectorRegistryCustomizer customizer = new ConfigConfiguration().configInjectors(configManager);
         DefaultCustomInjectorRegistry registry = new DefaultCustomInjectorRegistry();

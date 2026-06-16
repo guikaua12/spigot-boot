@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.folder;
+package tech.guilhermekaua.spigotboot.config.test.folder;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,8 +37,8 @@ import tech.guilhermekaua.spigotboot.config.folder.EditResult;
 import tech.guilhermekaua.spigotboot.config.folder.FolderConfigChangeListener;
 import tech.guilhermekaua.spigotboot.config.folder.FolderConfigItemChange;
 import tech.guilhermekaua.spigotboot.config.folder.ItemChangeType;
-import tech.guilhermekaua.spigotboot.config.spigot.folder.FolderConfigEntry;
-import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
+import tech.guilhermekaua.spigotboot.config.folder.FolderConfigEntry;
+import tech.guilhermekaua.spigotboot.config.loader.YamlConfigLoader;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -64,7 +64,7 @@ class FolderConfigEntryTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
     private Logger logger;
     private YamlConfigLoader loader;

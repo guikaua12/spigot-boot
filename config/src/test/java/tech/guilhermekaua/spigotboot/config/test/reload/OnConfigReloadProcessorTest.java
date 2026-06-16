@@ -20,14 +20,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.reload;
+package tech.guilhermekaua.spigotboot.config.test.reload;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadProcessor;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadProcessor;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 
@@ -54,12 +54,12 @@ class OnConfigReloadProcessorTest {
 
     static class Plain { }
 
-    private SpigotConfigManager cm;
+    private DefaultConfigManager cm;
     private OnConfigReloadProcessor processor;
 
     @BeforeEach
     void setUp() {
-        cm = mock(SpigotConfigManager.class);
+        cm = mock(DefaultConfigManager.class);
         when(cm.getRegisteredConfigs()).thenReturn(Set.<Class<?>>of(MainConfig.class));
         when(cm.getRegisteredFolderConfigItemTypes()).thenReturn(Set.<Class<?>>of());
         processor = new OnConfigReloadProcessor(cm, Logger.getLogger("test"));

@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.binding;
+package tech.guilhermekaua.spigotboot.config.test.binding;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +34,7 @@ import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
 import tech.guilhermekaua.spigotboot.config.node.MutableConfigNode;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializer;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,9 +59,9 @@ class ConfigEnumListBindingTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
 
     @BeforeEach
     void setUp() {
@@ -72,7 +72,7 @@ class ConfigEnumListBindingTest {
         TypeSerializerRegistryCustomizer colorSerializer =
                 registry -> registry.register(Color.class, new ColorSerializer());
 
-        configManager = new SpigotConfigManager(plugin, null, Collections.singletonList(colorSerializer));
+        configManager = new DefaultConfigManager(plugin, null, Collections.singletonList(colorSerializer));
     }
 
     @Test

@@ -20,12 +20,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.proxy;
+package tech.guilhermekaua.spigotboot.config.test.proxy;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
-import tech.guilhermekaua.spigotboot.config.spigot.proxy.ConfigProxy;
+import tech.guilhermekaua.spigotboot.config.proxy.ConfigProxy;
 
 import java.util.function.Consumer;
 

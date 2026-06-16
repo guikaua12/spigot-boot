@@ -20,9 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.injector;
+package tech.guilhermekaua.spigotboot.config.test.injector;
 
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,8 +32,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.ConfigValue;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.injector.ConfigValueInjector;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.injector.ConfigValueInjector;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionResult;
@@ -54,9 +54,9 @@ class ConfigValueInjectorTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
     private ConfigValueInjector injector;
 
     @BeforeEach
@@ -65,7 +65,7 @@ class ConfigValueInjectorTest {
         Logger logger = Logger.getLogger(ConfigValueInjectorTest.class.getName());
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
         Files.writeString(tempDir.resolve("app.yml"), "name: hello\nport: 25565\n");
         configManager.register(AppConfig.class);
         configManager.initializeAll();

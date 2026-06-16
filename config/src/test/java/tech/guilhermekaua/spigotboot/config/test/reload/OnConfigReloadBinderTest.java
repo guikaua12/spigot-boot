@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.reload;
+package tech.guilhermekaua.spigotboot.config.test.reload;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,9 +33,9 @@ import tech.guilhermekaua.spigotboot.config.folder.FolderConfigRef;
 import tech.guilhermekaua.spigotboot.config.folder.FolderConfigSnapshot;
 import tech.guilhermekaua.spigotboot.config.folder.ItemChangeType;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadBinder;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadInvoker;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadBinder;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadInvoker;
 
 import java.lang.reflect.Method;
 import java.util.Set;
@@ -93,12 +93,12 @@ class OnConfigReloadBinderTest {
         static void staticHook() { }
     }
 
-    private SpigotConfigManager cm;
+    private DefaultConfigManager cm;
     private OnConfigReloadBinder binder;
 
     @BeforeEach
     void setUp() {
-        cm = mock(SpigotConfigManager.class);
+        cm = mock(DefaultConfigManager.class);
         when(cm.getRegisteredConfigs()).thenReturn(Set.<Class<?>>of(MainConfig.class));
         when(cm.getRegisteredFolderConfigItemTypes()).thenReturn(Set.<Class<?>>of(Mob.class));
         when(cm.getFolderConfigNames(Mob.class)).thenReturn(Set.of("mobs"));

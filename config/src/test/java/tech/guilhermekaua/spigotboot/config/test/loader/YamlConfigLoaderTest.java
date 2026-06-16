@@ -1,4 +1,4 @@
-package tech.guilhermekaua.spigotboot.config.spigot.test.loader;
+package tech.guilhermekaua.spigotboot.config.test.loader;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,8 +10,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import tech.guilhermekaua.spigotboot.config.loader.ConfigSource;
 import tech.guilhermekaua.spigotboot.config.node.ConfigNode;
-import tech.guilhermekaua.spigotboot.config.spigot.loader.YamlConfigLoader;
-import tech.guilhermekaua.spigotboot.config.spigot.node.YamlConfigNode;
+import tech.guilhermekaua.spigotboot.config.loader.YamlConfigLoader;
+import tech.guilhermekaua.spigotboot.config.node.YamlConfigNode;
 import tech.guilhermekaua.spigotboot.core.validation.PropertyPath;
 
 import java.nio.file.Path;

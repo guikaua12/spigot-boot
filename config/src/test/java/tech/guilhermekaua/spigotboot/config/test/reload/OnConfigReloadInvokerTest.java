@@ -20,10 +20,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.test.reload;
+package tech.guilhermekaua.spigotboot.config.test.reload;
 
 import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.config.spigot.reload.OnConfigReloadInvoker;
+import tech.guilhermekaua.spigotboot.config.reload.OnConfigReloadInvoker;
 
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
@@ -71,7 +71,7 @@ class OnConfigReloadInvokerTest {
     void swallowsAndLogsCallbackException() throws Exception {
         Bean bean = new Bean();
         Method m = Bean.class.getDeclaredMethod("boom");
-        // must not propagate — a throwing callback cannot break the reload listener loop
+        // must not propagate ΓÇö a throwing callback cannot break the reload listener loop
         assertDoesNotThrow(() -> invoker.invoke(bean, m, new Object[0]));
     }
 }
