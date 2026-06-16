@@ -71,7 +71,7 @@ class OnConfigReloadInvokerTest {
     void swallowsAndLogsCallbackException() throws Exception {
         Bean bean = new Bean();
         Method m = Bean.class.getDeclaredMethod("boom");
-        // must not propagate ΓÇö a throwing callback cannot break the reload listener loop
+        // must not propagate — a throwing callback cannot break the reload listener loop
         assertDoesNotThrow(() -> invoker.invoke(bean, m, new Object[0]));
     }
 }
