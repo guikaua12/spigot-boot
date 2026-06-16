@@ -36,14 +36,35 @@ public final class BungeeBoot {
     private BungeeBoot() {
     }
 
+    /**
+     * Boots the Spigot Boot context for the given plugin, auto-discovering its modules and components.
+     * Delegates to {@link SpigotBoot#initialize(BootPlugin)}.
+     *
+     * @param plugin the Bungee plugin adapter to boot the context for.
+     * @return the initialized {@link Context}.
+     * @throws IllegalStateException if a context is already initialized for the plugin.
+     */
     public static Context initialize(@NotNull BootPlugin plugin) {
         return SpigotBoot.initialize(plugin);
     }
 
+    /**
+     * Returns the context previously created for the given plugin, if any.
+     * Delegates to {@link SpigotBoot#getContext(BootPlugin)}.
+     *
+     * @param plugin the Bungee plugin adapter whose context to look up.
+     * @return the plugin's {@link Context}, or {@code null} if no context has been initialized for it.
+     */
     public static Context getContext(@NotNull BootPlugin plugin) {
         return SpigotBoot.getContext(plugin);
     }
 
+    /**
+     * Destroys the plugin's context if it exists and is initialized; a no-op otherwise.
+     * Delegates to {@link SpigotBoot#onDisable(BootPlugin)}.
+     *
+     * @param plugin the Bungee plugin adapter whose context to tear down.
+     */
     public static void onDisable(@NotNull BootPlugin plugin) {
         SpigotBoot.onDisable(plugin);
     }
