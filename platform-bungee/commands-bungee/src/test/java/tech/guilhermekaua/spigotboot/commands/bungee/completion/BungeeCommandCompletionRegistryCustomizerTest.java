@@ -85,5 +85,16 @@ class BungeeCommandCompletionRegistryCustomizerTest {
                 registered.get("onlinePlayers").complete(ctx, null, "a"));
         assertEquals(Collections.singletonList("lobby"),
                 registered.get("servers").complete(ctx, null, "l"));
+
+        // empty/null prefix => every candidate (the all-suggestions branch owned by these lambdas).
+        // case-insensitivity is enforced downstream by CompletionResolver, so it is not asserted here.
+        assertEquals(Arrays.asList("Alex", "Bob"),
+                registered.get("onlinePlayers").complete(ctx, null, ""));
+        assertEquals(Arrays.asList("Alex", "Bob"),
+                registered.get("onlinePlayers").complete(ctx, null, null));
+        assertEquals(Arrays.asList("lobby", "survival"),
+                registered.get("servers").complete(ctx, null, ""));
+        assertEquals(Arrays.asList("lobby", "survival"),
+                registered.get("servers").complete(ctx, null, null));
     }
 }

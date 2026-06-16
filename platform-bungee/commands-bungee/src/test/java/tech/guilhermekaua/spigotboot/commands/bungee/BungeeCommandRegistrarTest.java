@@ -36,12 +36,17 @@ import tech.guilhermekaua.spigotboot.core.context.Context;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +57,7 @@ class BungeeCommandRegistrarTest {
         CommandAliasSet aliases = mock(CommandAliasSet.class);
         when(aliases.getPrimary()).thenReturn(primary);
         when(aliases.getAliases()).thenReturn(Collections.emptyList());
+        when(aliases.allValues()).thenReturn(Collections.singletonList(primary));
         CompiledRootCommand root = mock(CompiledRootCommand.class);
         when(root.getAliases()).thenReturn(aliases);
         return root;
@@ -64,6 +70,8 @@ class BungeeCommandRegistrarTest {
         PluginManager pluginManager = mock(PluginManager.class);
         when(plugin.getProxy()).thenReturn(proxy);
         when(proxy.getPluginManager()).thenReturn(pluginManager);
+
+        when(pluginManager.getCommands()).thenReturn(Collections.<Map.Entry<String, Command>>emptyList());
 
         Context context = mock(Context.class);
         when(context.getBean(Plugin.class)).thenReturn(plugin);
@@ -84,5 +92,59 @@ class BungeeCommandRegistrarTest {
         registrar.unregister(context, set);
         verify(pluginManager).unregisterCommand(set.getCommands().get(0));
         verify(pluginManager).unregisterCommand(set.getCommands().get(1));
+    }
+
+    @Test
+    void rejectsCollisionWithForeignCommand() {
+        Plugin plugin = mock(Plugin.class);
+        ProxyServer proxy = mock(ProxyServer.class);
+        PluginManager pluginManager = mock(PluginManager.class);
+        when(plugin.getProxy()).thenReturn(proxy);
+        when(proxy.getPluginManager()).thenReturn(pluginManager);
+
+        // an unrelated plugin already owns /server (Bungee lower-cases registered labels)
+        Command foreign = mock(Command.class);
+        Map<String, Command> known = new HashMap<>();
+        known.put("server", foreign);
+        when(pluginManager.getCommands()).thenReturn(known.entrySet());
+
+        Context context = mock(Context.class);
+        when(context.getBean(Plugin.class)).thenReturn(plugin);
+
+        BungeeCommandRegistrar registrar = new BungeeCommandRegistrar(
+                mock(CommandDispatcher.class), mock(CommandPlatformSupport.class));
+
+        assertThrows(IllegalStateException.class,
+                () -> registrar.register(context, Collections.singletonList(rootNamed("server"))));
+        verify(pluginManager, never()).registerCommand(any(), any());
+    }
+
+    @Test
+    void replacesOwnCommandOnReRegistration() {
+        Plugin plugin = mock(Plugin.class);
+        ProxyServer proxy = mock(ProxyServer.class);
+        PluginManager pluginManager = mock(PluginManager.class);
+        when(plugin.getProxy()).thenReturn(proxy);
+        when(proxy.getPluginManager()).thenReturn(pluginManager);
+
+        Context context = mock(Context.class);
+        when(context.getBean(Plugin.class)).thenReturn(plugin);
+
+        // a previously-registered command owned by this same plugin (e.g. a reload)
+        BungeeBootCommand previous = new BungeeBootCommand(
+                context, rootNamed("server"), mock(CommandDispatcher.class), mock(CommandPlatformSupport.class));
+        Map<String, Command> known = new HashMap<>();
+        known.put("server", previous);
+        when(pluginManager.getCommands()).thenReturn(known.entrySet());
+
+        BungeeCommandRegistrar registrar = new BungeeCommandRegistrar(
+                mock(CommandDispatcher.class), mock(CommandPlatformSupport.class));
+
+        RegisteredCommandSet set = registrar.register(
+                context, Collections.singletonList(rootNamed("server")));
+
+        assertEquals(1, set.getCommands().size());
+        verify(pluginManager).unregisterCommand(previous);
+        verify(pluginManager).registerCommand(eq(plugin), eq(set.getCommands().get(0)));
     }
 }

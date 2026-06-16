@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.commands.bungee;
 
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
+import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.TabExecutor;
 import tech.guilhermekaua.spigotboot.commands.CommandPlatformSupport;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
@@ -47,6 +48,7 @@ import java.util.List;
  */
 public class BungeeBootCommand extends Command implements TabExecutor {
     private final Context context;
+    private final Plugin plugin;
     private final CompiledRootCommand rootCommand;
     private final CommandDispatcher dispatcher;
     private final CommandPlatformSupport commandPlatformSupport;
@@ -58,6 +60,7 @@ public class BungeeBootCommand extends Command implements TabExecutor {
         super(rootCommand.getAliases().getPrimary(), null,
                 rootCommand.getAliases().getAliases().toArray(new String[0]));
         this.context = context;
+        this.plugin = context.getBean(Plugin.class);
         this.rootCommand = rootCommand;
         this.dispatcher = dispatcher;
         this.commandPlatformSupport = commandPlatformSupport;
@@ -78,5 +81,17 @@ public class BungeeBootCommand extends Command implements TabExecutor {
 
     public CompiledRootCommand getRootCommand() {
         return rootCommand;
+    }
+
+    /**
+     * Returns whether this command was registered by the given plugin. Mirrors the Spigot
+     * {@code SpigotBootCommand#isOwnedBy}; {@link BungeeCommandRegistrar} uses it to tell a
+     * re-registration of this plugin's own command apart from a genuine foreign collision.
+     *
+     * @param plugin the plugin to test ownership against
+     * @return {@code true} if this command belongs to {@code plugin}
+     */
+    public boolean isOwnedBy(Plugin plugin) {
+        return this.plugin != null && this.plugin.equals(plugin);
     }
 }

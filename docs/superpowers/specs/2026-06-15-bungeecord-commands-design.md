@@ -50,8 +50,12 @@ extracted when Velocity actually arrives.
   `config-bungee` to exist first. See "Roadmap". Explicitly out of scope here.
 - **No edit to the generic `commands` module.** In particular, no hoisting of the shared
   pipeline beans (see "Considered alternative").
-- **No collision-detection / command-overwrite policy** beyond BungeeCord's native
-  last-wins behavior (see Divergence 4).
+- ~~**No collision-detection / command-overwrite policy** beyond BungeeCord's native
+  last-wins behavior.~~ **Superseded (post-review):** BungeeCord's `PluginManager.getCommands()`
+  is a public read accessor, so the registrar now mirrors Spigot's collision policy without
+  reflection — a label held by this plugin's own command is re-registered, a foreign collision
+  raises `IllegalStateException` instead of silently shadowing it (see the `BungeeCommandRegistrar`
+  section).
 - **No runnable Bungee sample plugin or on-server end-to-end validation.** There is no
   `bungee.yml` descriptor generator yet (a separate roadmap slice); tests are unit tests.
 - No `OfflinePlayer`/`World`/`Material` argument resolvers or completions — these Bukkit
@@ -261,19 +265,35 @@ the `String...` the Bungee `Command` constructor wants.
 ### `BungeeCommandRegistrar`
 
 Constructor `(CommandDispatcher dispatcher, CommandPlatformSupport platformSupport)` — **no
-`BukkitCommandMapAccessor` analogue**. `register(Context, List<CompiledRootCommand>)`:
+`BukkitCommandMapAccessor` analogue** (no reflection: the public `PluginManager.getCommands()`
+view replaces Spigot's reflective `knownCommands` map). `register(Context, List<CompiledRootCommand>)`
+mirrors Spigot's collision policy:
 
 ```java
 Plugin plugin = context.getBean(Plugin.class);
 PluginManager pm = plugin.getProxy().getPluginManager();
+Map<String, Command> known = index(pm.getCommands());         // public accessor, no reflection
+Set<Command> toReplace = Collections.newSetFromMap(new IdentityHashMap<>());
 List<BungeeBootCommand> commands = new ArrayList<>();
 for (CompiledRootCommand root : roots) {
-    BungeeBootCommand command = new BungeeBootCommand(context, root, dispatcher, platformSupport);
-    pm.registerCommand(plugin, command);                      // public API, no reflection
-    commands.add(command);
+    for (String label : root.getAliases().allValues()) {     // collision scan per alias
+        Command existing = known.get(normalizeLabel(label));
+        if (existing == null) continue;
+        if (existing instanceof BungeeBootCommand && ((BungeeBootCommand) existing).isOwnedBy(plugin)) {
+            toReplace.add(existing);                          // our own command (e.g. reload) — replace
+        } else {
+            throw new IllegalStateException("Command label collision detected for '" + label + "'.");
+        }
+    }
+    commands.add(new BungeeBootCommand(context, root, dispatcher, platformSupport));
 }
+toReplace.forEach(pm::unregisterCommand);
+commands.forEach(c -> pm.registerCommand(plugin, c));
 return new RegisteredCommandSet(commands);
 ```
+
+`BungeeBootCommand#isOwnedBy(Plugin)` (mirror of `SpigotBootCommand#isOwnedBy`) compares the
+plugin captured from the context at construction.
 
 `unregister(RegisteredCommandSet)` resolves the plugin again and calls
 `pm.unregisterCommand(command)` for each tracked command (surgical — only our commands, not

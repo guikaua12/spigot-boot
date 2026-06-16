@@ -32,12 +32,14 @@ import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Resolves a {@code ProxiedPlayer} command argument by online name, with online-player tab
- * completion. The Bungee analogue of {@code BukkitPlayerArgumentResolver}; reaches the proxy via the
- * injected {@link Plugin}. Prefix filtering of completions is applied downstream by the framework's
- * {@code CompletionResolver}.
+ * completion. The Bungee analogue of {@code BukkitPlayerArgumentResolver}; like it, an exact lookup is
+ * tried first and, failing that, a unique case-insensitive prefix match is accepted (ambiguous
+ * prefixes are rejected). Reaches the proxy via the injected {@link Plugin}. Prefix filtering of
+ * completions is applied downstream by the framework's {@code CompletionResolver}.
  */
 public class BungeeProxiedPlayerArgumentResolver implements CommandArgumentResolver<ProxiedPlayer>, Ordered {
     private final Plugin plugin;
@@ -59,6 +61,21 @@ public class BungeeProxiedPlayerArgumentResolver implements CommandArgumentResol
     @Override
     public ProxiedPlayer resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
         ProxiedPlayer player = plugin.getProxy().getPlayer(input);
+        if (player == null) {
+            // mirror BukkitPlayerArgumentResolver: fall back to a unique case-insensitive prefix match
+            String prefix = input == null ? "" : input.toLowerCase(Locale.ROOT);
+            List<ProxiedPlayer> matches = new ArrayList<>();
+            for (ProxiedPlayer candidate : plugin.getProxy().getPlayers()) {
+                if (candidate.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                    matches.add(candidate);
+                }
+            }
+            if (matches.size() == 1) {
+                player = matches.get(0);
+            } else if (matches.size() > 1) {
+                throw new IllegalArgumentException("Ambiguous player name: " + input);
+            }
+        }
         if (player == null) {
             throw new IllegalArgumentException("Player not found: " + input);
         }

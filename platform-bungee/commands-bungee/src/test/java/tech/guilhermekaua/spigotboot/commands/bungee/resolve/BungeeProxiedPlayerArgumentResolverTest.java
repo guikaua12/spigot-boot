@@ -31,6 +31,7 @@ import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,7 +73,28 @@ class BungeeProxiedPlayerArgumentResolverTest {
     @Test
     void resolveRejectsUnknownPlayer() {
         when(proxy.getPlayer("Ghost")).thenReturn(null);
+        when(proxy.getPlayers()).thenReturn(Collections.emptyList());
         assertThrows(IllegalArgumentException.class, () -> resolver.resolve(context, parameter, "Ghost"));
+    }
+
+    @Test
+    void resolveAcceptsUniquePrefixMatch() {
+        ProxiedPlayer target = mock(ProxiedPlayer.class);
+        when(target.getName()).thenReturn("Target");
+        when(proxy.getPlayer("Tar")).thenReturn(null);
+        when(proxy.getPlayers()).thenReturn(Collections.singletonList(target));
+        assertSame(target, resolver.resolve(context, parameter, "Tar"));
+    }
+
+    @Test
+    void resolveRejectsAmbiguousPrefixMatch() {
+        ProxiedPlayer target = mock(ProxiedPlayer.class);
+        ProxiedPlayer tango = mock(ProxiedPlayer.class);
+        when(target.getName()).thenReturn("Target");
+        when(tango.getName()).thenReturn("Tango");
+        when(proxy.getPlayer("Ta")).thenReturn(null);
+        when(proxy.getPlayers()).thenReturn(Arrays.asList(target, tango));
+        assertThrows(IllegalArgumentException.class, () -> resolver.resolve(context, parameter, "Ta"));
     }
 
     @Test
