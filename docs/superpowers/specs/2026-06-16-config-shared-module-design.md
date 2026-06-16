@@ -117,6 +117,16 @@ bean that calls `BukkitSerializers.registerAll`. Keeps the Bukkit serializer tes
 The entire `platform-bungee/config-bungee` module is removed and its `<module>` entry stripped
 from `platform-bungee/pom.xml`. Bungee plugins depend on `config/` + `core-bungee`.
 
+### Consumer dependencies after the refactor
+
+| Platform | Dependencies | Notes |
+|---|---|---|
+| Bungee | `spigot-boot-core-bungee` + **`spigot-boot-config`** | swap from `spigot-boot-config-bungee` → `spigot-boot-config`; `config` brings `spigot-boot-core` transitively, SnakeYAML is bundled by BungeeCord, javassist arrives relocated via `core` |
+| Spigot/Paper | `spigot-boot-core-spigot` + `spigot-boot-config-spigot` | unchanged; `config-spigot` brings `config` transitively and adds the Bukkit serializers |
+
+A Spigot plugin that doesn't need the Bukkit serializers can also depend on
+`spigot-boot-config` directly, but `config-spigot` remains the normal choice there.
+
 ### Wiring (the `BootPlugin` seam)
 
 - `DefaultConfigManager(BootPlugin plugin, @Nullable ConfigReferenceErrorHandler errorHandler,
