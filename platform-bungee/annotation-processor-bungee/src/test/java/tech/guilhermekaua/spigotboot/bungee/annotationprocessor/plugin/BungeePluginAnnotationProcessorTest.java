@@ -111,4 +111,31 @@ class BungeePluginAnnotationProcessorTest {
         assertFalse(yml.contains("depend:"), "must not emit the Spigot-style 'depend' key");
         assertFalse(yml.contains("softdepend:"), "must not emit the Spigot-style 'softdepend' key");
     }
+
+    @Test
+    void quotesYamlSensitiveValuesSoTheDescriptorStaysParseable() throws Exception {
+        Compilation compilation = compile(
+                "package com.example;\n" +
+                "import tech.guilhermekaua.spigotboot.bungee.annotationprocessor.annotations.BungeePlugin;\n" +
+                "@BungeePlugin(\n" +
+                "        name = \"MyProxyPlugin\",\n" +
+                "        version = \"1.0.0\",\n" +
+                "        author = \"O'Brien\",\n" +
+                "        description = \"Proxy: auth #1\"\n" +
+                ")\n" +
+                "public class Main {}\n");
+
+        assertThat(compilation).succeeded();
+        String yml = compilation
+                .generatedFile(StandardLocation.CLASS_OUTPUT, "", "bungee.yml")
+                .orElseThrow(() -> new AssertionError("bungee.yml was not generated"))
+                .getCharContent(true)
+                .toString();
+
+        // a colon, hash, or apostrophe in a free-text field would otherwise yield invalid/misparsed YAML.
+        assertTrue(yml.contains("name: MyProxyPlugin\n"), "plain identifiers must stay unquoted");
+        assertTrue(yml.contains("version: 1.0.0\n"), "plain versions must stay unquoted");
+        assertTrue(yml.contains("author: 'O''Brien'\n"), "embedded apostrophes must be doubled inside a single-quoted scalar");
+        assertTrue(yml.contains("description: 'Proxy: auth #1'\n"), "colon/hash values must be single-quoted");
+    }
 }

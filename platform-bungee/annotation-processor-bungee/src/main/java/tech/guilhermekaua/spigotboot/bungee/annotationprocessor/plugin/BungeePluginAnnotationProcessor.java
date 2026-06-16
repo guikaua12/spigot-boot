@@ -36,7 +36,9 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -77,28 +79,81 @@ public class BungeePluginAnnotationProcessor extends AbstractProcessor {
         Filer filer = processingEnv.getFiler();
         FileObject fileObject = filer.createResource(StandardLocation.CLASS_OUTPUT, "", "bungee.yml", element);
 
-        try (PrintWriter writer = new PrintWriter(fileObject.openWriter())) {
+        // explicit UTF-8 (not the platform default) keeps the generated descriptor byte-identical regardless of the
+        // build OS/locale, which the byte-exact tests depend on for any non-ASCII metadata.
+        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(fileObject.openOutputStream(), StandardCharsets.UTF_8))) {
             // explicit '\n' (not println) keeps the generated descriptor byte-identical regardless of the
             // build OS, which the byte-exact tests depend on. the annotated class is assumed to be the main class.
-            writer.print("name: " + pluginAnnotation.name() + "\n");
+            writer.print("name: " + yamlScalar(pluginAnnotation.name()) + "\n");
             writer.print("main: " + ((TypeElement) element).getQualifiedName().toString() + "\n");
-            writer.print("version: " + pluginAnnotation.version() + "\n");
+            writer.print("version: " + yamlScalar(pluginAnnotation.version()) + "\n");
 
             if (!pluginAnnotation.author().isEmpty()) {
-                writer.print("author: " + pluginAnnotation.author() + "\n");
+                writer.print("author: " + yamlScalar(pluginAnnotation.author()) + "\n");
             }
             if (pluginAnnotation.depends().length > 0) {
-                writer.print("depends: [" + String.join(", ", pluginAnnotation.depends()) + "]\n");
+                writer.print("depends: " + yamlFlowList(pluginAnnotation.depends()) + "\n");
             }
             if (pluginAnnotation.softDepends().length > 0) {
-                writer.print("softDepends: [" + String.join(", ", pluginAnnotation.softDepends()) + "]\n");
+                writer.print("softDepends: " + yamlFlowList(pluginAnnotation.softDepends()) + "\n");
             }
             if (!pluginAnnotation.description().isEmpty()) {
-                writer.print("description: " + pluginAnnotation.description() + "\n");
+                writer.print("description: " + yamlScalar(pluginAnnotation.description()) + "\n");
             }
             if (pluginAnnotation.libraries().length > 0) {
-                writer.print("libraries: [" + Arrays.stream(pluginAnnotation.libraries()).map(lib -> "'" + lib + "'").collect(Collectors.joining(", ")) + "]\n");
+                writer.print("libraries: " + yamlFlowList(pluginAnnotation.libraries()) + "\n");
             }
         }
+    }
+
+    /**
+     * Renders an annotation value as a YAML scalar. Plain identifiers are emitted verbatim so descriptors stay
+     * byte-identical to the Spigot writer; only values carrying YAML-significant characters are single-quoted
+     * (with embedded {@code '} doubled), so a description like {@code Proxy: auth} or an author containing
+     * {@code '} or {@code #} still produces a parseable {@code bungee.yml}.
+     */
+    private static String yamlScalar(String value) {
+        if (!needsQuoting(value)) {
+            return value;
+        }
+        return "'" + value.replace("'", "''") + "'";
+    }
+
+    /**
+     * Renders a string array as a YAML flow list, quoting each entry only when it needs it (see
+     * {@link #yamlScalar(String)}). Library coordinates such as {@code group:artifact:version} carry a colon
+     * and are therefore quoted, matching the previously hard-coded single-quoting.
+     */
+    private static String yamlFlowList(String[] values) {
+        return Arrays.stream(values)
+                .map(BungeePluginAnnotationProcessor::yamlScalar)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    private static boolean needsQuoting(String value) {
+        if (value.isEmpty() || !value.equals(value.trim())) {
+            // empty, or has leading/trailing whitespace a plain scalar would silently strip.
+            return true;
+        }
+        switch (value.charAt(0)) {
+            // indicators that only carry special meaning when they open a scalar.
+            case '!': case '&': case '*': case '?': case '|': case '>':
+            case '@': case '%': case '`': case '-':
+                return true;
+            default:
+                break;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            switch (value.charAt(i)) {
+                // characters significant anywhere in a block scalar or a flow-list item.
+                case ':': case '#': case '\'': case '"':
+                case '\n': case '\r': case '\t':
+                case ',': case '[': case ']': case '{': case '}':
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return false;
     }
 }

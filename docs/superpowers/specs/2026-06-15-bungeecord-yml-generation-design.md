@@ -286,6 +286,20 @@ Build-time wiring (the plugin's own pom): add the descriptor processor to
 </annotationProcessorPaths>
 ```
 
+`annotationProcessorPaths` does **not** contribute to the compile classpath, so the same artifact
+must also be declared as a `provided` dependency for the `@BungeePlugin` reference in source to
+resolve (mirroring how `test-plugin` wires the Spigot processor). `provided` keeps it out of the
+shipped jar — consistent with `@BungeePlugin` being `SOURCE`-retained:
+
+```xml
+<dependency>
+    <groupId>tech.guilhermekaua.spigot-boot</groupId>
+    <artifactId>spigot-boot-annotation-processor-bungee</artifactId>
+    <version>${project.version}</version>
+    <scope>provided</scope>
+</dependency>
+```
+
 On `package`, `bungee.yml` lands at the jar root and BungeeCord loads it.
 
 ## Testing strategy
