@@ -14,8 +14,8 @@ import tech.guilhermekaua.spigotboot.config.reference.context.ConfigCircularRefe
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigReferenceNotFoundContext;
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigTypeMismatchContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
-import tech.guilhermekaua.spigotboot.config.spigot.reference.SpigotConfigReferenceLookup;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
+import tech.guilhermekaua.spigotboot.config.reference.DefaultConfigReferenceLookup;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 
 import java.util.Optional;
@@ -43,13 +43,13 @@ public class ConfigBackedCommandTextResolver implements CommandTextResolver {
         if (configManager == null) {
             throw failure(resolutionContext, firstToken, "no ConfigManager bean is available.");
         }
-        if (!(configManager instanceof SpigotConfigManager)) {
+        if (!(configManager instanceof DefaultConfigManager)) {
             throw failure(resolutionContext, firstToken,
-                    "the available ConfigManager is not a SpigotConfigManager: " + configManager.getClass().getName());
+                    "the available ConfigManager is not a DefaultConfigManager: " + configManager.getClass().getName());
         }
 
-        SpigotConfigManager spigotConfigManager = (SpigotConfigManager) configManager;
-        SpigotConfigReferenceLookup lookup = new SpigotConfigReferenceLookup(spigotConfigManager);
+        DefaultConfigManager defaultConfigManager = (DefaultConfigManager) configManager;
+        DefaultConfigReferenceLookup lookup = new DefaultConfigReferenceLookup(defaultConfigManager);
         ConfigReferenceResolver nestedResolver = new ConfigReferenceResolver(
                 lookup,
                 parser,
@@ -92,7 +92,7 @@ public class ConfigBackedCommandTextResolver implements CommandTextResolver {
     }
 
     private String resolveToken(CommandTextResolutionContext resolutionContext,
-                                SpigotConfigReferenceLookup lookup,
+                                DefaultConfigReferenceLookup lookup,
                                 ConfigReferenceResolver nestedResolver,
                                 String token) {
         Optional<ConfigReference> parsedReference = parser.tryParse(token);
