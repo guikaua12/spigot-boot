@@ -20,36 +20,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.serialization;
+package tech.guilhermekaua.spigotboot.config.spigot.configuration;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
+import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
+import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Bean;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Configuration;
 
-import java.util.Objects;
+@Configuration
+public class ConfigConfiguration {
+    @Bean
+    public TypeSerializerRegistryCustomizer bukkitTypeSerializers() {
+        return new TypeSerializerRegistryCustomizer() {
+            @Override
+            public void customize(@NotNull TypeSerializerRegistry registry) {
+                BukkitSerializers.registerAll(registry);
+            }
 
-/**
- * Utility class to register all Bukkit-specific type serializers.
- */
-public final class BukkitSerializers {
-
-    private BukkitSerializers() {
-    }
-
-    /**
-     * Registers all Bukkit serializers to the given registry.
-     *
-     * @param registry the registry to populate
-     */
-    public static void registerAll(@NotNull TypeSerializerRegistry registry) {
-        Objects.requireNonNull(registry, "registry cannot be null");
-
-        registry.register(Material.class, new MaterialSerializer());
-        registry.register(Sound.class, new SoundSerializer());
-        registry.register(World.class, new WorldSerializer());
-        registry.register(Location.class, new LocationSerializer());
+            @Override
+            public int getOrder() {
+                return -100;
+            }
+        };
     }
 }
