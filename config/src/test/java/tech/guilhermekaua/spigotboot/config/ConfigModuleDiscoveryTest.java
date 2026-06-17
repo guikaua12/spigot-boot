@@ -20,36 +20,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.config.spigot.serialization;
+package tech.guilhermekaua.spigotboot.config;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
-import org.jetbrains.annotations.NotNull;
-import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
+import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.module.Module;
+import tech.guilhermekaua.spigotboot.core.module.ModuleDiscovery;
 
-import java.util.Objects;
+import java.util.List;
 
-/**
- * Utility class to register all Bukkit-specific type serializers.
- */
-public final class BukkitSerializers {
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    private BukkitSerializers() {
-    }
+class ConfigModuleDiscoveryTest {
 
-    /**
-     * Registers all Bukkit serializers to the given registry.
-     *
-     * @param registry the registry to populate
-     */
-    public static void registerAll(@NotNull TypeSerializerRegistry registry) {
-        Objects.requireNonNull(registry, "registry cannot be null");
+    // proves the META-INF/spigot-boot/modules marker resource is present and names ConfigModule,
+    // so SpigotBootBuilder.autoDiscover() picks it up on any platform (Spigot or Bungee).
+    @Test
+    void configModuleIsAutoDiscoverable() {
+        List<Class<? extends Module>> modules =
+                new ModuleDiscovery(getClass().getClassLoader()).discover();
 
-        registry.register(Material.class, new MaterialSerializer());
-        registry.register(Sound.class, new SoundSerializer());
-        registry.register(World.class, new WorldSerializer());
-        registry.register(Location.class, new LocationSerializer());
+        assertTrue(modules.contains(ConfigModule.class),
+                "ConfigModule must be discoverable via its META-INF/spigot-boot/modules marker");
     }
 }

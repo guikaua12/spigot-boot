@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.config.serialization.scalars.PrimitiveSerializers;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -107,6 +108,7 @@ public class DefaultTypeSerializerRegistry implements TypeSerializerRegistry {
     static @NotNull DefaultTypeSerializerRegistry createWithDefaults() {
         DefaultTypeSerializerRegistry registry = new DefaultTypeSerializerRegistry();
         PrimitiveSerializers.registerAll(registry);
+        registry.register(Duration.class, new DurationSerializer());
         return registry;
     }
 }
