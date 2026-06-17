@@ -49,6 +49,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.CodeSource;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
@@ -523,8 +524,11 @@ public final class FolderConfigEntry<T> {
             // BootPlugin wrapper's getClass(): the wrapper class can resolve to the framework jar under a
             // non-shaded/separate-classloader deployment, whereas getMainClass() always points at the
             // user's jar (and unwraps a proxied plugin via ProxyUtils.getRealClass).
-            URL jarUrl = plugin.getMainClass().getProtectionDomain()
-                    .getCodeSource().getLocation();
+            // getProtectionDomain().getCodeSource() may be null (e.g. a classloader that exposes no code
+            // source); guard it so default copying falls back to filesystem scanning instead of throwing
+            // a NullPointerException out of copyDefaultsFromResources.
+            CodeSource codeSource = plugin.getMainClass().getProtectionDomain().getCodeSource();
+            URL jarUrl = codeSource == null ? null : codeSource.getLocation();
 
             if (jarUrl != null && jarUrl.getPath().endsWith(".jar")) {
                 copyFromJar(jarUrl, normalizedPath);
