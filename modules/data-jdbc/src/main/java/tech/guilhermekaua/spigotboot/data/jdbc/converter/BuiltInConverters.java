@@ -54,6 +54,9 @@ public final class BuiltInConverters {
         registry.register(Duration.class, new DurationConverter());
         registry.register(Date.class, new DateConverter());
         registry.register(Calendar.class, new CalendarConverter());
+        registry.register(Timestamp.class, new SqlTimestampConverter());
+        registry.register(java.sql.Date.class, new SqlDateConverter());
+        registry.register(Time.class, new SqlTimeConverter());
     }
 
     static class BigDecimalConverter implements AttributeConverter<BigDecimal, Object> {
@@ -363,6 +366,155 @@ public final class BuiltInConverters {
         }
     }
 
+    static class SqlTimestampConverter implements AttributeConverter<Timestamp, Object> {
+        @Override
+        public Object convertToDatabaseColumn(Timestamp attribute) {
+            return attribute;
+        }
+
+        @Override
+        public Timestamp convertToEntityAttribute(Object dbData) {
+            if (dbData == null) {
+                return null;
+            }
+
+            if (dbData instanceof Timestamp) {
+                return (Timestamp) dbData;
+            }
+
+            // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns
+            if (dbData instanceof LocalDateTime) {
+                return Timestamp.valueOf((LocalDateTime) dbData);
+            }
+
+            if (dbData instanceof LocalDate) {
+                return Timestamp.valueOf(((LocalDate) dbData).atStartOfDay());
+            }
+
+            if (dbData instanceof Date) {
+                return new Timestamp(((Date) dbData).getTime());
+            }
+
+            if (dbData instanceof Instant) {
+                return Timestamp.from((Instant) dbData);
+            }
+
+            if (dbData instanceof Number) {
+                return new Timestamp(((Number) dbData).longValue());
+            }
+
+            if (dbData instanceof String) {
+                String trimmed = ((String) dbData).trim();
+                // SQLite stores java.sql.* temporal values as epoch millis in a TEXT column
+                Long epochMillis = parseEpochMillis(trimmed);
+                if (epochMillis != null) {
+                    return new Timestamp(epochMillis);
+                }
+                return Timestamp.valueOf(parseLocalDateTime(trimmed));
+            }
+
+            throw new IllegalArgumentException("Unsupported database value for java.sql.Timestamp conversion: " + dbData.getClass().getName());
+        }
+    }
+
+    static class SqlDateConverter implements AttributeConverter<java.sql.Date, Object> {
+        @Override
+        public Object convertToDatabaseColumn(java.sql.Date attribute) {
+            return attribute;
+        }
+
+        @Override
+        public java.sql.Date convertToEntityAttribute(Object dbData) {
+            if (dbData == null) {
+                return null;
+            }
+
+            if (dbData instanceof java.sql.Date) {
+                return (java.sql.Date) dbData;
+            }
+
+            // mysql-connector-j returns java.time.LocalDate from DATE columns
+            if (dbData instanceof LocalDate) {
+                return java.sql.Date.valueOf((LocalDate) dbData);
+            }
+
+            if (dbData instanceof LocalDateTime) {
+                return java.sql.Date.valueOf(((LocalDateTime) dbData).toLocalDate());
+            }
+
+            if (dbData instanceof Timestamp) {
+                return java.sql.Date.valueOf(((Timestamp) dbData).toLocalDateTime().toLocalDate());
+            }
+
+            if (dbData instanceof Date) {
+                return new java.sql.Date(((Date) dbData).getTime());
+            }
+
+            if (dbData instanceof Number) {
+                return new java.sql.Date(((Number) dbData).longValue());
+            }
+
+            if (dbData instanceof String) {
+                String trimmed = ((String) dbData).trim();
+                // SQLite stores java.sql.* temporal values as epoch millis in a TEXT column
+                Long epochMillis = parseEpochMillis(trimmed);
+                if (epochMillis != null) {
+                    return new java.sql.Date(epochMillis);
+                }
+                return java.sql.Date.valueOf(parseLocalDate(trimmed));
+            }
+
+            throw new IllegalArgumentException("Unsupported database value for java.sql.Date conversion: " + dbData.getClass().getName());
+        }
+    }
+
+    static class SqlTimeConverter implements AttributeConverter<Time, Object> {
+        @Override
+        public Object convertToDatabaseColumn(Time attribute) {
+            return attribute;
+        }
+
+        @Override
+        public Time convertToEntityAttribute(Object dbData) {
+            if (dbData == null) {
+                return null;
+            }
+
+            if (dbData instanceof Time) {
+                return (Time) dbData;
+            }
+
+            // mysql-connector-j returns java.time.LocalTime from TIME columns
+            if (dbData instanceof LocalTime) {
+                return Time.valueOf((LocalTime) dbData);
+            }
+
+            if (dbData instanceof LocalDateTime) {
+                return Time.valueOf(((LocalDateTime) dbData).toLocalTime());
+            }
+
+            if (dbData instanceof Timestamp) {
+                return Time.valueOf(((Timestamp) dbData).toLocalDateTime().toLocalTime());
+            }
+
+            if (dbData instanceof Number) {
+                return new Time(((Number) dbData).longValue());
+            }
+
+            if (dbData instanceof String) {
+                String trimmed = ((String) dbData).trim();
+                // SQLite stores java.sql.* temporal values as epoch millis in a TEXT column
+                Long epochMillis = parseEpochMillis(trimmed);
+                if (epochMillis != null) {
+                    return new Time(epochMillis);
+                }
+                return Time.valueOf(parseLocalTime(trimmed));
+            }
+
+            throw new IllegalArgumentException("Unsupported database value for java.sql.Time conversion: " + dbData.getClass().getName());
+        }
+    }
+
     private static Instant toInstant(Object dbData, String targetType) {
         if (dbData instanceof Instant) {
             return (Instant) dbData;
@@ -494,6 +646,14 @@ public final class BuiltInConverters {
         }
 
         throw new IllegalArgumentException("Unsupported database value for LocalTime conversion: " + dbData);
+    }
+
+    private static Long parseEpochMillis(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private static String normalizeDateTimeLiteral(String dbData) {
