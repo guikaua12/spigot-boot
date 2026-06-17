@@ -51,6 +51,7 @@
         <module>utils</module>
         <module>config</module>
         <module>test-plugin</module>
+        <module>test-plugin-bungee</module>
     </modules>
 
     <properties>
