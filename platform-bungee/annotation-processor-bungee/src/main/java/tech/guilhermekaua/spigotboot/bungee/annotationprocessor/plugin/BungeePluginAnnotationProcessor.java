@@ -57,15 +57,33 @@ public class BungeePluginAnnotationProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         for (TypeElement annotation : annotations) {
-            for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
-                BungeePlugin pluginAnnotation = element.getAnnotation(BungeePlugin.class);
+            Set<? extends Element> annotated = roundEnv.getElementsAnnotatedWith(annotation);
 
+            // a single bungee.yml is written per build, so more than one @BungeePlugin would otherwise
+            // collide in the Filer (a confusing "Attempt to recreate a file" IOException). fail clearly instead.
+            if (annotated.size() > 1) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "Only one @BungeePlugin is allowed per plugin, but found " + annotated.size()
+                                + "; annotate a single main class.");
+                return false;
+            }
+
+            for (Element element : annotated) {
+                // @BungeePlugin is @Target(TYPE); guard the cast so a malformed/erroneous round yields a
+                // clean diagnostic instead of an uncaught ClassCastException escaping the processor.
+                if (!(element instanceof TypeElement)) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                            "@BungeePlugin is only valid on a type (class).", element);
+                    continue;
+                }
+
+                BungeePlugin pluginAnnotation = element.getAnnotation(BungeePlugin.class);
                 if (pluginAnnotation == null) {
                     continue;
                 }
 
                 try {
-                    generateBungeeYml(pluginAnnotation, element);
+                    generateBungeeYml(pluginAnnotation, (TypeElement) element);
                 } catch (IOException e) {
                     processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not generate bungee.yml: " + e.getMessage(), element);
                     return false;
@@ -75,7 +93,7 @@ public class BungeePluginAnnotationProcessor extends AbstractProcessor {
         return true;
     }
 
-    private void generateBungeeYml(BungeePlugin pluginAnnotation, Element element) throws IOException {
+    private void generateBungeeYml(BungeePlugin pluginAnnotation, TypeElement element) throws IOException {
         Filer filer = processingEnv.getFiler();
         FileObject fileObject = filer.createResource(StandardLocation.CLASS_OUTPUT, "", "bungee.yml", element);
 
@@ -85,7 +103,7 @@ public class BungeePluginAnnotationProcessor extends AbstractProcessor {
             // explicit '\n' (not println) keeps the generated descriptor byte-identical regardless of the
             // build OS, which the byte-exact tests depend on. the annotated class is assumed to be the main class.
             writer.print("name: " + yamlScalar(pluginAnnotation.name()) + "\n");
-            writer.print("main: " + ((TypeElement) element).getQualifiedName().toString() + "\n");
+            writer.print("main: " + element.getQualifiedName().toString() + "\n");
             writer.print("version: " + yamlScalar(pluginAnnotation.version()) + "\n");
 
             if (!pluginAnnotation.author().isEmpty()) {

@@ -138,4 +138,38 @@ class BungeePluginAnnotationProcessorTest {
         assertTrue(yml.contains("author: 'O''Brien'\n"), "embedded apostrophes must be doubled inside a single-quoted scalar");
         assertTrue(yml.contains("description: 'Proxy: auth #1'\n"), "colon/hash values must be single-quoted");
     }
+
+    @Test
+    void failsClearlyWhenMoreThanOneBungeePluginClass() {
+        Compilation compilation = javac()
+                .withProcessors(new BungeePluginAnnotationProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("com.example.MainA",
+                                "package com.example;\n" +
+                                "import tech.guilhermekaua.spigotboot.bungee.annotationprocessor.annotations.BungeePlugin;\n" +
+                                "@BungeePlugin(name = \"A\", version = \"1.0.0\")\n" +
+                                "public class MainA {}\n"),
+                        JavaFileObjects.forSourceString("com.example.MainB",
+                                "package com.example;\n" +
+                                "import tech.guilhermekaua.spigotboot.bungee.annotationprocessor.annotations.BungeePlugin;\n" +
+                                "@BungeePlugin(name = \"B\", version = \"1.0.0\")\n" +
+                                "public class MainB {}\n"));
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("Only one @BungeePlugin is allowed");
+    }
+
+    @Test
+    void generatesNothingWhenNoBungeePluginPresent() {
+        Compilation compilation = javac()
+                .withProcessors(new BungeePluginAnnotationProcessor())
+                .compile(JavaFileObjects.forSourceString("com.example.Plain",
+                        "package com.example;\n" +
+                        "public class Plain {}\n"));
+
+        assertThat(compilation).succeeded();
+        assertFalse(
+                compilation.generatedFile(StandardLocation.CLASS_OUTPUT, "", "bungee.yml").isPresent(),
+                "no bungee.yml should be generated when no class is annotated");
+    }
 }
