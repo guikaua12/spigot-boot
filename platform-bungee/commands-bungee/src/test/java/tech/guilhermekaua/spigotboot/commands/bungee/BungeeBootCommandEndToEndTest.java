@@ -83,6 +83,7 @@ class BungeeBootCommandEndToEndTest {
     private Context newContext(Plugin plugin) {
         Context context = mock(Context.class);
         when(context.getPlugin()).thenReturn(new BungeeBootPlugin(plugin));
+        when(context.getBean(Plugin.class)).thenReturn(plugin);
         when(context.getDependencyManager()).thenReturn(new DependencyManager());
         return context;
     }
