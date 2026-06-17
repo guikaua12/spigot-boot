@@ -38,7 +38,7 @@ import java.util.List;
  * Auto-registers every {@link Listener} bean with BungeeCord when the context is ready, and
  * unregisters them on shutdown. Mirrors the Spigot {@code BukkitListenerAutoRegistrar}.
  *
- * <p>v1 limitation: a proxied listener bean (one the container wrapped to intercept methods) has its
+ * <p>Known limitation: a proxied listener bean (one the container wrapped to intercept methods) has its
  * {@code @EventHandler} overrides stripped of the annotation, and BungeeCord exposes no per-method
  * registration to rebind them. Such a listener is registered natively but logged as a warning, since
  * its handlers may not fire. Plain (non-proxied) listeners are unaffected.

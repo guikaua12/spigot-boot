@@ -91,7 +91,7 @@ class BungeeListenerAutoRegistrarTest {
         when(plugin.getLogger()).thenReturn(logger);
 
         // the container hands interceptable beans back as javassist proxies; the proxy override drops the
-        // @EventHandler annotation, and BungeeCord exposes no per-method registration to rebind it (v1 limitation).
+        // @EventHandler annotation, and BungeeCord exposes no per-method registration to rebind it (known limitation).
         Listener proxiedListener = ComponentProxy.createProxy(
                 TestListener.class, null, new Class<?>[0], new Object[0]);
         assertTrue(ProxyUtils.isProxy(proxiedListener), "precondition: the listener bean must be a javassist proxy");
