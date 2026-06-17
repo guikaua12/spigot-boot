@@ -23,9 +23,12 @@
 package tech.guilhermekaua.spigotboot.core.bungee;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
+
+import java.util.Objects;
 
 /**
  * BungeeCord-facing entry point for booting Spigot Boot. A thin facade over the platform-neutral
@@ -45,6 +48,7 @@ public final class BungeeBoot {
      * @throws IllegalStateException if a context is already initialized for the plugin.
      */
     public static Context initialize(@NotNull BootPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
         return SpigotBoot.initialize(plugin);
     }
 
@@ -55,7 +59,8 @@ public final class BungeeBoot {
      * @param plugin the Bungee plugin adapter whose context to look up.
      * @return the plugin's {@link Context}, or {@code null} if no context has been initialized for it.
      */
-    public static Context getContext(@NotNull BootPlugin plugin) {
+    public static @Nullable Context getContext(@NotNull BootPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
         return SpigotBoot.getContext(plugin);
     }
 
@@ -66,6 +71,7 @@ public final class BungeeBoot {
      * @param plugin the Bungee plugin adapter whose context to tear down.
      */
     public static void onDisable(@NotNull BootPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin cannot be null");
         SpigotBoot.onDisable(plugin);
     }
 }
