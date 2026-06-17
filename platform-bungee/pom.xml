@@ -18,6 +18,7 @@
     <modules>
         <module>core-bungee</module>
         <module>commands-bungee</module>
+        <module>annotation-processor-bungee</module>
     </modules>
 
     <properties>
