@@ -10,6 +10,12 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+# Cancel an in-progress review when newer commits are pushed to the same PR;
+# reviewing a superseded commit wastes runs and posts stale feedback.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Optional: Filter by PR author
@@ -30,6 +36,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          persist-credentials: false # action authenticates via the Claude app token, not the git credential
 
       - name: Run Claude Code Review
         id: claude-review

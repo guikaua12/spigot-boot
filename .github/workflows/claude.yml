@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          persist-credentials: false # action authenticates via the Claude app token, not the git credential
 
       - name: Run Claude Code
         id: claude
