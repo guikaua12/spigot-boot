@@ -519,10 +519,11 @@ public final class FolderConfigEntry<T> {
 
             String normalizedPath = ResourceScanUtils.normalizePath(resourcePath);
 
-            // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
-            // getClass() must resolve via the java.* ignore (see root pom)
-            Object pluginObject = plugin;
-            URL jarUrl = pluginObject.getClass().getProtectionDomain()
+            // resolve the user's plugin jar via the real plugin class (getMainClass()), not the
+            // BootPlugin wrapper's getClass(): the wrapper class can resolve to the framework jar under a
+            // non-shaded/separate-classloader deployment, whereas getMainClass() always points at the
+            // user's jar (and unwraps a proxied plugin via ProxyUtils.getRealClass).
+            URL jarUrl = plugin.getMainClass().getProtectionDomain()
                     .getCodeSource().getLocation();
 
             if (jarUrl != null && jarUrl.getPath().endsWith(".jar")) {

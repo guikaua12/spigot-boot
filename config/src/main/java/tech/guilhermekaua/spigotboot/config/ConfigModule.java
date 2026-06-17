@@ -31,16 +31,16 @@ import tech.guilhermekaua.spigotboot.core.module.Module;
 import java.util.logging.Logger;
 
 /**
- * Spigot Boot module providing configuration management.
+ * Configuration module for Spigot Boot. Platform-neutral: the same module serves Spigot and Bungee.
  * <p>
  * Scans for @Config and @FolderConfig annotated classes,
  * loads configs, and registers them as beans.
  * <p>
- * Runs early (after {@code SpigotCoreModule}, which registers the plugin at {@code @Order(-1000)},
- * but before default-order modules) so that {@code @Config} beans are registered before any later
- * module resolves a component that depends on them. Without this, a module such as data-jdbc could
- * be initialized first and instantiate a config-dependent component with a not-yet-registered
- * config, reintroducing the null-injection bug this ordering guards against.
+ * Runs early (after the platform core module — Spigot or Bungee — which registers the plugin at
+ * {@code @Order(-1000)}, but before default-order modules) so that {@code @Config} beans are
+ * registered before any later module resolves a component that depends on them. Without this, a
+ * module such as data-jdbc could be initialized first and instantiate a config-dependent component
+ * with a not-yet-registered config, reintroducing the null-injection bug this ordering guards against.
  */
 @Order(-500)
 public class ConfigModule implements Module {

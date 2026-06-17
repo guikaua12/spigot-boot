@@ -43,7 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * YAML configuration loader using SnakeYAML (bundled with Bukkit).
+ * YAML configuration loader using SnakeYAML (bundled by the server platform — both Bukkit/Paper and BungeeCord ship SnakeYAML 2.x).
  */
 public class YamlConfigLoader implements ConfigLoader {
 

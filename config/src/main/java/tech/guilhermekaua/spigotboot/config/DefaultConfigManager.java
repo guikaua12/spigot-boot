@@ -64,7 +64,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
- * Spigot implementation of ConfigManager.
+ * Default platform-neutral implementation of {@link ConfigManager}, backed by {@link BootPlugin}.
  */
 public class DefaultConfigManager implements ConfigManager {
 
@@ -88,7 +88,7 @@ public class DefaultConfigManager implements ConfigManager {
     /**
      * Creates a new config manager with default error handling.
      *
-     * @param plugin the Bukkit plugin
+     * @param plugin the boot plugin
      */
     public DefaultConfigManager(@NotNull BootPlugin plugin) {
         this(plugin, null, Collections.emptyList());
@@ -97,7 +97,7 @@ public class DefaultConfigManager implements ConfigManager {
     /**
      * Creates a new config manager with optional custom error handling.
      *
-     * @param plugin       the Bukkit plugin
+     * @param plugin       the boot plugin
      * @param errorHandler the optional custom error handler (null for default)
      */
     public DefaultConfigManager(@NotNull BootPlugin plugin, @Nullable ConfigReferenceErrorHandler errorHandler) {
@@ -107,7 +107,7 @@ public class DefaultConfigManager implements ConfigManager {
     /**
      * Creates a new config manager with optional custom error handling and serializer customizers.
      *
-     * @param plugin                the Bukkit plugin
+     * @param plugin                the boot plugin
      * @param errorHandler          the optional custom error handler (null for default)
      * @param serializerCustomizers the list of serializer registry customizers to apply (may be empty)
      */

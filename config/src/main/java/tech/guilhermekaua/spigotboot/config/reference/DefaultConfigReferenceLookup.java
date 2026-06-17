@@ -35,7 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Spigot implementation of {@link ConfigReferenceLookup}.
+ * Default platform-neutral implementation of {@link ConfigReferenceLookup}.
  * <p>
  * Provides lookup capabilities for resolving config references by delegating
  * to {@link DefaultConfigManager} for single configs and {@link FolderConfigEntry}

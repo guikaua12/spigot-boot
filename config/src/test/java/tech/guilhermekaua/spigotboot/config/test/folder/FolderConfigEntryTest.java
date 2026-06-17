@@ -42,9 +42,12 @@ import tech.guilhermekaua.spigotboot.config.loader.YamlConfigLoader;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,6 +55,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1010,6 +1015,54 @@ class FolderConfigEntryTest {
         entry.saveItem("new-item", item);
 
         assertTrue(receivedChanges.isEmpty());
+    }
+
+    // ========== Default-Copy Jar Resolution Tests ==========
+
+    @Test
+    void prepareFolder_EmptyFolder_CopiesDefaultsFromUserJarResolvedViaGetMainClass() throws Exception {
+        // Build a real jar that holds the default resource AND a class, so a class loaded from it has
+        // a CodeSource pointing at the jar. getMainClass() returns that jar-resident class — proving the
+        // jar branch resolves the *user's* jar. The plugin mock's own getClass() is a Mockito proxy whose
+        // CodeSource is not a .jar, so the pre-fix getClass()-based code would fall to the (empty) filesystem
+        // branch and copy nothing; this test fails on the old behavior and passes on getMainClass().
+        String classBinaryName = "tech.guilhermekaua.spigotboot.config.test.folder.FolderConfigEntryTest$TestItem";
+        String classEntryPath = classBinaryName.replace('.', '/') + ".class";
+        byte[] classBytes;
+        try (InputStream in = getClass().getResourceAsStream("/" + classEntryPath)) {
+            assertNotNull(in, "compiled TestItem bytes must be on the test classpath");
+            classBytes = in.readAllBytes();
+        }
+
+        Path jar = tempDir.resolve("user-plugin.jar");
+        try (JarOutputStream jos = new JarOutputStream(Files.newOutputStream(jar))) {
+            jos.putNextEntry(new JarEntry("items/default.yml"));
+            jos.write("name: Default\npriority: 7\n".getBytes(StandardCharsets.UTF_8));
+            jos.closeEntry();
+            jos.putNextEntry(new JarEntry(classEntryPath));
+            jos.write(classBytes);
+            jos.closeEntry();
+        }
+
+        Class<?> jarClass;
+        try (URLClassLoader jarLoader = new URLClassLoader(new URL[]{jar.toUri().toURL()}, null)) {
+            jarClass = jarLoader.loadClass(classBinaryName);
+            assertTrue(jarClass.getProtectionDomain().getCodeSource().getLocation().getPath().endsWith(".jar"),
+                    "the jar-resident class must report the jar as its code source");
+        }
+
+        lenient().doReturn(jarClass).when(plugin).getMainClass();
+        lenient().when(plugin.getResource("items/default.yml")).thenReturn(
+                new ByteArrayInputStream("name: Default\npriority: 7\n".getBytes(StandardCharsets.UTF_8)));
+
+        FolderConfig annotation = createAnnotation("", "items", "", "filename", "", "items", "_");
+        FolderConfigEntry<TestItem> entry = new FolderConfigEntry<>(
+                TestItem.class, annotation, plugin, loader, binder, NamingStrategy.SNAKE_CASE);
+
+        entry.prepareFolder();
+
+        assertTrue(Files.exists(itemsFolder.resolve("default.yml")),
+                "default resource must be copied from the user jar resolved via getMainClass()");
     }
 
     // ========== Resource-Copy Containment Guard Tests ==========
