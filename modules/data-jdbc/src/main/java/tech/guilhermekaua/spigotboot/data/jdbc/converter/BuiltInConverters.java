@@ -387,7 +387,9 @@ public final class BuiltInConverters {
             return ((Timestamp) dbData).toInstant();
         }
 
-        // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns; reverse the Timestamp.from(...) write path
+        // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns; reverse the Timestamp.from(...) write path.
+        // the value is the stored wall-clock re-interpreted in the JVM default zone, so it is inherently ambiguous during a DST
+        // fall-back overlap (a limitation of persisting an instant to a timezone-less DATETIME column, not a defect here).
         if (dbData instanceof LocalDateTime) {
             return ((LocalDateTime) dbData).atZone(ZoneId.systemDefault()).toInstant();
         }
