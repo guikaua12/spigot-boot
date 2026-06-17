@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
 import tech.guilhermekaua.spigotboot.config.binding.Binder;
