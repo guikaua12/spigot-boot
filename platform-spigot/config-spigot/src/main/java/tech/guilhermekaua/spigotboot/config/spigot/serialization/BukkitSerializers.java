@@ -29,7 +29,6 @@ import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 
-import java.time.Duration;
 import java.util.Objects;
 
 /**
@@ -52,6 +51,5 @@ public final class BukkitSerializers {
         registry.register(Sound.class, new SoundSerializer());
         registry.register(World.class, new WorldSerializer());
         registry.register(Location.class, new LocationSerializer());
-        registry.register(Duration.class, new DurationSerializer());
     }
 }
