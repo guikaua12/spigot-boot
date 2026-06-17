@@ -28,6 +28,7 @@ import tech.guilhermekaua.spigotboot.bungee.annotationprocessor.annotations.Bung
 import tech.guilhermekaua.spigotboot.core.bungee.BungeeBoot;
 import tech.guilhermekaua.spigotboot.core.bungee.BungeeBootPlugin;
 import tech.guilhermekaua.spigotboot.core.context.Context;
+import tech.guilhermekaua.spigotboot.testPluginBungee.config.NetworkConfig;
 
 /**
  * Sample BungeeCord plugin main class. Declares the descriptor via {@link BungeePlugin} (which
@@ -48,7 +49,10 @@ public class Main extends Plugin {
     public void onEnable() {
         bootPlugin = new BungeeBootPlugin(this);
         context = BungeeBoot.initialize(bootPlugin);
-        getLogger().info("NetworkManager enabled.");
+
+        NetworkConfig config = context.getBean(NetworkConfig.class);
+        getLogger().info("NetworkManager enabled. Default server: " + config.getDefaultServer()
+                + ", max network players: " + config.getMaxNetworkPlayers() + ".");
     }
 
     @Override
