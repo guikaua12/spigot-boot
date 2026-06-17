@@ -42,7 +42,7 @@ public class ConnectionService {
     private final NetworkConfig config;
 
     /**
-     * connects a player to the given server.
+     * Connects a player to the given server.
      *
      * @param player the player to move.
      * @param server the destination server.
@@ -52,7 +52,7 @@ public class ConnectionService {
     }
 
     /**
-     * locates the server an online player is currently connected to.
+     * Locates the server an online player is currently connected to.
      *
      * @param playerName the player name to look up.
      * @return the player's current server, or empty if the player is offline or not on a server.
@@ -66,7 +66,7 @@ public class ConnectionService {
     }
 
     /**
-     * resolves the configured default ("lobby") server.
+     * Resolves the configured default ("lobby") server.
      *
      * @return the default {@link ServerInfo}, or {@code null} if it is not configured on the proxy.
      */

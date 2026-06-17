@@ -49,7 +49,7 @@ public class NetworkConfig {
     private AnnouncementsConfig announcements = new AnnouncementsConfig();
 
     /**
-     * nested configuration block for periodic announcements.
+     * Nested configuration block for periodic announcements.
      */
     @Data
     public static class AnnouncementsConfig {

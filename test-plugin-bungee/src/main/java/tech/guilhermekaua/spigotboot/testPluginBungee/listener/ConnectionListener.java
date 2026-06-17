@@ -44,6 +44,7 @@ public class ConnectionListener implements Listener {
     private final BroadcastService broadcast;
     private final MessagesConfig messages;
 
+    /** Sends the configured welcome message to a joining player. */
     @EventHandler
     public void onLogin(PostLoginEvent event) {
         ProxiedPlayer player = event.getPlayer();
@@ -52,6 +53,7 @@ public class ConnectionListener implements Listener {
                 ChatColor.translateAlternateColorCodes('&', messages.getPrefix() + welcome)));
     }
 
+    /** Broadcasts the configured leave message when a player disconnects. */
     @EventHandler
     public void onDisconnect(PlayerDisconnectEvent event) {
         broadcast.broadcast(messages.getDisconnect().replace("%player%", event.getPlayer().getName()));

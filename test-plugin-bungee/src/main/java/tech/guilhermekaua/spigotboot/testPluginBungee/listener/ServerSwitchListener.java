@@ -24,6 +24,7 @@ package tech.guilhermekaua.spigotboot.testPluginBungee.listener;
 
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.ServerSwitchEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
@@ -40,13 +41,15 @@ public class ServerSwitchListener implements Listener {
     private final BroadcastService broadcast;
     private final MessagesConfig messages;
 
+    /** Broadcasts the configured message when a player changes server. */
     @EventHandler
     public void onSwitch(ServerSwitchEvent event) {
         ProxiedPlayer player = event.getPlayer();
-        if (player.getServer() == null) {
+        Server current = player.getServer();
+        if (current == null) {
             return;
         }
-        String server = player.getServer().getInfo().getName();
+        String server = current.getInfo().getName();
         broadcast.broadcast(messages.getServerSwitch()
                 .replace("%player%", player.getName())
                 .replace("%server%", server));

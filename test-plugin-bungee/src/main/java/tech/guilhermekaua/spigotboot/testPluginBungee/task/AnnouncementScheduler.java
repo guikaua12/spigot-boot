@@ -61,7 +61,7 @@ public class AnnouncementScheduler implements ContextReadyListener {
         AtomicInteger cursor = new AtomicInteger();
 
         scheduler.schedule(plugin, () -> {
-            String message = messages.get(cursor.getAndIncrement() % messages.size());
+            String message = messages.get(Math.floorMod(cursor.getAndIncrement(), messages.size()));
             broadcast.broadcast(message);
         }, seconds, seconds, TimeUnit.SECONDS);
     }

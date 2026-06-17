@@ -20,43 +20,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.testPluginBungee.service;
+package tech.guilhermekaua.spigotboot.testPluginBungee.command;
 
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.plugin.Plugin;
-import tech.guilhermekaua.spigotboot.config.annotation.OnConfigReload;
-import tech.guilhermekaua.spigotboot.core.context.annotations.Service;
+import tech.guilhermekaua.spigotboot.commands.annotations.Command;
+import tech.guilhermekaua.spigotboot.commands.annotations.CommandHandler;
+import tech.guilhermekaua.spigotboot.commands.annotations.Permission;
+import tech.guilhermekaua.spigotboot.commands.annotations.RootCommand;
+import tech.guilhermekaua.spigotboot.commands.annotations.Sender;
+import tech.guilhermekaua.spigotboot.config.ConfigManager;
 import tech.guilhermekaua.spigotboot.testPluginBungee.config.MessagesConfig;
 
 /**
- * Sends prefixed, colour-translated broadcasts to the whole proxy. Reaches the proxy through the
- * injected {@link Plugin} ({@code ProxyServer} is not an injectable bean).
+ * {@code /network reload} command: reloads the plugin's configuration files, which fires any
+ * {@code @OnConfigReload} callbacks (e.g. BroadcastService#onMessagesReload). This makes the
+ * live-reload feature observable on a running proxy. Injects the framework's {@link ConfigManager}
+ * bean — another DI showcase.
  */
-@Service
+@CommandHandler
+@RootCommand("network")
 @RequiredArgsConstructor
-public class BroadcastService {
-    private final Plugin plugin;
+public class NetworkCommand {
+    private final ConfigManager configManager;
     private final MessagesConfig messages;
 
-    /**
-     * Broadcasts a message to every player on the proxy.
-     *
-     * @param message the message body; {@code &} colour codes are translated and the configured
-     *                prefix is prepended.
-     */
-    public void broadcast(String message) {
-        String rendered = ChatColor.translateAlternateColorCodes('&', messages.getPrefix() + message);
-        plugin.getProxy().broadcast(TextComponent.fromLegacyText(rendered));
-    }
-
-    /**
-     * Logs when messages.yml is reloaded (e.g. via /network reload, which calls ConfigManager.reloadAll()),
-     * demonstrating live config-reload callbacks.
-     */
-    @OnConfigReload(MessagesConfig.class)
-    public void onMessagesReload() {
-        plugin.getLogger().info("messages.yml reloaded.");
+    @Command("reload")
+    @Permission("network.reload")
+    public void reload(@Sender CommandSender sender) {
+        configManager.reloadAll();
+        sender.sendMessage(TextComponent.fromLegacyText(
+                ChatColor.translateAlternateColorCodes('&', messages.getPrefix() + "&aConfiguration reloaded.")));
     }
 }
