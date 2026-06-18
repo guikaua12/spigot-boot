@@ -121,8 +121,8 @@ class BuiltInConvertersTest {
             AttributeConverter<LocalDateTime, Object> converter = converterFor(LocalDateTime.class);
             LocalDateTime expected = LocalDateTime.of(2026, 3, 3, 12, 15, 45);
 
-            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME column
-            assertEquals(expected, converter.convertToEntityAttribute(expected));
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
         }
 
         @Test
@@ -139,8 +139,8 @@ class BuiltInConvertersTest {
             AttributeConverter<LocalTime, Object> converter = converterFor(LocalTime.class);
             LocalTime expected = LocalTime.of(9, 5, 7);
 
-            // mysql-connector-j 8.x returns java.time.LocalTime from a TIME column
-            assertEquals(expected, converter.convertToEntityAttribute(expected));
+            // mysql-connector-j 8.x returns java.time.LocalTime from a TIME column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
         }
 
         @Test
@@ -190,8 +190,8 @@ class BuiltInConvertersTest {
             AttributeConverter<LocalDate, Object> converter = converterFor(LocalDate.class);
             LocalDate expected = LocalDate.of(2026, 3, 3);
 
-            // mysql-connector-j 8.x returns java.time.LocalDate from a DATE column
-            assertEquals(expected, converter.convertToEntityAttribute(expected));
+            // mysql-connector-j 8.x returns java.time.LocalDate from a DATE column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
         }
     }
 
