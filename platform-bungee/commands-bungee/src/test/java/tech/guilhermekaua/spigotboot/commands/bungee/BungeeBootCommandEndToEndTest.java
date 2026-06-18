@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.commands.bungee;
 
+import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -29,8 +30,11 @@ import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.PluginDescription;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.commands.CommandReplacementRegistry;
+import tech.guilhermekaua.spigotboot.commands.annotations.CatchUnknown;
 import tech.guilhermekaua.spigotboot.commands.annotations.Command;
 import tech.guilhermekaua.spigotboot.commands.annotations.CommandHandler;
+import tech.guilhermekaua.spigotboot.commands.annotations.DefaultCommand;
+import tech.guilhermekaua.spigotboot.commands.annotations.Permission;
 import tech.guilhermekaua.spigotboot.commands.annotations.RootCommand;
 import tech.guilhermekaua.spigotboot.commands.annotations.Sender;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinder;
@@ -64,7 +68,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -162,6 +168,106 @@ class BungeeBootCommandEndToEndTest {
         assertEquals(Collections.singletonList("Target"), values);
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // command visibility vs. per-route permission.
+    //
+    // BungeeCord injects each registered command into the player's brigadier command tree (and thus
+    // into client-side tab completion) in DownstreamBridge#handle(Commands) only when
+    // command.hasPermission(connection) is true. The base BungeeBootCommand is created with a null
+    // permission, so Command#hasPermission always returns true — meaning a player who cannot use any
+    // subcommand still receives the command literal and sees it offered in completion.
+    //
+    // These tests pin the desired behaviour: the command must be visible iff the sender can use at
+    // least one route (a subcommand or the default handler).
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    void commandWithOnlyAGatedSubcommandIsHiddenFromPlayersWithoutPermission() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("NoPerms");
+        when(player.hasPermission("network.reload")).thenReturn(false);
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new GatedNetworkCommand()), newDispatcher(plugin), platformSupport);
+
+        // argument-level completion is already permission-filtered: "/network <TAB>" suggests nothing.
+        List<String> argSuggestions = new ArrayList<>();
+        command.onTabComplete(player, new String[]{""}).forEach(argSuggestions::add);
+        assertTrue(argSuggestions.isEmpty(), "the gated 'reload' subcommand must not be suggested");
+
+        // but command visibility keys off Command#hasPermission, which BungeeCord uses to decide whether
+        // to put "/network" in the player's command tree at all. It must be false here.
+        assertFalse(command.hasPermission(player),
+                "a player who can use no route must not see the command in tab completion");
+    }
+
+    @Test
+    void commandWithAGatedSubcommandStaysVisibleToPlayersWithPermission() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("Admin");
+        when(player.hasPermission("network.reload")).thenReturn(true);
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new GatedNetworkCommand()), newDispatcher(plugin), platformSupport);
+
+        assertTrue(command.hasPermission(player),
+                "a player who can use a route must still see the command");
+    }
+
+    @Test
+    void commandWithPermissionlessDefaultStaysVisibleToEveryone() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("AnyOne");
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new OpenDefaultCommand()), newDispatcher(plugin), platformSupport);
+
+        assertTrue(command.hasPermission(player),
+                "a command whose default handler needs no permission must stay visible to everyone");
+    }
+
+    @Test
+    void commandWithOnlyACatchUnknownHandlerIsHiddenFromEveryone() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("AnyOne");
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new CatchUnknownOnlyCommand()), newDispatcher(plugin), platformSupport);
+
+        // @CatchUnknown only handles unmatched input; it is not a usable route, so the command exposes none.
+        assertFalse(command.hasPermission(player),
+                "a command whose only handler is @CatchUnknown offers no usable route and must stay hidden");
+    }
+
+    @Test
+    void commandStaysVisibleWhenOnlyOneOfSeveralRoutesIsUngated() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("NoPerms");
+        when(player.hasPermission("monitor.reload")).thenReturn(false);
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new MixedAccessCommand()), newDispatcher(plugin), platformSupport);
+
+        // the gated 'reload' route is denied, but the permissionless 'info' route is still usable.
+        assertTrue(command.hasPermission(player),
+                "a sender who can use at least one route must still see the command");
+    }
+
     @CommandHandler
     @RootCommand("server")
     static class ServerCommands {
@@ -174,6 +280,44 @@ class BungeeBootCommandEndToEndTest {
             this.lastSender = sender;
             this.lastTarget = target;
             this.lastServer = server;
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("network")
+    static class GatedNetworkCommand {
+        @Command("reload")
+        @Permission("network.reload")
+        public void reload(@Sender CommandSender sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("status")
+    static class OpenDefaultCommand {
+        @DefaultCommand
+        public void status(@Sender CommandSender sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("broadcast")
+    static class CatchUnknownOnlyCommand {
+        @CatchUnknown
+        public void unknown() {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("monitor")
+    static class MixedAccessCommand {
+        @Command("info")
+        public void info(@Sender CommandSender sender) {
+        }
+
+        @Command("reload")
+        @Permission("monitor.reload")
+        public void reload(@Sender CommandSender sender) {
         }
     }
 }

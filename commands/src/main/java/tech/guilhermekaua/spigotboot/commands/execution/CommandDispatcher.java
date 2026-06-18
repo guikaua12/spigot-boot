@@ -101,6 +101,36 @@ public class CommandDispatcher {
         return new ArrayList<>(suggestions);
     }
 
+    /**
+     * Returns whether the sender can use at least one route of the given root command — either the
+     * default handler or any subcommand route whose {@code @Permission} the sender satisfies (a route
+     * with no permission is always usable). Platform adapters use this to gate command <em>visibility</em>
+     * (client-side tab completion / the command tree) so a command is hidden from senders who cannot run
+     * any of its routes, mirroring the per-route filtering {@link #complete} already applies to argument
+     * suggestions. The {@code @CatchUnknown} handler is intentionally not counted: it handles unmatched
+     * input rather than representing a usable command path.
+     *
+     * @param root   the compiled root command; must not be {@code null}
+     * @param sender the sender to test; must not be {@code null}
+     * @return {@code true} if the default handler or at least one route is permitted for {@code sender}
+     */
+    public boolean canUseAnyRoute(CompiledRootCommand root, CommandSenderHandle sender) {
+        if (isPermitted(root.getDefaultRoute(), sender)) {
+            return true;
+        }
+        for (CompiledCommandRoute route : root.getRoutes()) {
+            if (isPermitted(route, sender)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPermitted(CompiledCommandRoute route, CommandSenderHandle sender) {
+        return route != null
+                && (route.getPermission().isEmpty() || sender.hasPermission(route.getPermission()));
+    }
+
     private boolean execute(CompiledCommandRoute route, DefaultCommandExecutionContext context) {
         CommandMessages messages = messagesProvider.resolve(context.getContext());
         CommandInvocationPlan invocation = route.getInvocationPlan();
