@@ -206,7 +206,8 @@ class PaginationBindingTest {
                                                 Function<ViewContext, ItemStack> fallbackItem,
                                                 PaginationSourceSpec<T> source) {
         return new PaginationSpec<>(geometry, target, layoutChar, explicitLayout, patterns,
-                renderer, fallbackItem, null, source, null, null, null, 128);
+                renderer, fallbackItem, null, source, null, null, null, 128,
+                null, new int[0], new int[0]);
     }
 
     private static <T> PaginationSpec<T> layoutCharSpec(PaginationItemRenderer<T> renderer,

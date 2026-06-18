@@ -60,7 +60,8 @@ class PaginationSourceSpecTest {
         // the renderer is a no-op lambda: createSource never invokes it
         return new PaginationSpec<Integer>(PaginationSpec.Geometry.NORMAL,
                 PaginationSpec.Target.LAYOUT_CHAR, 'O', null, Collections.emptyList(),
-                (ctx, item, index, value) -> { }, null, null, source, null, null, null, 128);
+                (ctx, item, index, value) -> { }, null, null, source, null, null, null, 128,
+                null, new int[0], new int[0]);
     }
 
     @Test
@@ -144,7 +145,8 @@ class PaginationSourceSpecTest {
         PaginationSpec<Integer> spec = new PaginationSpec<Integer>(PaginationSpec.Geometry.NORMAL,
                 PaginationSpec.Target.LAYOUT_CHAR, 'O', null, Collections.emptyList(),
                 (ctx, item, index, value) -> { }, null, null, sourceSpec,
-                (request, error) -> { }, Duration.ofSeconds(5), Duration.ofSeconds(30), 64);
+                (request, error) -> { }, Duration.ofSeconds(5), Duration.ofSeconds(30), 64,
+                null, new int[0], new int[0]);
 
         PageSource<Integer> first = sourceSpec.createSource(context, spec, scheduler);
         PageSource<Integer> second = sourceSpec.createSource(context, spec, scheduler);
