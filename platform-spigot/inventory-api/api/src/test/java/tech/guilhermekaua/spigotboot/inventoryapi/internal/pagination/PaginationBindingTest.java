@@ -606,6 +606,23 @@ class PaginationBindingTest {
         assertArrayEquals(new int[]{2, 3, 4, 5}, binding.targetSlots());
     }
 
+    @Test
+    void isCurrentPageEmpty_trueForEmptySource_falseWhenItemsPresent() {
+        ViewSession emptySession = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding empty = new PaginationBinding(
+                layoutCharSpec(amountRenderer(), PaginationSourceSpec.eager(Collections.<Integer>emptyList())),
+                0, emptySession, engine);
+        empty.initialize(emptySession.layout(), emptySession.effectiveConfig());
+        assertTrue(empty.paginator().isCurrentPageEmpty());
+
+        ViewSession itemsSession = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding withItems = new PaginationBinding(
+                layoutCharSpec(amountRenderer(), PaginationSourceSpec.eager(Arrays.asList(1, 2))),
+                0, itemsSession, engine);
+        withItems.initialize(itemsSession.layout(), itemsSession.effectiveConfig());
+        assertFalse(withItems.paginator().isCurrentPageEmpty());
+    }
+
     private static final class CapturingHandler extends Handler {
         private final List<LogRecord> records = new ArrayList<>();
 
