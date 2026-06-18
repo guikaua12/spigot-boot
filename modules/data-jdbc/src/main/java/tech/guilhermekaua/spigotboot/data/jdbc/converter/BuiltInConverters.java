@@ -382,11 +382,14 @@ public final class BuiltInConverters {
                 return (Timestamp) dbData;
             }
 
-            // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns
+            // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns.
+            // Timestamp.valueOf interprets the local value in the JVM default time zone, which is the
+            // native java.sql.Timestamp semantic (it round-trips with Timestamp.toLocalDateTime()).
             if (dbData instanceof LocalDateTime) {
                 return Timestamp.valueOf((LocalDateTime) dbData);
             }
 
+            // atStartOfDay() yields 00:00:00 in the JVM default zone, consistent with the branch above
             if (dbData instanceof LocalDate) {
                 return Timestamp.valueOf(((LocalDate) dbData).atStartOfDay());
             }
