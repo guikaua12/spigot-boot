@@ -102,11 +102,30 @@ class BuiltInConvertersTest {
         }
 
         @Test
+        void instantConverterReadsLocalDateTimeFromMySql() {
+            AttributeConverter<Instant, Object> converter = converterFor(Instant.class);
+            Instant instant = Instant.parse("2026-03-03T12:34:56Z");
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME/TIMESTAMP column
+            LocalDateTime mysqlValue = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+
+            assertEquals(instant, converter.convertToEntityAttribute(mysqlValue));
+        }
+
+        @Test
         void localDateTimeConverterReadsJdbcLiteral() {
             AttributeConverter<LocalDateTime, Object> converter = converterFor(LocalDateTime.class);
             LocalDateTime expected = LocalDateTime.of(2026, 3, 3, 12, 15, 45);
 
             assertEquals(expected, converter.convertToEntityAttribute("2026-03-03 12:15:45"));
+        }
+
+        @Test
+        void localDateTimeConverterReadsLocalDateTimeFromMySql() {
+            AttributeConverter<LocalDateTime, Object> converter = converterFor(LocalDateTime.class);
+            LocalDateTime expected = LocalDateTime.of(2026, 3, 3, 12, 15, 45);
+
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
         }
 
         @Test
@@ -116,6 +135,15 @@ class BuiltInConvertersTest {
 
             assertEquals(expected, converter.convertToEntityAttribute(Time.valueOf(expected)));
             assertEquals(expected, converter.convertToEntityAttribute("09:05:07"));
+        }
+
+        @Test
+        void localTimeConverterReadsLocalTimeFromMySql() {
+            AttributeConverter<LocalTime, Object> converter = converterFor(LocalTime.class);
+            LocalTime expected = LocalTime.of(9, 5, 7);
+
+            // mysql-connector-j 8.x returns java.time.LocalTime from a TIME column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
         }
 
         @Test
@@ -159,6 +187,15 @@ class BuiltInConvertersTest {
 
             assertEquals(LocalDate.of(2026, 3, 3), converter.convertToEntityAttribute("2026-03-03"));
         }
+
+        @Test
+        void localDateConverterReadsLocalDateFromMySql() {
+            AttributeConverter<LocalDate, Object> converter = converterFor(LocalDate.class);
+            LocalDate expected = LocalDate.of(2026, 3, 3);
+
+            // mysql-connector-j 8.x returns java.time.LocalDate from a DATE column; it must pass through untouched
+            assertSame(expected, converter.convertToEntityAttribute(expected));
+        }
     }
 
     @Nested
@@ -176,6 +213,17 @@ class BuiltInConvertersTest {
         }
 
         @Test
+        void dateConverterReadsLocalDateTimeFromMySql() {
+            AttributeConverter<Date, Object> converter = converterFor(Date.class);
+            Date value = new Date(1710000000123L);
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME/TIMESTAMP column
+            LocalDateTime mysqlValue = LocalDateTime.ofInstant(value.toInstant(), ZoneId.systemDefault());
+
+            Date mapped = converter.convertToEntityAttribute(mysqlValue);
+            assertEquals(value.getTime(), mapped.getTime());
+        }
+
+        @Test
         void calendarConverterRoundTripsTimestamp() {
             AttributeConverter<Calendar, Object> converter = converterFor(Calendar.class);
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -185,6 +233,18 @@ class BuiltInConvertersTest {
             assertNotNull(dbValue);
 
             Calendar mapped = converter.convertToEntityAttribute(dbValue);
+            assertEquals(calendar.getTimeInMillis(), mapped.getTimeInMillis());
+        }
+
+        @Test
+        void calendarConverterReadsLocalDateTimeFromMySql() {
+            AttributeConverter<Calendar, Object> converter = converterFor(Calendar.class);
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            calendar.setTimeInMillis(1710000000456L);
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME/TIMESTAMP column
+            LocalDateTime mysqlValue = LocalDateTime.ofInstant(calendar.toInstant(), ZoneId.systemDefault());
+
+            Calendar mapped = converter.convertToEntityAttribute(mysqlValue);
             assertEquals(calendar.getTimeInMillis(), mapped.getTimeInMillis());
         }
     }
