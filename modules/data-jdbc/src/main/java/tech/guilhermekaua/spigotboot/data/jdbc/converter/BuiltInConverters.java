@@ -156,6 +156,11 @@ public final class BuiltInConverters {
                 return null;
             }
 
+            // mysql-connector-j returns java.time.LocalDate from DATE columns
+            if (dbData instanceof LocalDate) {
+                return (LocalDate) dbData;
+            }
+
             if (dbData instanceof java.sql.Date) {
                 return ((java.sql.Date) dbData).toLocalDate();
             }
@@ -188,6 +193,11 @@ public final class BuiltInConverters {
                 return null;
             }
 
+            // mysql-connector-j returns java.time.LocalDateTime from DATETIME columns
+            if (dbData instanceof LocalDateTime) {
+                return (LocalDateTime) dbData;
+            }
+
             if (dbData instanceof Timestamp) {
                 return ((Timestamp) dbData).toLocalDateTime();
             }
@@ -214,6 +224,11 @@ public final class BuiltInConverters {
         public LocalTime convertToEntityAttribute(Object dbData) {
             if (dbData == null) {
                 return null;
+            }
+
+            // mysql-connector-j returns java.time.LocalTime from TIME columns
+            if (dbData instanceof LocalTime) {
+                return (LocalTime) dbData;
             }
 
             if (dbData instanceof Time) {
@@ -370,6 +385,13 @@ public final class BuiltInConverters {
 
         if (dbData instanceof Timestamp) {
             return ((Timestamp) dbData).toInstant();
+        }
+
+        // mysql-connector-j returns java.time.LocalDateTime from DATETIME/TIMESTAMP columns; reverse the Timestamp.from(...) write path.
+        // the value is the stored wall-clock re-interpreted in the JVM default zone, so it is inherently ambiguous during a DST
+        // fall-back overlap (a limitation of persisting an instant to a timezone-less DATETIME column, not a defect here).
+        if (dbData instanceof LocalDateTime) {
+            return ((LocalDateTime) dbData).atZone(ZoneId.systemDefault()).toInstant();
         }
 
         if (dbData instanceof Date) {
