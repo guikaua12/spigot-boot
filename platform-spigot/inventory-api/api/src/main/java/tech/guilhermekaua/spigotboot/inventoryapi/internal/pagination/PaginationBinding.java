@@ -272,7 +272,8 @@ public final class PaginationBinding implements PaginationHost {
     /**
      * Returns the empty-state and loading frame slots this binding paints into, de-duplicated.
      *
-     * @return a defensive copy of the frame slots; empty when no frame slots are declared
+     * @return a defensive copy of the frame slots; empty before {@link #initialize} or when no
+     *         frame slots are declared
      */
     public @NotNull int[] frameSlots() {
         LinkedHashSet<Integer> union = new LinkedHashSet<>();
