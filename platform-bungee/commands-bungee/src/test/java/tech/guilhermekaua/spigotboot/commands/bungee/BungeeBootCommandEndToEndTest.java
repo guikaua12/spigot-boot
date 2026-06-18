@@ -30,6 +30,7 @@ import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.PluginDescription;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.commands.CommandReplacementRegistry;
+import tech.guilhermekaua.spigotboot.commands.annotations.CatchUnknown;
 import tech.guilhermekaua.spigotboot.commands.annotations.Command;
 import tech.guilhermekaua.spigotboot.commands.annotations.CommandHandler;
 import tech.guilhermekaua.spigotboot.commands.annotations.DefaultCommand;
@@ -234,6 +235,39 @@ class BungeeBootCommandEndToEndTest {
                 "a command whose default handler needs no permission must stay visible to everyone");
     }
 
+    @Test
+    void commandWithOnlyACatchUnknownHandlerIsHiddenFromEveryone() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("AnyOne");
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new CatchUnknownOnlyCommand()), newDispatcher(plugin), platformSupport);
+
+        // @CatchUnknown only handles unmatched input; it is not a usable route, so the command exposes none.
+        assertFalse(command.hasPermission(player),
+                "a command whose only handler is @CatchUnknown offers no usable route and must stay hidden");
+    }
+
+    @Test
+    void commandStaysVisibleWhenOnlyOneOfSeveralRoutesIsUngated() {
+        ProxyServer proxy = mock(ProxyServer.class);
+        Plugin plugin = mockPlugin(proxy);
+
+        ProxiedPlayer player = mock(ProxiedPlayer.class);
+        when(player.getName()).thenReturn("NoPerms");
+        when(player.hasPermission("monitor.reload")).thenReturn(false);
+
+        BungeeBootCommand command = new BungeeBootCommand(
+                newContext(plugin), compileRoot(new MixedAccessCommand()), newDispatcher(plugin), platformSupport);
+
+        // the gated 'reload' route is denied, but the permissionless 'info' route is still usable.
+        assertTrue(command.hasPermission(player),
+                "a sender who can use at least one route must still see the command");
+    }
+
     @CommandHandler
     @RootCommand("server")
     static class ServerCommands {
@@ -263,6 +297,27 @@ class BungeeBootCommandEndToEndTest {
     static class OpenDefaultCommand {
         @DefaultCommand
         public void status(@Sender CommandSender sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("broadcast")
+    static class CatchUnknownOnlyCommand {
+        @CatchUnknown
+        public void unknown() {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("monitor")
+    static class MixedAccessCommand {
+        @Command("info")
+        public void info(@Sender CommandSender sender) {
+        }
+
+        @Command("reload")
+        @Permission("monitor.reload")
+        public void reload(@Sender CommandSender sender) {
         }
     }
 }
