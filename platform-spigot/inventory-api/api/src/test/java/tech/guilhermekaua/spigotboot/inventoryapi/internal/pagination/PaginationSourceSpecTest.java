@@ -55,7 +55,8 @@ class PaginationSourceSpecTest {
 
     // pins the package-private PaginationSpec constructor order Task 8's builder must use:
     // (geometry, target, layoutChar, explicitLayout, patterns, renderer, fallbackItem,
-    //  loadingItem, source, errorCallback, requestTimeout, cacheTtl, cacheMaxPages)
+    //  loadingItem, source, errorCallback, requestTimeout, cacheTtl, cacheMaxPages,
+    //  emptyStateItem, emptyStateSlots, loadingSlots)
     private PaginationSpec<Integer> specOf(PaginationSourceSpec<Integer> source) {
         // the renderer is a no-op lambda: createSource never invokes it
         return new PaginationSpec<Integer>(PaginationSpec.Geometry.NORMAL,

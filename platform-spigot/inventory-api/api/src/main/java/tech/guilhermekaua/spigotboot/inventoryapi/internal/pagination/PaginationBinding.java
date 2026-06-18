@@ -56,6 +56,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -354,7 +355,7 @@ public final class PaginationBinding implements PaginationHost {
     // fresh ItemStack) and clears every other slot this binding owns (layout + owned-outside)
     private void paintFrameMode(Inventory inventory, Supplier<RenderedItem> supplier,
                                 int[] frameSlots, boolean applyPlaceholders) {
-        Set<Integer> chosen = new LinkedHashSet<>();
+        Set<Integer> chosen = new HashSet<>();
         for (int slot : frameSlots) {
             chosen.add(slot);
         }

@@ -782,7 +782,7 @@ class PaginationBindingTest {
         Inventory inventory = session.inventory();
         assertEquals(Material.EMERALD, inventory.getItem(3).getType());
         assertNull(inventory.getItem(2), "non-chosen layout slots clear while loading");
-        assertNull(inventory.getItem(4));
+        assertNull(inventory.getItem(4), "non-chosen layout slots clear while loading");
     }
 
     @Test
