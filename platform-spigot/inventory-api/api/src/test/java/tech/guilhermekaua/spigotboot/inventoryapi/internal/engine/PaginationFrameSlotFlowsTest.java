@@ -77,6 +77,7 @@ class PaginationFrameSlotFlowsTest {
 
     private final ComponentConflictView componentConflictView = new ComponentConflictView();
     private final TwoPaginationConflictView twoPaginationConflictView = new TwoPaginationConflictView();
+    private final TwoPaginationTargetConflictView twoPaginationTargetConflictView = new TwoPaginationTargetConflictView();
     private final EmptyStateView emptyStateView = new EmptyStateView();
     private final AsyncEmptyStateView asyncEmptyStateView = new AsyncEmptyStateView();
 
@@ -89,6 +90,7 @@ class PaginationFrameSlotFlowsTest {
         views = new ViewRegistry();
         views.register(componentConflictView);
         views.register(twoPaginationConflictView);
+        views.register(twoPaginationTargetConflictView);
         views.register(emptyStateView);
         views.register(asyncEmptyStateView);
         engine = new ViewEngine(plugin, views, sessions,
@@ -143,6 +145,28 @@ class PaginationFrameSlotFlowsTest {
         @Override
         protected void onInit(@NotNull ViewConfigBuilder config) {
             config.title("TwoPag").rows(1);
+        }
+
+        @Override
+        protected void onClose(@NotNull CloseContext context) {
+            lastCloseReason = context.reason();
+        }
+    }
+
+    static final class TwoPaginationTargetConflictView extends View {
+        CloseReason lastCloseReason;
+        final Pagination<String> a = this.<String>paginate(Collections.singletonList("x"))
+                .layout(Layout.ofSlots(0, 1))
+                .itemRenderer((ctx, item, index, value) -> item.item(new ItemStack(Material.PAPER)))
+                .build();
+        final Pagination<String> b = this.<String>paginate(Collections.singletonList("y"))
+                .layout(Layout.ofSlots(1, 2)) // 1 is also pagination a's target
+                .itemRenderer((ctx, item, index, value) -> item.item(new ItemStack(Material.PAPER)))
+                .build();
+
+        @Override
+        protected void onInit(@NotNull ViewConfigBuilder config) {
+            config.title("TwoPagTarget").rows(1);
         }
 
         @Override
@@ -210,6 +234,22 @@ class PaginationFrameSlotFlowsTest {
 
             assertFalse(sessions.find(player.getUniqueId()).isPresent());
             assertEquals(CloseReason.OPEN_FAILED, twoPaginationConflictView.lastCloseReason);
+            assertTrue(handler.hasThrownContaining("two paginations"));
+        } finally {
+            logger.removeHandler(handler);
+        }
+    }
+
+    @Test
+    void targetSlotOnAnotherPagination_abortsOpenFailed() {
+        Logger logger = Logger.getLogger(FirstRenderPhase.class.getName());
+        CapturingHandler handler = new CapturingHandler();
+        logger.addHandler(handler);
+        try {
+            engine.open(player, TwoPaginationTargetConflictView.class, ViewArguments.empty());
+
+            assertFalse(sessions.find(player.getUniqueId()).isPresent());
+            assertEquals(CloseReason.OPEN_FAILED, twoPaginationTargetConflictView.lastCloseReason);
             assertTrue(handler.hasThrownContaining("two paginations"));
         } finally {
             logger.removeHandler(handler);

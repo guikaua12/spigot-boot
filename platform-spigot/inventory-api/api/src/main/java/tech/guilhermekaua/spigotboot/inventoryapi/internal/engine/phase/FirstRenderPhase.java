@@ -147,21 +147,28 @@ public final class FirstRenderPhase {
                     throw new ViewConfigurationException(
                             "slot " + slot + " is bound to both a component and pagination");
                 }
+                checkNotBoundToOtherPagination(slot, binding, bindings);
             }
             for (int slot : binding.frameSlots()) {
                 if (session.components().componentAt(slot) != null) {
                     throw new ViewConfigurationException(
                             "slot " + slot + " is bound to both a component and a pagination frame item");
                 }
-                for (PaginationBinding other : bindings) {
-                    if (other == binding) {
-                        continue;
-                    }
-                    if (contains(other.targetSlots(), slot) || contains(other.frameSlots(), slot)) {
-                        throw new ViewConfigurationException(
-                                "slot " + slot + " is bound to two paginations");
-                    }
-                }
+                checkNotBoundToOtherPagination(slot, binding, bindings);
+            }
+        }
+    }
+
+    // a slot must belong to at most one pagination, whether as a target or a frame slot
+    private static void checkNotBoundToOtherPagination(int slot, PaginationBinding binding,
+                                                       List<PaginationBinding> bindings) {
+        for (PaginationBinding other : bindings) {
+            if (other == binding) {
+                continue;
+            }
+            if (contains(other.targetSlots(), slot) || contains(other.frameSlots(), slot)) {
+                throw new ViewConfigurationException(
+                        "slot " + slot + " is bound to two paginations");
             }
         }
     }
