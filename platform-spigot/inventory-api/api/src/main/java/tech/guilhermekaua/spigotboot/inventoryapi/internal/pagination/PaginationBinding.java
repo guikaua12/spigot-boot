@@ -340,7 +340,9 @@ public final class PaginationBinding implements PaginationHost {
         boolean loading = paginator.isLoading();
         boolean empty = !loading && paginator.isCurrentPageEmpty();
 
-        if (empty && emptyStateSlots.length > 0) {
+        if (loading && loadingSlots.length > 0) {
+            paintFrameMode(inventory, loadingSupplier, loadingSlots, applyPlaceholders);
+        } else if (empty && emptyStateSlots.length > 0) {
             paintFrameMode(inventory, emptyStateSupplier, emptyStateSlots, applyPlaceholders);
         } else {
             paginator.insertPageItems();

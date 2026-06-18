@@ -725,6 +725,112 @@ class PaginationBindingTest {
         assertTrue(error.getMessage().contains("empty-state"));
     }
 
+    /** a source that never settles and always reports loading */
+    static final class LoadingPageSource implements PageSource<Integer> {
+        @Override
+        public void request(PageRequest request, BiConsumer<PageResult<Integer>, Throwable> onSettle) {
+            // never settles: stays loading
+        }
+
+        @Override
+        public int totalElements() {
+            return 0;
+        }
+
+        @Override
+        public boolean totalsKnown() {
+            return false;
+        }
+
+        @Override
+        public boolean isLoading() {
+            return true;
+        }
+
+        @Override
+        public Throwable lastError() {
+            return null;
+        }
+
+        @Override
+        public List<Integer> elements() {
+            return Collections.emptyList();
+        }
+    }
+
+    // spec carrying a loading frame with explicit slots (LAYOUT_CHAR 'O', normal geometry)
+    private static <T> PaginationSpec<T> loadingSlotsSpec(PaginationItemRenderer<T> renderer,
+                                                          PaginationSourceSpec<T> source,
+                                                          Function<ViewContext, ItemStack> loadingItem,
+                                                          int[] loadingSlots) {
+        return new PaginationSpec<>(PaginationSpec.Geometry.NORMAL, PaginationSpec.Target.LAYOUT_CHAR,
+                'O', null, Collections.emptyList(), renderer, null, loadingItem, source,
+                null, null, null, 128, null, new int[0], loadingSlots);
+    }
+
+    @Test
+    void loading_withSlots_paintsLoadingItemAtChosenSlotsAndClearsRest() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                loadingSlotsSpec(amountRenderer(), PaginationSourceSpec.custom(context -> new LoadingPageSource()),
+                        ctx -> new ItemStack(Material.EMERALD), new int[]{3}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        Inventory inventory = session.inventory();
+        assertEquals(Material.EMERALD, inventory.getItem(3).getType());
+        assertNull(inventory.getItem(2), "non-chosen layout slots clear while loading");
+        assertNull(inventory.getItem(4));
+    }
+
+    @Test
+    void loading_withSlots_paintsOutsideLayoutSlot() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                loadingSlotsSpec(amountRenderer(), PaginationSourceSpec.custom(context -> new LoadingPageSource()),
+                        ctx -> new ItemStack(Material.EMERALD), new int[]{7}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        assertEquals(Material.EMERALD, session.inventory().getItem(7).getType());
+        assertNull(session.inventory().getItem(2), "layout cleared; only the chosen loading slot painted");
+    }
+
+    @Test
+    void loading_withoutSlots_stillFillsAllLayoutSlots() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                loadingSlotsSpec(amountRenderer(), PaginationSourceSpec.custom(context -> new LoadingPageSource()),
+                        ctx -> new ItemStack(Material.EMERALD), new int[0]),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        Inventory inventory = session.inventory();
+        assertEquals(Material.EMERALD, inventory.getItem(2).getType());
+        assertEquals(Material.EMERALD, inventory.getItem(3).getType());
+        assertEquals(Material.EMERALD, inventory.getItem(4).getType());
+    }
+
+    @Test
+    void initialize_loadingSlotOutOfBounds_throwsNamingSlotAndKind() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                loadingSlotsSpec(amountRenderer(), PaginationSourceSpec.custom(context -> new LoadingPageSource()),
+                        ctx -> new ItemStack(Material.EMERALD), new int[]{9}),
+                0, session, engine);
+
+        ViewConfigurationException error = assertThrows(ViewConfigurationException.class,
+                () -> binding.initialize(session.layout(), session.effectiveConfig()));
+        assertTrue(error.getMessage().contains("slot 9"));
+        assertTrue(error.getMessage().contains("loading"));
+    }
+
     private static final class CapturingHandler extends Handler {
         private final List<LogRecord> records = new ArrayList<>();
 
