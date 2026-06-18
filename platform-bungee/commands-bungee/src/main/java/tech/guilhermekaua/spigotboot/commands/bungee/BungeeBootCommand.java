@@ -38,10 +38,14 @@ import java.util.List;
  * A BungeeCord {@link Command} that bridges a compiled root command to the generic
  * {@link CommandDispatcher}. Mirrors the Spigot {@code SpigotBootCommand}.
  *
- * <p>The base command is constructed with a {@code null} permission: BungeeCord's
- * {@code PluginManager} only blocks execution when {@code hasPermission} fails, so leaving it null
- * guarantees {@link #execute}/{@link #onTabComplete} are always reached and the dispatcher enforces
- * per-route {@code @Permission} for both — the same end-state as the Spigot adapter.
+ * <p>The base command carries no static permission (it is constructed with {@code null}); visibility is
+ * instead computed per-sender in {@link #hasPermission(CommandSender)} from the command's routes.
+ * BungeeCord consults {@code hasPermission} both to inject this command into the player's command tree —
+ * and therefore into client-side tab completion (see {@code DownstreamBridge#handle(Commands)}) — and to
+ * gate {@link #execute}/{@link #onTabComplete} (see {@code PluginManager#dispatchCommand}). Reporting
+ * whether the sender can use at least one route hides the command from senders who can run none of its
+ * subcommands (nor its default handler), while the {@link CommandDispatcher} still enforces per-route
+ * {@code @Permission} during dispatch and argument completion for senders who pass this gate.
  *
  * <p>{@link TabExecutor} is implemented because BungeeCord's base {@link Command} has no tab-complete
  * method; the dispatcher invokes {@link #onTabComplete} via {@code instanceof TabExecutor}.
@@ -77,6 +81,20 @@ public class BungeeBootCommand extends Command implements TabExecutor {
         List<String> completions = dispatcher.complete(context, rootCommand,
                 commandPlatformSupport.createSender(sender), getName(), args);
         return completions == null ? Collections.emptyList() : completions;
+    }
+
+    /**
+     * Reports whether {@code sender} can use at least one route of this command, so BungeeCord hides the
+     * command from senders who can run none of its subcommands (nor its default handler) and only offers
+     * it in tab completion to those who can. See the type-level documentation for how BungeeCord consults
+     * this for both command-tree visibility and execution gating.
+     *
+     * @param sender the sender BungeeCord is testing
+     * @return {@code true} if {@code sender} can use at least one of this command's routes
+     */
+    @Override
+    public boolean hasPermission(CommandSender sender) {
+        return dispatcher.canUseAnyRoute(rootCommand, commandPlatformSupport.createSender(sender));
     }
 
     public CompiledRootCommand getRootCommand() {
