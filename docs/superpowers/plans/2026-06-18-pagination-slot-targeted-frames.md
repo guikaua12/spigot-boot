@@ -15,8 +15,12 @@
 - **Java 8 language level** for all main sources in `platform-spigot/inventory-api/api` (`pom.xml` `<source>1.8</source>`): no records, no `var`, no `List.of()`/`Stream.toList()`. Use `int[]`, `LinkedHashSet`, `Collections.emptyList()`, explicit loops.
 - **MIT license header** (copy verbatim from any sibling file) on every new file; complete Javadoc (`@param`/`@return`/`@throws`) on every new/changed public and protected API.
 - **Build with JDK 21.** The shell-default JDK 25 crashes Lombok 1.18.36 (`TypeTag :: UNKNOWN`). If Maven runs in a sandbox, disable the sandbox (`dangerouslyDisableSandbox`) or edits run against a stale overlay.
-- **Test command:** run from repo root. Per-task iteration may add `-Danimal.sniffer.skip=true` (this feature adds no Java-8-incompatible code; the skip only avoids needing the build-internal 1.8 signature jar). Example:
-  `mvnw.cmd -q -pl platform-spigot/inventory-api/api -am test -Danimal.sniffer.skip=true -Dtest=PaginationBuilderImplTest`
+- **Canonical test command (verified working in this environment):** run from the worktree root with the JDK-21 `JAVA_HOME` and the Maven sandbox disabled. The `-Dsurefire.failIfNoSpecifiedTests=false` flag is REQUIRED whenever `-Dtest=` is used with `-am`, because the filter also reaches upstream reactor modules (e.g. `spigot-boot-utils`) that lack the named test and would otherwise fail the build:
+  ```
+  JAVA_HOME="C:/Users/Guilherme/.jdks/ms-21.0.10" ./mvnw -q -pl platform-spigot/inventory-api/api -am test \
+    -Danimal.sniffer.skip=true -Dsurefire.failIfNoSpecifiedTests=false -Dtest=<TestClassOrPattern>
+  ```
+  All `Run:` lines in the tasks below are shorthand for WHICH test to run — execute them with this canonical recipe, substituting the named class(es) into `-Dtest=`. The full-suite run in Task 5 Step 5 drops `-Dtest`/`-Dsurefire.failIfNoSpecifiedTests` (and may keep `-Danimal.sniffer.skip=true`).
 - **Absolute slots everywhere** (0 .. rows*9 - 1), consistent with `Layout.ofSlots` and component slots.
 - **Commit after each task** with a Conventional Commit message (`feat:`/`test:`).
 
