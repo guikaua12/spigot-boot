@@ -65,6 +65,9 @@ class BuiltInConvertersTest {
             assertTrue(registry.hasConverter(Duration.class));
             assertTrue(registry.hasConverter(Date.class));
             assertTrue(registry.hasConverter(Calendar.class));
+            assertTrue(registry.hasConverter(Timestamp.class));
+            assertTrue(registry.hasConverter(java.sql.Date.class));
+            assertTrue(registry.hasConverter(Time.class));
         }
     }
 
@@ -243,6 +246,270 @@ class BuiltInConvertersTest {
 
             Calendar mapped = converter.convertToEntityAttribute(mysqlValue);
             assertEquals(calendar.getTimeInMillis(), mapped.getTimeInMillis());
+        }
+    }
+
+    @Nested
+    class SqlTemporalConverterTests {
+        @Test
+        void sqlTimestampConverterReadsLocalDateTimeFromMySql() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            // mysql-connector-j 8.x returns java.time.LocalDateTime from a DATETIME/TIMESTAMP column
+            LocalDateTime mysqlValue = LocalDateTime.of(2026, 3, 3, 12, 15, 45);
+
+            Timestamp result = converter.convertToEntityAttribute(mysqlValue);
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(Timestamp.valueOf(mysqlValue), result);
+        }
+
+        @Test
+        void sqlTimestampConverterPassesThroughTimestampFromSqlite() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            // the SQLite driver already returns java.sql.Timestamp for these columns
+            Timestamp sqliteValue = Timestamp.valueOf("2026-03-03 12:15:45");
+
+            assertSame(sqliteValue, converter.convertToEntityAttribute(sqliteValue));
+        }
+
+        @Test
+        void sqlDateConverterReadsLocalDateFromMySql() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            // mysql-connector-j 8.x returns java.time.LocalDate from a DATE column
+            LocalDate mysqlValue = LocalDate.of(2026, 3, 3);
+
+            java.sql.Date result = converter.convertToEntityAttribute(mysqlValue);
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(java.sql.Date.valueOf(mysqlValue), result);
+        }
+
+        @Test
+        void sqlDateConverterPassesThroughSqlDate() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            java.sql.Date value = java.sql.Date.valueOf("2026-03-03");
+
+            assertSame(value, converter.convertToEntityAttribute(value));
+        }
+
+        @Test
+        void sqlTimeConverterReadsLocalTimeFromMySql() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            // mysql-connector-j 8.x returns java.time.LocalTime from a TIME column
+            LocalTime mysqlValue = LocalTime.of(9, 5, 7);
+
+            Time result = converter.convertToEntityAttribute(mysqlValue);
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(Time.valueOf(mysqlValue), result);
+        }
+
+        @Test
+        void sqlTimeConverterPassesThroughTime() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            Time value = Time.valueOf("09:05:07");
+
+            assertSame(value, converter.convertToEntityAttribute(value));
+        }
+
+        @Test
+        void sqlTimestampConverterRoundTripsThroughDatabaseColumn() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            Timestamp value = Timestamp.valueOf("2026-03-03 12:15:45.123456");
+
+            Object dbValue = converter.convertToDatabaseColumn(value);
+
+            assertEquals(value, converter.convertToEntityAttribute(dbValue));
+        }
+
+        @Test
+        void sqlDateConverterRoundTripsThroughDatabaseColumn() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            java.sql.Date value = java.sql.Date.valueOf("2026-03-03");
+
+            Object dbValue = converter.convertToDatabaseColumn(value);
+
+            assertEquals(value, converter.convertToEntityAttribute(dbValue));
+        }
+
+        @Test
+        void sqlTimeConverterRoundTripsThroughDatabaseColumn() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            Time value = Time.valueOf("09:05:07");
+
+            Object dbValue = converter.convertToDatabaseColumn(value);
+
+            assertEquals(value, converter.convertToEntityAttribute(dbValue));
+        }
+
+        @Test
+        void sqlTimestampConverterReadsEpochMillisStringFromSqlite() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            Timestamp value = Timestamp.valueOf("2026-03-03 12:15:45");
+            // the SQLite driver returns java.sql.* temporal values as an epoch-millis String from a TEXT column
+            String sqliteValue = Long.toString(value.getTime());
+
+            Timestamp result = converter.convertToEntityAttribute(sqliteValue);
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlDateConverterReadsEpochMillisStringFromSqlite() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            java.sql.Date value = java.sql.Date.valueOf("2026-03-03");
+            String sqliteValue = Long.toString(value.getTime());
+
+            java.sql.Date result = converter.convertToEntityAttribute(sqliteValue);
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlTimeConverterReadsEpochMillisStringFromSqlite() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            Time value = Time.valueOf("09:05:07");
+            String sqliteValue = Long.toString(value.getTime());
+
+            Time result = converter.convertToEntityAttribute(sqliteValue);
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlTimestampConverterReadsEpochMillisNumber() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            Timestamp value = Timestamp.valueOf("2026-03-03 12:15:45");
+
+            Timestamp result = converter.convertToEntityAttribute(value.getTime());
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlDateConverterReadsEpochMillisNumber() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            java.sql.Date value = java.sql.Date.valueOf("2026-03-03");
+
+            java.sql.Date result = converter.convertToEntityAttribute(value.getTime());
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlTimeConverterReadsEpochMillisNumber() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            Time value = Time.valueOf("09:05:07");
+
+            Time result = converter.convertToEntityAttribute(value.getTime());
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(value, result);
+        }
+
+        @Test
+        void sqlTimestampConverterReadsLocalDate() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            LocalDate value = LocalDate.of(2026, 3, 3);
+
+            Timestamp result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(Timestamp.valueOf(value.atStartOfDay()), result);
+        }
+
+        @Test
+        void sqlTimestampConverterReadsInstant() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            Instant value = Instant.parse("2026-03-03T12:34:56Z");
+
+            Timestamp result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(Timestamp.from(value), result);
+        }
+
+        @Test
+        void sqlTimestampConverterReadsUtilDate() {
+            AttributeConverter<Timestamp, Object> converter = converterFor(Timestamp.class);
+            Date value = new Date(1710000000123L);
+
+            Timestamp result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Timestamp.class, result.getClass());
+            assertEquals(value.getTime(), result.getTime());
+        }
+
+        @Test
+        void sqlDateConverterReadsLocalDateTime() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            LocalDateTime value = LocalDateTime.of(2026, 3, 3, 12, 15, 45);
+
+            java.sql.Date result = converter.convertToEntityAttribute(value);
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(java.sql.Date.valueOf(value.toLocalDate()), result);
+        }
+
+        @Test
+        void sqlDateConverterReadsTimestamp() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            Timestamp value = Timestamp.valueOf("2026-03-03 12:15:45");
+
+            java.sql.Date result = converter.convertToEntityAttribute(value);
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(java.sql.Date.valueOf("2026-03-03"), result);
+        }
+
+        @Test
+        void sqlDateConverterReadsUtilDate() {
+            AttributeConverter<java.sql.Date, Object> converter = converterFor(java.sql.Date.class);
+            Date value = new Date(1710000000123L);
+
+            java.sql.Date result = converter.convertToEntityAttribute(value);
+
+            assertEquals(java.sql.Date.class, result.getClass());
+            assertEquals(value.getTime(), result.getTime());
+        }
+
+        @Test
+        void sqlTimeConverterReadsLocalDateTime() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            LocalDateTime value = LocalDateTime.of(2026, 3, 3, 9, 5, 7);
+
+            Time result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(Time.valueOf(value.toLocalTime()), result);
+        }
+
+        @Test
+        void sqlTimeConverterReadsTimestamp() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            Timestamp value = Timestamp.valueOf("2026-03-03 09:05:07");
+
+            Time result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(Time.valueOf("09:05:07"), result);
+        }
+
+        @Test
+        void sqlTimeConverterReadsUtilDate() {
+            AttributeConverter<Time, Object> converter = converterFor(Time.class);
+            // SqlTimeConverter must tolerate a legacy-driver java.util.Date like the sibling converters do
+            Date value = new Date(1710000000123L);
+
+            Time result = converter.convertToEntityAttribute(value);
+
+            assertEquals(Time.class, result.getClass());
+            assertEquals(value.getTime(), result.getTime());
         }
     }
 
