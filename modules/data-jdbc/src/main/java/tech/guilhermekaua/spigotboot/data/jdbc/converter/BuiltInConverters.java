@@ -497,6 +497,11 @@ public final class BuiltInConverters {
                 return Time.valueOf(((Timestamp) dbData).toLocalDateTime().toLocalTime());
             }
 
+            // mirrors SqlTimestampConverter/SqlDateConverter: tolerate a legacy-driver java.util.Date
+            if (dbData instanceof Date) {
+                return new Time(((Date) dbData).getTime());
+            }
+
             if (dbData instanceof Number) {
                 return new Time(((Number) dbData).longValue());
             }

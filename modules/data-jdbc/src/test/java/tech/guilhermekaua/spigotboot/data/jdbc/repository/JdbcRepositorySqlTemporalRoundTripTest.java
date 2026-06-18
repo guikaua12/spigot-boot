@@ -93,7 +93,9 @@ class JdbcRepositorySqlTemporalRoundTripTest {
 
     @Test
     void roundTripsSqlTemporalFieldsThroughSqlite() {
-        Timestamp createdAt = Timestamp.valueOf("2026-03-03 12:15:45");
+        // millisecond precision survives the SQLite epoch-millis round trip; sub-millisecond
+        // nanoseconds are truncated because the value is stored as epoch millis (a known constraint)
+        Timestamp createdAt = Timestamp.valueOf("2026-03-03 12:15:45.123");
         java.sql.Date eventDate = java.sql.Date.valueOf("2026-03-03");
         Time eventTime = Time.valueOf("09:05:07");
 
