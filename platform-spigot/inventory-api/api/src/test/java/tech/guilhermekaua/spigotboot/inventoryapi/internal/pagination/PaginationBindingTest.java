@@ -67,6 +67,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -621,6 +622,107 @@ class PaginationBindingTest {
                 0, itemsSession, engine);
         withItems.initialize(itemsSession.layout(), itemsSession.effectiveConfig());
         assertFalse(withItems.paginator().isCurrentPageEmpty());
+    }
+
+    // spec carrying an empty-state frame (LAYOUT_CHAR 'O', normal geometry)
+    private static <T> PaginationSpec<T> emptyStateSpec(PaginationItemRenderer<T> renderer,
+                                                        PaginationSourceSpec<T> source,
+                                                        Function<ViewContext, ItemStack> fallbackItem,
+                                                        Function<ViewContext, ItemStack> emptyStateItem,
+                                                        int[] emptyStateSlots) {
+        return new PaginationSpec<>(PaginationSpec.Geometry.NORMAL, PaginationSpec.Target.LAYOUT_CHAR,
+                'O', null, Collections.emptyList(), renderer, fallbackItem, null, source,
+                null, null, null, 128, emptyStateItem, emptyStateSlots, new int[0]);
+    }
+
+    @Test
+    void emptyState_emptyPage_paintsItemAtChosenSlotsAndClearsRestOfLayout() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                emptyStateSpec(amountRenderer(), PaginationSourceSpec.eager(Collections.<Integer>emptyList()),
+                        null, ctx -> new ItemStack(Material.BARRIER), new int[]{3}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        Inventory inventory = session.inventory();
+        assertEquals(Material.BARRIER, inventory.getItem(3).getType());
+        assertNull(inventory.getItem(2), "non-chosen layout slots clear when the page is empty");
+        assertNull(inventory.getItem(4));
+    }
+
+    @Test
+    void emptyState_pageWithItems_paintsNoEmptyState_andKeepsFallbackFill() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                emptyStateSpec(amountRenderer(), PaginationSourceSpec.eager(Arrays.asList(1, 2)),
+                        ctx -> new ItemStack(Material.STONE),
+                        ctx -> new ItemStack(Material.BARRIER), new int[]{3}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        Inventory inventory = session.inventory();
+        assertEquals(1, inventory.getItem(2).getAmount(), "elements render normally");
+        assertEquals(2, inventory.getItem(3).getAmount(), "chosen slot shows the element, not the empty-state");
+        assertEquals(Material.STONE, inventory.getItem(4).getType(), "uncovered slot keeps the fallback fill");
+    }
+
+    @Test
+    void emptyState_evaluatesItemOncePerSlot() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        AtomicInteger counter = new AtomicInteger();
+        PaginationBinding binding = new PaginationBinding(
+                emptyStateSpec(amountRenderer(), PaginationSourceSpec.eager(Collections.<Integer>emptyList()),
+                        null, ctx -> new ItemStack(Material.BARRIER, counter.incrementAndGet()),
+                        new int[]{2, 3}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+
+        Inventory inventory = session.inventory();
+        assertEquals(1, inventory.getItem(2).getAmount());
+        assertEquals(2, inventory.getItem(3).getAmount(), "the factory runs once per chosen slot");
+    }
+
+    @Test
+    void emptyState_outsideLayoutSlot_paintedWhenEmpty_clearedOnTransitionToItems() {
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        AtomicReference<List<Integer>> backing = new AtomicReference<>(Collections.<Integer>emptyList());
+        PaginationBinding binding = new PaginationBinding(
+                emptyStateSpec(amountRenderer(), PaginationSourceSpec.lazy(context -> backing.get()),
+                        null, ctx -> new ItemStack(Material.BARRIER), new int[]{7}),
+                0, session, engine);
+        binding.initialize(session.layout(), session.effectiveConfig());
+
+        binding.repaint();
+        assertEquals(Material.BARRIER, session.inventory().getItem(7).getType(),
+                "the outside empty-state slot is painted while empty");
+
+        backing.set(Arrays.asList(1, 2, 3));
+        binding.refreshLazy(new PlainViewContextImpl(session, engine));
+        binding.repaint();
+
+        assertNull(session.inventory().getItem(7), "the outside empty-state slot clears once items arrive");
+        assertEquals(1, session.inventory().getItem(2).getAmount());
+    }
+
+    @Test
+    void initialize_emptyStateSlotOutOfBounds_throwsNamingSlotAndKind() {
+        // layoutConfig is a single row (size 9): slot 9 is out of bounds
+        ViewSession session = sessionFor(new PagedView(), layoutConfig());
+        PaginationBinding binding = new PaginationBinding(
+                emptyStateSpec(amountRenderer(), PaginationSourceSpec.eager(Arrays.asList(1)),
+                        null, ctx -> new ItemStack(Material.BARRIER), new int[]{9}),
+                0, session, engine);
+
+        ViewConfigurationException error = assertThrows(ViewConfigurationException.class,
+                () -> binding.initialize(session.layout(), session.effectiveConfig()));
+        assertTrue(error.getMessage().contains("slot 9"));
+        assertTrue(error.getMessage().contains("empty-state"));
     }
 
     private static final class CapturingHandler extends Handler {
