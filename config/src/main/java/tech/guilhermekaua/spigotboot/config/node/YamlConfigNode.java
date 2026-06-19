@@ -150,35 +150,62 @@ public class YamlConfigNode extends AbstractValueConfigNode implements MutableCo
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public @NotNull MutableConfigNode set(@Nullable Object newValue) {
         this.value = newValue;
         this.virtual = false;
+        linkIntoParent();
+        return this;
+    }
 
-        if (parent != null) {
-            Object lastKey = path.last();
-            if (lastKey instanceof Integer) {
-                int index = (Integer) lastKey;
-                if (!(parent.value instanceof List)) {
-                    parent.value = new ArrayList<>();
-                }
-                List<Object> list = (List<Object>) parent.value;
-                while (list.size() <= index) {
-                    list.add(null);
-                }
-                list.set(index, newValue);
-            } else {
-                String key = String.valueOf(lastKey);
-                if (!(parent.value instanceof Map)) {
-                    parent.value = new LinkedHashMap<>();
-                }
-                Map<String, Object> map = (Map<String, Object>) parent.value;
-                map.put(key, newValue);
-            }
-            parent.virtual = false;
+    /**
+     * links this node's current value into its parent's backing container, then recurses so every
+     * ancestor up to the root re-links into its own parent.
+     * <p>
+     * the recursion is what makes sub-key population work: a node filled only through
+     * {@code node("child").set(...)} (a custom {@code TypeSerializer} or a nested pojo during
+     * {@code unbind}) mutates its own {@link #value} but is never the target of a {@code set(...)}
+     * call itself. without re-linking the whole chain such a node would stay detached and its value
+     * would be dropped from the generated output (a single field omitted, a list element left as a
+     * literal {@code null}).
+     * <p>
+     * the key type decides the container shape: an integer key addresses a list slot, a string key a
+     * map entry. an absent container is created on demand, but an established container of the opposite
+     * shape is left untouched — re-linking must never flip a populated list into a map (or vice versa),
+     * because the recursion would then propagate that corruption all the way to the root.
+     */
+    @SuppressWarnings("unchecked")
+    private void linkIntoParent() {
+        if (parent == null) {
+            return;
         }
 
-        return this;
+        Object lastKey = path.last();
+        if (lastKey instanceof Integer) {
+            if (parent.value instanceof Map) {
+                return;
+            }
+            int index = (Integer) lastKey;
+            if (!(parent.value instanceof List)) {
+                parent.value = new ArrayList<>();
+            }
+            List<Object> list = (List<Object>) parent.value;
+            while (list.size() <= index) {
+                list.add(null);
+            }
+            list.set(index, this.value);
+        } else {
+            if (parent.value instanceof List) {
+                return;
+            }
+            String key = String.valueOf(lastKey);
+            if (!(parent.value instanceof Map)) {
+                parent.value = new LinkedHashMap<>();
+            }
+            Map<String, Object> map = (Map<String, Object>) parent.value;
+            map.put(key, this.value);
+        }
+        parent.virtual = false;
+        parent.linkIntoParent();
     }
 
     @Override
