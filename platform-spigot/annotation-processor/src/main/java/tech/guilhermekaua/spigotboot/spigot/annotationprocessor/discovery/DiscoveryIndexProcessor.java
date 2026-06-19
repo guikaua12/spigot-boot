@@ -68,9 +68,13 @@ import java.util.TreeSet;
  * indexable class, the processor emits:
  * <ul>
  *   <li>A source file {@code tech.guilhermekaua.spigotboot.generated.DiscoveryIndex_<hash>}
- *       implementing {@code DiscoveryIndex}. The map of categories references each discovered
- *       class via a {@code .class} literal so the Maven Shade Plugin's reachability analyzer
- *       keeps them when {@code minimizeJar} is enabled.</li>
+ *       implementing {@code DiscoveryIndex}. The category map is built by resolving each discovered
+ *       class <em>by name</em> through {@code DiscoveryIndexSupport}, so a class whose supertype
+ *       comes from an absent optional dependency is skipped instead of crashing the whole index.
+ *       The {@code .class} literals the Maven Shade Plugin's reachability analyzer needs (to keep
+ *       discovered classes when {@code minimizeJar} is enabled) are emitted in a never-invoked
+ *       {@code keepReachable()} method, so they live in the bytecode without being linked at
+ *       runtime.</li>
  *   <li>An empty marker resource at
  *       {@code META-INF/spigot-boot/discovery/<GeneratedClassFQCN>} so
  *       {@code DiscoveryIndexReader} can locate the generated class at runtime.</li>
@@ -88,6 +92,7 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
     private static final String GENERATED_PACKAGE = "tech.guilhermekaua.spigotboot.generated";
     private static final String GENERATED_CLASS_PREFIX = "DiscoveryIndex_";
     private static final String DISCOVERY_INDEX_FQCN = "tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndex";
+    private static final String DISCOVERY_INDEX_SUPPORT_FQCN = "tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexSupport";
     private static final String CATEGORY_ANNOTATION_FQCN = "tech.guilhermekaua.spigotboot.core.context.discovery.SpigotBootDiscoveryCategory";
     private static final String MARKER_DIR = "META-INF/spigot-boot/discovery";
 
@@ -330,6 +335,18 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
         discovered.computeIfAbsent(category, k -> new LinkedHashSet<>()).add(fqcn);
     }
 
+    /**
+     * @return every discovered class across all categories, deduplicated and sorted. Used to emit the
+     * {@code keepReachable()} reachability anchor.
+     */
+    private Set<String> allDiscoveredFqcns() {
+        Set<String> all = new TreeSet<>();
+        for (Set<String> fqcns : discovered.values()) {
+            all.addAll(fqcns);
+        }
+        return all;
+    }
+
     private void writeIndexIfAny() {
         if (discovered.isEmpty()) {
             return;
@@ -383,6 +400,7 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
             pw.println("import java.util.LinkedHashMap;");
             pw.println("import java.util.Map;");
             pw.println("import " + DISCOVERY_INDEX_FQCN + ";");
+            pw.println("import " + DISCOVERY_INDEX_SUPPORT_FQCN + ";");
             pw.println();
             pw.println("public final class " + simpleName + " implements DiscoveryIndex {");
             pw.println("    private static final Map<String, Class<?>[]> ENTRIES;");
@@ -398,19 +416,22 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
                 pw.println("    };");
             }
             pw.println("    static {");
+            // Resolve discovered classes by name instead of eager .class literals: a discovered class
+            // may extend or implement a type from an absent optional dependency, and linking it would
+            // throw NoClassDefFoundError. Resolving names one at a time drops only the unavailable
+            // class, leaving the rest of the index intact.
+            pw.println("        ClassLoader cl = " + simpleName + ".class.getClassLoader();");
             pw.println("        Map<String, Class<?>[]> m = new LinkedHashMap<String, Class<?>[]>();");
 
             List<String> keys = new ArrayList<>(discovered.keySet());
             Collections.sort(keys);
             for (String category : keys) {
-                Set<String> fqcns = new TreeSet<>(discovered.get(category));
-                pw.println("        m.put(\"" + escape(category) + "\", new Class<?>[] {");
-                List<String> fqcnList = new ArrayList<>(fqcns);
+                List<String> fqcnList = new ArrayList<>(new TreeSet<>(discovered.get(category)));
+                pw.println("        m.put(\"" + escape(category) + "\", DiscoveryIndexSupport.resolve(cl,");
                 for (int i = 0; i < fqcnList.size(); i++) {
-                    String suffix = i == fqcnList.size() - 1 ? "" : ",";
-                    pw.println("            " + fqcnList.get(i) + ".class" + suffix);
+                    String suffix = i == fqcnList.size() - 1 ? "));" : ",";
+                    pw.println("            \"" + fqcnList.get(i) + "\"" + suffix);
                 }
-                pw.println("        });");
             }
 
             pw.println("        ENTRIES = Collections.unmodifiableMap(m);");
@@ -421,6 +442,20 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
             pw.println("    @Override");
             pw.println("    public Map<String, Class<?>[]> entries() {");
             pw.println("        return ENTRIES;");
+            pw.println("    }");
+            pw.println();
+            // .class literals retained ONLY so the Maven Shade Plugin's minimizer keeps the discovered
+            // classes reachable. keepReachable() is never invoked, so the literals are never resolved
+            // at runtime and an absent optional-dependency supertype is never linked.
+            pw.println("    @SuppressWarnings(\"unused\")");
+            pw.println("    private static Class<?>[] keepReachable() {");
+            pw.println("        return new Class<?>[] {");
+            List<String> allFqcns = new ArrayList<>(allDiscoveredFqcns());
+            for (int i = 0; i < allFqcns.size(); i++) {
+                String suffix = i == allFqcns.size() - 1 ? "" : ",";
+                pw.println("            " + allFqcns.get(i) + ".class" + suffix);
+            }
+            pw.println("        };");
             pw.println("    }");
             pw.println("}");
         }
