@@ -44,10 +44,37 @@ class PlaceholderStoreTest {
     }
 
     @Test
+    void findResolvesByPatternWhenNoExactMatch() {
+        PlaceholderStore store = new PlaceholderStore();
+        PlaceholderMetadata metadata = mock(PlaceholderMetadata.class);
+        when(metadata.getPlaceholder()).thenReturn("top_<page>");
+        store.register(metadata);
+
+        // "top_3" is not an exact key, but matches the registered pattern
+        assertSame(metadata, store.findPlaceholderMetadata("top_3"));
+        // a value that does not satisfy the pattern must not match
+        assertNull(store.findPlaceholderMetadata("bottom_3"));
+    }
+
+    @Test
     void findReturnsNullWhenNoMatch() {
         PlaceholderStore store = new PlaceholderStore();
 
         assertNull(store.findPlaceholderMetadata("missing"));
+    }
+
+    @Test
+    void reRegisteringSameKeyOverwritesMetadata() {
+        PlaceholderStore store = new PlaceholderStore();
+        PlaceholderMetadata first = mock(PlaceholderMetadata.class);
+        when(first.getPlaceholder()).thenReturn("user_name");
+        PlaceholderMetadata second = mock(PlaceholderMetadata.class);
+        when(second.getPlaceholder()).thenReturn("user_name");
+
+        store.register(first);
+        store.register(second);
+
+        assertSame(second, store.findPlaceholderMetadata("user_name"));
     }
 
     @Test
