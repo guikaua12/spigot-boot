@@ -58,6 +58,14 @@ public interface Paginator<T> {
     void insertPageItems();
 
     /**
+     * Reports whether the most recently settled page rendered no elements. Used by the host to
+     * decide whether to paint the empty-state frame.
+     *
+     * @return {@code true} when the current page has no elements
+     */
+    boolean isCurrentPageEmpty();
+
+    /**
      * Navigates directly to the given 1-indexed page.
      *
      * <p>The target is clamped to at least 1, and to {@link #getTotalPages()} once the backing

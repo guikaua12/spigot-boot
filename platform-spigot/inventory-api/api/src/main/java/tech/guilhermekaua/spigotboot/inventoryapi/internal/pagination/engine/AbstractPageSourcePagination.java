@@ -192,6 +192,11 @@ abstract class AbstractPageSourcePagination<T, S> implements Paginator<T> {
     }
 
     @Override
+    public boolean isCurrentPageEmpty() {
+        return this.currentItems.isEmpty();
+    }
+
+    @Override
     public void changePage(int page) {
         changePageInternal(page, false);
     }

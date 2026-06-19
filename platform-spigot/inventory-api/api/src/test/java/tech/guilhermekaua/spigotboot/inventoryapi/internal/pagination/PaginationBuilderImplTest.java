@@ -22,8 +22,11 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
+import tech.guilhermekaua.spigotboot.inventoryapi.context.ViewContext;
 import tech.guilhermekaua.spigotboot.inventoryapi.exception.ViewConfigurationException;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.state.IdentifiableToken;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.Layout;
@@ -37,7 +40,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -329,5 +334,77 @@ class PaginationBuilderImplTest {
         IllegalStateException thrown = assertThrows(IllegalStateException.class, builder::build);
         assertTrue(thrown.getMessage().contains("frozen"));
         assertEquals(0, view.tokenTable().size());
+    }
+
+    // --- emptyStateItem and slotted loadingItem ---
+
+    @Test
+    void emptyStateItem_storesFunctionAndDeduplicatedSlots() {
+        Function<ViewContext, ItemStack> fn = ctx -> new ItemStack(Material.BARRIER);
+        PaginationImpl<String> token = (PaginationImpl<String>) eagerBuilder(new TestView())
+                .itemRenderer(renderer()).emptyStateItem(fn, 22, 22, 4).build();
+
+        assertSame(fn, token.spec().emptyStateItem());
+        assertArrayEquals(new int[]{22, 4}, token.spec().emptyStateSlots());
+    }
+
+    @Test
+    void emptyStateItem_nullFunction_throwsNpe() {
+        PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
+        assertThrows(NullPointerException.class, () -> builder.emptyStateItem(null, 1));
+    }
+
+    @Test
+    void emptyStateItem_noSlots_throwsIllegalArgument() {
+        PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.emptyStateItem(ctx -> new ItemStack(Material.BARRIER)));
+    }
+
+    @Test
+    void emptyStateItem_negativeSlot_throwsIllegalArgument() {
+        PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.emptyStateItem(ctx -> new ItemStack(Material.BARRIER), 0, -1));
+    }
+
+    @Test
+    void loadingItem_withSlots_storesDeduplicatedSlots_onAsyncBuilder() {
+        PaginationImpl<String> token = (PaginationImpl<String>) asyncBuilder(new TestView())
+                .itemRenderer(renderer())
+                .loadingItem(ctx -> new ItemStack(Material.EMERALD), 4, 4)
+                .build();
+
+        assertArrayEquals(new int[]{4}, token.spec().loadingSlots());
+    }
+
+    @Test
+    void loadingItem_withSlots_onEagerSource_throwsAsyncOnly() {
+        PaginationBuilderImpl<String> builder = eagerBuilder(new TestView());
+        builder.itemRenderer(renderer()).loadingItem(ctx -> new ItemStack(Material.EMERALD), 4);
+
+        ViewConfigurationException thrown = assertThrows(ViewConfigurationException.class, builder::build);
+        assertTrue(thrown.getMessage().contains("loadingItem"));
+    }
+
+    @Test
+    void loadingItem_withoutSlots_resetsToFillAll() {
+        PaginationImpl<String> token = (PaginationImpl<String>) asyncBuilder(new TestView())
+                .itemRenderer(renderer())
+                .loadingItem(ctx -> new ItemStack(Material.EMERALD), 4)
+                .loadingItem(ctx -> new ItemStack(Material.EMERALD))
+                .build();
+
+        assertEquals(0, token.spec().loadingSlots().length);
+    }
+
+    @Test
+    void defaults_noEmptyStateItemNorFrameSlots() {
+        PaginationSpec<String> spec = ((PaginationImpl<String>) eagerBuilder(new TestView())
+                .itemRenderer(renderer()).build()).spec();
+
+        assertNull(spec.emptyStateItem());
+        assertEquals(0, spec.emptyStateSlots().length);
+        assertEquals(0, spec.loadingSlots().length);
     }
 }
