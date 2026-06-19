@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.core.spigot.version;
 
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +54,9 @@ public final class ServerVersion implements Comparable<ServerVersion> {
     /** sentinel for a version component that could not be parsed */
     private static final int UNKNOWN = -1;
 
+    /** lazily computed singleton for the running server; the version is constant per process */
+    private static volatile ServerVersion current;
+
     private final int major;
     private final int minor;
     private final int patch;
@@ -66,6 +70,38 @@ public final class ServerVersion implements Comparable<ServerVersion> {
         this.patch = patch;
         this.rawVersion = rawVersion;
         this.nmsPackageSuffix = nmsPackageSuffix;
+    }
+
+    /**
+     * @return the version of the running server, computed once and cached. Never throws — an
+     *         unparseable version yields a {@link ServerVersion} whose components are {@code -1}.
+     */
+    public static @NotNull ServerVersion current() {
+        ServerVersion result = current;
+        if (result == null) {
+            synchronized (ServerVersion.class) {
+                result = current;
+                if (result == null) {
+                    result = detect();
+                    current = result;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Reads the running server's coordinates from Bukkit and parses them. Package-private and
+     * un-cached so it can be exercised under a mock server.
+     *
+     * @return the parsed version of the running server
+     */
+    static @NotNull ServerVersion detect() {
+        // Object-typed on purpose: under the animal-sniffer 1.8.8 signature, getClass() on a
+        // Bukkit-typed receiver cannot resolve, so route it through the java.* ignore.
+        Object server = Bukkit.getServer();
+        String packageName = server == null ? null : server.getClass().getPackage().getName();
+        return parse(Bukkit.getBukkitVersion(), packageName);
     }
 
     /**
