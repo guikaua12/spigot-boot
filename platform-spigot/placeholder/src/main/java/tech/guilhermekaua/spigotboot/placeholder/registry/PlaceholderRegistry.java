@@ -22,11 +22,10 @@
  */
 package tech.guilhermekaua.spigotboot.placeholder.registry;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.dependency.DependencyResolveResolver;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
@@ -34,25 +33,35 @@ import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 import tech.guilhermekaua.spigotboot.core.utils.ReflectionUtils;
 import tech.guilhermekaua.spigotboot.placeholder.annotations.Placeholder;
 import tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadata;
-import tech.guilhermekaua.spigotboot.placeholder.metadata.parser.PlaceholderParameterParser;
 import tech.guilhermekaua.spigotboot.placeholder.papi.PAPIExpansion;
 import tech.guilhermekaua.spigotboot.placeholder.registry.discovery.PlaceholderDiscoveryService;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Getter
+/**
+ * Discovers placeholder handlers and wires them into the PlaceholderAPI expansion.
+ * <p>
+ * The registry owns the discovery and registration flow: it scans for placeholder handler classes,
+ * resolves them as beans, builds their {@link PlaceholderMetadata}, publishes that metadata into the shared
+ * {@link PlaceholderStore}, and manages the {@link PAPIExpansion} lifecycle. It deliberately depends on the
+ * {@link PlaceholderStore} rather than holding the lookup table itself, so the expansion can read placeholders
+ * from the same store without creating a registry/expansion dependency cycle.
+ */
+@Component
 @RequiredArgsConstructor
 public class PlaceholderRegistry {
-    private final Map<String, PlaceholderMetadata> placeholders = new HashMap<>();
+    private final PlaceholderStore placeholderStore;
     private final PAPIExpansion papiExpansion;
     private final Plugin plugin;
     private final DependencyManager dependencyManager;
 
+    /**
+     * Discovers placeholder handlers, publishes their metadata into the {@link PlaceholderStore}, and registers
+     * the PlaceholderAPI expansion.
+     */
     public void initialize() {
         final DiscoveryService<Class<?>> discoveryService = new PlaceholderDiscoveryService(plugin);
 
@@ -77,7 +86,7 @@ public class PlaceholderRegistry {
                         placeholderAnnotation.placeholderApi()
                 );
 
-                placeholders.put(metadata.getPlaceholder(), metadata);
+                placeholderStore.register(metadata);
             }
         }
 
@@ -86,11 +95,14 @@ public class PlaceholderRegistry {
         }
     }
 
+    /**
+     * Unregisters the PlaceholderAPI expansion (when registered) and clears the published placeholders.
+     */
     public void unregister() {
         if (papiExpansion.isRegistered()) {
             papiExpansion.unregister();
         }
-        placeholders.clear();
+        placeholderStore.clear();
     }
 
     private void validateHandlerMethod(Method method) {
@@ -119,13 +131,6 @@ public class PlaceholderRegistry {
         } catch (Exception e) {
             throw new RuntimeException("Invalid placeholder method: " + method.getName(), e);
         }
-    }
-
-    public @Nullable PlaceholderMetadata findPlaceholderMetadata(String params) {
-        return placeholders.values().stream()
-                .filter(metadata -> metadata.getPlaceholder().equals(params) ||
-                        PlaceholderParameterParser.isValidPlaceholderPattern(metadata.getPlaceholder(), params)
-                ).findFirst().orElse(null);
     }
 
     @SuppressWarnings("unchecked")

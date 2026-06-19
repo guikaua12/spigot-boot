@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager;
 import tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadata;
-import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
+import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderStore;
 
 import java.util.StringJoiner;
 
@@ -39,7 +39,7 @@ import java.util.StringJoiner;
 @RequiredArgsConstructor
 public class PAPIExpansion extends PlaceholderExpansion {
     private final Plugin plugin;
-    private final PlaceholderRegistry placeholderRegistry;
+    private final PlaceholderStore placeholderStore;
     private final TypeConverterManager typeConverterManager;
 
     @Override
@@ -60,7 +60,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
-        final PlaceholderMetadata placeholder = placeholderRegistry.findPlaceholderMetadata(params);
+        final PlaceholderMetadata placeholder = placeholderStore.findPlaceholderMetadata(params);
         return placeholder != null && placeholder.isPlaceholderApi() ? placeholder.getValue(player, params, typeConverterManager) : null;
     }
 }
