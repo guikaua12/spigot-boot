@@ -124,6 +124,26 @@ public interface PaginationBuilder<T> {
     @NotNull PaginationBuilder<T> fallbackItem(@NotNull Function<ViewContext, ItemStack> item);
 
     /**
+     * Sets an item painted into the given slots when the current page settled with no elements,
+     * leaving every other layout slot empty. Unlike {@link #fallbackItem(Function)} — which fills
+     * every uncovered slot of every page — this renders only while the current page is empty, and
+     * only in {@code slots}; when the page has any element it renders nothing. When both are set,
+     * the empty page shows the empty-state item (the fallback fill is suppressed for that paint).
+     *
+     * <p>Slots are absolute container slots and may lie outside the pagination's layout. Evaluated
+     * against the session's context once per slot at paint time. A slot bound to a static component
+     * or to another pagination fails at open with {@link ViewConfigurationException}.
+     *
+     * @param item  the empty-state item factory
+     * @param slots the absolute container slots to paint, at least one, each non-negative
+     * @return this builder
+     * @throws NullPointerException     if {@code item} or {@code slots} is null
+     * @throws IllegalArgumentException if {@code slots} is empty or contains a negative slot
+     */
+    @NotNull PaginationBuilder<T> emptyStateItem(@NotNull Function<ViewContext, ItemStack> item,
+                                                 int... slots);
+
+    /**
      * Sets the item painted into every page slot while an async load is in flight. Async-only:
      * on a non-async builder {@link #build()} throws {@link ViewConfigurationException}.
      *
@@ -131,6 +151,25 @@ public interface PaginationBuilder<T> {
      * @return this builder
      */
     @NotNull PaginationBuilder<T> loadingItem(@NotNull Function<ViewContext, ItemStack> item);
+
+    /**
+     * Sets the loading item painted only into the given slots while an async load is in flight,
+     * leaving every other layout slot empty. The slotted form of {@link #loadingItem(Function)};
+     * it has the same trigger (shown while loading) and only restricts where the item paints.
+     * Async-only: on a non-async builder {@link #build()} throws {@link ViewConfigurationException}.
+     *
+     * <p>Slots are absolute container slots and may lie outside the pagination's layout. Evaluated
+     * against the session's context once per slot at paint time. A slot bound to a static component
+     * or to another pagination fails at open with {@link ViewConfigurationException}.
+     *
+     * @param item  the loading item factory
+     * @param slots the absolute container slots to paint, at least one, each non-negative
+     * @return this builder
+     * @throws NullPointerException     if {@code item} or {@code slots} is null
+     * @throws IllegalArgumentException if {@code slots} is empty or contains a negative slot
+     */
+    @NotNull PaginationBuilder<T> loadingItem(@NotNull Function<ViewContext, ItemStack> item,
+                                              int... slots);
 
     /**
      * Sets the callback invoked when an async page load fails. Async-only: on a non-async

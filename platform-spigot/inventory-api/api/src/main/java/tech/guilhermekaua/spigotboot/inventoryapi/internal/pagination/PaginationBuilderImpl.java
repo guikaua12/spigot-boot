@@ -39,6 +39,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.PaginationEr
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -70,6 +71,9 @@ public final class PaginationBuilderImpl<T> implements PaginationBuilder<T> {
     private PaginationItemRenderer<T> renderer;
     private Function<ViewContext, ItemStack> fallbackItem;
     private Function<ViewContext, ItemStack> loadingItem;
+    private Function<ViewContext, ItemStack> emptyStateItem;
+    private int[] emptyStateSlots = new int[0];
+    private int[] loadingSlots = new int[0];
     private PaginationErrorCallback errorCallback;
     private Duration requestTimeout;
     private Duration cacheTtl;
@@ -136,7 +140,45 @@ public final class PaginationBuilderImpl<T> implements PaginationBuilder<T> {
     @Override
     public @NotNull PaginationBuilder<T> loadingItem(@NotNull Function<ViewContext, ItemStack> item) {
         this.loadingItem = Objects.requireNonNull(item, "item");
+        this.loadingSlots = new int[0];
         return this;
+    }
+
+    @Override
+    public @NotNull PaginationBuilder<T> emptyStateItem(@NotNull Function<ViewContext, ItemStack> item,
+                                                        int... slots) {
+        this.emptyStateItem = Objects.requireNonNull(item, "item");
+        this.emptyStateSlots = validatedFrameSlots(slots, "emptyStateItem");
+        return this;
+    }
+
+    @Override
+    public @NotNull PaginationBuilder<T> loadingItem(@NotNull Function<ViewContext, ItemStack> item,
+                                                     int... slots) {
+        this.loadingItem = Objects.requireNonNull(item, "item");
+        this.loadingSlots = validatedFrameSlots(slots, "loadingItem");
+        return this;
+    }
+
+    // validates and de-duplicates frame slots (empty-state / slotted loading), preserving order
+    private static int[] validatedFrameSlots(int[] slots, String method) {
+        Objects.requireNonNull(slots, "slots");
+        if (slots.length == 0) {
+            throw new IllegalArgumentException(method + " requires at least one slot");
+        }
+        LinkedHashSet<Integer> unique = new LinkedHashSet<>();
+        for (int slot : slots) {
+            if (slot < 0) {
+                throw new IllegalArgumentException(method + " slot must not be negative: " + slot);
+            }
+            unique.add(slot);
+        }
+        int[] result = new int[unique.size()];
+        int index = 0;
+        for (int slot : unique) {
+            result[index++] = slot;
+        }
+        return result;
     }
 
     @Override
@@ -196,7 +238,8 @@ public final class PaginationBuilderImpl<T> implements PaginationBuilder<T> {
 
         PaginationSpec<T> spec = new PaginationSpec<>(geometry, target, layoutChar, explicitLayout,
                 patterns == null ? Collections.<Layout>emptyList() : patterns, renderer, fallbackItem,
-                loadingItem, source, errorCallback, requestTimeout, cacheTtl, cacheMaxPages);
+                loadingItem, source, errorCallback, requestTimeout, cacheTtl, cacheMaxPages,
+                emptyStateItem, emptyStateSlots, loadingSlots);
         // registration happens here, AT BUILD TIME: a frozen table throws before built is set
         PaginationImpl<T> token = new PaginationImpl<>(owner, table, spec);
         built = true;

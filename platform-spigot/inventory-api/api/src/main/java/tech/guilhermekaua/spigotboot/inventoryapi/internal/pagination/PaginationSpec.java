@@ -99,27 +99,36 @@ public final class PaginationSpec<T> {
     private final Duration requestTimeout;
     private final Duration cacheTtl;
     private final int cacheMaxPages;
+    private final Function<ViewContext, ItemStack> emptyStateItem;
+    private final int[] emptyStateSlots;
+    private final int[] loadingSlots;
 
     /**
      * Creates a spec. Package-private: only {@code PaginationBuilderImpl} and same-package
      * tests construct specs, after the builder validated the combination.
      *
-     * @param geometry       the page geometry
-     * @param target         the paint target
-     * @param layoutChar     the target layout character; meaningful only when {@code target}
-     *                       is {@link Target#LAYOUT_CHAR}; {@code 'O'} by default
-     * @param explicitLayout the explicit fill order; non-null only when {@code target} is
-     *                       {@link Target#EXPLICIT_LAYOUT}
-     * @param patterns       the per-page patterns, defensively copied; empty unless
-     *                       {@code target} is {@link Target#PATTERNS}
-     * @param renderer       the per-element renderer
-     * @param fallbackItem   the frame item for uncovered page slots, or null to clear them
-     * @param loadingItem    the async loading frame item, or null
-     * @param source         the source declaration
-     * @param errorCallback  the async error callback, or null
-     * @param requestTimeout the async per-request timeout, or null to disable
-     * @param cacheTtl       the async cache TTL, or null to disable caching
-     * @param cacheMaxPages  the async cache LRU bound; 128 unless overridden (the 2.x default)
+     * @param geometry        the page geometry
+     * @param target          the paint target
+     * @param layoutChar      the target layout character; meaningful only when {@code target}
+     *                        is {@link Target#LAYOUT_CHAR}; {@code 'O'} by default
+     * @param explicitLayout  the explicit fill order; non-null only when {@code target} is
+     *                        {@link Target#EXPLICIT_LAYOUT}
+     * @param patterns        the per-page patterns, defensively copied; empty unless
+     *                        {@code target} is {@link Target#PATTERNS}
+     * @param renderer        the per-element renderer
+     * @param fallbackItem    the frame item for uncovered page slots, or null to clear them
+     * @param loadingItem     the async loading frame item, or null
+     * @param source          the source declaration
+     * @param errorCallback   the async error callback, or null
+     * @param requestTimeout  the async per-request timeout, or null to disable
+     * @param cacheTtl        the async cache TTL, or null to disable caching
+     * @param cacheMaxPages   the async cache LRU bound; 128 unless overridden (the 2.x default)
+     * @param emptyStateItem  the item painted at {@code emptyStateSlots} when the current page is
+     *                        empty, or null when no empty-state is declared
+     * @param emptyStateSlots the absolute slots the empty-state item paints into; never null,
+     *                        empty when no empty-state is declared
+     * @param loadingSlots    the absolute slots the loading item paints into; never null, empty
+     *                        when the loading item fills the whole layout (the default)
      * @throws NullPointerException if {@code geometry}, {@code target}, {@code patterns},
      *                              {@code renderer} or {@code source} is null
      */
@@ -135,7 +144,10 @@ public final class PaginationSpec<T> {
                    @Nullable PaginationErrorCallback errorCallback,
                    @Nullable Duration requestTimeout,
                    @Nullable Duration cacheTtl,
-                   int cacheMaxPages) {
+                   int cacheMaxPages,
+                   @Nullable Function<ViewContext, ItemStack> emptyStateItem,
+                   int[] emptyStateSlots,
+                   int[] loadingSlots) {
         this.geometry = Objects.requireNonNull(geometry, "geometry is required.");
         this.target = Objects.requireNonNull(target, "target is required.");
         this.layoutChar = layoutChar;
@@ -150,6 +162,9 @@ public final class PaginationSpec<T> {
         this.requestTimeout = requestTimeout;
         this.cacheTtl = cacheTtl;
         this.cacheMaxPages = cacheMaxPages;
+        this.emptyStateItem = emptyStateItem;
+        this.emptyStateSlots = emptyStateSlots == null ? new int[0] : emptyStateSlots.clone();
+        this.loadingSlots = loadingSlots == null ? new int[0] : loadingSlots.clone();
     }
 
     /**
@@ -273,5 +288,33 @@ public final class PaginationSpec<T> {
      */
     public int cacheMaxPages() {
         return cacheMaxPages;
+    }
+
+    /**
+     * Returns the empty-state item painted at {@link #emptyStateSlots()} when the current page
+     * settled with no elements.
+     *
+     * @return the empty-state item factory, or null when no empty-state is declared
+     */
+    public @Nullable Function<ViewContext, ItemStack> emptyStateItem() {
+        return emptyStateItem;
+    }
+
+    /**
+     * Returns the absolute slots the empty-state item paints into.
+     *
+     * @return a defensive copy; empty when no empty-state is declared
+     */
+    public int[] emptyStateSlots() {
+        return emptyStateSlots.clone();
+    }
+
+    /**
+     * Returns the absolute slots the loading item paints into.
+     *
+     * @return a defensive copy; empty when the loading item fills the whole layout
+     */
+    public int[] loadingSlots() {
+        return loadingSlots.clone();
     }
 }
