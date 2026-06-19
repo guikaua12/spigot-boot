@@ -60,17 +60,26 @@ public class PlaceholderStore {
     /**
      * Finds the placeholder metadata matching the given parameter string.
      * <p>
-     * A match is either an exact pattern equality or a pattern whose parameter syntax accepts the
-     * supplied value (see {@link PlaceholderParameterParser#isValidPlaceholderPattern(String, String)}).
+     * An exact key match takes precedence: if a placeholder is registered under exactly {@code params}
+     * it is returned directly. Otherwise the first placeholder whose parameter syntax accepts the supplied
+     * value is returned (see {@link PlaceholderParameterParser#isValidPlaceholderPattern(String, String)}).
+     * Resolving exact matches first keeps lookup deterministic regardless of map iteration order.
      *
      * @param params the placeholder parameter string requested, not null
      * @return the matching metadata, or {@code null} if none matches
      */
     public @Nullable PlaceholderMetadata findPlaceholderMetadata(@NotNull String params) {
+        Objects.requireNonNull(params, "params cannot be null.");
+
+        final PlaceholderMetadata exactMatch = placeholders.get(params);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+
         return placeholders.values().stream()
-                .filter(metadata -> metadata.getPlaceholder().equals(params) ||
-                        PlaceholderParameterParser.isValidPlaceholderPattern(metadata.getPlaceholder(), params)
-                ).findFirst().orElse(null);
+                .filter(metadata -> PlaceholderParameterParser.isValidPlaceholderPattern(metadata.getPlaceholder(), params))
+                .findFirst()
+                .orElse(null);
     }
 
     /**

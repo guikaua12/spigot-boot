@@ -57,6 +57,21 @@ class PlaceholderStoreTest {
     }
 
     @Test
+    void findPrefersExactKeyOverMatchingPattern() {
+        PlaceholderStore store = new PlaceholderStore();
+        PlaceholderMetadata pattern = mock(PlaceholderMetadata.class);
+        when(pattern.getPlaceholder()).thenReturn("top_<page>");
+        PlaceholderMetadata exact = mock(PlaceholderMetadata.class);
+        when(exact.getPlaceholder()).thenReturn("top_3");
+
+        store.register(pattern);
+        store.register(exact);
+
+        // "top_3" also satisfies the "top_<page>" pattern, but the exact key must win deterministically
+        assertSame(exact, store.findPlaceholderMetadata("top_3"));
+    }
+
+    @Test
     void findReturnsNullWhenNoMatch() {
         PlaceholderStore store = new PlaceholderStore();
 
