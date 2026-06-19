@@ -101,6 +101,7 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
 
     private final Map<String, Set<String>> discovered = new LinkedHashMap<>();
     private final Map<String, CategoryRule> ruleCache = new HashMap<>();
+    private final Map<String, String> binaryNameByFqcn = new HashMap<>();
     private Elements elementUtils;
     private boolean generated;
 
@@ -156,6 +157,12 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
         if (!isVisibleFromGenerated(type)) {
             return;
         }
+
+        // record the binary name (e.g. com.example.Outer$Inner) so the generated index can resolve
+        // the class at runtime via Class.forName. getQualifiedName() returns the canonical name
+        // (dots only), which Class.forName rejects for nested types; the canonical name is still used
+        // for the keepReachable() .class literals, which need source form.
+        binaryNameByFqcn.put(fqcn, elementUtils.getBinaryName(type).toString());
 
         // Annotation-kind categories apply to real (instantiable) classes only. Annotations,
         // interfaces, enums, and abstract classes can't be registered as beans.
@@ -430,7 +437,9 @@ public class DiscoveryIndexProcessor extends AbstractProcessor {
                 pw.println("        m.put(\"" + escape(category) + "\", DiscoveryIndexSupport.resolve(cl,");
                 for (int i = 0; i < fqcnList.size(); i++) {
                     String suffix = i == fqcnList.size() - 1 ? "));" : ",";
-                    pw.println("            \"" + fqcnList.get(i) + "\"" + suffix);
+                    // emit the binary name so Class.forName resolves nested types (Outer$Inner) too
+                    String binaryName = binaryNameByFqcn.getOrDefault(fqcnList.get(i), fqcnList.get(i));
+                    pw.println("            \"" + binaryName + "\"" + suffix);
                 }
             }
 
