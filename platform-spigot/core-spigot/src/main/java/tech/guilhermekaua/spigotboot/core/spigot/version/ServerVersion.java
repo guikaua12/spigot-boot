@@ -44,7 +44,11 @@ import java.util.regex.Pattern;
  * package suffix is metadata and does not participate.
  *
  * <p>When the version string cannot be parsed the components are {@code -1} and
- * {@link #isAtLeast(int, int)} always returns {@code false}; construction never throws.
+ * {@link #isAtLeast(int, int)} always returns {@code false}; construction never throws. As a
+ * consequence an unparseable version also reports {@link #isOlderThan(int, int)} {@code true} for
+ * every argument, so code gating behavior on the running version should prefer
+ * {@link #isAtLeast(int, int)} (which fails safe to {@code false}) over {@code isOlderThan}. Under
+ * {@link #compareTo(ServerVersion)} an unparseable version sorts below every parseable one.
  */
 public final class ServerVersion implements Comparable<ServerVersion> {
 

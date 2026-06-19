@@ -100,6 +100,26 @@ class ServerVersionTest {
     }
 
     @Test
+    void malformed_package_suffix_yields_empty_suffix() {
+        // the R group requires at least one digit, so a truncated "v1_19_R" must not match
+        ServerVersion version = ServerVersion.parse("1.19.4-R0.1-SNAPSHOT", "org.bukkit.craftbukkit.v1_19_R");
+
+        assertFalse(version.hasVersionedNmsPackage());
+        assertFalse(version.getNmsPackageSuffix().isPresent());
+    }
+
+    @Test
+    void overflowing_numeric_component_collapses_to_unknown() {
+        // 99999999999 overflows int, so parseInt throws and the whole triple collapses to unknown
+        ServerVersion version = ServerVersion.parse("99999999999.1-R0.1-SNAPSHOT", "org.bukkit.craftbukkit");
+
+        assertEquals(-1, version.getMajor());
+        assertEquals(-1, version.getMinor());
+        assertEquals(-1, version.getPatch());
+        assertFalse(version.isAtLeast(1, 8));
+    }
+
+    @Test
     void is_at_least_compares_against_major_minor() {
         ServerVersion version = ServerVersion.parse("1.20.1-R0.1-SNAPSHOT", "org.bukkit.craftbukkit");
 
