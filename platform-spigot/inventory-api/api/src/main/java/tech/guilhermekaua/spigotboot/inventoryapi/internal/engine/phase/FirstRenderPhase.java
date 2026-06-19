@@ -44,6 +44,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
 import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -136,18 +137,49 @@ public final class FirstRenderPhase {
     }
 
     // overlap validation (§5.3/§6): a slot cannot be both statically bound and a pagination
-    // target; runs inside the try so the failure flows into the OPEN_FAILED abort path.
-    // bindings have no element components yet at this point (the first fill happens in
-    // paintAll), so the check uses the binding's resolved target slots
+    // target; frame slots (empty-state / loading) must not collide with a component or another
+    // pagination. runs inside the try so the failure flows into the OPEN_FAILED abort path.
     private void validatePaginationOverlap(ViewSession session) {
-        for (PaginationBinding binding : PaginationBindings.of(session)) {
+        List<PaginationBinding> bindings = PaginationBindings.of(session);
+        for (PaginationBinding binding : bindings) {
             for (int slot : binding.targetSlots()) {
                 if (session.components().componentAt(slot) != null) {
                     throw new ViewConfigurationException(
                             "slot " + slot + " is bound to both a component and pagination");
                 }
+                checkNotBoundToOtherPagination(slot, binding, bindings);
+            }
+            for (int slot : binding.frameSlots()) {
+                if (session.components().componentAt(slot) != null) {
+                    throw new ViewConfigurationException(
+                            "slot " + slot + " is bound to both a component and a pagination frame item");
+                }
+                checkNotBoundToOtherPagination(slot, binding, bindings);
             }
         }
+    }
+
+    // a slot must belong to at most one pagination, whether as a target or a frame slot
+    private static void checkNotBoundToOtherPagination(int slot, PaginationBinding binding,
+                                                       List<PaginationBinding> bindings) {
+        for (PaginationBinding other : bindings) {
+            if (other == binding) {
+                continue;
+            }
+            if (contains(other.targetSlots(), slot) || contains(other.frameSlots(), slot)) {
+                throw new ViewConfigurationException(
+                        "slot " + slot + " is bound to two paginations");
+            }
+        }
+    }
+
+    private static boolean contains(int[] slots, int value) {
+        for (int slot : slots) {
+            if (slot == value) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // unbound-layout-char warning (§5.3): chars present in the effective layout but bound by
