@@ -245,7 +245,7 @@ class CommandCooldownInterceptorTest {
         dispatcher.dispatch(context, root, sender.senderHandle, "admin", new String[]{"number", "1"});
 
         assertEquals(1, handler.calls);
-        assertEquals(Collections.singletonList("Invalid value 'oops' for argument: amount"), sender.messages);
+        assertEquals(Collections.singletonList("'oops' is not a valid number."), sender.messages);
     }
 
     @Test
