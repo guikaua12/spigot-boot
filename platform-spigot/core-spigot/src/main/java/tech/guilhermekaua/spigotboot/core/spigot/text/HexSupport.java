@@ -103,9 +103,17 @@ public final class HexSupport {
     }
 
     private static String strip(String hex) {
+        if (hex == null || hex.isEmpty()) {
+            throw new IllegalArgumentException("bad hex: " + hex);
+        }
         String h = hex.charAt(0) == '#' ? hex.substring(1) : hex;
         if (h.length() != 6) {
             throw new IllegalArgumentException("bad hex: " + hex);
+        }
+        for (int i = 0; i < 6; i++) {
+            if (Character.digit(h.charAt(i), 16) < 0) {
+                throw new IllegalArgumentException("bad hex: " + hex);
+            }
         }
         return h;
     }

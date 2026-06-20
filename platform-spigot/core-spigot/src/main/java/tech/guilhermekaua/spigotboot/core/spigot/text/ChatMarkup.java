@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.core.spigot.text;
 
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -99,7 +100,7 @@ public final class ChatMarkup {
     public static BaseComponent[] parse(String src, boolean nativeHex) {
         List<BaseComponent> out = new ArrayList<>();
         StringBuilder buf = new StringBuilder();
-        net.md_5.bungee.api.ChatColor color = null;
+        ChatColor color = null;
         boolean bold = false, italic = false, under = false, strike = false, obf = false;
         Deque<ClickEvent> clicks = new ArrayDeque<>();
         Deque<HoverEvent> hovers = new ArrayDeque<>();
@@ -117,7 +118,7 @@ public final class ChatMarkup {
                 char code = Character.toLowerCase(src.charAt(i + 1));
                 if (isHexNibbleColor(code)) {
                     flush(out, buf, color, bold, italic, under, strike, obf, clicks.peek(), hovers.peek());
-                    color = net.md_5.bungee.api.ChatColor.getByChar(code);
+                    color = ChatColor.getByChar(code);
                     bold = italic = under = strike = obf = false;
                     i++;
                     continue;
@@ -193,7 +194,7 @@ public final class ChatMarkup {
     }
 
     private static void flush(List<BaseComponent> out, StringBuilder buf,
-                              net.md_5.bungee.api.ChatColor color, boolean b, boolean it,
+                              ChatColor color, boolean b, boolean it,
                               boolean un, boolean st, boolean ob, ClickEvent click, HoverEvent hover) {
         if (buf.length() == 0) {
             return;

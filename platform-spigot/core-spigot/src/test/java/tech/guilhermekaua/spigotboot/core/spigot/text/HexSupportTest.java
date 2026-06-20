@@ -28,4 +28,16 @@ class HexSupportTest {
     void rejects_malformed_hex() {
         assertThrows(IllegalArgumentException.class, () -> HexSupport.encode("#FFF", true));
     }
+
+    @Test
+    void rejects_non_hex_digits() {
+        assertThrows(IllegalArgumentException.class, () -> HexSupport.encode("#gggggg", true));
+        assertThrows(IllegalArgumentException.class, () -> HexSupport.encode("#gggggg", false));
+    }
+
+    @Test
+    void rejects_null_or_empty_hex() {
+        assertThrows(IllegalArgumentException.class, () -> HexSupport.encode(null, true));
+        assertThrows(IllegalArgumentException.class, () -> HexSupport.encode("", true));
+    }
 }
