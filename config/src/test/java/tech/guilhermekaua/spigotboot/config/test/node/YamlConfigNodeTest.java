@@ -115,4 +115,72 @@ class YamlConfigNodeTest {
         assertEquals("existing", refetched.node(0).raw());
         assertEquals("appended", refetched.node(1).raw());
     }
+
+    @Test
+    void set_onSubKeysOfVirtualNode_attachesWholeChainToRoot() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        YamlConfigNode root = new YamlConfigNode(data);
+
+        // a virtual child populated ONLY through sub-keys; set() is never called on the child itself
+        MutableConfigNode child = root.node("nested");
+        assertTrue(child.isVirtual(), "child should start as virtual");
+        child.node("a").set("x");
+        child.node("b").set("y");
+
+        MutableConfigNode refetched = root.node("nested");
+        assertFalse(refetched.isVirtual(), "node populated via sub-keys must be live in the root");
+        assertEquals("x", refetched.node("a").raw());
+        assertEquals("y", refetched.node("b").raw());
+        assertTrue(root.childrenMap().containsKey("nested"), "root map should contain the nested key");
+    }
+
+    @Test
+    void appendListItem_populatedViaSubKeys_replacesPlaceholderInList() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        YamlConfigNode root = new YamlConfigNode(data);
+
+        MutableConfigNode listNode = root.node("items");
+        MutableConfigNode item = listNode.appendListItem();
+        // populate the appended item ONLY through sub-keys, never item.set(...) directly
+        item.node("k").set("v");
+
+        MutableConfigNode refetched = root.node("items");
+        assertTrue(refetched.isList(), "re-navigated node should be a list");
+        assertEquals(1, refetched.childrenList().size(), "list should contain one element");
+        assertNotNull(refetched.node(0).raw(), "list element populated via sub-keys must not stay null");
+        assertEquals("v", refetched.node(0).node("k").raw());
+    }
+
+    @Test
+    void set_withStringKeyUnderEstablishedList_doesNotFlipListToMapAtRoot() {
+        List<Object> items = new ArrayList<>();
+        items.add("a");
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("items", items);
+        YamlConfigNode root = new YamlConfigNode(data);
+
+        // contradictory access: a string key under a node that is already a list. the re-link must
+        // not coerce the established list into a map, and must not propagate that flip to the root.
+        root.node("items").node("stringKey").set("value");
+
+        assertTrue(root.node("items").isList(), "established list must stay a list");
+        assertInstanceOf(List.class, ((Map<?, ?>) root.raw()).get("items"), "root container must keep the list");
+        assertEquals(1, root.node("items").childrenList().size(), "the original element must be preserved");
+    }
+
+    @Test
+    void set_withIntegerKeyUnderEstablishedMap_doesNotFlipMapToListAtRoot() {
+        Map<String, Object> inner = new LinkedHashMap<>();
+        inner.put("k", "v");
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("obj", inner);
+        YamlConfigNode root = new YamlConfigNode(data);
+
+        // contradictory access: an integer index under a node that is already a map.
+        root.node("obj").node(0).set("value");
+
+        assertTrue(root.node("obj").isMap(), "established map must stay a map");
+        assertInstanceOf(Map.class, ((Map<?, ?>) root.raw()).get("obj"), "root container must keep the map");
+        assertEquals("v", root.node("obj").node("k").raw(), "the original entry must be preserved");
+    }
 }

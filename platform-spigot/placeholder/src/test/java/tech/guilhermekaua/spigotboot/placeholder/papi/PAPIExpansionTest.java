@@ -34,7 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tech.guilhermekaua.spigotboot.placeholder.converter.TypeConverterManager;
 import tech.guilhermekaua.spigotboot.placeholder.metadata.PlaceholderMetadata;
-import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderRegistry;
+import tech.guilhermekaua.spigotboot.placeholder.registry.PlaceholderStore;
 import tech.guilhermekaua.spigotboot.utils.ReflectionUtils;
 
 import java.util.List;
@@ -50,7 +50,7 @@ public class PAPIExpansionTest {
     MockPlugin plugin;
 
     @Mock
-    PlaceholderRegistry placeholderRegistry;
+    PlaceholderStore placeholderStore;
 
     @Mock
     TypeConverterManager typeConverterManager;
@@ -66,7 +66,7 @@ public class PAPIExpansionTest {
         ReflectionUtils.setFieldValue(plugin.getDescription(), "version", "1.0.0");
         ReflectionUtils.setFieldValue(plugin.getDescription(), "authors", List.of("Author1", "Author2"));
 
-        papiExpansion = new PAPIExpansion(plugin, placeholderRegistry, typeConverterManager);
+        papiExpansion = new PAPIExpansion(plugin, placeholderStore, typeConverterManager);
     }
 
     @AfterEach
@@ -79,7 +79,7 @@ public class PAPIExpansionTest {
         Player player = server.addPlayer("TestPlayer");
         String params = "user_name";
         PlaceholderMetadata metadata = mock(PlaceholderMetadata.class);
-        when(placeholderRegistry.findPlaceholderMetadata(params)).thenReturn(metadata);
+        when(placeholderStore.findPlaceholderMetadata(params)).thenReturn(metadata);
         when(metadata.isPlaceholderApi()).thenReturn(true);
         when(metadata.getValue(player, params, typeConverterManager)).thenReturn("TestPlayer");
 
@@ -91,7 +91,7 @@ public class PAPIExpansionTest {
     public void testOnPlaceholderRequest_invalidPlaceholder() {
         Player player = server.addPlayer("TestPlayer");
         String params = "invalid_placeholder";
-        when(placeholderRegistry.findPlaceholderMetadata(params)).thenReturn(null);
+        when(placeholderStore.findPlaceholderMetadata(params)).thenReturn(null);
 
         String result = papiExpansion.onPlaceholderRequest(player, params);
         assertNull(result);
@@ -102,7 +102,7 @@ public class PAPIExpansionTest {
         Player player = server.addPlayer("TestPlayer");
         String params = "user_name";
         PlaceholderMetadata metadata = mock(PlaceholderMetadata.class);
-        when(placeholderRegistry.findPlaceholderMetadata(params)).thenReturn(metadata);
+        when(placeholderStore.findPlaceholderMetadata(params)).thenReturn(metadata);
         when(metadata.isPlaceholderApi()).thenReturn(false);
 
         String result = papiExpansion.onPlaceholderRequest(player, params);
