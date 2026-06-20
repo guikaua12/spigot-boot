@@ -10,8 +10,9 @@
 
 ## Global Constraints
 
-- Build/run tests with **JDK 21** (not the shell-default JDK 25 — Lombok 1.18.36 crashes on 25). Pass `dangerouslyDisableSandbox: true` when running `mvnw.cmd`, or edits silently run against a stale sandbox overlay.
-- Core module tests: `mvnw.cmd -pl commands -am test -Danimal.sniffer.skip=true`. Spigot module tests: `mvnw.cmd -pl platform-spigot/commands-spigot -am test -Danimal.sniffer.skip=true`.
+- Build/run tests with **JDK 21** (not the shell-default JDK 25 — Lombok 1.18.36 crashes on 25). The Bash tool is Git Bash; every `mvnw` invocation MUST be run as:
+  `export JAVA_HOME="C:/Users/Guilherme/.jdks/ms-21.0.10" && ./mvnw.cmd <args>` **with the Bash tool's `dangerouslyDisableSandbox: true`** (otherwise edits silently run against a stale sandbox overlay). Wherever a step below says `mvnw.cmd ...`, run `./mvnw.cmd ...` with that JAVA_HOME export and sandbox disabled.
+- Core module tests: `./mvnw.cmd -pl commands -am test -Danimal.sniffer.skip=true`. Spigot module tests: `./mvnw.cmd -pl platform-spigot/commands-spigot -am test -Danimal.sniffer.skip=true`. Narrow to one class with `-Dtest=ClassName`.
 - Package root: `tech.guilhermekaua.spigotboot.*`. 4-space indent, same-line braces, `UpperCamelCase` types, `lowerCamelCase` members.
 - Public/protected APIs get complete Javadoc (`@param`/`@return`/`@throws`). Keep APIs null-safe (`Objects.requireNonNull`, `@NotNull` where the surrounding code does).
 - Normal (non-Javadoc) comments start lowercase. Import types with `import` — never fully-qualified inline types.
