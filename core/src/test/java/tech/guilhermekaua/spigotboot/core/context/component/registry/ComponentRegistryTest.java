@@ -23,10 +23,13 @@
 package tech.guilhermekaua.spigotboot.core.context.component.registry;
 
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.conditional.ComponentGatedOnPresentMarker;
+import tech.guilhermekaua.spigotboot.core.context.component.registry.conditional.ConditionGateMarker;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.context.discovery.AbsentApiType;
 import tech.guilhermekaua.spigotboot.core.context.discovery.ComponentExtendingAbsentApi;
 import tech.guilhermekaua.spigotboot.core.context.discovery.ComponentReferencingAbsentApi;
+import tech.guilhermekaua.spigotboot.core.utils.ClassUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -103,6 +106,38 @@ class ComponentRegistryTest {
                 "a component that links fine must be present in the bean registry");
     }
 
+    /**
+     * Regression for the PlaceholderRegistry boot NPE on real servers: the component scan must evaluate
+     * {@code @ConditionalOnClass} against the classloader that loaded the component (matching
+     * {@code ModuleRegistry}), not the thread-context classloader. On a real server the thread-context
+     * classloader is not the plugin classloader and cannot resolve soft-dependency types, which would
+     * wrongly skip a component whose optional dependency is in fact present. Here the thread-context
+     * classloader hides the gating class, yet the component's own classloader resolves it, so the
+     * component must still be registered.
+     */
+    @Test
+    void registerComponents_evaluatesConditionsWithComponentClassLoaderNotThreadContext() {
+        String basePackage = ComponentGatedOnPresentMarker.class.getPackage().getName();
+        ClassLoader originalTccl = Thread.currentThread().getContextClassLoader();
+        ClassUtils.clearCache();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                    new NameHidingClassLoader(originalTccl, ConditionGateMarker.class.getName()));
+
+            DependencyManager dependencyManager = new DependencyManager();
+            new ComponentRegistry().registerComponents(basePackage, dependencyManager);
+
+            assertTrue(
+                    dependencyManager.getBeanDefinitionRegistry().getRegisteredTypes()
+                            .contains(ComponentGatedOnPresentMarker.class),
+                    "@ConditionalOnClass must be evaluated against the component's own classloader (which "
+                            + "resolves the gating class), not the thread-context classloader");
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalTccl);
+            ClassUtils.clearCache();
+        }
+    }
+
     private static ClassLoader blockingLoaderHidingAbsentApi() {
         Set<String> childLoaded = new HashSet<>();
         childLoaded.add(ComponentReferencingAbsentApi.class.getName());
@@ -168,6 +203,29 @@ class ComponentRegistryTest {
             } catch (IOException e) {
                 throw new ClassNotFoundException(name, e);
             }
+        }
+    }
+
+    /**
+     * Hides a single class name (throwing {@link ClassNotFoundException}) while delegating everything else
+     * to the parent. Used as a thread-context classloader to simulate a real server whose thread-context
+     * classloader cannot resolve a type that the plugin (component) classloader can.
+     */
+    private static final class NameHidingClassLoader extends ClassLoader {
+        private final String hiddenName;
+
+        NameHidingClassLoader(ClassLoader parent, String hiddenName) {
+            super(parent);
+            this.hiddenName = hiddenName;
+        }
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            if (name.equals(hiddenName)) {
+                throw new ClassNotFoundException(name + " is hidden to simulate a thread-context classloader "
+                        + "that cannot resolve the gating class");
+            }
+            return super.loadClass(name, resolve);
         }
     }
 }

@@ -51,16 +51,10 @@ public class ComponentRegistry {
     private DiscoveryIndexReader discoveryIndexReader;
 
     public void registerComponents(String basePackage, DependencyManager dependencyManager) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        if (classLoader == null) {
-            classLoader = ComponentRegistry.class.getClassLoader();
+        ClassLoader fallbackClassLoader = Thread.currentThread().getContextClassLoader();
+        if (fallbackClassLoader == null) {
+            fallbackClassLoader = ComponentRegistry.class.getClassLoader();
         }
-
-        ConditionContext conditionContext = new SimpleConditionContext(
-                dependencyManager.getBeanDefinitionRegistry(),
-                null,
-                classLoader
-        );
 
         // Index covers minimize-jar-safe classes; classpath scan covers package-private classes
         // the index can't reference (test fixtures, inner classes). Union both for completeness.
@@ -75,6 +69,21 @@ public class ComponentRegistry {
         }
 
         for (Class<?> componentsClass : componentsClasses) {
+            // evaluate conditions (e.g. @ConditionalOnClass) against the classloader that actually loaded
+            // the component, not the thread-context classloader, which on a real server is not the plugin
+            // classloader and cannot resolve soft-dependency types. this mirrors ModuleRegistry. fall back
+            // only when the component has no defining loader (a bootstrap-loaded class).
+            ClassLoader componentClassLoader = componentsClass.getClassLoader();
+            if (componentClassLoader == null) {
+                componentClassLoader = fallbackClassLoader;
+            }
+
+            ConditionContext conditionContext = new SimpleConditionContext(
+                    dependencyManager.getBeanDefinitionRegistry(),
+                    null,
+                    componentClassLoader
+            );
+
             if (ConditionEvaluator.shouldSkip(componentsClass, conditionContext, "ComponentRegistry")) {
                 continue;
             }
