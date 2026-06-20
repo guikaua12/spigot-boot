@@ -47,4 +47,23 @@ class CommandMessageSourceProviderTest {
 
         assertThrows(IllegalStateException.class, () -> provider.resolve(contextWith(dependencyManager)));
     }
+
+    @Test
+    void multipleSourcesWithOnePrimaryReturnsPrimary() {
+        DependencyManager dependencyManager = new DependencyManager();
+        dependencyManager.registerDependency((CommandMessageSource) (ctx, key) -> "a", "a", false);
+        CommandMessageSource primary = (ctx, key) -> "b";
+        dependencyManager.registerDependency(primary, "b", true);
+
+        assertSame(primary, provider.resolve(contextWith(dependencyManager)));
+    }
+
+    @Test
+    void multipleSourcesWithMultiplePrimaryThrows() {
+        DependencyManager dependencyManager = new DependencyManager();
+        dependencyManager.registerDependency((CommandMessageSource) (ctx, key) -> "a", "a", true);
+        dependencyManager.registerDependency((CommandMessageSource) (ctx, key) -> "b", "b", true);
+
+        assertThrows(IllegalStateException.class, () -> provider.resolve(contextWith(dependencyManager)));
+    }
 }
