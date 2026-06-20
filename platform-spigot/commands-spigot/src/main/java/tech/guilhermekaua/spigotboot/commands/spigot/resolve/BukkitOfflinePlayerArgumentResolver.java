@@ -6,10 +6,13 @@ import org.bukkit.entity.Player;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.CommandCompletionProvider;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageException;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageKey;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,9 +39,14 @@ public class BukkitOfflinePlayerArgumentResolver implements CommandArgumentResol
 
         OfflinePlayer fallback = Bukkit.getOfflinePlayer(input);
         if (fallback.getName() == null && !fallback.hasPlayedBefore()) {
-            throw new IllegalArgumentException("Offline player not found: " + input);
+            throw CommandMessageException.of(SpigotCommandMessages.OFFLINE_NOT_FOUND).with("input", input);
         }
         return fallback;
+    }
+
+    @Override
+    public Collection<CommandMessageKey> messageKeys() {
+        return Collections.singletonList(SpigotCommandMessages.OFFLINE_NOT_FOUND);
     }
 
     @Override
