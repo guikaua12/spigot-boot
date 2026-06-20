@@ -20,27 +20,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.guilhermekaua.spigotboot.core.spigot.test.utils;
+package tech.guilhermekaua.spigotboot.core.spigot.text;
 
-import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.core.spigot.utils.ColorUtil;
+/**
+ * Replaces {@code %key%} tokens in a template from a flat {@code (key, value, key, value, …)} array.
+ * Values are stringified with {@link String#valueOf(Object)} (so {@code null} becomes {@code "null"}).
+ * A trailing key with no value is left untouched.
+ */
+public final class Placeholders {
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-public class ColorUtilTest {
-
-    @Test
-    public void translates_ampersand_codes() {
-        assertEquals("§aHi", ColorUtil.colored("&aHi"));
+    private Placeholders() {
     }
 
-    @Test
-    public void downsamples_hex_to_nearest_legacy_on_old_servers() {
-        assertEquals("§2Hi", ColorUtil.colored("#00AA00Hi", false));
-    }
-
-    @Test
-    public void emits_native_hex_sequence_on_modern() {
-        assertEquals("§x§1§a§2§b§3§cHi", ColorUtil.colored("#1a2b3cHi", true));
+    public static String apply(String template, Object... pairs) {
+        if (template == null || pairs == null || pairs.length == 0) {
+            return template;
+        }
+        String s = template;
+        for (int i = 0; i + 1 < pairs.length; i += 2) {
+            s = s.replace("%" + pairs[i] + "%", String.valueOf(pairs[i + 1]));
+        }
+        return s;
     }
 }
