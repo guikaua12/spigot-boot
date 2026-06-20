@@ -2,7 +2,8 @@
 
 Date: 2026-06-20
 Status: Approved design, pending spec review
-Target modules: `commands` (core mechanism), `platform-spigot/commands-spigot` (built-in resolver migration)
+Target modules: `commands` (core mechanism + core built-in resolver migration),
+`platform-spigot/commands-spigot` (Spigot resolver migration)
 
 ## Background
 
@@ -140,8 +141,13 @@ so both produce identical text.
 **`CommandMessageCatalog`** — opt-in injectable bean aggregating
 `CommandArgumentResolver.messageKeys()` across all registered resolvers. Exposes
 `Collection<CommandMessageKey> all()` and `Optional<CommandMessageKey> find(String id)`.
-**Logs nothing.** Constructed from the injected `List<CommandArgumentResolver<?>>` (same
-list `CommandsConfiguration` already wires into the resolver registry).
+**Logs nothing.** It must source resolvers from the **`CommandArgumentResolverRegistry`**,
+not the injected `List<CommandArgumentResolver<?>>` — the five core built-ins are registered
+*inside* `DefaultCommandArgumentResolverRegistry.registerBuiltIns()` and are absent from the
+bean list, so building the catalog from the list would silently miss `CoreCommandMessages`
+keys. This requires a small read accessor on the registry (e.g.
+`Collection<CommandArgumentResolver<?>> all()`), which `DefaultCommandArgumentResolverRegistry`
+already has the data for.
 
 ### Resolver SPI addition (module `commands`)
 
@@ -173,6 +179,38 @@ Only used by the catalog; resolvers that never raise keyed failures ignore it.
 are intentionally not modeled as a binding-exception `Kind`, keeping the message concept
 decoupled from binding semantics.
 
+### Built-in keys + resolver migration (module `commands`)
+
+The core built-in resolvers are private nested classes in
+[`DefaultCommandArgumentResolverRegistry`](../../../commands/src/main/java/tech/guilhermekaua/spigotboot/commands/resolve/DefaultCommandArgumentResolverRegistry.java).
+They get a single discoverable enum, mirroring the Spigot one:
+
+```java
+public enum CoreCommandMessages implements CommandMessageKey {
+    BOOLEAN_INVALID ("boolean.invalid", "'{input}' is not a valid true/false value.", "input"),
+    NUMBER_INVALID  ("number.invalid",  "'{input}' is not a valid number.",           "input"),
+    ENUM_INVALID    ("enum.invalid",    "'{input}' is not a valid option. Valid: {options}.", "input", "options"),
+    UUID_INVALID    ("uuid.invalid",    "'{input}' is not a valid UUID.",             "input");
+    // constructor stores id/defaultTemplate/placeholders; implements the interface
+}
+```
+
+Migrate the four *user-input-validating* nested resolvers to throw keyed failures and
+declare `messageKeys()`:
+
+- `BooleanArgumentResolver` → `BOOLEAN_INVALID` (`{input}`).
+- `NumericArgumentResolver` → `NUMBER_INVALID` (`{input}`); catch `NumberFormatException`
+  around the `parseX` calls and rethrow as the keyed exception.
+- `EnumArgumentResolver` → `ENUM_INVALID` (`{input}`, `{options}` = comma-joined valid
+  constant names, which it already enumerates for completion).
+- `UuidArgumentResolver` → `UUID_INVALID` (`{input}`); catch the `IllegalArgumentException`
+  from `UUID.fromString` and rethrow as keyed.
+
+`StringArgumentResolver` never fails, so it gets no key. `NumericArgumentResolver`'s
+internal `"Unsupported numeric type"` branch stays a plain `IllegalArgumentException` — it
+is a programming error (unsupported parameter type), not bad user input, so it must not be
+presented as a user-facing keyed message.
+
 ### Built-in keys + resolver migration (module `commands-spigot`)
 
 A single enum is the one discoverable entry point for all built-in Spigot keys:
@@ -198,7 +236,8 @@ Migrate the three Bukkit resolvers to throw keyed failures and declare `messageK
 
 - `CommandsConfiguration` (core): add `@Bean` for `CommandMessageSourceProvider`,
   `CommandMessageRenderer` (depends on the provider), and `CommandMessageCatalog` (depends
-  on `List<CommandArgumentResolver<?>>`).
+  on `CommandArgumentResolverRegistry`); add the `all()` read accessor to the
+  `CommandArgumentResolverRegistry` interface and `DefaultCommandArgumentResolverRegistry`.
 - `SpigotCommandsConfiguration`: pass the `CommandMessageRenderer` into the
   `CommandDispatcher` `@Bean`.
 
@@ -224,22 +263,35 @@ public class MyCommandMessages implements CommandMessageSource {
 }
 ```
 
-Discoverability: type `SpigotCommandMessages.` for autocomplete of every built-in key, with
-Javadoc documenting each key's meaning and placeholders. A downstream's own resolver
-implements `CommandMessageKey` for its own keys (its own enum), and—if desired—injects
-`CommandMessageCatalog` to enumerate everything registered at runtime.
+Discoverability: type `CoreCommandMessages.` or `SpigotCommandMessages.` for autocomplete of
+every built-in key, with Javadoc documenting each key's meaning and placeholders. The same
+`resolveTemplate` bean overrides core keys (e.g. `CoreCommandMessages.NUMBER_INVALID`) and
+Spigot keys alike. A downstream's own resolver implements `CommandMessageKey` for its own
+keys (its own enum), and—if desired—injects `CommandMessageCatalog` to enumerate everything
+registered at runtime.
 
 ## Backward compatibility
 
-- Resolvers throwing ordinary exceptions (`IllegalArgumentException`,
-  `NumberFormatException`, …) are unchanged: still wrapped into
-  `CommandBindingException.invalid` → `invalidArgumentValue`. The existing tests asserting
-  `Invalid value 'oops' for argument: amount` (integer arg, non-migrated resolver) stay
-  green.
-- The three migrated Bukkit resolvers change observable output: with **no**
-  `CommandMessageSource`, an offline-player input now shows `No player named 'x' is online.`
-  instead of the generic `Invalid value 'x' for argument: target`. Any existing test
-  asserting the old generic text for these resolvers must be updated to the new defaults.
+- `CommandMessages.invalidArgumentValue` and the `CommandBindingException.INVALID_ARGUMENT`
+  path are **retained** as the generic fallback. Any resolver that throws an ordinary
+  exception — notably **downstream/custom resolvers** that don't opt into keyed messages —
+  still routes through `invalidArgumentValue` exactly as today. Keyed messages are the
+  opt-in nicer path, not a replacement.
+- All **built-in** resolvers (the four core ones above plus the three Spigot ones) now opt
+  in, so their default output changes. Examples with **no** `CommandMessageSource`
+  registered:
+  - `amount` (int) bad input: was `Invalid value 'oops' for argument: amount`, now
+    `'oops' is not a valid number.`
+  - offline player: was `Invalid value 'x' for argument: target`, now
+    `No player named 'x' is online.`
+- Existing tests asserting the old generic text for migrated resolvers must be updated to
+  the new defaults. Known cases:
+  [`CommandInterceptorExecutionTest`](../../../commands/src/test/java/tech/guilhermekaua/spigotboot/commands/test/CommandInterceptorExecutionTest.java)
+  and
+  [`CommandCooldownInterceptorTest`](../../../commands/src/test/java/tech/guilhermekaua/spigotboot/commands/test/CommandCooldownInterceptorTest.java)
+  assert `Invalid value 'oops' for argument: amount` for an integer arg; the latter also
+  defines a test `CommandMessages` overriding `invalidArgumentValue`, whose expectation must
+  move to the keyed path (`CommandMessageSource` / the `number.invalid` default).
 
 ## Testing
 
@@ -254,9 +306,16 @@ Core (`commands`):
   `CommandMessagesProvider`).
 - `CommandMessageCatalog`: aggregates keys from multiple resolvers; `find(id)`; logs
   nothing.
+- Built-in core resolvers: `Boolean`/`Numeric`/`Enum`/`Uuid` throw the correct
+  `CoreCommandMessages` key with expected placeholders (`enum.invalid` includes
+  `{options}`); `NumericArgumentResolver`'s unsupported-type branch still throws a plain
+  `IllegalArgumentException` (not keyed).
 - Dispatcher integration: a resolver throwing `CommandMessageException` with a registered
   source → sender sees the overridden text; without a source → default text; interceptor
   `onError` is invoked.
+- Update `CommandInterceptorExecutionTest` / `CommandCooldownInterceptorTest` to the new
+  `number.invalid` default (and re-point the latter's `invalidArgumentValue` override test
+  onto the keyed path), confirming the migration's behavior change is intentional.
 
 Spigot (`commands-spigot`):
 - Each migrated resolver throws the correct key with the expected placeholder values
