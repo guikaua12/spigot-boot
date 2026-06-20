@@ -76,6 +76,8 @@ class PlaceholderConditionalOnClassTest {
 
         assertFalse(ConditionEvaluator.shouldSkip(PlaceholderRegistry.class, papiPresent),
                 "PlaceholderRegistry must not be skipped when PlaceholderAPI is on the classpath");
+        assertFalse(ConditionEvaluator.shouldSkip(PAPIExpansion.class, papiPresent),
+                "PAPIExpansion must not be skipped when PlaceholderAPI is on the classpath");
     }
 
     /**

@@ -151,10 +151,12 @@ public class ComponentRegistry {
         try {
             registerScannedComponentTyped((Class<Object>) componentClass, dependencyManager);
             return true;
-        } catch (LinkageError e) {
+        } catch (NoClassDefFoundError e) {
             // the component references a type from an absent optional dependency, so linking it (here,
             // while the cycle-detection pre-scan resolves its member types) fails. skip it so one
-            // unavailable component does not poison the whole scan.
+            // unavailable component does not poison the whole scan. only NoClassDefFoundError is caught
+            // (not the broader LinkageError) so genuinely broken classes -- VerifyError, ClassFormatError,
+            // UnsupportedClassVersionError -- still fail the boot loudly instead of being silently skipped.
             LOGGER.log(Level.FINE, "Skipping component '" + componentClass.getName()
                     + "': references a type from an absent optional dependency", e);
             return false;
