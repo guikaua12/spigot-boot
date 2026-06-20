@@ -24,6 +24,8 @@ public class CommandMessageRenderer {
      * @return the message to send to the sender
      */
     public String render(CommandExecutionContext context, CommandMessageException exception) {
+        Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(exception, "exception must not be null");
         CommandMessageSource source = sourceProvider.resolve(context.getContext());
         String template = source.resolveTemplate(context, exception.getKey());
         if (template == null) {

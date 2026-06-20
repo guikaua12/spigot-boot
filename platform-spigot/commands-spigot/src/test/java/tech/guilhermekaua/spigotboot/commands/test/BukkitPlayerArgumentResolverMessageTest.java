@@ -11,6 +11,7 @@ import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.commands.spigot.resolve.BukkitPlayerArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.spigot.resolve.SpigotCommandMessages;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,6 +37,24 @@ class BukkitPlayerArgumentResolverMessageTest {
 
             assertSame(SpigotCommandMessages.PLAYER_NOT_FOUND, exception.getKey());
             assertEquals("ghost", exception.getPlaceholders().get("input"));
+        }
+    }
+
+    @Test
+    void ambiguousPlayerThrowsAmbiguousKey() {
+        Player a = mock(Player.class);
+        Player b = mock(Player.class);
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getPlayerExact("al")).thenReturn(null);
+            bukkit.when(() -> Bukkit.matchPlayer("al")).thenReturn(Arrays.asList(a, b));
+
+            CommandMessageException exception = assertThrows(
+                    CommandMessageException.class,
+                    () -> resolver.resolve(context, parameter, "al"));
+
+            assertSame(SpigotCommandMessages.PLAYER_AMBIGUOUS, exception.getKey());
+            assertEquals("al", exception.getPlaceholders().get("input"));
+            assertEquals(2, exception.getPlaceholders().get("count"));
         }
     }
 }
