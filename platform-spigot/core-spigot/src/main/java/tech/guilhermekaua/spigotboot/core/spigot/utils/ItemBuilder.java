@@ -305,7 +305,7 @@ public class ItemBuilder {
         }
         return changeItemMeta(meta -> {
             try {
-                meta.getClass().getMethod("setCustomModelData", Integer.class).invoke(meta, data);
+                ItemMeta.class.getMethod("setCustomModelData", Integer.class).invoke(meta, data);
             } catch (ReflectiveOperationException ignored) {
                 // pre-1.14: no custom model data support
             }
