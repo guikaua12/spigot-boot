@@ -26,7 +26,10 @@ public class BukkitCommandSender implements CommandSenderHandle {
         }
 
         String name = sender.getName();
-        return sender.getClass().getName() + ":" + (name == null ? "" : name);
+        // Object-typed on purpose: the 1.8.8 sniffer signature lacks JDK supertypes, so
+        // getClass() must resolve via the java.* ignore (see root pom)
+        Object senderObject = sender;
+        return senderObject.getClass().getName() + ":" + (name == null ? "" : name);
     }
 
     @Override

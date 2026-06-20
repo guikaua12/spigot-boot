@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.engine;
 
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,12 +57,23 @@ final class FakePaginationHost implements PaginationHost {
     private final List<FillPageCall> fillPageCalls = new ArrayList<>();
     private final UUID playerId;
     private final Plugin plugin;
+    private final Player player;
     private boolean active = true;
     private int requestRenderCount;
 
+    /** Creates a host with no live {@code Player} — settles run inline on the completing thread. */
     FakePaginationHost(UUID playerId, Plugin plugin) {
+        this(playerId, plugin, null);
+    }
+
+    /**
+     * Creates a host with a live {@code Player}; the settle dispatcher will route off-thread
+     * settles to the player's entity scheduler (or the mock Bukkit scheduler in legacy mode).
+     */
+    FakePaginationHost(UUID playerId, Plugin plugin, @Nullable Player player) {
         this.playerId = playerId;
         this.plugin = plugin;
+        this.player = player;
     }
 
     @Override
@@ -82,6 +94,11 @@ final class FakePaginationHost implements PaginationHost {
     @Override
     public @Nullable UUID playerId() {
         return playerId;
+    }
+
+    @Override
+    public @Nullable Player player() {
+        return player;
     }
 
     @Override

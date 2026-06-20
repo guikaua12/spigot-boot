@@ -6,7 +6,7 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot-platform-spigot</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
@@ -78,6 +78,30 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- activates the managed spigot-api 1.8.8 check (config in the root pom) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <configuration>
+                    <!-- TypeUtil#convertFromLegacy: UnsafeValues#fromLegacy (1.13+) is data-gated -
+                         Material.valueOf("LEGACY_"+name) throws on 1.8.8 before the call is reached.
+                         (ItemUtils#getHeadByUuid calls the 1.12.1+ SkullMeta#setOwningPlayer
+                         reflectively instead of ignoring the class, so the rest of the SkullMeta
+                         api stays checked - see ItemUtils#trySetOwningPlayer.)
+                         combine.children="append" merges with the managed java.*/javax.* ignores
+                         instead of replacing them -->
+                    <ignores combine.children="append">
+                        <ignore>org.bukkit.UnsafeValues</ignore>
+                        <!-- Folia scheduler API; referenced only by FoliaPlatformScheduler/FoliaPlatformTask,
+                             which load only when the API is present at runtime -->
+                        <ignore>io.papermc.paper.threadedregions.scheduler.EntityScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.RegionScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask</ignore>
+                        <ignore>io.papermc.paper.threadedregions.scheduler.ScheduledTask$CancelledState</ignore>
+                    </ignores>
+                </configuration>
             </plugin>
         </plugins>
     </build>

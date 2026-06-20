@@ -30,7 +30,7 @@ import tech.guilhermekaua.spigotboot.config.reference.context.ConfigReferenceNot
 import tech.guilhermekaua.spigotboot.config.reference.context.ConfigTypeMismatchContext;
 import tech.guilhermekaua.spigotboot.config.reference.key.ReferenceKey;
 import tech.guilhermekaua.spigotboot.config.reference.key.ResolutionTarget;
-import tech.guilhermekaua.spigotboot.config.spigot.node.SnapshotConfigNode;
+import tech.guilhermekaua.spigotboot.config.node.SnapshotConfigNode;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;

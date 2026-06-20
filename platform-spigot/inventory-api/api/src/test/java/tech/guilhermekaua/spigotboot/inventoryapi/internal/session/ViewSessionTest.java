@@ -27,8 +27,8 @@ import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
@@ -184,7 +184,7 @@ class ViewSessionTest {
         ViewSession session = newSession();
         assertNull(session.updateTask());
 
-        BukkitTask task = mock(BukkitTask.class);
+        PlatformTask task = mock(PlatformTask.class);
         session.updateTask(task);
         assertSame(task, session.updateTask());
 

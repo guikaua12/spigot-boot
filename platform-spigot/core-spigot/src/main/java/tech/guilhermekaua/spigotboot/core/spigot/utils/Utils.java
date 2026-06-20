@@ -22,13 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.core.spigot.utils;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -125,12 +125,27 @@ public class Utils {
         }
     }
 
-    public static void sync(Plugin plugin, Runnable runnable) {
-        Bukkit.getServer().getScheduler().runTask(plugin, runnable);
+    /**
+     * Runs a task on the thread owning the entity's region.
+     *
+     * @param scheduler the platform scheduler
+     * @param entity    the entity whose region owns the task
+     * @param runnable  the work to run
+     */
+    public static void sync(PlatformScheduler scheduler, Entity entity, Runnable runnable) {
+        scheduler.runOnEntity(entity, runnable, null);
     }
 
-    public static void syncLater(Plugin plugin, Runnable runnable, long delay) {
-        Bukkit.getServer().getScheduler().runTaskLater(plugin, runnable, delay);
+    /**
+     * Runs a task on the thread owning the entity's region after a delay.
+     *
+     * @param scheduler  the platform scheduler
+     * @param entity     the entity whose region owns the task
+     * @param runnable   the work to run
+     * @param delayTicks the delay in server ticks
+     */
+    public static void syncLater(PlatformScheduler scheduler, Entity entity, Runnable runnable, long delayTicks) {
+        scheduler.runOnEntityLater(entity, runnable, null, delayTicks);
     }
 
     public static <T> T find(Collection<T> collection, Predicate<T> predicate) {
@@ -142,13 +157,22 @@ public class Utils {
         return null;
     }
 
-    public static void playSound(Plugin plugin, Player player, String name) {
-        Bukkit.getServer().getScheduler().runTask(plugin, () -> {
-            Utils.tryElsePrint(() -> {
-                final Sound sound = Sound.valueOf(name);
+    /**
+     * Plays a sound for the player on the thread owning the player's region. The sound name is
+     * resolved via {@link SoundCompat} so this works on both enum (≤ 1.21.2) and interface
+     * (≥ 1.21.3) server builds.
+     *
+     * @param scheduler the platform scheduler
+     * @param player    the target player
+     * @param name      the sound name (enum constant or namespaced key)
+     */
+    public static void playSound(PlatformScheduler scheduler, Player player, String name) {
+        scheduler.runOnEntity(player, () -> Utils.tryElsePrint(() -> {
+            Sound sound = SoundCompat.resolve(name);
+            if (sound != null) {
                 player.playSound(player.getEyeLocation(), sound, 1.0f, 1.0f);
-            });
-        });
+            }
+        }), null);
     }
 
     public static long millisToTicks(long millis) {

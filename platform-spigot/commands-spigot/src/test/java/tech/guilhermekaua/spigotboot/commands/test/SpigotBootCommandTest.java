@@ -108,6 +108,78 @@ class SpigotBootCommandTest {
         assertTrue(restrictedSuggestions.isEmpty());
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // command visibility vs. per-route permission.
+    //
+    // CraftBukkit builds each command's client-side command-tree node with a requires(...) predicate
+    // backed by Command#testPermissionSilent, so a command with only a permission-gated subcommand must
+    // not be exposed in tab completion to players who cannot use any of its routes. Argument-level
+    // completion is already filtered by the dispatcher (covered above); these tests pin the visibility gate.
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    void commandWithOnlyAGatedSubcommandIsHiddenFromPlayersWithoutPermission() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Player player = server.addPlayer("NoPerms");
+
+        SpigotBootCommand command = new SpigotBootCommand(
+                newContext(plugin), compileRoot(new GatedNetworkCommand()), newDispatcher(), platformSupport);
+
+        assertFalse(command.testPermissionSilent(player),
+                "a player who can use no route must not see the command in tab completion");
+    }
+
+    @Test
+    void commandWithAGatedSubcommandStaysVisibleToPlayersWithPermission() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Player player = server.addPlayer("Admin");
+        player.addAttachment(plugin, "network.reload", true);
+
+        SpigotBootCommand command = new SpigotBootCommand(
+                newContext(plugin), compileRoot(new GatedNetworkCommand()), newDispatcher(), platformSupport);
+
+        assertTrue(command.testPermissionSilent(player),
+                "a player who can use a route must still see the command");
+    }
+
+    @Test
+    void commandWithPermissionlessDefaultStaysVisibleToEveryone() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Player player = server.addPlayer("AnyOne");
+
+        SpigotBootCommand command = new SpigotBootCommand(
+                newContext(plugin), compileRoot(new OpenDefaultCommand()), newDispatcher(), platformSupport);
+
+        assertTrue(command.testPermissionSilent(player),
+                "a command whose default handler needs no permission must stay visible to everyone");
+    }
+
+    @Test
+    void commandWithOnlyACatchUnknownHandlerIsHiddenFromEveryone() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Player player = server.addPlayer("AnyOne");
+
+        SpigotBootCommand command = new SpigotBootCommand(
+                newContext(plugin), compileRoot(new CatchUnknownOnlyCommand()), newDispatcher(), platformSupport);
+
+        // @CatchUnknown only handles unmatched input; it is not a usable route, so the command exposes none.
+        assertFalse(command.testPermissionSilent(player),
+                "a command whose only handler is @CatchUnknown offers no usable route and must stay hidden");
+    }
+
+    @Test
+    void commandStaysVisibleWhenOnlyOneOfSeveralRoutesIsUngated() {
+        JavaPlugin plugin = MockBukkit.createMockPlugin("TestPlugin");
+        Player player = server.addPlayer("NoPerms");
+
+        SpigotBootCommand command = new SpigotBootCommand(
+                newContext(plugin), compileRoot(new MixedAccessCommand()), newDispatcher(), platformSupport);
+
+        // the gated 'reload' route is denied, but the permissionless 'info' route is still usable.
+        assertTrue(command.testPermissionSilent(player),
+                "a sender who can use at least one route must still see the command");
+    }
+
     private Context newContext(JavaPlugin plugin) {
         Context context = mock(Context.class);
         when(context.getPlugin()).thenReturn(new SpigotBootPlugin(plugin));
@@ -150,6 +222,44 @@ class SpigotBootCommandTest {
         @Permission("admin.manage")
         @Command("manage")
         public void manage(@Sender Player sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("network")
+    static class GatedNetworkCommand {
+        @Permission("network.reload")
+        @Command("reload")
+        public void reload(@Sender Player sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("status")
+    static class OpenDefaultCommand {
+        @DefaultCommand
+        public void status(@Sender Player sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("broadcast")
+    static class CatchUnknownOnlyCommand {
+        @CatchUnknown
+        public void unknown() {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("monitor")
+    static class MixedAccessCommand {
+        @Command("info")
+        public void info(@Sender Player sender) {
+        }
+
+        @Permission("monitor.reload")
+        @Command("reload")
+        public void reload(@Sender Player sender) {
         }
     }
 

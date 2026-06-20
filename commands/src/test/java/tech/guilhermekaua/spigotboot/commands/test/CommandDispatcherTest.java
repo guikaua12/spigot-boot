@@ -31,7 +31,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static tech.guilhermekaua.spigotboot.commands.test.CommandTestSupport.*;
@@ -158,6 +160,54 @@ class CommandDispatcherTest {
         List<String> suggestions = dispatcher.complete(context, root, senderHandleFor(sender), "admin", new String[]{"tp", "T"});
 
         assertEquals(Collections.emptyList(), suggestions);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // canUseAnyRoute drives command visibility on every platform adapter (BungeeBootCommand#hasPermission,
+    // SpigotBootCommand#testPermissionSilent). These module-level tests pin the routing logic — including
+    // the intentional @CatchUnknown exclusion — independently of any platform's test infrastructure.
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    void canUseAnyRouteHidesFullyGatedCommandFromSenderWithoutPermission() {
+        CompiledRootCommand root = compileRoot(new GatedNetworkCommand());
+        CommandDispatcher dispatcher = newDispatcher();
+
+        assertFalse(dispatcher.canUseAnyRoute(root, senderHandleFor(testSender("NoPerms"))));
+    }
+
+    @Test
+    void canUseAnyRouteShowsGatedCommandToSenderWithPermission() {
+        CompiledRootCommand root = compileRoot(new GatedNetworkCommand());
+        CommandDispatcher dispatcher = newDispatcher();
+
+        assertTrue(dispatcher.canUseAnyRoute(root, senderHandleFor(testSender("Admin", "network.reload"))));
+    }
+
+    @Test
+    void canUseAnyRouteShowsCommandWithPermissionlessDefaultHandlerToEveryone() {
+        CompiledRootCommand root = compileRoot(new OpenDefaultCommand());
+        CommandDispatcher dispatcher = newDispatcher();
+
+        assertTrue(dispatcher.canUseAnyRoute(root, senderHandleFor(testSender("AnyOne"))));
+    }
+
+    @Test
+    void canUseAnyRouteHidesCommandWhoseOnlyHandlerIsCatchUnknown() {
+        CompiledRootCommand root = compileRoot(new CatchUnknownOnlyCommand());
+        CommandDispatcher dispatcher = newDispatcher();
+
+        // @CatchUnknown handles unmatched input; it is not a usable route, so the command exposes none.
+        assertFalse(dispatcher.canUseAnyRoute(root, senderHandleFor(testSender("AnyOne"))));
+    }
+
+    @Test
+    void canUseAnyRouteShowsCommandWhenAtLeastOneRouteIsUngated() {
+        CompiledRootCommand root = compileRoot(new MixedAccessCommand());
+        CommandDispatcher dispatcher = newDispatcher();
+
+        // the gated 'reload' route is denied, but the permissionless 'info' route is still usable.
+        assertTrue(dispatcher.canUseAnyRoute(root, senderHandleFor(testSender("NoPerms"))));
     }
 
     private CompiledRootCommand compileRoot(Object handler) {
@@ -328,6 +378,44 @@ class CommandDispatcherTest {
         @Permission("admin.tp")
         @Command("tp <target>")
         public void teleport(@Completion("targets") String target) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("network")
+    static class GatedNetworkCommand {
+        @Permission("network.reload")
+        @Command("reload")
+        public void reload(@Sender TestSender sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("status")
+    static class OpenDefaultCommand {
+        @DefaultCommand
+        public void status(@Sender TestSender sender) {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("broadcast")
+    static class CatchUnknownOnlyCommand {
+        @CatchUnknown
+        public void unknown() {
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("monitor")
+    static class MixedAccessCommand {
+        @Command("info")
+        public void info(@Sender TestSender sender) {
+        }
+
+        @Permission("monitor.reload")
+        @Command("reload")
+        public void reload(@Sender TestSender sender) {
         }
     }
 

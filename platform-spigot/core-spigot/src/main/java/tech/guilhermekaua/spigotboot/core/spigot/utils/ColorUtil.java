@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.val;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
+import tech.guilhermekaua.spigotboot.core.spigot.text.HexSupport;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -15,24 +16,27 @@ import java.util.stream.Collectors;
 public final class ColorUtil {
     private static final Pattern HEX_PATTERN = Pattern.compile("#[a-fA-F0-9]{6}");
 
+    /** Translates {@code &} codes and {@code #rrggbb} hex for the running server version. */
     public static String colored(String message) {
-        Matcher matcher = HEX_PATTERN.matcher(message);
+        return colored(message, HexSupport.NATIVE_HEX);
+    }
 
-        while (matcher.find()) {
-            String hexCode = message.substring(matcher.start(), matcher.end());
-            String replaceSharp = hexCode.replace('#', 'x');
-
-            char[] ch = replaceSharp.toCharArray();
-            StringBuilder builder = new StringBuilder();
-            for (char c : ch) {
-                builder.append("&" + c);
-            }
-
-            message = message.replace(hexCode, builder.toString());
-            matcher = HEX_PATTERN.matcher(message);
+    /**
+     * Translates {@code &} codes and {@code #rrggbb} hex, encoding hex for an explicit version
+     * capability: the native {@code §x…} sequence when {@code nativeHex} is true, otherwise
+     * downsampled to the nearest legacy colour so it still renders on ≤1.15.
+     */
+    public static String colored(String message, boolean nativeHex) {
+        if (message == null) {
+            return null;
         }
-
-        return ChatColor.translateAlternateColorCodes('&', message);
+        Matcher matcher = HEX_PATTERN.matcher(message);
+        StringBuffer sb = new StringBuffer(message.length());
+        while (matcher.find()) {
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(HexSupport.encode(matcher.group(), nativeHex)));
+        }
+        matcher.appendTail(sb);
+        return ChatColor.translateAlternateColorCodes('&', sb.toString());
     }
 
 

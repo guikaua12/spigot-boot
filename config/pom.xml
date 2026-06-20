@@ -6,11 +6,11 @@
     <parent>
         <groupId>tech.guilhermekaua.spigot-boot</groupId>
         <artifactId>spigot-boot</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.0</version>
     </parent>
 
     <name>${project.artifactId}</name>
-    <description>Platform-agnostic configuration API for Spigot Boot with YAML binding support.</description>
+    <description>Platform-agnostic configuration API and YAML implementation for Spigot Boot.</description>
     <url>https://github.com/guikaua12/spigot-boot</url>
     <artifactId>spigot-boot-config</artifactId>
 
@@ -24,7 +24,35 @@
         <dependency>
             <groupId>tech.guilhermekaua.spigot-boot</groupId>
             <artifactId>spigot-boot-core</artifactId>
-            <version>3.2.0</version>
+            <version>3.3.0</version>
+        </dependency>
+
+        <!-- ConfigProxy uses the javassist proxy API; provided (never bundled) because the relocated
+             copy is supplied at runtime by spigot-boot-core, and this module's references are rewritten
+             to the shaded package by the maven-shade-plugin execution below. -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- YAML engine. provided: the host server (Bukkit/Paper and BungeeCord) bundles SnakeYAML at
+             runtime. Only stable APIs (Yaml, DumperOptions, load, dump) are used, so the compile-time
+             2.2 matches the 2.x bundled by both platforms. -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
@@ -42,9 +70,75 @@
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.36</version>
+                        </path>
+                        <path>
+                            <groupId>tech.guilhermekaua.spigot-boot</groupId>
+                            <artifactId>spigot-boot-annotation-processor-spigot</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- ConfigProxy uses the javassist proxy API directly. javassist ships only as the relocated
+                 copy bundled inside spigot-boot-core, so this module's own bytecode must reference the
+                 shaded names too; otherwise it throws NoClassDefFoundError: javassist/util/proxy/* at
+                 runtime. nothing is bundled here (core owns the shaded javassist) — this execution only
+                 rewrites this module's references. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- version managed by the parent pluginManagement (3.5.1) -->
+                <executions>
+                    <execution>
+                        <id>relocate-javassist-references</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>tech.guilhermekaua.spigot-boot:spigot-boot-config</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- runs *IT (the relocation guard) in the integration-test phase, after package/shade -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.3</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <project.build.directory>${project.build.directory}</project.build.directory>
+                        <project.build.finalName>${project.build.finalName}</project.build.finalName>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

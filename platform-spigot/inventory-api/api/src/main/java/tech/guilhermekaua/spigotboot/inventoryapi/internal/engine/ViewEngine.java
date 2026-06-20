@@ -22,7 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.engine;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -33,6 +32,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseReason;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.UpdateTrigger;
@@ -58,7 +58,7 @@ import java.util.Objects;
 
 /**
  * Orchestrator of the view lifecycle: composes the fixed-order phase handlers and is the
- * sole mutator of sessions. All entry points assert the main thread.
+ * sole mutator of sessions. All entry points assert that the calling thread owns the viewer's region.
  */
 @Component
 @ApiStatus.Internal
@@ -69,8 +69,11 @@ public final class ViewEngine {
     private final SessionRegistry sessions;
     private final SlotPainter painter;
     private final TitleUpdater titleUpdater;
+    private final PlatformScheduler scheduler;
 
-    private boolean inClickDispatch;
+    // per-thread: under Folia region concurrency one ViewEngine instance serves multiple region
+    // threads at once, so a shared flag would leak click-dispatch state across concurrent sessions.
+    private final ThreadLocal<Boolean> inClickDispatch = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     // fixed-order phase handlers, engine-owned
     final OpenPhase openPhase;
@@ -81,7 +84,7 @@ public final class ViewEngine {
     final PaginationInitPhase paginationInitPhase;
 
     // flush machinery extracted behind a dedicated coordinator (single responsibility);
-    // the flush entry points below delegate to it after asserting the main thread
+    // the flush entry points below delegate to it after asserting region ownership
     private final FlushCoordinator flushCoordinator;
 
     /**
@@ -92,21 +95,24 @@ public final class ViewEngine {
      * @param sessions     the per-player session registry
      * @param painter      the slot painter used by the rendering phases
      * @param titleUpdater the in-place title update strategy
+     * @param scheduler    the platform scheduler
      */
     public ViewEngine(@NotNull Plugin plugin, @NotNull ViewRegistry views, @NotNull SessionRegistry sessions,
-                      @NotNull SlotPainter painter, @NotNull TitleUpdater titleUpdater) {
+                      @NotNull SlotPainter painter, @NotNull TitleUpdater titleUpdater,
+                      @NotNull PlatformScheduler scheduler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.views = Objects.requireNonNull(views, "views");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.painter = Objects.requireNonNull(painter, "painter");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.closePhase = new ClosePhase(this, sessions);
         this.openPhase = new OpenPhase(this, sessions, painter);
         this.firstRenderPhase = new FirstRenderPhase(this, sessions, painter);
         this.updatePhase = new UpdatePhase(this, painter);
         this.clickRoutingPhase = new ClickRoutingPhase(this);
         this.paginationInitPhase = new PaginationInitPhase(this, sessions);
-        this.flushCoordinator = new FlushCoordinator(plugin, sessions, updatePhase);
+        this.flushCoordinator = new FlushCoordinator(sessions, updatePhase, scheduler);
     }
 
     /**
@@ -121,11 +127,11 @@ public final class ViewEngine {
      * @throws UnknownViewException     when the view class is not registered
      * @throws IllegalArgumentException when an {@code initialState} argument has a
      *                                  mismatching type
-     * @throws IllegalStateException    when called off the main thread
+     * @throws IllegalStateException    when called off the thread owning the viewer's region
      */
     public void open(@NotNull Player player, @NotNull Class<? extends View> viewType,
                      @NotNull ViewArguments arguments) {
-        ThreadUtils.assertMainThread("ViewEngine.open");
+        ThreadUtils.assertOwnsRegion(scheduler, player, "ViewEngine.open");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(arguments, "arguments");
         if (isInClickDispatch()) {
@@ -136,7 +142,8 @@ public final class ViewEngine {
             if (current != null) {
                 defer(current, () -> open(player, viewType, arguments));
             } else {
-                Bukkit.getScheduler().runTask(plugin, () -> open(player, viewType, arguments));
+                // no retired callback: a player logging out before this runs leaves nothing to clean up (no session yet)
+                scheduler.runOnEntity(player, () -> open(player, viewType, arguments), null);
             }
             return;
         }
@@ -164,7 +171,7 @@ public final class ViewEngine {
      * @param reason  the close reason
      */
     public void close(@NotNull ViewSession session, @NotNull CloseReason reason) {
-        ThreadUtils.assertMainThread("ViewEngine.close");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.close");
         if (isInClickDispatch()) {
             // self-defer: the deferred op runs at end of tick, when click dispatch is
             // over, so it cannot re-defer
@@ -181,10 +188,10 @@ public final class ViewEngine {
      *
      * @param session the session whose container title is updated
      * @param title   the new title, legacy color codes supported
-     * @throws IllegalStateException when called off the main thread
+     * @throws IllegalStateException when called off the thread owning the viewer's region
      */
     public void updateTitle(@NotNull ViewSession session, @NotNull String title) {
-        ThreadUtils.assertMainThread("ViewEngine.updateTitle");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.updateTitle");
         // placeholders first, then color codes: PAPI output may itself contain '&' codes
         String resolved = ChatColor.translateAlternateColorCodes('&',
                 painter.applyText(session.player(), title, session.effectiveConfig().applyPlaceholders()));
@@ -198,7 +205,7 @@ public final class ViewEngine {
      * @param trigger the cause of the update
      */
     public void update(@NotNull ViewSession session, @NotNull UpdateTrigger trigger) {
-        ThreadUtils.assertMainThread("ViewEngine.update");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.update");
         updatePhase.update(session, trigger, null);
         flushDirty(session);
     }
@@ -211,10 +218,10 @@ public final class ViewEngine {
      *
      * @param session the session whose pagination token settled
      * @param tokenId the token id of the settled pagination declaration
-     * @throws IllegalStateException when called off the main thread
+     * @throws IllegalStateException when called off the thread owning the viewer's region
      */
     public void paginationSettle(@NotNull ViewSession session, int tokenId) {
-        ThreadUtils.assertMainThread("ViewEngine.paginationSettle");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.paginationSettle");
         ViewSession.Status status = session.status();
         if (status == ViewSession.Status.CLOSED || status == ViewSession.Status.OPENING) {
             return;
@@ -233,7 +240,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void click(@NotNull ViewSession session, @NotNull InventoryClickEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.click");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.click");
         clickDispatch(true);
         try {
             clickRoutingPhase.route(session, event);
@@ -253,7 +260,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void drag(@NotNull ViewSession session, @NotNull InventoryDragEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.drag");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.drag");
         if (!session.effectiveConfig().cancelOnDrag()) {
             return;
         }
@@ -279,7 +286,7 @@ public final class ViewEngine {
      * @param event   the Bukkit event
      */
     public void bukkitClose(@NotNull ViewSession session, @NotNull InventoryCloseEvent event) {
-        ThreadUtils.assertMainThread("ViewEngine.bukkitClose");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.bukkitClose");
         if (event.getInventory() != session.inventory()) {
             return;
         }
@@ -295,7 +302,7 @@ public final class ViewEngine {
      * @param session the session to flush
      */
     public void flushDirty(@NotNull ViewSession session) {
-        ThreadUtils.assertMainThread("ViewEngine.flushDirty");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.flushDirty");
         flushCoordinator.flushDirty(session);
     }
 
@@ -306,7 +313,6 @@ public final class ViewEngine {
      * @param owner the view singleton whose sessions should flush
      */
     public void flushShared(@NotNull View owner) {
-        ThreadUtils.assertMainThread("ViewEngine.flushShared");
         flushCoordinator.flushShared(owner);
     }
 
@@ -332,7 +338,7 @@ public final class ViewEngine {
      * @param op      the operation to run at end of tick
      */
     public void defer(@NotNull ViewSession session, @NotNull Runnable op) {
-        ThreadUtils.assertMainThread("ViewEngine.defer");
+        ThreadUtils.assertOwnsRegion(scheduler, session.player(), "ViewEngine.defer");
         if (session.status() == ViewSession.Status.ACTIVE) {
             session.status(ViewSession.Status.TRANSITIONING);
         }
@@ -342,7 +348,7 @@ public final class ViewEngine {
                 op.run();
             }
         });
-        Bukkit.getScheduler().runTask(plugin, () -> drainDeferred(session));
+        scheduler.runOnEntity(session.player(), () -> drainDeferred(session), null);
     }
 
     private void drainDeferred(ViewSession session) {
@@ -363,7 +369,7 @@ public final class ViewEngine {
      * @return {@code true} while a click is being dispatched
      */
     public boolean isInClickDispatch() {
-        return inClickDispatch;
+        return inClickDispatch.get();
     }
 
     /**
@@ -374,7 +380,11 @@ public final class ViewEngine {
      */
     @ApiStatus.Internal
     public void clickDispatch(boolean active) {
-        this.inClickDispatch = active;
+        if (active) {
+            inClickDispatch.set(Boolean.TRUE);
+        } else {
+            inClickDispatch.remove();
+        }
     }
 
     /**
@@ -394,6 +404,15 @@ public final class ViewEngine {
      */
     public @NotNull Plugin plugin() {
         return plugin;
+    }
+
+    /**
+     * Returns the platform scheduler used by this engine.
+     *
+     * @return the platform scheduler
+     */
+    public @NotNull PlatformScheduler scheduler() {
+        return scheduler;
     }
 
     /**

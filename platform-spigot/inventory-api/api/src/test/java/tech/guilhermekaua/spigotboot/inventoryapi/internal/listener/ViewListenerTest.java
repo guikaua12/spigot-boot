@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.CloseContext;
@@ -113,7 +114,7 @@ class ViewListenerTest {
         views.register(listenerView);
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, t) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
         listener = new ViewListener(sessions, engine);
     }
 

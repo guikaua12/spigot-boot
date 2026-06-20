@@ -38,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.View;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfigBuilder;
 import tech.guilhermekaua.spigotboot.inventoryapi.context.RenderContext;
@@ -103,7 +104,7 @@ class UpdateFlushTest {
         views.register(twoSlotSharedView);
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, t) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
         player = server.addPlayer("first");
         second = server.addPlayer("second");
     }
@@ -222,6 +223,8 @@ class UpdateFlushTest {
         assertEquals(2, sharedView.renders.get());
 
         sharedView.shared.set("changed");
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
+        server.getScheduler().performTicks(1);
 
         assertEquals(4, sharedView.renders.get(),
                 "both sessions of the owning view must repaint exactly once");
@@ -273,6 +276,8 @@ class UpdateFlushTest {
         assertEquals(1, twoSlotSharedView.unwatchedRenders.get());
 
         twoSlotSharedView.shared.set("changed");
+        // the flush coalesces and drains on the global region (next tick), then fans out per session
+        server.getScheduler().performTicks(1);
 
         assertEquals(2, twoSlotSharedView.watchedRenders.get(),
                 "slot 0 watches the shared token and must repaint");

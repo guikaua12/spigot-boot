@@ -23,17 +23,17 @@
 package tech.guilhermekaua.spigotboot.config.spigot.test.binding;
 
 import org.bukkit.Material;
-import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistryCustomizer;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.config.spigot.serialization.BukkitSerializers;
+import tech.guilhermekaua.spigotboot.core.plugin.BootPlugin;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,9 +59,9 @@ class MaterialSerializerBindingTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
 
     @BeforeEach
     void setUp() {
@@ -70,7 +70,7 @@ class MaterialSerializerBindingTest {
         lenient().when(plugin.getLogger()).thenReturn(logger);
 
         TypeSerializerRegistryCustomizer bukkit = BukkitSerializers::registerAll;
-        configManager = new SpigotConfigManager(plugin, null, Collections.singletonList(bukkit));
+        configManager = new DefaultConfigManager(plugin, null, Collections.singletonList(bukkit));
     }
 
     @Test

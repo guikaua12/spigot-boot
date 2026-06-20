@@ -47,6 +47,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.internal.registry.ViewRegistry
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.render.SlotPainter;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.SessionRegistry;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.session.ViewSession;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.placeholder.NoopPlaceholderApplier;
 import tech.guilhermekaua.spigotboot.inventoryapi.service.ViewArguments;
 
@@ -185,7 +186,7 @@ class ClickRoutingTest {
         views.register(new ErrorThrowingView());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, t) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
     }
 
     @AfterEach

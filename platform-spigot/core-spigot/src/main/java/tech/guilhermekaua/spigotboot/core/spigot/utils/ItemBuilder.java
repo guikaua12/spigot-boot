@@ -149,10 +149,10 @@ public class ItemBuilder {
         return changeItemMeta(it -> {
             List<String> l = it.getLore();
             if (l == null) {
-                l = ColorUtil.colored(Arrays.asList(lore));
-                return;
+                l = new ArrayList<>();
             }
             l.addAll(ColorUtil.colored(Arrays.asList(lore)));
+            it.setLore(l);
         });
     }
 
@@ -278,6 +278,89 @@ public class ItemBuilder {
 
             itemMeta.setDisplayName(displayName.replace(placeholder, value));
         });
+    }
+
+    /**
+     * Sets the stack size, clamped to at least 1.
+     *
+     * @param amount the desired amount
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setAmount(int amount) {
+        item.setAmount(Math.max(1, amount));
+        return this;
+    }
+
+    /**
+     * Sets the custom model data. {@code setCustomModelData} only exists on 1.14+, so it is invoked
+     * reflectively — on older servers (and when {@code data} is null) this is a no-op, keeping the
+     * builder usable down to 1.8.8.
+     *
+     * @param data the custom model data, or null to leave it unset
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelData(Integer data) {
+        if (data == null) {
+            return this;
+        }
+        return changeItemMeta(meta -> {
+            try {
+                ItemMeta.class.getMethod("setCustomModelData", Integer.class).invoke(meta, data);
+            } catch (ReflectiveOperationException ignored) {
+                // pre-1.14: no custom model data support
+            }
+        });
+    }
+
+    /**
+     * Resolves the first {@link Material} that matches one of the given config names (modern name
+     * first, legacy fallback via {@link TypeUtil#getMaterialFromLegacy(String)}), falling back to
+     * {@link Material#STONE} when none resolve — so a GUI never fails to render an item.
+     *
+     * @param candidates material names to try in order
+     * @return a builder for the resolved material, or STONE
+     */
+    public static ItemBuilder ofMaterial(String... candidates) {
+        if (candidates != null) {
+            for (String name : candidates) {
+                Material material = TypeUtil.getMaterialFromLegacy(name);
+                if (material != null) {
+                    return new ItemBuilder(material);
+                }
+            }
+        }
+        return new ItemBuilder(Material.STONE);
+    }
+
+    /**
+     * Sets the display name verbatim, without colour translation — for names that are already
+     * formatted (e.g. by {@code ChatMarkup.legacy(...)}).
+     *
+     * @param name the pre-formatted display name
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setRawName(String name) {
+        return changeItemMeta(it -> it.setDisplayName(name));
+    }
+
+    /**
+     * Sets the lore verbatim, without colour translation — for lines that are already formatted.
+     *
+     * @param lore the pre-formatted lore lines
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setRawLore(List<String> lore) {
+        return changeItemMeta(it -> it.setLore(lore));
+    }
+
+    /**
+     * Sets the lore verbatim, without colour translation — for lines that are already formatted.
+     *
+     * @param lore the pre-formatted lore lines
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setRawLore(String... lore) {
+        return setRawLore(Arrays.asList(lore));
     }
 
     /**

@@ -22,11 +22,13 @@
  */
 package tech.guilhermekaua.spigotboot.config.spigot.serialization;
 
-import org.bukkit.*;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.serialization.TypeSerializerRegistry;
 
-import java.time.Duration;
 import java.util.Objects;
 
 /**
@@ -47,9 +49,7 @@ public final class BukkitSerializers {
 
         registry.register(Material.class, new MaterialSerializer());
         registry.register(Sound.class, new SoundSerializer());
-        registry.register(Particle.class, new ParticleSerializer());
         registry.register(World.class, new WorldSerializer());
         registry.register(Location.class, new LocationSerializer());
-        registry.register(Duration.class, new DurationSerializer());
     }
 }

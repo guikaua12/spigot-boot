@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -55,6 +56,7 @@ import tech.guilhermekaua.spigotboot.inventoryapi.state.StateToken;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -111,6 +113,12 @@ public final class PaginationBinding implements PaginationHost {
     // resolved fill slots; empty until initialize ran — FirstRenderPhase validates these
     // against the static component table (overlap check, Task 12)
     private int[] targetSlots = new int[0];
+
+    // frame slots resolved at initialize; emptyState/loading slots may lie outside targetSlots
+    private int[] emptyStateSlots = new int[0];
+    private int[] loadingSlots = new int[0];
+    private int[] ownedOutsideSlots = new int[0];
+    private Supplier<RenderedItem> emptyStateSupplier;
 
     // current frame: the page-element component per slot, in fill order, plus what was
     // last applied per slot — lastApplied keys drive the first-paint-fallback decision
@@ -196,11 +204,17 @@ public final class PaginationBinding implements PaginationHost {
             fillLayout = resolveFillLayout(viewLayout, effectiveConfig);
         }
         this.targetSlots = resolveTargetSlots(fillLayout, patterns);
+        this.emptyStateSlots = spec.emptyStateSlots();
+        this.loadingSlots = spec.loadingSlots();
+        checkFrameSlotBounds(this.emptyStateSlots, "empty-state", effectiveConfig);
+        checkFrameSlotBounds(this.loadingSlots, "loading", effectiveConfig);
+        this.ownedOutsideSlots = outsideLayout(this.emptyStateSlots, this.loadingSlots, this.targetSlots);
 
         this.plainContext = new PlainViewContextImpl(session, engine);
-        PageSource<Object> source = spec.source().createSource(plainContext, spec);
+        PageSource<Object> source = spec.source().createSource(plainContext, spec, engine.scheduler());
         this.fallbackSupplier = frameSupplier(spec.fallbackItem(), "fallback item");
         this.loadingSupplier = frameSupplier(spec.loadingItem(), "loading item");
+        this.emptyStateSupplier = frameSupplier(spec.emptyStateItem(), "empty-state item");
         PageItemFactory<Object> factory = elementFactory();
 
         Paginator<Object> built;
@@ -257,6 +271,28 @@ public final class PaginationBinding implements PaginationHost {
     }
 
     /**
+     * Returns the empty-state and loading frame slots this binding paints into, de-duplicated.
+     *
+     * @return a defensive copy of the frame slots; empty before {@link #initialize} or when no
+     *         frame slots are declared
+     */
+    public @NotNull int[] frameSlots() {
+        LinkedHashSet<Integer> union = new LinkedHashSet<>();
+        for (int slot : emptyStateSlots) {
+            union.add(slot);
+        }
+        for (int slot : loadingSlots) {
+            union.add(slot);
+        }
+        int[] result = new int[union.size()];
+        int index = 0;
+        for (int slot : union) {
+            result[index++] = slot;
+        }
+        return result;
+    }
+
+    /**
      * Returns the page-element component currently occupying a slot.
      *
      * @param slot the raw container slot
@@ -297,7 +333,51 @@ public final class PaginationBinding implements PaginationHost {
         if (paginator == null) {
             return;
         }
-        paginator.insertPageItems();
+        Inventory inventory = session.inventory();
+        if (inventory == null) {
+            return;
+        }
+        boolean applyPlaceholders = session.effectiveConfig().applyPlaceholders();
+        boolean loading = paginator.isLoading();
+        boolean empty = !loading && paginator.isCurrentPageEmpty();
+
+        if (loading && loadingSlots.length > 0) {
+            paintFrameMode(inventory, loadingSupplier, loadingSlots, applyPlaceholders);
+        } else if (empty && emptyStateSlots.length > 0) {
+            paintFrameMode(inventory, emptyStateSupplier, emptyStateSlots, applyPlaceholders);
+        } else {
+            paginator.insertPageItems();
+            clearSlots(inventory, ownedOutsideSlots, applyPlaceholders);
+        }
+    }
+
+    // paints the frame item at each frame slot (one supplier call per slot, so each slot gets a
+    // fresh ItemStack) and clears every other slot this binding owns (layout + owned-outside)
+    private void paintFrameMode(Inventory inventory, Supplier<RenderedItem> supplier,
+                                int[] frameSlots, boolean applyPlaceholders) {
+        Set<Integer> chosen = new HashSet<>();
+        for (int slot : frameSlots) {
+            chosen.add(slot);
+        }
+        for (int slot : frameSlots) {
+            applyToSlot(inventory, slot, supplier.get(), applyPlaceholders);
+        }
+        for (int slot : targetSlots) {
+            if (!chosen.contains(slot)) {
+                applyToSlot(inventory, slot, RenderedItem.ofItem(null), applyPlaceholders);
+            }
+        }
+        for (int slot : ownedOutsideSlots) {
+            if (!chosen.contains(slot)) {
+                applyToSlot(inventory, slot, RenderedItem.ofItem(null), applyPlaceholders);
+            }
+        }
+    }
+
+    private void clearSlots(Inventory inventory, int[] slots, boolean applyPlaceholders) {
+        for (int slot : slots) {
+            applyToSlot(inventory, slot, RenderedItem.ofItem(null), applyPlaceholders);
+        }
     }
 
     /**
@@ -383,7 +463,12 @@ public final class PaginationBinding implements PaginationHost {
 
     @Override
     public @Nullable UUID playerId() {
-        return session.player().getUniqueId();
+        return player().getUniqueId();
+    }
+
+    @Override
+    public @NotNull Player player() {
+        return session.player();
     }
 
     @Override
@@ -455,6 +540,42 @@ public final class PaginationBinding implements PaginationHost {
                         + session.registered().type().getName());
             }
         }
+    }
+
+    private void checkFrameSlotBounds(int[] slots, String label, ViewConfig effectiveConfig) {
+        int size = effectiveConfig.rows() * Layout.ROW_WIDTH;
+        for (int slot : slots) {
+            if (slot >= size) {
+                throw new ViewConfigurationException("pagination " + label + " slot " + slot
+                        + " is out of bounds for a " + effectiveConfig.rows() + "-row view of "
+                        + session.registered().type().getName());
+            }
+        }
+    }
+
+    // the frame slots that fall outside the pagination's own layout, de-duplicated in order
+    private static int[] outsideLayout(int[] emptyStateSlots, int[] loadingSlots, int[] layout) {
+        Set<Integer> layoutSet = new LinkedHashSet<>();
+        for (int slot : layout) {
+            layoutSet.add(slot);
+        }
+        LinkedHashSet<Integer> outside = new LinkedHashSet<>();
+        for (int slot : emptyStateSlots) {
+            if (!layoutSet.contains(slot)) {
+                outside.add(slot);
+            }
+        }
+        for (int slot : loadingSlots) {
+            if (!layoutSet.contains(slot)) {
+                outside.add(slot);
+            }
+        }
+        int[] result = new int[outside.size()];
+        int index = 0;
+        for (int slot : outside) {
+            result[index++] = slot;
+        }
+        return result;
     }
 
     private PageItemFactory<Object> elementFactory() {

@@ -1,6 +1,5 @@
 package tech.guilhermekaua.spigotboot.commands.config.spigot.test;
 
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,9 +24,9 @@ import tech.guilhermekaua.spigotboot.commands.replace.DefaultCommandReplacementR
 import tech.guilhermekaua.spigotboot.commands.route.CommandRouteFactory;
 import tech.guilhermekaua.spigotboot.commands.route.CompiledRootCommand;
 import tech.guilhermekaua.spigotboot.config.ConfigManager;
+import tech.guilhermekaua.spigotboot.config.DefaultConfigManager;
 import tech.guilhermekaua.spigotboot.config.annotation.Config;
 import tech.guilhermekaua.spigotboot.config.annotation.FolderConfig;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigManager;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.module.Module;
@@ -52,9 +51,9 @@ class ConfigBackedCommandTextResolverTest {
     Path tempDir;
 
     @Mock
-    Plugin plugin;
+    BootPlugin plugin;
 
-    private SpigotConfigManager configManager;
+    private DefaultConfigManager configManager;
     private CommandRouteFactory factory;
 
     @BeforeEach
@@ -63,7 +62,7 @@ class ConfigBackedCommandTextResolverTest {
         lenient().when(plugin.getDataFolder()).thenReturn(tempDir.toFile());
         lenient().when(plugin.getLogger()).thenReturn(logger);
 
-        configManager = new SpigotConfigManager(plugin);
+        configManager = new DefaultConfigManager(plugin);
         factory = new CommandRouteFactory(
                 new CommandPatternParser(),
                 new DefaultCommandReplacementRegistry(Collections.emptyList()),

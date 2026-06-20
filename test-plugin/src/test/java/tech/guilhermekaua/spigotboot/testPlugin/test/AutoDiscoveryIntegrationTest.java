@@ -7,8 +7,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tech.guilhermekaua.spigotboot.config.spigot.SpigotConfigModule;
-import tech.guilhermekaua.spigotboot.config.spigot.registry.ConfigRegistry;
+import tech.guilhermekaua.spigotboot.config.ConfigModule;
+import tech.guilhermekaua.spigotboot.config.registry.ConfigRegistry;
 import tech.guilhermekaua.spigotboot.core.SpigotBoot;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Order;
@@ -58,8 +58,8 @@ class AutoDiscoveryIntegrationTest {
         // DataJdbcModule resolves a DataSource during init, which instantiates the application's
         // PersistenceConfig component and its @Config dependencies. The config module must therefore
         // run first; otherwise the config beans are not yet registered and inject as null.
-        assertTrue(effectiveOrder(SpigotConfigModule.class) < effectiveOrder(DataJdbcModule.class),
-                "SpigotConfigModule must be ordered before DataJdbcModule so @Config beans are registered first");
+        assertTrue(effectiveOrder(ConfigModule.class) < effectiveOrder(DataJdbcModule.class),
+                "ConfigModule must be ordered before DataJdbcModule so @Config beans are registered first");
     }
 
     private static int effectiveOrder(Class<?> moduleClass) {

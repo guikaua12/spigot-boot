@@ -25,15 +25,22 @@ package tech.guilhermekaua.spigotboot.core.spigot.test.utils;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.spigot.utils.ColorUtil;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ColorUtilTest {
 
     @Test
-    public void testColored() {
-        final String message = "#AA0000";
+    public void translates_ampersand_codes() {
+        assertEquals("§aHi", ColorUtil.colored("&aHi"));
+    }
 
-        final String colored = ColorUtil.colored(message);
+    @Test
+    public void downsamples_hex_to_nearest_legacy_on_old_servers() {
+        assertEquals("§2Hi", ColorUtil.colored("#00AA00Hi", false));
+    }
 
-        System.out.println(colored);
+    @Test
+    public void emits_native_hex_sequence_on_modern() {
+        assertEquals("§x§1§a§2§b§3§cHi", ColorUtil.colored("#1a2b3cHi", true));
     }
 }

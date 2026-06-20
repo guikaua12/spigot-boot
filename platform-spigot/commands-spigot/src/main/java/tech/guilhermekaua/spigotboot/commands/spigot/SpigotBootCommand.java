@@ -60,12 +60,29 @@ public class SpigotBootCommand extends Command {
     }
 
     /**
-     * Returns {@code null} so Bukkit skips its top-level permission check.
-     * Per-route permissions ({@literal @Permission}) are enforced by {@link CommandDispatcher}
-     * during both dispatch and tab-completion.
+     * Returns {@code null} so Bukkit carries no static permission for this command; visibility is computed
+     * per-sender in {@link #testPermissionSilent(CommandSender)} instead. Per-route permissions
+     * ({@literal @Permission}) are enforced by {@link CommandDispatcher} during both dispatch and
+     * tab-completion.
      */
     @Override
     public @Nullable String getPermission() {
         return null;
+    }
+
+    /**
+     * Reports whether {@code target} can use at least one route of this command. CraftBukkit builds each
+     * command's client-side command-tree node with a {@code requires(...)} predicate backed by this method,
+     * so returning the route-aware result hides the command in tab completion from senders who can run none
+     * of its subcommands (nor its default handler). Execution is unaffected — Bukkit's command dispatch does
+     * not consult permissions — so {@link CommandDispatcher} still enforces per-route {@literal @Permission}
+     * during {@link #execute} and {@link #tabComplete} for senders who pass this gate.
+     *
+     * @param target the sender being tested
+     * @return {@code true} if {@code target} can use at least one of this command's routes
+     */
+    @Override
+    public boolean testPermissionSilent(@NotNull CommandSender target) {
+        return dispatcher.canUseAnyRoute(rootCommand, commandPlatformSupport.createSender(target));
     }
 }

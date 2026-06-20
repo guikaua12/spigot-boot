@@ -22,6 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination;
 
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -67,6 +68,15 @@ public interface PaginationHost {
      * @return the viewing player's id; production hosts never return null (test fixtures may)
      */
     @Nullable UUID playerId();
+
+    /**
+     * Returns the live viewer the settle dispatcher uses to route the settle to the correct
+     * region thread. Production hosts always return the session's player; test fixtures may
+     * return {@code null} to trigger the inline-settle path.
+     *
+     * @return the viewing player, or {@code null} for test fixtures
+     */
+    @Nullable Player player();
 
     /**
      * Returns the plugin that owns the view; asynchronously completed settles are scheduled

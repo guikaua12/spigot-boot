@@ -104,6 +104,9 @@ public class PluginAnnotationProcessor extends AbstractProcessor {
             if (!pluginAnnotation.apiVersion().isEmpty()) {
                 writer.println("api-version: " + pluginAnnotation.apiVersion());
             }
+            if (pluginAnnotation.foliaSupported()) {
+                writer.println("folia-supported: true");
+            }
         }
     }
 }

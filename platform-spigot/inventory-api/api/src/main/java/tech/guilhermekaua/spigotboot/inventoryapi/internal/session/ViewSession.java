@@ -24,10 +24,10 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.session;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.inventoryapi.config.ViewConfig;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.component.ComponentTable;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.layout.ResolvedLayout;
@@ -78,7 +78,7 @@ public final class ViewSession {
     private Inventory inventory;
     private ViewConfig effectiveConfig;
     private ResolvedLayout layout;
-    private BukkitTask updateTask;
+    private PlatformTask updateTask;
 
     /**
      * Creates a session in {@link Status#OPENING}.
@@ -221,7 +221,7 @@ public final class ViewSession {
      *
      * @return the task, or {@code null} when scheduling is disabled or not started
      */
-    public @Nullable BukkitTask updateTask() {
+    public @Nullable PlatformTask updateTask() {
         return updateTask;
     }
 
@@ -230,7 +230,7 @@ public final class ViewSession {
      *
      * @param t the task, or {@code null} to clear it
      */
-    public void updateTask(@Nullable BukkitTask t) {
+    public void updateTask(@Nullable PlatformTask t) {
         this.updateTask = t;
     }
 

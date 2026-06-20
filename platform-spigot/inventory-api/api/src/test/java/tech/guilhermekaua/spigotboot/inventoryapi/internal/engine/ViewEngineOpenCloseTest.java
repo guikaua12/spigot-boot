@@ -29,7 +29,8 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -183,7 +184,7 @@ class ViewEngineOpenCloseTest {
         views.register(new ColoredTitleView());
         engine = new ViewEngine(plugin, views, sessions,
                 new SlotPainter(new NoopPlaceholderApplier()), (p, title) -> {
-        });
+        }, new BukkitPlatformScheduler(plugin));
     }
 
     @AfterEach
@@ -296,7 +297,7 @@ class ViewEngineOpenCloseTest {
     void scheduledUpdates_taskStartsOnOpenAndIsCancelledOnClose() {
         engine.open(player, ScheduledView.class, ViewArguments.empty());
         ViewSession session = session();
-        BukkitTask task = session.updateTask();
+        PlatformTask task = session.updateTask();
         assertNotNull(task);
         assertFalse(task.isCancelled());
 

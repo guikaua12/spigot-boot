@@ -25,11 +25,14 @@ package tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.engine;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.MockPlugin;
 import be.seeseemelk.mockbukkit.ServerMock;
+import be.seeseemelk.mockbukkit.entity.PlayerMock;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.core.spigot.scheduler.BukkitPlatformScheduler;
 import tech.guilhermekaua.spigotboot.inventoryapi.internal.pagination.RenderedItem;
 import tech.guilhermekaua.spigotboot.inventoryapi.layout.Layout;
 import tech.guilhermekaua.spigotboot.inventoryapi.pagination.source.AsyncPageSource;
@@ -58,11 +61,15 @@ class AsyncPaginationEngineTest {
 
     private ServerMock server;
     private MockPlugin plugin;
+    private BukkitPlatformScheduler scheduler;
+    private PlayerMock player;
 
     @BeforeEach
     void setUp() {
         server = MockBukkit.mock();
         plugin = MockBukkit.createMockPlugin("TestPlugin");
+        scheduler = new BukkitPlatformScheduler(plugin);
+        player = server.addPlayer();
     }
 
     @AfterEach
@@ -90,20 +97,20 @@ class AsyncPaginationEngineTest {
     }
 
     private FakePaginationHost newHost() {
-        return new FakePaginationHost(UUID.randomUUID(), plugin);
+        return new FakePaginationHost(player.getUniqueId(), plugin, player);
     }
 
     private static Layout threeSlots() {
         return Layout.ofSlots(0, 1, 2);
     }
 
-    private static NormalPagination<Integer> asyncNormal(CapturingSupplier supplier) {
+    private NormalPagination<Integer> asyncNormal(CapturingSupplier supplier) {
         return new NormalPagination<>(
                 null,
                 ITEM_FACTORY,
                 threeSlots(),
                 () -> RenderedItem.ofItem(new ItemStack(Material.CLOCK)),
-                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher()));
+                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher(scheduler)));
     }
 
     @Test
@@ -158,7 +165,7 @@ class AsyncPaginationEngineTest {
                 threeSlots(),
                 null,
                 new AsyncPageSource<>(supplier, (request, error) -> callbackError.set(error),
-                        null, null, 128, new BukkitSettleDispatcher()));
+                        null, null, 128, new BukkitSettleDispatcher(scheduler)));
 
         pagination.bind(newHost());
         supplier.futures.get(0).complete(PageResult.of(List.of(1, 2, 3), 9)); // page 1 ok
@@ -219,7 +226,7 @@ class AsyncPaginationEngineTest {
                 threeSlots(),
                 null,
                 new AsyncPageSource<>(supplier, null, null, Duration.ofMinutes(5), 128,
-                        new BukkitSettleDispatcher()));
+                        new BukkitSettleDispatcher(scheduler)));
 
         pagination.bind(newHost());
         supplier.futures.get(0).complete(PageResult.of(List.of(1, 2, 3), 9)); // page 1 now cached
@@ -242,7 +249,7 @@ class AsyncPaginationEngineTest {
                 ITEM_FACTORY,
                 List.of(five, two),
                 null,
-                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher()));
+                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher(scheduler)));
         FakePaginationHost host = newHost();
 
         pagination.bind(host);
@@ -274,7 +281,7 @@ class AsyncPaginationEngineTest {
                 ITEM_FACTORY,
                 threeSlots(),
                 null,
-                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher()));
+                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher(scheduler)));
 
         pagination.bind(newHost());
         supplier.futures.get(0).complete(PageResult.of(List.of(1, 2, 3), 10));
@@ -295,7 +302,7 @@ class AsyncPaginationEngineTest {
                 List.of(Layout.ofSlots(0, 1, 2, 3, 4),      // 5 slots
                         Layout.ofSlots(9, 10)),              // 2 slots
                 null,
-                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher()));
+                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher(scheduler)));
 
         pagination.bind(newHost());
         supplier.futures.get(0).complete(PageResult.of(List.of(1, 2, 3, 4, 5), 9));
@@ -338,7 +345,7 @@ class AsyncPaginationEngineTest {
                 List.of(Layout.ofSlots(0, 1, 2, 3, 4),      // 5 slots
                         Layout.ofSlots(9, 10)),              // 2 slots
                 null,
-                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher()));
+                new AsyncPageSource<>(supplier, null, null, null, 128, new BukkitSettleDispatcher(scheduler)));
 
         pagination.changePage(2);
         pagination.changePage(3); // 2.x regression: NPE'd clearing the last pattern unbound
