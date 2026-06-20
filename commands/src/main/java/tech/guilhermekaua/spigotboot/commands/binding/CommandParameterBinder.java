@@ -3,6 +3,7 @@ package tech.guilhermekaua.spigotboot.commands.binding;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolverRegistry;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageException;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationPlan;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.core.context.dependency.injector.InjectionPoint;
@@ -84,6 +85,8 @@ public class CommandParameterBinder {
             }
             return resolved;
         } catch (CommandBindingException e) {
+            throw e;
+        } catch (CommandMessageException e) {
             throw e;
         } catch (Exception e) {
             throw CommandBindingException.invalid(parameter, resolvedInput, e);

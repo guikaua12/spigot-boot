@@ -1,9 +1,12 @@
 package tech.guilhermekaua.spigotboot.commands.execution;
 
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionDecision;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageException;
 import tech.guilhermekaua.spigotboot.commands.CommandMessages;
 import tech.guilhermekaua.spigotboot.commands.CommandSenderHandle;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandBindingException;
+import tech.guilhermekaua.spigotboot.commands.message.CommandMessageRenderer;
+import tech.guilhermekaua.spigotboot.commands.message.CommandMessageSourceProvider;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinder;
 import tech.guilhermekaua.spigotboot.commands.binding.CommandParameterBinding;
 import tech.guilhermekaua.spigotboot.commands.completion.CompletionResolver;
@@ -24,6 +27,7 @@ public class CommandDispatcher {
     private final CommandMessagesProvider messagesProvider;
     private final CompletionResolver completionResolver;
     private final CommandInterceptorChain interceptorChain;
+    private final CommandMessageRenderer messageRenderer;
 
     public CommandDispatcher(CommandParameterBinder parameterBinder,
                              CommandInvocationExecutor invocationExecutor,
@@ -37,11 +41,22 @@ public class CommandDispatcher {
                              CommandMessagesProvider messagesProvider,
                              CompletionResolver completionResolver,
                              CommandInterceptorChain interceptorChain) {
+        this(parameterBinder, invocationExecutor, messagesProvider, completionResolver, interceptorChain,
+                new CommandMessageRenderer(new CommandMessageSourceProvider()));
+    }
+
+    public CommandDispatcher(CommandParameterBinder parameterBinder,
+                             CommandInvocationExecutor invocationExecutor,
+                             CommandMessagesProvider messagesProvider,
+                             CompletionResolver completionResolver,
+                             CommandInterceptorChain interceptorChain,
+                             CommandMessageRenderer messageRenderer) {
         this.parameterBinder = parameterBinder;
         this.invocationExecutor = invocationExecutor;
         this.messagesProvider = messagesProvider;
         this.completionResolver = completionResolver;
         this.interceptorChain = interceptorChain;
+        this.messageRenderer = messageRenderer;
     }
 
     public boolean dispatch(Context context, CompiledRootCommand root, CommandSenderHandle sender, String label, String[] args) {
@@ -159,6 +174,10 @@ public class CommandDispatcher {
             } catch (CommandBindingException e) {
                 resolvedChain.onError(context, invocation, e);
                 handleBindingException(context, messages, e);
+                return true;
+            } catch (CommandMessageException e) {
+                resolvedChain.onError(context, invocation, e);
+                context.sendMessage(messageRenderer.render(context, e));
                 return true;
             }
 
