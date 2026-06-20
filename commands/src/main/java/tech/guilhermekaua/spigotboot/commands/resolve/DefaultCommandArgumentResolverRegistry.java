@@ -44,6 +44,12 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
         return empty();
     }
 
+    @Override
+    public Collection<CommandArgumentResolver<?>> all() {
+        ensureSorted();
+        return Collections.unmodifiableList(new ArrayList<>(resolvers));
+    }
+
     private void ensureSorted() {
         if (needsSort) {
             List<CommandArgumentResolver<?>> sorted = CommandSupport.sortBeans(resolvers);

@@ -6,6 +6,7 @@ import tech.guilhermekaua.spigotboot.commands.completion.DefaultCommandCompletio
 import tech.guilhermekaua.spigotboot.commands.cooldown.FixedCommandCooldownPolicy;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationExecutor;
 import tech.guilhermekaua.spigotboot.commands.interceptor.CommandInterceptorChain;
+import tech.guilhermekaua.spigotboot.commands.message.CommandMessageCatalog;
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessageRenderer;
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessageSourceProvider;
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessagesProvider;
@@ -97,5 +98,10 @@ public class CommandsConfiguration {
     @Bean
     public CommandMessageRenderer commandMessageRenderer(CommandMessageSourceProvider commandMessageSourceProvider) {
         return new CommandMessageRenderer(commandMessageSourceProvider);
+    }
+
+    @Bean
+    public CommandMessageCatalog commandMessageCatalog(CommandArgumentResolverRegistry commandArgumentResolverRegistry) {
+        return new CommandMessageCatalog(commandArgumentResolverRegistry);
     }
 }
