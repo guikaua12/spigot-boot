@@ -26,8 +26,6 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
-import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnClass;
-import tech.guilhermekaua.spigotboot.core.context.condition.LogLevel;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
 import tech.guilhermekaua.spigotboot.core.reflection.DiscoveryService;
 import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
@@ -52,7 +50,6 @@ import java.util.stream.Collectors;
  * from the same store without creating a registry/expansion dependency cycle.
  */
 @Component
-@ConditionalOnClass(value = "me.clip.placeholderapi.expansion.PlaceholderExpansion", message = "PlaceholderAPI not found, skipping PlaceholderRegistry bean.", logLevel = LogLevel.DEBUG)
 @RequiredArgsConstructor
 public class PlaceholderRegistry {
     private final PlaceholderStore placeholderStore;
