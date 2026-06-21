@@ -14,6 +14,7 @@ import tech.guilhermekaua.spigotboot.commands.interceptor.CommandInterceptorChai
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessagesProvider;
 import tech.guilhermekaua.spigotboot.commands.message.DefaultCommandMessages;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandHandlerIntrospector;
+import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.commands.metadata.RootCommandMetadata;
 import tech.guilhermekaua.spigotboot.commands.parse.CommandPatternParser;
 import tech.guilhermekaua.spigotboot.commands.replace.DefaultCommandReplacementRegistry;
@@ -213,7 +214,8 @@ class CommandInterceptorExecutionTest {
     }
 
     @Test
-    void bindingFailuresTriggerOnErrorAndKeepDefaultBindingMessage() {
+    void keyedResolverFailuresTriggerOnErrorAndRenderKeyedMessage() {
+        NumericCommands handler = new NumericCommands();
         DependencyManager dependencyManager = new DependencyManager();
         BindingErrorInterceptor interceptor = new BindingErrorInterceptor();
         registerBeans(dependencyManager, interceptor);
@@ -222,10 +224,33 @@ class CommandInterceptorExecutionTest {
         Context context = newContext(dependencyManager);
         TestSender sender = newSender();
 
-        dispatcher.dispatch(context, compileRoot(new NumericCommands(), dependencyManager), senderHandleFor(sender), "admin", new String[]{"number", "oops"});
+        dispatcher.dispatch(context, compileRoot(handler, dependencyManager), senderHandleFor(sender), "admin", new String[]{"number", "oops"});
+
+        assertEquals(Arrays.asList("before", "CommandMessageException"), interceptor.events);
+        assertEquals(Collections.singletonList("'oops' is not a valid number."), sender.getMessages());
+    }
+
+    @Test
+    void nonKeyedBindingFailuresTriggerOnErrorAndKeepGenericBindingMessage() {
+        DependencyManager dependencyManager = new DependencyManager();
+        BindingErrorInterceptor interceptor = new BindingErrorInterceptor();
+        registerBeans(dependencyManager, interceptor);
+
+        DefaultCommandArgumentResolverRegistry resolverRegistry =
+                new DefaultCommandArgumentResolverRegistry(Collections.singletonList(new ThrowingWidgetResolver()), Collections.emptyList());
+        CommandDispatcher dispatcher = new CommandDispatcher(
+                new CommandParameterBinder(resolverRegistry),
+                new CommandInvocationExecutor(new CommandInterceptorChain()),
+                new CommandMessagesProvider(new DefaultCommandMessages()),
+                new CompletionResolver(new DefaultCommandCompletionRegistry(Collections.emptyList()), resolverRegistry)
+        );
+        Context context = newContext(dependencyManager);
+        TestSender sender = newSender();
+
+        dispatcher.dispatch(context, compileRoot(new WidgetCommands(), dependencyManager), senderHandleFor(sender), "admin", new String[]{"get", "oops"});
 
         assertEquals(Arrays.asList("before", "CommandBindingException"), interceptor.events);
-        assertEquals(Collections.singletonList("Invalid value 'oops' for argument: amount"), sender.getMessages());
+        assertEquals(Collections.singletonList("Invalid value 'oops' for argument: w"), sender.getMessages());
     }
 
     @Test
@@ -393,6 +418,29 @@ class CommandInterceptorExecutionTest {
         @Command("number <amount>")
         public void number(Integer amount) {
             calls++;
+        }
+    }
+
+    static final class Widget {
+    }
+
+    static final class ThrowingWidgetResolver implements CommandArgumentResolver<Widget> {
+        @Override
+        public boolean supports(CommandParameterMetadata parameter) {
+            return Widget.class.equals(parameter.getValueType());
+        }
+
+        @Override
+        public Widget resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
+            throw new IllegalArgumentException("nope");
+        }
+    }
+
+    @CommandHandler
+    @RootCommand("admin")
+    static class WidgetCommands {
+        @Command("get <w>")
+        public void get(@Name("w") Widget widget) {
         }
     }
 

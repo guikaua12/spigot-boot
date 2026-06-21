@@ -44,6 +44,12 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
         return empty();
     }
 
+    @Override
+    public Collection<CommandArgumentResolver<?>> all() {
+        ensureSorted();
+        return Collections.unmodifiableList(new ArrayList<>(resolvers));
+    }
+
     private void ensureSorted() {
         if (needsSort) {
             List<CommandArgumentResolver<?>> sorted = CommandSupport.sortBeans(resolvers);
@@ -96,7 +102,12 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
             if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off")) {
                 return false;
             }
-            throw new IllegalArgumentException("Invalid boolean: " + input);
+            throw CommandMessageException.of(CoreCommandMessages.BOOLEAN_INVALID).with("input", input);
+        }
+
+        @Override
+        public Collection<CommandMessageKey> messageKeys() {
+            return Collections.singletonList(CoreCommandMessages.BOOLEAN_INVALID);
         }
 
         @Override
@@ -120,25 +131,34 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
         @Override
         public Number resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
             Class<?> type = parameter.getValueType();
-            if (byte.class.equals(type) || Byte.class.equals(type)) {
-                return Byte.parseByte(input);
-            }
-            if (short.class.equals(type) || Short.class.equals(type)) {
-                return Short.parseShort(input);
-            }
-            if (int.class.equals(type) || Integer.class.equals(type)) {
-                return Integer.parseInt(input);
-            }
-            if (long.class.equals(type) || Long.class.equals(type)) {
-                return Long.parseLong(input);
-            }
-            if (float.class.equals(type) || Float.class.equals(type)) {
-                return Float.parseFloat(input);
-            }
-            if (double.class.equals(type) || Double.class.equals(type)) {
-                return Double.parseDouble(input);
+            try {
+                if (byte.class.equals(type) || Byte.class.equals(type)) {
+                    return Byte.parseByte(input);
+                }
+                if (short.class.equals(type) || Short.class.equals(type)) {
+                    return Short.parseShort(input);
+                }
+                if (int.class.equals(type) || Integer.class.equals(type)) {
+                    return Integer.parseInt(input);
+                }
+                if (long.class.equals(type) || Long.class.equals(type)) {
+                    return Long.parseLong(input);
+                }
+                if (float.class.equals(type) || Float.class.equals(type)) {
+                    return Float.parseFloat(input);
+                }
+                if (double.class.equals(type) || Double.class.equals(type)) {
+                    return Double.parseDouble(input);
+                }
+            } catch (NumberFormatException e) {
+                throw CommandMessageException.of(CoreCommandMessages.NUMBER_INVALID).with("input", input);
             }
             throw new IllegalArgumentException("Unsupported numeric type: " + type.getName());
+        }
+
+        @Override
+        public Collection<CommandMessageKey> messageKeys() {
+            return Collections.singletonList(CoreCommandMessages.NUMBER_INVALID);
         }
     }
 
@@ -151,13 +171,22 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
         @SuppressWarnings({"rawtypes"})
         @Override
         public Enum<?> resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
+            List<String> validNames = new ArrayList<>();
             for (Object constant : parameter.getValueType().getEnumConstants()) {
                 Enum value = (Enum) constant;
                 if (value.name().equalsIgnoreCase(input)) {
                     return value;
                 }
+                validNames.add(value.name());
             }
-            throw new IllegalArgumentException("Invalid enum constant: " + input);
+            throw CommandMessageException.of(CoreCommandMessages.ENUM_INVALID)
+                    .with("input", input)
+                    .with("options", String.join(", ", validNames));
+        }
+
+        @Override
+        public Collection<CommandMessageKey> messageKeys() {
+            return Collections.singletonList(CoreCommandMessages.ENUM_INVALID);
         }
 
         @Override
@@ -180,7 +209,16 @@ public class DefaultCommandArgumentResolverRegistry implements CommandArgumentRe
 
         @Override
         public UUID resolve(CommandExecutionContext context, CommandParameterMetadata parameter, String input) {
-            return UUID.fromString(input);
+            try {
+                return UUID.fromString(input);
+            } catch (IllegalArgumentException e) {
+                throw CommandMessageException.of(CoreCommandMessages.UUID_INVALID).with("input", input);
+            }
+        }
+
+        @Override
+        public Collection<CommandMessageKey> messageKeys() {
+            return Collections.singletonList(CoreCommandMessages.UUID_INVALID);
         }
     }
 }

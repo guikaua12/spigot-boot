@@ -5,10 +5,14 @@ import org.bukkit.entity.Player;
 import tech.guilhermekaua.spigotboot.commands.CommandArgumentResolver;
 import tech.guilhermekaua.spigotboot.commands.CommandCompletionProvider;
 import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageException;
+import tech.guilhermekaua.spigotboot.commands.CommandMessageKey;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.core.context.lifecycle.Ordered;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class BukkitPlayerArgumentResolver implements CommandArgumentResolver<Player>, Ordered {
@@ -30,13 +34,20 @@ public class BukkitPlayerArgumentResolver implements CommandArgumentResolver<Pla
             if (matches.size() == 1) {
                 player = matches.get(0);
             } else if (matches.size() > 1) {
-                throw new IllegalArgumentException("Ambiguous player name: " + input);
+                throw CommandMessageException.of(SpigotCommandMessages.PLAYER_AMBIGUOUS)
+                        .with("input", input)
+                        .with("count", matches.size());
             }
         }
         if (player == null) {
-            throw new IllegalArgumentException("Player not found: " + input);
+            throw CommandMessageException.of(SpigotCommandMessages.PLAYER_NOT_FOUND).with("input", input);
         }
         return player;
+    }
+
+    @Override
+    public Collection<CommandMessageKey> messageKeys() {
+        return Arrays.asList(SpigotCommandMessages.PLAYER_NOT_FOUND, SpigotCommandMessages.PLAYER_AMBIGUOUS);
     }
 
     @Override
