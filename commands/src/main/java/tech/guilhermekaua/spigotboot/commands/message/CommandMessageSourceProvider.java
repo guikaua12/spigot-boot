@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Resolves the active {@link CommandMessageSource} from the dependency context, mirroring
@@ -21,8 +22,11 @@ public class CommandMessageSourceProvider {
     /**
      * @param context the command context; must not be {@code null}
      * @return the resolved source, never {@code null} (a no-op source when none is registered)
+     * @throws NullPointerException  if {@code context} is {@code null}
+     * @throws IllegalStateException when multiple sources exist without exactly one {@code @Primary} source
      */
     public CommandMessageSource resolve(Context context) {
+        Objects.requireNonNull(context, "context must not be null");
         Collection<Object> instances = context.getDependencyManager().getBeanInstanceRegistry().asMapView().values();
         List<CommandMessageSource> candidates = new ArrayList<>();
         for (Object instance : instances) {

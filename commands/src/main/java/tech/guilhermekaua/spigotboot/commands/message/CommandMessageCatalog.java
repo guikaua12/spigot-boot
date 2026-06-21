@@ -18,6 +18,12 @@ import java.util.Optional;
 public class CommandMessageCatalog {
     private final List<CommandMessageKey> keys = new ArrayList<>();
 
+    /**
+     * Creates a catalog from the keys declared by the currently registered argument resolvers.
+     *
+     * @param registry the resolver registry whose declared message keys are aggregated; must not be {@code null}
+     * @throws NullPointerException if {@code registry} is {@code null}
+     */
     public CommandMessageCatalog(CommandArgumentResolverRegistry registry) {
         Objects.requireNonNull(registry, "registry must not be null");
         for (CommandArgumentResolver<?> resolver : registry.all()) {
@@ -37,10 +43,12 @@ public class CommandMessageCatalog {
     /**
      * Finds the first key whose {@link CommandMessageKey#id()} matches the given id.
      *
-     * @param id the key id to look up
+     * @param id the key id to look up; must not be {@code null}
      * @return the first key with a matching id, if any
+     * @throws NullPointerException if {@code id} is {@code null}
      */
     public Optional<CommandMessageKey> find(String id) {
+        Objects.requireNonNull(id, "id must not be null");
         for (CommandMessageKey key : keys) {
             if (key.id().equals(id)) {
                 return Optional.of(key);

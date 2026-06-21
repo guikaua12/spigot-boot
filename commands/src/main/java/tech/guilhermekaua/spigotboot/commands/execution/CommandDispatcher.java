@@ -29,6 +29,16 @@ public class CommandDispatcher {
     private final CommandInterceptorChain interceptorChain;
     private final CommandMessageRenderer messageRenderer;
 
+    /**
+     * Creates a dispatcher with an empty interceptor chain and the default keyed-message renderer.
+     * Convenience overload that delegates to
+     * {@link #CommandDispatcher(CommandParameterBinder, CommandInvocationExecutor, CommandMessagesProvider, CompletionResolver, CommandInterceptorChain, CommandMessageRenderer)}.
+     *
+     * @param parameterBinder    binds raw input tokens to invocation arguments; must not be {@code null}
+     * @param invocationExecutor invokes the resolved command handler; must not be {@code null}
+     * @param messagesProvider   resolves the active {@link CommandMessages} for a context; must not be {@code null}
+     * @param completionResolver produces tab-completion suggestions; must not be {@code null}
+     */
     public CommandDispatcher(CommandParameterBinder parameterBinder,
                              CommandInvocationExecutor invocationExecutor,
                              CommandMessagesProvider messagesProvider,
@@ -36,6 +46,17 @@ public class CommandDispatcher {
         this(parameterBinder, invocationExecutor, messagesProvider, completionResolver, new CommandInterceptorChain());
     }
 
+    /**
+     * Creates a dispatcher with the given interceptor chain and the default keyed-message renderer.
+     * Convenience overload that delegates to
+     * {@link #CommandDispatcher(CommandParameterBinder, CommandInvocationExecutor, CommandMessagesProvider, CompletionResolver, CommandInterceptorChain, CommandMessageRenderer)}.
+     *
+     * @param parameterBinder    binds raw input tokens to invocation arguments; must not be {@code null}
+     * @param invocationExecutor invokes the resolved command handler; must not be {@code null}
+     * @param messagesProvider   resolves the active {@link CommandMessages} for a context; must not be {@code null}
+     * @param completionResolver produces tab-completion suggestions; must not be {@code null}
+     * @param interceptorChain   the chain of interceptors run around each invocation; must not be {@code null}
+     */
     public CommandDispatcher(CommandParameterBinder parameterBinder,
                              CommandInvocationExecutor invocationExecutor,
                              CommandMessagesProvider messagesProvider,
@@ -45,18 +66,29 @@ public class CommandDispatcher {
                 new CommandMessageRenderer(new CommandMessageSourceProvider()));
     }
 
+    /**
+     * Creates a dispatcher with all collaborators supplied explicitly.
+     *
+     * @param parameterBinder    binds raw input tokens to invocation arguments; must not be {@code null}
+     * @param invocationExecutor invokes the resolved command handler; must not be {@code null}
+     * @param messagesProvider   resolves the active {@link CommandMessages} for a context; must not be {@code null}
+     * @param completionResolver produces tab-completion suggestions; must not be {@code null}
+     * @param interceptorChain   the chain of interceptors run around each invocation; must not be {@code null}
+     * @param messageRenderer    renders keyed {@link CommandMessageException} failures; must not be {@code null}
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public CommandDispatcher(CommandParameterBinder parameterBinder,
                              CommandInvocationExecutor invocationExecutor,
                              CommandMessagesProvider messagesProvider,
                              CompletionResolver completionResolver,
                              CommandInterceptorChain interceptorChain,
                              CommandMessageRenderer messageRenderer) {
-        this.parameterBinder = parameterBinder;
-        this.invocationExecutor = invocationExecutor;
-        this.messagesProvider = messagesProvider;
-        this.completionResolver = completionResolver;
-        this.interceptorChain = interceptorChain;
-        this.messageRenderer = messageRenderer;
+        this.parameterBinder = Objects.requireNonNull(parameterBinder, "parameterBinder must not be null");
+        this.invocationExecutor = Objects.requireNonNull(invocationExecutor, "invocationExecutor must not be null");
+        this.messagesProvider = Objects.requireNonNull(messagesProvider, "messagesProvider must not be null");
+        this.completionResolver = Objects.requireNonNull(completionResolver, "completionResolver must not be null");
+        this.interceptorChain = Objects.requireNonNull(interceptorChain, "interceptorChain must not be null");
+        this.messageRenderer = Objects.requireNonNull(messageRenderer, "messageRenderer must not be null");
     }
 
     public boolean dispatch(Context context, CompiledRootCommand root, CommandSenderHandle sender, String label, String[] args) {

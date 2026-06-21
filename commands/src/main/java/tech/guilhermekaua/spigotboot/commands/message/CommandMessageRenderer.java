@@ -14,6 +14,12 @@ import java.util.Objects;
 public class CommandMessageRenderer {
     private final CommandMessageSourceProvider sourceProvider;
 
+    /**
+     * Creates a renderer backed by the given source provider.
+     *
+     * @param sourceProvider provider used to resolve the active {@link CommandMessageSource}; must not be {@code null}
+     * @throws NullPointerException if {@code sourceProvider} is {@code null}
+     */
     public CommandMessageRenderer(CommandMessageSourceProvider sourceProvider) {
         this.sourceProvider = Objects.requireNonNull(sourceProvider, "sourceProvider must not be null");
     }
