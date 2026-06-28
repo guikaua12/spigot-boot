@@ -46,19 +46,16 @@ public final class ProxyUtils {
     }
 
     public static Class<?> unwrapProxyType(Class<?> type) {
-        if (isSpigotBootProxy(type)) {
-            return type.getSuperclass();
+        Class<?> current = type;
+        while (current != null && isSpigotBootProxy(current) && current.getSuperclass() != null) {
+            current = current.getSuperclass();
         }
-        return type;
+        return current;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Class<T> getRealClass(T object) {
-        if (!isProxy(object)) {
-            return (Class<T>) object.getClass();
-        }
-
-        return (Class<T>) object.getClass().getSuperclass();
+        return (Class<T>) unwrapProxyType(object.getClass());
     }
 
     // walks the type hierarchy looking for the SpigotBootProxy marker interface, matching by name so

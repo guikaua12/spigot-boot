@@ -98,6 +98,10 @@ public class ProxyFactoryTest {
         Greeter proxy = ProxyFactory.createProxy(Greeter.class, null, null, PROCEED);
         assertEquals("Hello, World", proxy.greet("World"));
         assertEquals(7, proxy.add(3, 4));
+
+        ((SpigotBootProxy) proxy).setHandler(null);
+        assertEquals("Hello, Again", proxy.greet("Again"));
+        assertEquals(11, proxy.add(5, 6));
     }
 
     @Test
@@ -362,5 +366,24 @@ public class ProxyFactoryTest {
                     return proceed.invoke(self, args);
                 });
         assertEquals("intercepted-protected", proxy.protectedMethod());
+    }
+
+    // ================================================================
+    //  INPUT VALIDATION
+    // ================================================================
+
+    @Test
+    void rejectsFinalClass() {
+        assertThrows(IllegalArgumentException.class, () -> ProxyFactory.createProxyClass(String.class));
+    }
+
+    @Test
+    void rejectsPrimitive() {
+        assertThrows(IllegalArgumentException.class, () -> ProxyFactory.createProxyClass(int.class));
+    }
+
+    @Test
+    void rejectsArray() {
+        assertThrows(IllegalArgumentException.class, () -> ProxyFactory.createProxyClass(Object[].class));
     }
 }

@@ -22,7 +22,17 @@
  */
 package tech.guilhermekaua.spigotboot.core.proxy;
 
+/**
+ * Marker interface implemented by all generated proxy classes.
+ */
 public interface SpigotBootProxy {
+    /**
+     * @param handler the interceptor to install, or {@code null} to fall back to super calls
+     */
     void setHandler(MethodInterceptor handler);
+
+    /**
+     * @return the current interceptor, or {@code null} if none is installed
+     */
     MethodInterceptor getHandler();
 }

@@ -25,10 +25,16 @@ package tech.guilhermekaua.spigotboot.core.proxy;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.security.ProtectionDomain;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Creates and caches proxy subclasses at runtime using {@link ProxyGenerator}.
+ * Supports non-final, non-primitive, non-array class targets.
+ */
 public final class ProxyFactory {
 
     private static final ConcurrentHashMap<Class<?>, Class<?>> CLASS_CACHE = new ConcurrentHashMap<Class<?>, Class<?>>();
@@ -50,7 +56,7 @@ public final class ProxyFactory {
             ai = unsafeClass.getMethod("allocateInstance", Class.class);
             dc = unsafeClass.getMethod("defineClass",
                     String.class, byte[].class, int.class, int.class,
-                    ClassLoader.class, java.security.ProtectionDomain.class);
+                    ClassLoader.class, ProtectionDomain.class);
         } catch (Exception ignored) {
         }
         UNSAFE = u;
@@ -58,12 +64,28 @@ public final class ProxyFactory {
         UNSAFE_DEFINE_CLASS = dc;
     }
 
+    /**
+     * @param target the class to proxy (must not be final, primitive, or array)
+     * @return the generated proxy subclass, cached for subsequent calls
+     * @throws IllegalArgumentException if the target cannot be proxied
+     */
     @SuppressWarnings("unchecked")
     public static <T> Class<? extends T> createProxyClass(Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
+        if (target.isPrimitive() || target.isArray() || Modifier.isFinal(target.getModifiers())) {
+            throw new IllegalArgumentException("target cannot be proxied: " + target.getName());
+        }
         return (Class<? extends T>) CLASS_CACHE.computeIfAbsent(target, ProxyFactory::generateAndDefine);
     }
 
+    /**
+     * @param target        the class to proxy
+     * @param ctorArgTypes  constructor parameter types, or {@code null}/{@code empty} for no-arg
+     * @param ctorArgValues constructor argument values matching {@code ctorArgTypes}
+     * @param handler       the interceptor (must not be null)
+     * @return a new proxy instance with the handler installed
+     * @throws RuntimeException if constructor invocation fails
+     */
     @SuppressWarnings("unchecked")
     public static <T> T createProxy(Class<T> target, Class<?>[] ctorArgTypes,
                                     Object[] ctorArgValues, MethodInterceptor handler) {
@@ -91,6 +113,13 @@ public final class ProxyFactory {
         }
     }
 
+    /**
+     * Allocates a proxy instance without calling any constructor (via {@code sun.misc.Unsafe}).
+     *
+     * @param proxyClass a proxy class returned by {@link #createProxyClass}
+     * @return an uninitialized instance
+     * @throws RuntimeException if allocation fails
+     */
     public static Object allocateWithoutConstructor(Class<?> proxyClass) {
         Objects.requireNonNull(proxyClass, "proxyClass cannot be null");
 

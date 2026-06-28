@@ -115,8 +115,10 @@ public class RegisteredMethodHandler {
         }
 
         Class<?> clazz = self.getClass();
-        if (self instanceof SpigotBootProxy && clazz.getSuperclass() != null) {
-            return clazz.getSuperclass();
+        while (clazz != null && self instanceof SpigotBootProxy
+                && SpigotBootProxy.class.isAssignableFrom(clazz)
+                && clazz.getSuperclass() != null) {
+            clazz = clazz.getSuperclass();
         }
 
         return clazz;

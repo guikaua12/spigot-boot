@@ -24,7 +24,18 @@ package tech.guilhermekaua.spigotboot.core.proxy;
 
 import java.lang.reflect.Method;
 
+/**
+ * Intercepts method calls on a generated proxy instance.
+ */
 @FunctionalInterface
 public interface MethodInterceptor {
+    /**
+     * @param self       the proxy instance receiving the call
+     * @param thisMethod the method being invoked
+     * @param proceed    the generated super-call method, or {@code null} for abstract/interface methods
+     * @param args       invocation arguments (owned by the caller; do not retain)
+     * @return the value to return to the caller
+     * @throws Throwable propagated to the caller unchanged
+     */
     Object invoke(Object self, Method thisMethod, Method proceed, Object[] args) throws Throwable;
 }

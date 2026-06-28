@@ -25,7 +25,11 @@ package tech.guilhermekaua.spigotboot.utils;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.utils.testproxy.SpigotBootProxy;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,5 +62,17 @@ class ProxyUtilsTest {
         assertSame(Sample.class, ProxyUtils.getRealClass(proxy), "proxy instance must resolve to its real class");
         Sample plain = new Sample();
         assertSame(Sample.class, ProxyUtils.getRealClass(plain), "plain instance must resolve to its own class");
+    }
+
+    @Test
+    void proxyUtilsClassMustNotReferenceUnrelocatedJavassistPackage() throws Exception {
+        String resourceName = "/" + ProxyUtils.class.getName().replace('.', '/') + ".class";
+
+        try (InputStream inputStream = ProxyUtils.class.getResourceAsStream(resourceName)) {
+            assertNotNull(inputStream, "ProxyUtils bytecode must be readable");
+            String bytecode = new String(inputStream.readAllBytes(), StandardCharsets.ISO_8859_1);
+            assertFalse(bytecode.contains("javassist/"),
+                    "compiled ProxyUtils bytecode must not reference the unrelocated javassist package");
+        }
     }
 }

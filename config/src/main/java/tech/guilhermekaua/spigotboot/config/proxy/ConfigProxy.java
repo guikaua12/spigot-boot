@@ -74,7 +74,7 @@ public final class ConfigProxy<T> implements MethodInterceptor {
             if (cause instanceof NoSuchMethodException) {
                 throw new ConfigException(
                         "Config class " + configClass.getName() + " must have a no-arg constructor for proxying. " +
-                                "Add a default constructor or use @Inject on an existing constructor.", cause);
+                                "Add a default constructor.", cause);
             }
             throw new ConfigException(
                     "Failed to create config proxy for " + configClass.getName() + ": " + e.getMessage(), e);

@@ -133,6 +133,14 @@ final class ProxyGenerator {
                 String sig = m.getName() + methodDesc(m);
                 bySignature.putIfAbsent(sig, m);
             }
+            for (String name : new String[]{"toString", "hashCode", "equals"}) {
+                for (Method m : Object.class.getDeclaredMethods()) {
+                    if (m.getName().equals(name)) {
+                        String sig = m.getName() + methodDesc(m);
+                        bySignature.putIfAbsent(sig, m);
+                    }
+                }
+            }
         } else {
             for (Class<?> c = target; c != null; c = c.getSuperclass()) {
                 for (Method m : c.getDeclaredMethods()) {
@@ -279,10 +287,9 @@ final class ProxyGenerator {
             emitLoad(superCode, p, slot2);
             slot2 += slotSize(p);
         }
-        if (isInterface && m.isDefault()) {
-            superCode.write(0xB7); // invokespecial (for default methods)
-        } else if (isInterface) {
-            // abstract interface method with no default — return default value
+        if (isInterface) {
+            // version 49 class files cannot use invokespecial on InterfaceMethodref,
+            // so both default and abstract interface methods return the type default
             superCode = new ByteArrayOutputStream();
             superCode.write(0x57); // pop
             emitDefaultReturn(superCode, retType);
@@ -339,13 +346,11 @@ final class ProxyGenerator {
 
         ByteArrayOutputStream code = new ByteArrayOutputStream();
 
-        if (isInterface && !m.isDefault()) {
+        if (isInterface) {
+            // version 49 class files cannot use invokespecial on InterfaceMethodref
             emitDefaultReturn(code, retType);
         } else {
-            String ownerForSuper = isInterface ? internal(m.getDeclaringClass()) : superName;
-            int superMethodRef = isInterface
-                    ? cpIMethod(ownerForSuper, m.getName(), methodDesc(m))
-                    : cpMethod(ownerForSuper, m.getName(), methodDesc(m));
+            int superMethodRef = cpMethod(superName, m.getName(), methodDesc(m));
             code.write(0x2A); // aload_0
             int slot = 1;
             for (Class<?> p : params) {
