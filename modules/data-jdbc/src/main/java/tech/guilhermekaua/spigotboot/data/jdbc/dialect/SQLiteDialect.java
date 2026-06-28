@@ -107,6 +107,13 @@ public class SQLiteDialect implements Dialect {
         }
         ds.setMaximumPoolSize(1);
         ds.setConnectionTestQuery("SELECT 1");
+        // journal_mode must not be set as a DataSource property because
+        // SQLiteConfig.apply() runs all properties via executeBatch(),
+        // and PRAGMA journal_mode returns a result set, which old SQLite
+        // JDBC drivers (e.g. the one bundled with PaperSpigot 1.8.8) reject
+        // with "batch entry 0: query returns results".
+        // connectionInitSql runs via Statement.execute() after connection
+        // creation, which handles result-returning PRAGMAs correctly.
         ds.setConnectionInitSql("PRAGMA journal_mode=WAL");
         ds.addDataSourceProperty("foreign_keys", "ON");
     }
