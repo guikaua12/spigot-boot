@@ -41,7 +41,7 @@ import java.util.Set;
  * Registers the {@link EventHandler} methods of a proxied {@link Listener} bean against Bukkit.
  *
  * <p>{@link org.bukkit.plugin.PluginManager#registerEvents(Listener, Plugin)} discovers handler methods from
- * {@code listener.getClass()}. When the bean is a javassist proxy that subclass overrides every method, and the
+ * {@code listener.getClass()}. When the bean is a proxy, that subclass overrides every method, and the
  * overriding methods do not carry the original {@code @EventHandler} annotation, so Bukkit finds zero handlers and
  * the listener silently stops receiving events. This binder instead discovers the handler methods on the real
  * (unwrapped) class via {@link ProxyUtils#getRealClass(Object)} and registers each one individually, while still

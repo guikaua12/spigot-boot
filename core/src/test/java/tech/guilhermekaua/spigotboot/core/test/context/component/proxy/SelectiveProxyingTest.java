@@ -1,6 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.test.context.component.proxy;
 
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +82,7 @@ public class SelectiveProxyingTest {
         NeedsProxy bean = dependencyManager.resolveDependency(NeedsProxy.class, null);
         assertNotNull(bean);
 
-        assertInstanceOf(ProxyObject.class, bean, "Bean should be proxied due to matching MethodHandler metadata");
+        assertInstanceOf(SpigotBootProxy.class, bean, "Bean should be proxied due to matching MethodHandler metadata");
         assertEquals("intercepted", bean.hello(), "Annotated method should be intercepted by handler");
         assertEquals("other", bean.other(), "Non-annotated method should proceed normally");
     }
@@ -94,7 +94,7 @@ public class SelectiveProxyingTest {
         NoProxy bean = dependencyManager.resolveDependency(NoProxy.class, null);
         assertNotNull(bean);
 
-        assertFalse(bean instanceof ProxyObject, "Bean should not be proxied when no handlers could apply");
+        assertFalse(bean instanceof SpigotBootProxy, "Bean should not be proxied when no handlers could apply");
         assertEquals("original", bean.hello());
     }
 
@@ -104,7 +104,7 @@ public class SelectiveProxyingTest {
 
         SelfInvokingBean bean = dependencyManager.resolveDependency(SelfInvokingBean.class, null);
         assertNotNull(bean);
-        assertInstanceOf(ProxyObject.class, bean, "Bean should be proxied because it has a matching annotated method");
+        assertInstanceOf(SpigotBootProxy.class, bean, "Bean should be proxied because it has a matching annotated method");
 
         assertEquals("intercepted", bean.interceptedMethod(),
                 "Direct calls through the proxy should be intercepted");
@@ -112,5 +112,3 @@ public class SelectiveProxyingTest {
                 "Internal calls on this should bypass the proxy and hit the raw target method");
     }
 }
-
-

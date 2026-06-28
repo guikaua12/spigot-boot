@@ -22,7 +22,7 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler;
 
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import lombok.Getter;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 
@@ -115,7 +115,7 @@ public class RegisteredMethodHandler {
         }
 
         Class<?> clazz = self.getClass();
-        if (self instanceof ProxyObject && clazz.getSuperclass() != null) {
+        if (self instanceof SpigotBootProxy && clazz.getSuperclass() != null) {
             return clazz.getSuperclass();
         }
 
