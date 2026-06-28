@@ -101,6 +101,7 @@ public class SQLiteDialect implements Dialect {
 
     @Override
     public void configureDataSource(HikariDataSource ds) {
+        ds.setDriverClassName("org.sqlite.JDBC");
         ds.setMaximumPoolSize(1);
         ds.addDataSourceProperty("journal_mode", "WAL");
         ds.addDataSourceProperty("foreign_keys", "ON");
