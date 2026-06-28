@@ -22,34 +22,44 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy;
 
-import tech.guilhermekaua.spigotboot.core.proxy.MethodInterceptor;
-import tech.guilhermekaua.spigotboot.core.proxy.ProxyFactory;
-import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
+import javassist.util.proxy.MethodHandler;
+import javassist.util.proxy.ProxyFactory;
+import javassist.util.proxy.ProxyObject;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.MethodHandlerRegistry;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.RegisteredMethodHandler;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 
 @RequiredArgsConstructor
-public class ComponentProxy implements MethodInterceptor {
+public class ComponentProxy implements MethodHandler {
     private final Object realObject;
 
     @SuppressWarnings("unchecked")
     public static <T> T createProxy(Class<T> clazz, @Nullable Object realObject, Class<?>[] ctorArgs, Object[] ctorValues) {
+        ProxyFactory factory = new ProxyFactory();
+        if (clazz.isInterface()) {
+            factory.setInterfaces(new Class<?>[]{clazz});
+        } else {
+            factory.setSuperclass(clazz);
+        }
+
         try {
             ComponentProxy handler = new ComponentProxy(realObject);
 
             if (realObject == null || clazz.isInterface()) {
-                return ProxyFactory.createProxy(clazz, ctorArgs, ctorValues, handler);
+                return (T) factory.create(ctorArgs, ctorValues, handler);
             }
 
-            Class<?> proxyClass = ProxyFactory.createProxyClass(clazz);
-            Object proxy = ProxyFactory.allocateWithoutConstructor(proxyClass);
-            ((SpigotBootProxy) proxy).setHandler(handler);
+            Class<?> proxyClass = factory.createClass();
+            Object proxy = allocateWithoutConstructor(proxyClass);
+            ((ProxyObject) proxy).setHandler(handler);
             return (T) proxy;
         } catch (Throwable e) {
             throw new RuntimeException("Proxy creation failed for " + clazz.getName(), e);
@@ -191,5 +201,74 @@ public class ComponentProxy implements MethodInterceptor {
         } catch (NoSuchMethodException ignored) {
             return null;
         }
+    }
+
+    private static Object allocateWithoutConstructor(Class<?> proxyClass) throws ReflectiveOperationException {
+        Objects.requireNonNull(proxyClass, "proxyClass cannot be null");
+
+        Class<?> unsafeClass = null;
+        Field theUnsafe = null;
+        Method allocateInstance = null;
+        Object unsafe = null;
+        ReflectiveOperationException unsafeFailure = null;
+
+        try {
+            unsafeClass = Class.forName("sun.misc.Unsafe");
+        } catch (ClassNotFoundException e) {
+            unsafeFailure = e;
+        }
+
+        if (unsafeClass != null) {
+            try {
+                theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+                theUnsafe.setAccessible(true);
+                unsafe = theUnsafe.get(null);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unable to access theUnsafe from unsafeClass", e);
+            }
+        }
+
+        if (unsafeClass != null && unsafe != null) {
+            try {
+                allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
+            } catch (NoSuchMethodException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unable to resolve allocateInstance from unsafeClass", e);
+            }
+        }
+
+        if (unsafeClass != null && unsafe != null && allocateInstance != null) {
+            try {
+                return allocateInstance.invoke(unsafe, proxyClass);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                unsafeFailure = new ReflectiveOperationException("unsafe allocateInstance invocation failed for proxyClass " + proxyClass.getName(), e);
+            }
+        }
+
+        ReflectiveOperationException constructorFailure = null;
+        try {
+            Constructor<?> constructor = proxyClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            constructorFailure = new ReflectiveOperationException(
+                    "constructor fallback allocation failed for proxyClass " + proxyClass.getName(),
+                    e
+            );
+        }
+
+        ReflectiveOperationException allocationFailure = new ReflectiveOperationException(
+                "unable to allocate proxy instance for proxyClass " + proxyClass.getName()
+                        + "; Unsafe allocation failed and constructor fallback could not be used"
+                        + " (unsafeClass=" + (unsafeClass == null ? "unavailable" : unsafeClass.getName())
+                        + ", theUnsafe=" + (theUnsafe == null ? "unavailable" : "resolved")
+                        + ", allocateInstance=" + (allocateInstance == null ? "unavailable" : "resolved") + ")"
+        );
+        if (unsafeFailure != null) {
+            allocationFailure.addSuppressed(unsafeFailure);
+        }
+        if (constructorFailure != null) {
+            allocationFailure.addSuppressed(constructorFailure);
+        }
+        throw allocationFailure;
     }
 }

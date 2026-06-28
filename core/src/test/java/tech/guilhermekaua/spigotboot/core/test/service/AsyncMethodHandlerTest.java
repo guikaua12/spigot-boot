@@ -1,7 +1,7 @@
 package tech.guilhermekaua.spigotboot.core.test.service;
 
-import tech.guilhermekaua.spigotboot.core.proxy.MethodInterceptor;
-import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
+import javassist.util.proxy.MethodHandler;
+import javassist.util.proxy.ProxyObject;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Async;
@@ -66,16 +66,16 @@ public class AsyncMethodHandlerTest {
         }
     }
 
-    public static class NestedProxyAsyncServiceLevel1 extends NestedProxyAsyncService implements SpigotBootProxy {
-        private MethodInterceptor handler;
+    public static class NestedProxyAsyncServiceLevel1 extends NestedProxyAsyncService implements ProxyObject {
+        private MethodHandler handler;
 
         @Override
-        public void setHandler(MethodInterceptor mi) {
+        public void setHandler(MethodHandler mi) {
             this.handler = mi;
         }
 
         @Override
-        public MethodInterceptor getHandler() {
+        public MethodHandler getHandler() {
             return handler;
         }
 

@@ -1,7 +1,7 @@
 package tech.guilhermekaua.spigotboot.core.test.context.condition;
 
-import tech.guilhermekaua.spigotboot.core.proxy.ProxyFactory;
-import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
+import javassist.util.proxy.ProxyFactory;
+import javassist.util.proxy.ProxyObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.context.annotations.ConditionalOnBean;
@@ -84,10 +84,12 @@ public class OnBeanConditionTest {
 
     @Test
     void matches_proxyClassInRegistry_unwrapsAndMatches() throws Exception {
-        Class<?> proxyClass = ProxyFactory.createProxyClass(ServiceA.class);
+        ProxyFactory factory = new ProxyFactory();
+        factory.setSuperclass(ServiceA.class);
+        Class<?> proxyClass = factory.createClass();
 
-        assertTrue(SpigotBootProxy.class.isAssignableFrom(proxyClass),
-                "Test setup: proxy class should implement SpigotBootProxy");
+        assertTrue(ProxyObject.class.isAssignableFrom(proxyClass),
+                "Test setup: proxy class should implement ProxyObject");
 
         registry.register(proxyClass, new BeanDefinition(proxyClass, proxyClass, null, false, null, null));
 

@@ -23,16 +23,17 @@
 package tech.guilhermekaua.spigotboot.utils;
 
 public final class ProxyUtils {
-    // spigot-boot marks every generated proxy with the SpigotBootProxy marker interface. it is matched by name
-    // (not by a compile-time class reference) so detection keeps working after the package is relocated into
-    // a downstream plugin jar (e.g. tech.guilhermekaua.spigotboot.shaded.core.proxy.SpigotBootProxy).
-    private static final String PROXY_MARKER_CLASS_NAME = "tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy";
+    // javassist marks every generated proxy with the ProxyObject interface. it is matched by name (not by a
+    // compile-time class reference) so detection keeps working after the javassist package is relocated into
+    // a downstream plugin jar (e.g. tech.guilhermekaua.spigotboot.shaded.javassist.util.proxy.ProxyObject).
+    private static final String PROXY_OBJECT_CLASS_NAME = "javassist.util.proxy.ProxyObject";
+    private static final String RELOCATED_PROXY_OBJECT_SUFFIX = "." + PROXY_OBJECT_CLASS_NAME;
 
     public static boolean isProxy(Object object) {
         try {
             Class<?> clazz = object.getClass();
 
-            if (isSpigotBootProxy(clazz)) {
+            if (isJavassistProxy(clazz)) {
                 return true;
             }
 
@@ -46,7 +47,7 @@ public final class ProxyUtils {
     }
 
     public static Class<?> unwrapProxyType(Class<?> type) {
-        if (isSpigotBootProxy(type)) {
+        if (isJavassistProxy(type)) {
             return type.getSuperclass();
         }
         return type;
@@ -61,13 +62,13 @@ public final class ProxyUtils {
         return (Class<T>) object.getClass().getSuperclass();
     }
 
-    // walks the type hierarchy looking for the SpigotBootProxy marker interface, matching by name so
-    // both the original and the shaded/relocated name are recognized.
-    private static boolean isSpigotBootProxy(Class<?> type) {
+    // walks the type hierarchy looking for javassist's ProxyObject marker interface, matching by name so
+    // both the original (javassist.util.proxy.ProxyObject) and the shaded/relocated name are recognized.
+    private static boolean isJavassistProxy(Class<?> type) {
         for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
             for (Class<?> iface : current.getInterfaces()) {
                 String name = iface.getName();
-                if (name.equals(PROXY_MARKER_CLASS_NAME) || name.endsWith(".SpigotBootProxy")) {
+                if (name.equals(PROXY_OBJECT_CLASS_NAME) || name.endsWith(RELOCATED_PROXY_OBJECT_SUFFIX)) {
                     return true;
                 }
             }

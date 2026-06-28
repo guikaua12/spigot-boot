@@ -70,10 +70,97 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <id>shade-javassist</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- publish a thin jar; the reduced pom drops the bundled+relocated javassist
+                                 while leaving first-party deps (e.g. spigot-boot-utils) as normal transitive deps -->
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+
+                            <!-- only javassist is bundled into this jar; nothing else is inlined -->
+                            <artifactSet>
+                                <includes>
+                                    <include>org.javassist:javassist</include>
+                                </includes>
+                            </artifactSet>
+
+                            <!-- filter to minimize included classes from javassist -->
+                            <filters>
+                                <filter>
+                                    <artifact>org.javassist:javassist</artifact>
+                                    <excludes>
+                                        <exclude>javassist/compiler/**</exclude>
+                                        <exclude>javassist/convert/**</exclude>
+                                        <exclude>javassist/expr/**</exclude>
+                                        <exclude>javassist/runtime/**</exclude>
+                                        <exclude>javassist/scopedpool/**</exclude>
+                                        <exclude>javassist/tools/**</exclude>
+                                        <exclude>javassist/bytecode/analysis/**</exclude>
+
+                                        <exclude>javassist/ByteArrayClassPath*.class</exclude>
+                                        <exclude>javassist/ClassClassPath.class</exclude>
+                                        <exclude>javassist/ClassMap.class</exclude>
+                                        <exclude>javassist/ClassPath.class</exclude>
+                                        <exclude>javassist/ClassPathList.class</exclude>
+                                        <exclude>javassist/ClassPool*.class</exclude>
+                                        <exclude>javassist/CodeConverter*.class</exclude>
+                                        <exclude>javassist/CtArray.class</exclude>
+                                        <exclude>javassist/CtBehavior.class</exclude>
+                                        <exclude>javassist/CtClass*.class</exclude>
+                                        <exclude>javassist/CtConstructor.class</exclude>
+                                        <exclude>javassist/CtField*.class</exclude>
+                                        <exclude>javassist/CtMember*.class</exclude>
+                                        <exclude>javassist/CtMethod*.class</exclude>
+                                        <exclude>javassist/CtNewClass.class</exclude>
+                                        <exclude>javassist/CtNewConstructor.class</exclude>
+                                        <exclude>javassist/CtNewMethod.class</exclude>
+                                        <exclude>javassist/CtNewWrappedConstructor.class</exclude>
+                                        <exclude>javassist/CtNewWrappedMethod.class</exclude>
+                                        <exclude>javassist/CtPrimitiveType.class</exclude>
+                                        <exclude>javassist/DirClassPath.class</exclude>
+                                        <exclude>javassist/FieldInitLink.class</exclude>
+                                        <exclude>javassist/JarClassPath.class</exclude>
+                                        <exclude>javassist/JarDirClassPath*.class</exclude>
+                                        <exclude>javassist/Loader*.class</exclude>
+                                        <exclude>javassist/SerialVersionUID*.class</exclude>
+                                        <exclude>javassist/Translator.class</exclude>
+                                        <exclude>javassist/URLClassPath.class</exclude>
+
+                                        <exclude>javassist/util/HotSwapper*.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+
+                            <relocations>
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>tech.guilhermekaua.spigotboot.shaded.javassist</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
         <dependency>
             <groupId>com.mysql</groupId>

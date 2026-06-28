@@ -46,4 +46,15 @@
         </plugins>
     </build>
 
+    <dependencies>
+        <!-- javassist is only needed by tests (to construct a real proxy); ProxyUtils detects proxies by
+             interface name and carries no compile-time reference to the javassist package. see ProxyUtils. -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>
