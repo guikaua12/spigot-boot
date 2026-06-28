@@ -8,6 +8,7 @@ import tech.guilhermekaua.spigotboot.commands.execution.CommandDispatcher;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationExecutor;
 import tech.guilhermekaua.spigotboot.commands.execution.CommandInvocationFactory;
 import tech.guilhermekaua.spigotboot.commands.interceptor.CommandInterceptorChain;
+import tech.guilhermekaua.spigotboot.commands.message.CommandMessageRenderer;
 import tech.guilhermekaua.spigotboot.commands.message.CommandMessagesProvider;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandHandlerIntrospector;
 import tech.guilhermekaua.spigotboot.commands.parse.CommandPatternParser;
@@ -78,13 +79,15 @@ public class SpigotCommandsConfiguration {
                                                CommandInvocationExecutor commandInvocationExecutor,
                                                CommandMessagesProvider commandMessagesProvider,
                                                tech.guilhermekaua.spigotboot.commands.completion.CompletionResolver completionResolver,
-                                               CommandInterceptorChain commandInterceptorChain) {
+                                               CommandInterceptorChain commandInterceptorChain,
+                                               CommandMessageRenderer commandMessageRenderer) {
         return new CommandDispatcher(
                 commandParameterBinder,
                 commandInvocationExecutor,
                 commandMessagesProvider,
                 completionResolver,
-                commandInterceptorChain
+                commandInterceptorChain,
+                commandMessageRenderer
         );
     }
 

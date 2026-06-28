@@ -10,6 +10,9 @@ import tech.guilhermekaua.spigotboot.commands.CommandExecutionContext;
 import tech.guilhermekaua.spigotboot.commands.metadata.CommandParameterMetadata;
 import tech.guilhermekaua.spigotboot.commands.spigot.resolve.BukkitOfflinePlayerArgumentResolver;
 
+import tech.guilhermekaua.spigotboot.commands.CommandMessageException;
+import tech.guilhermekaua.spigotboot.commands.spigot.resolve.SpigotCommandMessages;
+
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -75,10 +78,11 @@ class BukkitOfflinePlayerArgumentResolverTest {
             bukkit.when(() -> Bukkit.getPlayerExact("Missing")).thenReturn(null);
             bukkit.when(() -> Bukkit.getOfflinePlayer("Missing")).thenReturn(missingPlayer);
 
-            assertThrows(
-                    IllegalArgumentException.class,
+            CommandMessageException exception = assertThrows(
+                    CommandMessageException.class,
                     () -> resolver.resolve(context, parameter, "Missing")
             );
+            assertSame(SpigotCommandMessages.OFFLINE_NOT_FOUND, exception.getKey());
 
             bukkit.verify(() -> Bukkit.getPlayerExact("Missing"));
             bukkit.verify(() -> Bukkit.getOfflinePlayer("Missing"));

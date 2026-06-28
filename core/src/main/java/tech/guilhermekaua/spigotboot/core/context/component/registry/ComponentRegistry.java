@@ -38,25 +38,23 @@ import tech.guilhermekaua.spigotboot.core.utils.BeanUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Getter
 public class ComponentRegistry {
+    private static final Logger LOGGER = Logger.getLogger(ComponentRegistry.class.getName());
+
     private final Set<Class<? extends Annotation>> componentsAnnotations = new HashSet<>();
     private DiscoveryIndexReader discoveryIndexReader;
 
     public void registerComponents(String basePackage, DependencyManager dependencyManager) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        if (classLoader == null) {
-            classLoader = ComponentRegistry.class.getClassLoader();
+        ClassLoader fallbackClassLoader = Thread.currentThread().getContextClassLoader();
+        if (fallbackClassLoader == null) {
+            fallbackClassLoader = ComponentRegistry.class.getClassLoader();
         }
-
-        ConditionContext conditionContext = new SimpleConditionContext(
-                dependencyManager.getBeanDefinitionRegistry(),
-                null,
-                classLoader
-        );
 
         // Index covers minimize-jar-safe classes; classpath scan covers package-private classes
         // the index can't reference (test fixtures, inner classes). Union both for completeness.
@@ -71,6 +69,21 @@ public class ComponentRegistry {
         }
 
         for (Class<?> componentsClass : componentsClasses) {
+            // evaluate conditions (e.g. @ConditionalOnClass) against the classloader that actually loaded
+            // the component, not the thread-context classloader, which on a real server is not the plugin
+            // classloader and cannot resolve soft-dependency types. this mirrors ModuleRegistry. fall back
+            // only when the component has no defining loader (a bootstrap-loaded class).
+            ClassLoader componentClassLoader = componentsClass.getClassLoader();
+            if (componentClassLoader == null) {
+                componentClassLoader = fallbackClassLoader;
+            }
+
+            ConditionContext conditionContext = new SimpleConditionContext(
+                    dependencyManager.getBeanDefinitionRegistry(),
+                    null,
+                    componentClassLoader
+            );
+
             if (ConditionEvaluator.shouldSkip(componentsClass, conditionContext, "ComponentRegistry")) {
                 continue;
             }
@@ -124,9 +137,39 @@ public class ComponentRegistry {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Registers a single scanned component, tolerating components that cannot be linked because a type
+     * they reference comes from an absent optional dependency.
+     * <p>
+     * A component may link fine itself yet declare a constructor parameter, field, or setter whose type
+     * is supplied only by a soft dependency (for example {@code PlaceholderRegistry}, whose constructor
+     * takes a {@code PAPIExpansion} that extends {@code me.clip.placeholderapi.expansion.PlaceholderExpansion}).
+     * The cycle-detection pre-scan forces those member types to link, which throws
+     * {@link NoClassDefFoundError} when the optional dependency is absent. Skipping the offending
+     * component keeps a single unavailable component from aborting the whole boot, mirroring the
+     * soft-dependency resilience the discovery index already has (see
+     * {@code tech.guilhermekaua.spigotboot.core.context.discovery.DiscoveryIndexSupport}).
+     *
+     * @param componentClass    the scanned component class to register, not null
+     * @param dependencyManager the dependency manager to register the component into, not null
+     * @return {@code true} if the component was registered, {@code false} if it was skipped because it
+     * references a type from an absent optional dependency
+     */
     @SuppressWarnings("unchecked")
-    private void registerScannedComponent(@NotNull Class<?> componentClass, @NotNull DependencyManager dependencyManager) {
-        registerScannedComponentTyped((Class<Object>) componentClass, dependencyManager);
+    boolean registerScannedComponent(@NotNull Class<?> componentClass, @NotNull DependencyManager dependencyManager) {
+        try {
+            registerScannedComponentTyped((Class<Object>) componentClass, dependencyManager);
+            return true;
+        } catch (NoClassDefFoundError e) {
+            // the component references a type from an absent optional dependency, so linking it (here,
+            // while the cycle-detection pre-scan resolves its member types) fails. skip it so one
+            // unavailable component does not poison the whole scan. only NoClassDefFoundError is caught
+            // (not the broader LinkageError) so genuinely broken classes -- VerifyError, ClassFormatError,
+            // UnsupportedClassVersionError -- still fail the boot loudly instead of being silently skipped.
+            LOGGER.log(Level.FINE, "Skipping component '" + componentClass.getName()
+                    + "': references a type from an absent optional dependency", e);
+            return false;
+        }
     }
 
     private <T> void registerScannedComponentTyped(@NotNull Class<T> componentClass,

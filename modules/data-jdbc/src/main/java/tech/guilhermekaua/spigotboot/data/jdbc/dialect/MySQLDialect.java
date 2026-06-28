@@ -108,6 +108,10 @@ public class MySQLDialect implements Dialect {
 
     @Override
     public void configureDataSource(HikariDataSource ds) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ignored) {
+        }
         ds.setMaximumPoolSize(defaultPoolSize());
         ds.setMinimumIdle(Math.min(defaultPoolSize(), 10));
         ds.setMaxLifetime(1800000);
