@@ -1,6 +1,6 @@
 package tech.guilhermekaua.spigotboot.core.test.context.configuration;
 
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -473,7 +473,7 @@ public class ConfigurationProcessorTest {
 
         InterceptedBean bean = dependencyManager.resolveDependency(InterceptedBean.class, null);
         assertNotNull(bean, "InterceptedBean should not be null");
-        assertInstanceOf(ProxyObject.class, bean, "@Bean result should be proxied when a handler can apply");
+        assertInstanceOf(SpigotBootProxy.class, bean, "@Bean result should be proxied when a handler can apply");
         assertEquals("intercepted-bean", bean.run());
         assertEquals(1, interceptedMethodInvocationCount.get(), "Method handler should intercept @Bean method calls");
     }
@@ -485,7 +485,7 @@ public class ConfigurationProcessorTest {
 
         InterceptedDependencyHolder holder = dependencyManager.resolveDependency(InterceptedDependencyHolder.class, null);
         assertNotNull(holder, "InterceptedDependencyHolder should not be null");
-        assertTrue(holder.getDependency() instanceof ProxyObject,
+        assertTrue(holder.getDependency() instanceof SpigotBootProxy,
                 "Internal @Bean call should not leak raw instance before processing");
         assertEquals("intercepted-dependency", holder.getDependency().run());
         assertEquals(1, interceptedMethodInvocationCount.get(), "Method handler should intercept the internally wired bean");

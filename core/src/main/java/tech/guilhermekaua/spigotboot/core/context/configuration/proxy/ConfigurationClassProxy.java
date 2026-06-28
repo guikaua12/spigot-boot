@@ -22,9 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.configuration.proxy;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.proxy.MethodInterceptor;
+import tech.guilhermekaua.spigotboot.core.proxy.ProxyFactory;
+import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.core.context.dependency.BeanDefinition;
 import tech.guilhermekaua.spigotboot.core.context.dependency.manager.DependencyManager;
@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class ConfigurationClassProxy implements MethodHandler {
+public class ConfigurationClassProxy implements MethodInterceptor {
     private final DependencyManager dependencyManager;
     private final Set<Method> beanMethods;
 
@@ -55,10 +55,7 @@ public class ConfigurationClassProxy implements MethodHandler {
         Objects.requireNonNull(dependencyManager, "dependencyManager cannot be null");
 
         try {
-            ProxyFactory factory = new ProxyFactory();
-            factory.setSuperclass(clazz);
-
-            Class<?> proxyClass = factory.createClass();
+            Class<?> proxyClass = ProxyFactory.createProxyClass(clazz);
 
             Constructor<?> ctor = dependencyManager.findInjectConstructor(clazz);
             if (ctor == null) {
@@ -73,7 +70,7 @@ public class ConfigurationClassProxy implements MethodHandler {
             T proxy = (T) proxyCtor.newInstance(ctorArgs);
             dependencyManager.injectDependencies(clazz, proxy);
 
-            ((ProxyObject) proxy)
+            ((SpigotBootProxy) proxy)
                     .setHandler(new ConfigurationClassProxy(dependencyManager, beanMethods));
 
             return proxy;
