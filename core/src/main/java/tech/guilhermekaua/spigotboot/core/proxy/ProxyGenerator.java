@@ -145,16 +145,30 @@ final class ProxyGenerator {
             for (Class<?> c = target; c != null; c = c.getSuperclass()) {
                 for (Method m : c.getDeclaredMethods()) {
                     int mod = m.getModifiers();
-                    if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || Modifier.isPrivate(mod)) continue;
-                    if (m.isBridge()) continue;
+                    if (Modifier.isStatic(mod) || Modifier.isPrivate(mod)) continue;
                     if (isSkippedMethod(m)) continue;
                     String sig = m.getName() + methodDesc(m);
+                    if (m.isBridge() || Modifier.isFinal(mod)) {
+                        bySignature.putIfAbsent(sig, m);
+                        continue;
+                    }
+                    if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod) && c != target) {
+                        String cPkg = c.getPackage() != null ? c.getPackage().getName() : "";
+                        String tPkg = target.getPackage() != null ? target.getPackage().getName() : "";
+                        if (!cPkg.equals(tPkg)) continue;
+                    }
                     bySignature.putIfAbsent(sig, m);
                 }
             }
         }
 
-        return new ArrayList<Method>(bySignature.values());
+        List<Method> result = new ArrayList<Method>();
+        for (Method m : bySignature.values()) {
+            if (!Modifier.isFinal(m.getModifiers()) && !m.isBridge()) {
+                result.add(m);
+            }
+        }
+        return result;
     }
 
     private static boolean isSkippedMethod(Method m) {
@@ -287,9 +301,7 @@ final class ProxyGenerator {
             emitLoad(superCode, p, slot2);
             slot2 += slotSize(p);
         }
-        if (isInterface) {
-            // version 49 class files cannot use invokespecial on InterfaceMethodref,
-            // so both default and abstract interface methods return the type default
+        if (isInterface || Modifier.isAbstract(m.getModifiers())) {
             superCode = new ByteArrayOutputStream();
             superCode.write(0x57); // pop
             emitDefaultReturn(superCode, retType);
@@ -346,8 +358,7 @@ final class ProxyGenerator {
 
         ByteArrayOutputStream code = new ByteArrayOutputStream();
 
-        if (isInterface) {
-            // version 49 class files cannot use invokespecial on InterfaceMethodref
+        if (isInterface || Modifier.isAbstract(m.getModifiers())) {
             emitDefaultReturn(code, retType);
         } else {
             int superMethodRef = cpMethod(superName, m.getName(), methodDesc(m));

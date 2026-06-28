@@ -80,6 +80,11 @@ public class ProxyFactoryTest {
         public String process(String input) { return "processed:" + input; }
     }
 
+    public static abstract class AbstractService {
+        public abstract String execute(String input);
+        public String concrete() { return "concrete"; }
+    }
+
     private static final MethodInterceptor PROCEED = (self, thisMethod, proceed, args) -> proceed.invoke(self, args);
 
     // ================================================================
@@ -323,6 +328,11 @@ public class ProxyFactoryTest {
         assertEquals("processed:hello", proxy.process("hello"));
         assertEquals(1, intercepted.size(), "bridge method should not cause double interception");
         assertEquals("process(String)", intercepted.get(0));
+
+        intercepted.clear();
+        GenericBase<String> asBase = proxy;
+        assertEquals("processed:world", asBase.process("world"));
+        assertEquals(1, intercepted.size(), "bridge method should not cause double interception via erased type");
     }
 
     // ================================================================
@@ -366,6 +376,34 @@ public class ProxyFactoryTest {
                     return proceed.invoke(self, args);
                 });
         assertEquals("intercepted-protected", proxy.protectedMethod());
+    }
+
+    // ================================================================
+    //  ABSTRACT CLASS METHOD PROXYING
+    // ================================================================
+
+    @Test
+    void abstractMethodProceedReturnsDefault() {
+        AbstractService proxy = ProxyFactory.createProxy(AbstractService.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("execute".equals(thisMethod.getName())) {
+                        Object superResult = proceed.invoke(self, args);
+                        assertNull(superResult, "proceed on abstract method should return null");
+                        return "intercepted:" + args[0];
+                    }
+                    return proceed.invoke(self, args);
+                });
+
+        assertEquals("intercepted:test", proxy.execute("test"));
+        assertEquals("concrete", proxy.concrete());
+    }
+
+    @Test
+    void abstractMethodNullHandlerReturnsDefault() {
+        AbstractService proxy = ProxyFactory.createProxy(AbstractService.class, null, null, PROCEED);
+        ((SpigotBootProxy) proxy).setHandler(null);
+        assertNull(proxy.execute("test"), "abstract method with null handler should return type default");
+        assertEquals("concrete", proxy.concrete());
     }
 
     // ================================================================
