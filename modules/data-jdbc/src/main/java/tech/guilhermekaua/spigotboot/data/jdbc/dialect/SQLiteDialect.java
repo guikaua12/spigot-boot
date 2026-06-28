@@ -106,7 +106,7 @@ public class SQLiteDialect implements Dialect {
         } catch (ClassNotFoundException ignored) {
         }
         ds.setMaximumPoolSize(1);
-        ds.addDataSourceProperty("journal_mode", "WAL");
+        ds.setConnectionInitSql("PRAGMA journal_mode=WAL");
         ds.addDataSourceProperty("foreign_keys", "ON");
     }
 }
