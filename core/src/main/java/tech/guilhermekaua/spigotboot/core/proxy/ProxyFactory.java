@@ -34,6 +34,30 @@ public final class ProxyFactory {
     private static final ConcurrentHashMap<Class<?>, Class<?>> CLASS_CACHE = new ConcurrentHashMap<Class<?>, Class<?>>();
     private static final AtomicLong COUNTER = new AtomicLong();
 
+    private static final Object UNSAFE;
+    private static final Method ALLOCATE_INSTANCE;
+    private static final Method UNSAFE_DEFINE_CLASS;
+
+    static {
+        Object u = null;
+        Method ai = null;
+        Method dc = null;
+        try {
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            u = theUnsafe.get(null);
+            ai = unsafeClass.getMethod("allocateInstance", Class.class);
+            dc = unsafeClass.getMethod("defineClass",
+                    String.class, byte[].class, int.class, int.class,
+                    ClassLoader.class, java.security.ProtectionDomain.class);
+        } catch (Exception ignored) {
+        }
+        UNSAFE = u;
+        ALLOCATE_INSTANCE = ai;
+        UNSAFE_DEFINE_CLASS = dc;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> Class<? extends T> createProxyClass(Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
@@ -70,60 +94,22 @@ public final class ProxyFactory {
     public static Object allocateWithoutConstructor(Class<?> proxyClass) {
         Objects.requireNonNull(proxyClass, "proxyClass cannot be null");
 
-        Class<?> unsafeClass = null;
-        Field theUnsafe = null;
-        Method allocateInstance = null;
-        Object unsafe = null;
-        ReflectiveOperationException unsafeFailure = null;
-
-        try {
-            unsafeClass = Class.forName("sun.misc.Unsafe");
-        } catch (ClassNotFoundException e) {
-            unsafeFailure = e;
-        }
-
-        if (unsafeClass != null) {
+        if (UNSAFE != null && ALLOCATE_INSTANCE != null) {
             try {
-                theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
-                theUnsafe.setAccessible(true);
-                unsafe = theUnsafe.get(null);
-            } catch (ReflectiveOperationException | RuntimeException e) {
-                unsafeFailure = new ReflectiveOperationException("unable to access theUnsafe", e);
+                return ALLOCATE_INSTANCE.invoke(UNSAFE, proxyClass);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("allocateInstance failed for " + proxyClass.getName(), e);
             }
         }
 
-        if (unsafeClass != null && unsafe != null) {
-            try {
-                allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
-            } catch (NoSuchMethodException | RuntimeException e) {
-                unsafeFailure = new ReflectiveOperationException("unable to resolve allocateInstance", e);
-            }
-        }
-
-        if (unsafeClass != null && unsafe != null && allocateInstance != null) {
-            try {
-                return allocateInstance.invoke(unsafe, proxyClass);
-            } catch (ReflectiveOperationException | RuntimeException e) {
-                unsafeFailure = new ReflectiveOperationException(
-                        "allocateInstance invocation failed for " + proxyClass.getName(), e);
-            }
-        }
-
-        ReflectiveOperationException constructorFailure = null;
         try {
             Constructor<?> constructor = proxyClass.getDeclaredConstructor();
             constructor.setAccessible(true);
             return constructor.newInstance();
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            constructorFailure = new ReflectiveOperationException(
-                    "constructor fallback failed for " + proxyClass.getName(), e);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("unable to allocate proxy instance for " + proxyClass.getName()
+                    + " (Unsafe unavailable, no accessible no-arg constructor)", e);
         }
-
-        ReflectiveOperationException allocationFailure = new ReflectiveOperationException(
-                "unable to allocate proxy instance for " + proxyClass.getName());
-        if (unsafeFailure != null) allocationFailure.addSuppressed(unsafeFailure);
-        if (constructorFailure != null) allocationFailure.addSuppressed(constructorFailure);
-        throw new RuntimeException(allocationFailure);
     }
 
     // ================================================================
@@ -137,19 +123,13 @@ public final class ProxyFactory {
     }
 
     private static Class<?> defineClass(String name, byte[] bytecode, ClassLoader loader, Class<?> neighbor) {
-        // try Unsafe.defineClass first
-        try {
-            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
-            Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            Object unsafe = theUnsafe.get(null);
-            Method defineClass = unsafeClass.getMethod("defineClass",
-                    String.class, byte[].class, int.class, int.class,
-                    ClassLoader.class, java.security.ProtectionDomain.class);
-            return (Class<?>) defineClass.invoke(unsafe, name, bytecode, 0, bytecode.length,
-                    loader, neighbor.getProtectionDomain());
-        } catch (Exception ignored) {
-            // fall through
+        if (UNSAFE != null && UNSAFE_DEFINE_CLASS != null) {
+            try {
+                return (Class<?>) UNSAFE_DEFINE_CLASS.invoke(UNSAFE, name, bytecode, 0, bytecode.length,
+                        loader, neighbor.getProtectionDomain());
+            } catch (Exception ignored) {
+                // fall through
+            }
         }
 
         // fallback: MethodHandles.Lookup.defineClass (Java 9+)

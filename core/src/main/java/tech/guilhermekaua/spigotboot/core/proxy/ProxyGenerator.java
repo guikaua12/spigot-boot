@@ -100,9 +100,6 @@ final class ProxyGenerator {
                 if (Modifier.isPrivate(mod)) continue;
                 addConstructor(superName, ctor.getParameterTypes());
             }
-            if (methods.isEmpty()) {
-                addConstructor(superName, new Class<?>[0]);
-            }
         }
 
         // setHandler / getHandler
@@ -141,6 +138,7 @@ final class ProxyGenerator {
                 for (Method m : c.getDeclaredMethods()) {
                     int mod = m.getModifiers();
                     if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || Modifier.isPrivate(mod)) continue;
+                    if (m.isBridge()) continue;
                     if (isSkippedMethod(m)) continue;
                     String sig = m.getName() + methodDesc(m);
                     bySignature.putIfAbsent(sig, m);
@@ -325,6 +323,7 @@ final class ProxyGenerator {
         int access = Modifier.isPublic(m.getModifiers()) ? 0x0001
                 : Modifier.isProtected(m.getModifiers()) ? 0x0004
                 : 0x0000;
+        if (Modifier.isSynchronized(m.getModifiers())) access |= 0x0020;
         methods.add(buildMethod(access, m.getName(), methodDesc(m),
                 codeAttr, codeBytes, 10, Math.max(maxLocals, 1), null));
     }
@@ -363,7 +362,7 @@ final class ProxyGenerator {
         for (Class<?> p : params) maxLocals += slotSize(p);
 
         methods.add(buildMethod(0x0001, "_proceed_" + methodIndex, methodDesc(m),
-                codeAttr, codeBytes, 4, Math.max(maxLocals, 1), null));
+                codeAttr, codeBytes, Math.max(maxLocals + 1, 4), Math.max(maxLocals, 1), null));
     }
 
     // ================================================================
@@ -457,9 +456,10 @@ final class ProxyGenerator {
 
         // magic
         w4(out, 0xCAFEBABE);
-        // version: Java 6 (50.0) — avoids StackMapTable requirement while remaining compatible
+        // version 49.0 (Java 5): JVM always uses the type-inference verifier for < 50,
+        // so no StackMapTable attribute is needed — works on all JDKs including 21+
         w2(out, 0); // minor
-        w2(out, 50); // major
+        w2(out, 49); // major
 
         // constant pool
         w2(out, cpCount);
