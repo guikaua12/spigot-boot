@@ -101,7 +101,12 @@ public class SQLiteDialect implements Dialect {
 
     @Override
     public void configureDataSource(HikariDataSource ds) {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException ignored) {
+        }
         ds.setMaximumPoolSize(1);
+        ds.setConnectionTestQuery("SELECT 1");
         // journal_mode must not be set as a DataSource property because
         // SQLiteConfig.apply() runs all properties via executeBatch(),
         // and PRAGMA journal_mode returns a result set, which old SQLite
