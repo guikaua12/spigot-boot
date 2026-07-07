@@ -172,6 +172,15 @@ public class ProxyFactoryTest {
     }
 
     @Test
+    void createProxyRejectsArgLengthMismatch() {
+        assertThrows(IllegalArgumentException.class, () ->
+                ProxyFactory.createProxy(Greeter.class,
+                        new Class<?>[]{String.class},
+                        new Object[0],
+                        PROCEED));
+    }
+
+    @Test
     void proxyClassIsCached() {
         Class<? extends Greeter> a = ProxyFactory.createProxyClass(Greeter.class);
         Class<? extends Greeter> b = ProxyFactory.createProxyClass(Greeter.class);
@@ -349,7 +358,8 @@ public class ProxyFactoryTest {
                 });
         assertTrue(proxy.toString().contains("SBProxy"),
                 "toString should proceed to Object.toString, not return null");
-        assertEquals(proxy.hashCode(), proxy.hashCode());
+        assertEquals(System.identityHashCode(proxy), proxy.hashCode(),
+                "hashCode should proceed to Object identity hashCode");
         assertTrue(proxy.equals(proxy), "equals should proceed to Object.equals identity semantics");
         assertFalse(proxy.equals(new Object()));
     }

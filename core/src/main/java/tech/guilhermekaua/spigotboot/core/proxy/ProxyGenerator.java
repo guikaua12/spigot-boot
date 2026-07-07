@@ -35,10 +35,10 @@ import java.util.Map;
 
 final class ProxyGenerator {
 
-    private static final String INTERCEPTOR = "tech/guilhermekaua/spigotboot/core/proxy/MethodInterceptor";
+    private static final String INTERCEPTOR = internal(MethodInterceptor.class);
     private static final String INTERCEPTOR_DESC = "L" + INTERCEPTOR + ";";
-    private static final String PROXY_IFACE = "tech/guilhermekaua/spigotboot/core/proxy/SpigotBootProxy";
-    private static final String PROXY_FACTORY = "tech/guilhermekaua/spigotboot/core/proxy/ProxyFactory";
+    private static final String PROXY_IFACE = internal(SpigotBootProxy.class);
+    private static final String PROXY_FACTORY = internal(ProxyFactory.class);
     private static final String INVOKE_DESC =
             "(Ljava/lang/Object;Ljava/lang/reflect/Method;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String INVOKE_DEFAULT_DESC =

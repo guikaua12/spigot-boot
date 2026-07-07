@@ -95,18 +95,26 @@ public final class ProxyFactory {
         Objects.requireNonNull(target, "target cannot be null");
         Objects.requireNonNull(handler, "handler cannot be null");
 
+        Class<?>[] argTypes = ctorArgTypes == null ? new Class<?>[0] : ctorArgTypes;
+        Object[] argValues = ctorArgValues == null ? new Object[0] : ctorArgValues;
+        if (argTypes.length != argValues.length) {
+            throw new IllegalArgumentException(
+                    "ctorArgTypes length (" + argTypes.length +
+                    ") != ctorArgValues length (" + argValues.length + ")");
+        }
+
         Class<? extends T> proxyClass = createProxyClass(target);
 
         try {
             T proxy;
-            if (ctorArgTypes == null || ctorArgTypes.length == 0) {
+            if (argTypes.length == 0) {
                 Constructor<? extends T> ctor = proxyClass.getDeclaredConstructor();
                 ctor.setAccessible(true);
                 proxy = ctor.newInstance();
             } else {
-                Constructor<? extends T> ctor = proxyClass.getDeclaredConstructor(ctorArgTypes);
+                Constructor<? extends T> ctor = proxyClass.getDeclaredConstructor(argTypes);
                 ctor.setAccessible(true);
-                proxy = ctor.newInstance(ctorArgValues);
+                proxy = ctor.newInstance(argValues);
             }
 
             ((SpigotBootProxy) proxy).setHandler(handler);
