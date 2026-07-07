@@ -22,9 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler;
 
-import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import lombok.Getter;
 import tech.guilhermekaua.spigotboot.core.context.component.proxy.methodHandler.context.MethodHandlerContext;
+import tech.guilhermekaua.spigotboot.utils.ProxyUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -114,14 +114,7 @@ public class RegisteredMethodHandler {
             return null;
         }
 
-        Class<?> clazz = self.getClass();
-        while (clazz != null && self instanceof SpigotBootProxy
-                && SpigotBootProxy.class.isAssignableFrom(clazz)
-                && clazz.getSuperclass() != null) {
-            clazz = clazz.getSuperclass();
-        }
-
-        return clazz;
+        return ProxyUtils.getRealClass(self);
     }
 
     private boolean isMethodAnnotated(Class<?> realClass,
