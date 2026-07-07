@@ -67,6 +67,20 @@ public class ProxyFactoryTest {
         }
     }
 
+    public static class TenSlotParams {
+        public int sumInts(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j) {
+            return a + b + c + d + e + f + g + h + i + j;
+        }
+
+        public long sumLongs(long a, long b, long c, long d, long e) {
+            return a + b + c + d + e;
+        }
+    }
+
+    public interface CalcInterface {
+        int twice(int x);
+    }
+
     public static class SyncMethod {
         public synchronized String locked() { return "locked"; }
     }
@@ -264,6 +278,43 @@ public class ProxyFactoryTest {
     void manyParametersUsesGeneralLoadOpcodes() {
         ManyParams proxy = ProxyFactory.createProxy(ManyParams.class, null, null, PROCEED);
         assertEquals(15, proxy.sum(1, 2, 3, 4, 5));
+    }
+
+    // regression: maxStack was hardcoded to 10, so the super-call path (this + params)
+    // overflowed the operand stack for methods with >= 10 parameter slots -> VerifyError
+    @Test
+    void tenIntParametersDoNotOverflowOperandStack() {
+        TenSlotParams proxy = ProxyFactory.createProxy(TenSlotParams.class, null, null, PROCEED);
+        assertEquals(55, proxy.sumInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+
+        ((SpigotBootProxy) proxy).setHandler(null);
+        assertEquals(55, proxy.sumInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+    }
+
+    @Test
+    void fiveLongParametersDoNotOverflowOperandStack() {
+        TenSlotParams proxy = ProxyFactory.createProxy(TenSlotParams.class, null, null, PROCEED);
+        assertEquals(15L, proxy.sumLongs(1L, 2L, 3L, 4L, 5L));
+
+        ((SpigotBootProxy) proxy).setHandler(null);
+        assertEquals(15L, proxy.sumLongs(1L, 2L, 3L, 4L, 5L));
+    }
+
+    // ================================================================
+    //  INTERFACE TARGETS
+    // ================================================================
+
+    @Test
+    void interfaceTargetIsProxied() {
+        CalcInterface proxy = ProxyFactory.createProxy(CalcInterface.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("twice".equals(thisMethod.getName())) return ((Integer) args[0]) * 2;
+                    if ("toString".equals(thisMethod.getName())) return "calc-proxy";
+                    return proceed.invoke(self, args);
+                });
+        assertEquals(4, proxy.twice(2));
+        assertEquals("calc-proxy", proxy.toString());
+        assertInstanceOf(SpigotBootProxy.class, proxy);
     }
 
     // ================================================================

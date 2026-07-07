@@ -343,8 +343,10 @@ final class ProxyGenerator {
                 : Modifier.isProtected(m.getModifiers()) ? 0x0004
                 : 0x0000;
         if (Modifier.isSynchronized(m.getModifiers())) access |= 0x0020;
+        // the super-call path pushes 'this' plus every parameter (maxLocals slots total);
+        // the handler path peaks at 9 slots regardless of arity
         methods.add(buildMethod(access, m.getName(), methodDesc(m),
-                codeAttr, codeBytes, 10, Math.max(maxLocals, 1), null));
+                codeAttr, codeBytes, Math.max(10, maxLocals), Math.max(maxLocals, 1), null));
     }
 
     // ================================================================
