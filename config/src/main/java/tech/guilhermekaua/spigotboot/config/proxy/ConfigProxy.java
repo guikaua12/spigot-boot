@@ -22,9 +22,9 @@
  */
 package tech.guilhermekaua.spigotboot.config.proxy;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
-import javassist.util.proxy.ProxyObject;
+import tech.guilhermekaua.spigotboot.core.proxy.MethodInterceptor;
+import tech.guilhermekaua.spigotboot.core.proxy.ProxyFactory;
+import tech.guilhermekaua.spigotboot.core.proxy.SpigotBootProxy;
 import org.jetbrains.annotations.NotNull;
 import tech.guilhermekaua.spigotboot.config.exception.ConfigException;
 import tech.guilhermekaua.spigotboot.config.reload.ConfigRef;
@@ -44,7 +44,7 @@ import java.util.Objects;
  *
  * @param <T> the config type
  */
-public final class ConfigProxy<T> implements MethodHandler {
+public final class ConfigProxy<T> implements MethodInterceptor {
 
     private final ConfigRef<T> configRef;
 
@@ -67,17 +67,15 @@ public final class ConfigProxy<T> implements MethodHandler {
         Objects.requireNonNull(configClass, "configClass cannot be null");
         Objects.requireNonNull(configRef, "configRef cannot be null");
 
-        ProxyFactory factory = new ProxyFactory();
-        factory.setSuperclass(configClass);
-        factory.setUseWriteReplace(false);
-
         try {
-            return (T) factory.create(new Class<?>[0], new Object[0], new ConfigProxy<>(configRef));
-        } catch (NoSuchMethodException e) {
-            throw new ConfigException(
-                    "Config class " + configClass.getName() + " must have a no-arg constructor for proxying. " +
-                            "Add a default constructor or use @Inject on an existing constructor.", e);
-        } catch (Exception e) {
+            return (T) ProxyFactory.createProxy(configClass, new Class<?>[0], new Object[0], new ConfigProxy<>(configRef));
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NoSuchMethodException) {
+                throw new ConfigException(
+                        "Config class " + configClass.getName() + " must have a no-arg constructor for proxying. " +
+                                "Add a default constructor.", cause);
+            }
             throw new ConfigException(
                     "Failed to create config proxy for " + configClass.getName() + ": " + e.getMessage(), e);
         }
@@ -104,8 +102,8 @@ public final class ConfigProxy<T> implements MethodHandler {
                         return true;
                     }
 
-                    if (other instanceof ProxyObject) {
-                        return ((ProxyObject) other).getHandler() == this;
+                    if (other instanceof SpigotBootProxy) {
+                        return ((SpigotBootProxy) other).getHandler() == this;
                     }
                     return false;
                 default:

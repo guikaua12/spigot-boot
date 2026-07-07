@@ -22,8 +22,8 @@
  */
 package tech.guilhermekaua.spigotboot.utils;
 
-import javassist.util.proxy.ProxyFactory;
 import org.junit.jupiter.api.Test;
+import tech.guilhermekaua.spigotboot.utils.testproxy.SpigotBootProxy;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -41,58 +41,38 @@ class ProxyUtilsTest {
         }
     }
 
-    /**
-     * regression for the shaded-javassist NoClassDefFoundError: ProxyUtils ships inside downstream
-     * plugins, but javassist is only present at runtime under the relocated
-     * {@code tech.guilhermekaua.spigotboot.shaded.javassist} package. if the compiled class carries a
-     * hard reference to the original {@code javassist/...} package it throws
-     * {@code NoClassDefFoundError: javassist/util/proxy/ProxyObject} on a real server while still
-     * passing tests (where the original javassist is on the classpath). proxy detection must therefore
-     * not bake the original package name into the bytecode.
-     */
-    @Test
-    void proxyUtilsClassMustNotReferenceUnrelocatedJavassistPackage() throws Exception {
-        byte[] bytes;
-        try (InputStream in = ProxyUtils.class.getResourceAsStream("ProxyUtils.class")) {
-            assertNotNull(in, "could not load ProxyUtils.class to inspect");
-            bytes = in.readAllBytes();
-        }
-
-        // type references in the constant pool use the internal slashed form (e.g. javassist/util/proxy/ProxyObject);
-        // a string literal such as "javassist.util.proxy.ProxyObject" uses dots and is fine.
-        String constantPool = new String(bytes, StandardCharsets.ISO_8859_1);
-        assertFalse(
-                constantPool.contains("javassist/"),
-                "ProxyUtils must not reference the un-relocated javassist package; detect proxies by interface name instead"
-        );
-    }
+    public static class FakeProxy extends Sample implements SpigotBootProxy {}
 
     @Test
-    void isProxyDetectsJavassistProxies() throws Exception {
-        Object proxy = newJavassistProxy(Sample.class);
-        assertTrue(ProxyUtils.isProxy(proxy), "a javassist proxy instance must be detected as a proxy");
+    void isProxyDetectsSpigotBootProxies() {
+        Object proxy = new FakeProxy();
+        assertTrue(ProxyUtils.isProxy(proxy), "a SpigotBootProxy instance must be detected as a proxy");
         assertFalse(ProxyUtils.isProxy(new Sample()), "a plain instance must not be detected as a proxy");
     }
 
     @Test
-    void unwrapProxyTypeReturnsRealSuperclass() throws Exception {
-        Class<?> proxyClass = newJavassistProxy(Sample.class).getClass();
-        assertSame(Sample.class, ProxyUtils.unwrapProxyType(proxyClass), "proxy type must unwrap to its real superclass");
+    void unwrapProxyTypeReturnsRealSuperclass() {
+        assertSame(Sample.class, ProxyUtils.unwrapProxyType(FakeProxy.class), "proxy type must unwrap to its real superclass");
         assertSame(Sample.class, ProxyUtils.unwrapProxyType(Sample.class), "a non-proxy type must be returned unchanged");
     }
 
     @Test
-    void getRealClassReturnsRealType() throws Exception {
-        Object proxy = newJavassistProxy(Sample.class);
+    void getRealClassReturnsRealType() {
+        Object proxy = new FakeProxy();
         assertSame(Sample.class, ProxyUtils.getRealClass(proxy), "proxy instance must resolve to its real class");
         Sample plain = new Sample();
         assertSame(Sample.class, ProxyUtils.getRealClass(plain), "plain instance must resolve to its own class");
     }
 
-    private static Object newJavassistProxy(Class<?> superclass) throws Exception {
-        ProxyFactory factory = new ProxyFactory();
-        factory.setSuperclass(superclass);
-        Class<?> proxyClass = factory.createClass();
-        return proxyClass.getDeclaredConstructor().newInstance();
+    @Test
+    void proxyUtilsClassMustNotReferenceUnrelocatedJavassistPackage() throws Exception {
+        String resourceName = "/" + ProxyUtils.class.getName().replace('.', '/') + ".class";
+
+        try (InputStream inputStream = ProxyUtils.class.getResourceAsStream(resourceName)) {
+            assertNotNull(inputStream, "ProxyUtils bytecode must be readable");
+            String bytecode = new String(inputStream.readAllBytes(), StandardCharsets.ISO_8859_1);
+            assertFalse(bytecode.contains("javassist/"),
+                    "compiled ProxyUtils bytecode must not reference the unrelocated javassist package");
+        }
     }
 }

@@ -75,7 +75,7 @@ class BungeeBootPluginTest {
         BungeeBootPlugin bootPlugin = new BungeeBootPlugin(plugin);
 
         assertSame(plugin, bootPlugin.getNativePlugin());
-        // a Mockito mock is not a javassist proxy and its classloader name does not contain "mockbukkit",
+        // a Mockito mock is not a spigot-boot proxy and its classloader name does not contain "mockbukkit",
         // so ProxyUtils.isProxy() returns false and getRealClass() returns mock.getClass() directly.
         assertEquals(plugin.getClass(), bootPlugin.getMainClass());
         assertSame(plugin.getClass().getClassLoader(), bootPlugin.getClassLoader());
