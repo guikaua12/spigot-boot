@@ -22,8 +22,11 @@
  */
 package tech.guilhermekaua.spigotboot.core.proxy;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
@@ -138,6 +141,57 @@ public final class ProxyFactory {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException("unable to allocate proxy instance for " + proxyClass.getName()
                     + " (Unsafe unavailable, no accessible no-arg constructor)", e);
+        }
+    }
+
+    private static final ConcurrentHashMap<Method, MethodHandle> DEFAULT_METHOD_HANDLES =
+            new ConcurrentHashMap<Method, MethodHandle>();
+
+    /**
+     * Invokes the default-method body of {@code method} on {@code self} without virtual dispatch
+     * (which would re-enter the proxy override). Called by generated {@code _proceed_} methods;
+     * not intended as public API.
+     *
+     * @param method a default method declared on an interface
+     * @param self   the proxy instance implementing that interface
+     * @param args   invocation arguments
+     * @return whatever the default-method body returns
+     * @throws Throwable anything the default-method body throws
+     */
+    public static Object invokeDefault(Method method, Object self, Object[] args) throws Throwable {
+        MethodHandle handle = DEFAULT_METHOD_HANDLES.get(method);
+        if (handle == null) {
+            handle = createDefaultMethodHandle(method);
+            MethodHandle raced = DEFAULT_METHOD_HANDLES.putIfAbsent(method, handle);
+            if (raced != null) handle = raced;
+        }
+        return handle.bindTo(self).invokeWithArguments(args == null ? new Object[0] : args);
+    }
+
+    private static MethodHandle createDefaultMethodHandle(Method method) throws ReflectiveOperationException {
+        Class<?> iface = method.getDeclaringClass();
+        try {
+            // Java 9+: privateLookupIn gives a lookup with private access in the interface,
+            // which unreflectSpecial needs to bypass virtual dispatch
+            Method privateLookupIn = MethodHandles.class.getMethod(
+                    "privateLookupIn", Class.class, MethodHandles.Lookup.class);
+            MethodHandles.Lookup lookup =
+                    (MethodHandles.Lookup) privateLookupIn.invoke(null, iface, MethodHandles.lookup());
+            return lookup.unreflectSpecial(method, iface);
+        } catch (NoSuchMethodException e) {
+            // Java 8: the package-private Lookup(Class, int) constructor grants full access
+            Constructor<MethodHandles.Lookup> ctor =
+                    MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, int.class);
+            ctor.setAccessible(true);
+            int allModes = MethodHandles.Lookup.PUBLIC | MethodHandles.Lookup.PRIVATE
+                    | MethodHandles.Lookup.PROTECTED | MethodHandles.Lookup.PACKAGE;
+            return ctor.newInstance(iface, allModes).unreflectSpecial(method, iface);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof ReflectiveOperationException) throw (ReflectiveOperationException) cause;
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            if (cause instanceof Error) throw (Error) cause;
+            throw new IllegalStateException("privateLookupIn failed for " + iface.getName(), cause);
         }
     }
 

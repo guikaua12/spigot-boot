@@ -38,8 +38,16 @@ final class ProxyGenerator {
     private static final String INTERCEPTOR = "tech/guilhermekaua/spigotboot/core/proxy/MethodInterceptor";
     private static final String INTERCEPTOR_DESC = "L" + INTERCEPTOR + ";";
     private static final String PROXY_IFACE = "tech/guilhermekaua/spigotboot/core/proxy/SpigotBootProxy";
+    private static final String PROXY_FACTORY = "tech/guilhermekaua/spigotboot/core/proxy/ProxyFactory";
     private static final String INVOKE_DESC =
             "(Ljava/lang/Object;Ljava/lang/reflect/Method;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;";
+    private static final String INVOKE_DEFAULT_DESC =
+            "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;";
+
+    // how a method's proceed path reaches the original implementation
+    private static final int PROCEED_SUPER = 0;   // invokespecial on the superclass body
+    private static final int PROCEED_DEFAULT = 1; // interface default method via ProxyFactory.invokeDefault
+    private static final int PROCEED_NONE = 2;    // abstract: nothing to proceed to, _p_i stays null
 
     // -------- constant pool state --------
     private final ByteArrayOutputStream cpBuf = new ByteArrayOutputStream(512);
@@ -171,6 +179,12 @@ final class ProxyGenerator {
         return result;
     }
 
+    private static int proceedKind(Method m, boolean isInterface) {
+        if (Modifier.isAbstract(m.getModifiers())) return PROCEED_NONE;
+        if (!isInterface || m.getDeclaringClass() == Object.class) return PROCEED_SUPER;
+        return m.isDefault() ? PROCEED_DEFAULT : PROCEED_NONE;
+    }
+
     private static boolean isSkippedMethod(Method m) {
         if (m.getDeclaringClass() == Object.class) {
             String name = m.getName();
@@ -251,10 +265,6 @@ final class ProxyGenerator {
         int thisMethodFieldRef = cpField(proxyInternal, "_m" + methodIndex, "Ljava/lang/reflect/Method;");
         int proceedFieldRef = cpField(proxyInternal, "_p" + methodIndex, "Ljava/lang/reflect/Method;");
         int invokeRef = cpIMethod(INTERCEPTOR, "invoke", INVOKE_DESC);
-        String ownerForSuper = isInterface ? internal(m.getDeclaringClass()) : superName;
-        int superMethodRef = isInterface
-                ? cpIMethod(ownerForSuper, m.getName(), methodDesc(m))
-                : cpMethod(ownerForSuper, m.getName(), methodDesc(m));
         int objectClassRef = cpClass("java/lang/Object");
         int codeAttr = cpUtf8("Code");
 
@@ -292,33 +302,63 @@ final class ProxyGenerator {
 
         byte[] handlerBytes = handlerCode.toByteArray();
 
-        // build super call path
+        // build super call path (taken when no handler is installed)
         ByteArrayOutputStream superCode = new ByteArrayOutputStream();
         superCode.write(0x57); // pop (null handler from dup)
-        superCode.write(0x2A); // aload_0
-        int slot2 = 1;
-        for (Class<?> p : params) {
-            emitLoad(superCode, p, slot2);
-            slot2 += slotSize(p);
-        }
-        if (isInterface || Modifier.isAbstract(m.getModifiers())) {
-            superCode = new ByteArrayOutputStream();
-            superCode.write(0x57); // pop
-            emitDefaultReturn(superCode, retType);
-            byte[] superBytes = superCode.toByteArray();
-            emitFullOverride(methodIndex, m, handlerFieldRef, handlerBytes, superBytes,
-                    codeAttr, slot, retType);
-            return;
-        } else {
+        int kind = proceedKind(m, isInterface);
+        if (kind == PROCEED_SUPER) {
+            int superMethodRef = cpMethod(superName, m.getName(), methodDesc(m));
+            superCode.write(0x2A); // aload_0
+            int slot2 = 1;
+            for (Class<?> p : params) {
+                emitLoad(superCode, p, slot2);
+                slot2 += slotSize(p);
+            }
             superCode.write(0xB7); // invokespecial
+            w2(superCode, superMethodRef);
+            emitReturn(superCode, retType);
+        } else if (kind == PROCEED_DEFAULT) {
+            emitInvokeDefault(superCode, methodIndex, m);
+        } else {
+            emitDefaultReturn(superCode, retType);
         }
-        w2(superCode, superMethodRef);
-        emitReturn(superCode, retType);
 
         byte[] superBytes = superCode.toByteArray();
 
         emitFullOverride(methodIndex, m, handlerFieldRef, handlerBytes, superBytes,
                 codeAttr, slot, retType);
+    }
+
+    /**
+     * Emits {@code ProxyFactory.invokeDefault(_m_i, this, new Object[]{args...})} followed by the
+     * return handling. Interface default methods cannot be reached with {@code invokespecial} from
+     * a version-49 class file (needs 52+), so the call goes through a static helper instead.
+     * Peak operand stack: 5 + max param slot size (7).
+     */
+    private void emitInvokeDefault(ByteArrayOutputStream code, int methodIndex, Method m) {
+        Class<?>[] params = m.getParameterTypes();
+        int mFieldRef = cpField(proxyInternal, "_m" + methodIndex, "Ljava/lang/reflect/Method;");
+        int invokeDefaultRef = cpMethod(PROXY_FACTORY, "invokeDefault", INVOKE_DEFAULT_DESC);
+        int objectClassRef = cpClass("java/lang/Object");
+
+        code.write(0xB2); // getstatic _m_i
+        w2(code, mFieldRef);
+        code.write(0x2A); // aload_0 (self)
+        emitPushInt(code, params.length);
+        code.write(0xBD); // anewarray Object
+        w2(code, objectClassRef);
+        int slot = 1;
+        for (int i = 0; i < params.length; i++) {
+            code.write(0x59); // dup (array)
+            emitPushInt(code, i);
+            emitLoad(code, params[i], slot);
+            emitBox(code, params[i]);
+            code.write(0x53); // aastore
+            slot += slotSize(params[i]);
+        }
+        code.write(0xB8); // invokestatic ProxyFactory.invokeDefault
+        w2(code, invokeDefaultRef);
+        emitReturnFromHandler(code, m.getReturnType());
     }
 
     private void emitFullOverride(int methodIndex, Method m, int handlerFieldRef,
@@ -354,14 +394,20 @@ final class ProxyGenerator {
     // ================================================================
 
     private void addProceedMethod(int methodIndex, Method m, String superName, boolean isInterface) {
+        int kind = proceedKind(m, isInterface);
+        if (kind == PROCEED_NONE) {
+            // abstract: no body to proceed to; _p_i stays null so the interceptor sees proceed == null
+            return;
+        }
+
         int codeAttr = cpUtf8("Code");
         Class<?>[] params = m.getParameterTypes();
         Class<?> retType = m.getReturnType();
 
         ByteArrayOutputStream code = new ByteArrayOutputStream();
 
-        if (isInterface || Modifier.isAbstract(m.getModifiers())) {
-            emitDefaultReturn(code, retType);
+        if (kind == PROCEED_DEFAULT) {
+            emitInvokeDefault(code, methodIndex, m);
         } else {
             int superMethodRef = cpMethod(superName, m.getName(), methodDesc(m));
             code.write(0x2A); // aload_0
@@ -379,8 +425,9 @@ final class ProxyGenerator {
         int maxLocals = 1;
         for (Class<?> p : params) maxLocals += slotSize(p);
 
+        // floor 8 covers the invokeDefault path's peak of 7 even for zero-arg methods
         methods.add(buildMethod(0x0001, "_proceed_" + methodIndex, methodDesc(m),
-                codeAttr, codeBytes, Math.max(maxLocals + 1, 4), Math.max(maxLocals, 1), null));
+                codeAttr, codeBytes, Math.max(maxLocals + 1, 8), Math.max(maxLocals, 1), null));
     }
 
     // ================================================================
@@ -421,18 +468,21 @@ final class ProxyGenerator {
             w2(code, mFieldRef);
 
             // _p_i = proxyClass . getDeclaredMethod("_proceed_i", new Class[] { ... })
-            int pFieldRef = cpField(proxyInternal, "_p" + i, "Ljava/lang/reflect/Method;");
-            emitLdcClass(code, null); // proxy class (use thisClassIdx)
-            emitLdcString(code, "_proceed_" + i);
-            emitClassArray(code, params, classClassRef);
-            code.write(0xB6); // invokevirtual
-            w2(code, getDeclaredMethodRef);
-            code.write(0x59); // dup
-            code.write(0x04); // iconst_1
-            code.write(0xB6); // invokevirtual setAccessible
-            w2(code, setAccessibleRef);
-            code.write(0xB3); // putstatic
-            w2(code, pFieldRef);
+            // abstract methods have no _proceed_ method; their _p_i field stays null
+            if (proceedKind(m, target.isInterface()) != PROCEED_NONE) {
+                int pFieldRef = cpField(proxyInternal, "_p" + i, "Ljava/lang/reflect/Method;");
+                emitLdcClass(code, null); // proxy class (use thisClassIdx)
+                emitLdcString(code, "_proceed_" + i);
+                emitClassArray(code, params, classClassRef);
+                code.write(0xB6); // invokevirtual
+                w2(code, getDeclaredMethodRef);
+                code.write(0x59); // dup
+                code.write(0x04); // iconst_1
+                code.write(0xB6); // invokevirtual setAccessible
+                w2(code, setAccessibleRef);
+                code.write(0xB3); // putstatic
+                w2(code, pFieldRef);
+            }
         }
 
         int tryEnd = code.size();

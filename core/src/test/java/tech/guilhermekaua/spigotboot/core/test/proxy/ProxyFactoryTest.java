@@ -81,6 +81,16 @@ public class ProxyFactoryTest {
         int twice(int x);
     }
 
+    public interface WithDefaults {
+        int twice(int x);
+
+        default String label() { return "calc"; }
+
+        default long scale(long value, int factor) { return value * factor; }
+    }
+
+    public interface SubWithDefaults extends WithDefaults {}
+
     public static class SyncMethod {
         public synchronized String locked() { return "locked"; }
     }
@@ -317,6 +327,72 @@ public class ProxyFactoryTest {
         assertInstanceOf(SpigotBootProxy.class, proxy);
     }
 
+    @Test
+    void abstractInterfaceMethodProceedIsNull() {
+        CalcInterface proxy = ProxyFactory.createProxy(CalcInterface.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("twice".equals(thisMethod.getName())) {
+                        assertNull(proceed, "abstract interface methods have no proceed method");
+                        return 7;
+                    }
+                    return proceed.invoke(self, args);
+                });
+        assertEquals(7, proxy.twice(1));
+    }
+
+    @Test
+    void interfaceProxyObjectMethodsProceedToObject() {
+        CalcInterface proxy = ProxyFactory.createProxy(CalcInterface.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("twice".equals(thisMethod.getName())) return 0;
+                    return proceed.invoke(self, args);
+                });
+        assertTrue(proxy.toString().contains("SBProxy"),
+                "toString should proceed to Object.toString, not return null");
+        assertEquals(proxy.hashCode(), proxy.hashCode());
+        assertTrue(proxy.equals(proxy), "equals should proceed to Object.equals identity semantics");
+        assertFalse(proxy.equals(new Object()));
+    }
+
+    // ================================================================
+    //  INTERFACE DEFAULT METHODS
+    // ================================================================
+
+    @Test
+    void defaultMethodProceedRunsDefaultBody() {
+        WithDefaults proxy = ProxyFactory.createProxy(WithDefaults.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("twice".equals(thisMethod.getName())) return ((Integer) args[0]) * 2;
+                    assertNotNull(proceed, "default methods must have a proceed method");
+                    return proceed.invoke(self, args);
+                });
+        assertEquals("calc", proxy.label(), "proceed on a default method must run the default body");
+        assertEquals(15L, proxy.scale(5L, 3), "default body with primitive params must work through proceed");
+        assertEquals(4, proxy.twice(2));
+    }
+
+    @Test
+    void inheritedDefaultMethodProceedRunsDefaultBody() {
+        SubWithDefaults proxy = ProxyFactory.createProxy(SubWithDefaults.class, null, null,
+                (self, thisMethod, proceed, args) -> {
+                    if ("twice".equals(thisMethod.getName())) return 0;
+                    return proceed.invoke(self, args);
+                });
+        assertEquals("calc", proxy.label(),
+                "default method declared on a superinterface must run through proceed");
+    }
+
+    @Test
+    void defaultMethodNullHandlerRunsDefaultBody() {
+        WithDefaults proxy = ProxyFactory.createProxy(WithDefaults.class, null, null,
+                (self, thisMethod, proceed, args) -> 0);
+        ((SpigotBootProxy) proxy).setHandler(null);
+        assertEquals("calc", proxy.label(),
+                "with no handler installed, calling a default method must run its body");
+        assertEquals(6L, proxy.scale(2L, 3));
+        assertEquals(0, proxy.twice(3), "abstract method with null handler still returns the type default");
+    }
+
     // ================================================================
     //  equals / hashCode / toString INTERCEPTION
     // ================================================================
@@ -434,14 +510,14 @@ public class ProxyFactoryTest {
     // ================================================================
 
     @Test
-    void abstractMethodProceedReturnsDefault() {
+    void abstractMethodProceedIsNull() {
         AbstractService proxy = ProxyFactory.createProxy(AbstractService.class, null, null,
                 (self, thisMethod, proceed, args) -> {
                     if ("execute".equals(thisMethod.getName())) {
-                        Object superResult = proceed.invoke(self, args);
-                        assertNull(superResult, "proceed on abstract method should return null");
+                        assertNull(proceed, "abstract methods have no proceed method");
                         return "intercepted:" + args[0];
                     }
+                    assertNotNull(proceed, "concrete methods must have a proceed method");
                     return proceed.invoke(self, args);
                 });
 

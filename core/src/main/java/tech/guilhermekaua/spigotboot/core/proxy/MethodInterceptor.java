@@ -32,9 +32,10 @@ public interface MethodInterceptor {
     /**
      * @param self       the proxy instance receiving the call
      * @param thisMethod the method being invoked
-     * @param proceed    the generated super-call method (never {@code null}); for abstract and
-     *                   interface methods it does not invoke anything and returns the return
-     *                   type's default value ({@code null}, {@code 0} or {@code false})
+     * @param proceed    the generated pass-through method: invokes the superclass body for class
+     *                   targets (and {@code equals}/{@code hashCode}/{@code toString} of interface
+     *                   proxies), or the default-method body for interface default methods;
+     *                   {@code null} when the method is abstract and there is nothing to call
      * @param args       invocation arguments (owned by the caller; do not retain)
      * @return the value to return to the caller
      * @throws Throwable propagated to the caller unchanged
