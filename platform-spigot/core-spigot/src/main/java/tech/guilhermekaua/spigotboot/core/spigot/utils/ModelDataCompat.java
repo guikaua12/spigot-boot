@@ -33,6 +33,9 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Version-safe item model data helpers for the Bukkit/Spigot API surface.
@@ -40,6 +43,11 @@ import java.util.List;
 public final class ModelDataCompat {
 
     private static final String NAMESPACED_KEY_CLASS = "org.bukkit.NamespacedKey";
+    private static final Class<?> NO_ARGUMENT = NoArgument.class;
+
+    private static final ConcurrentMap<String, Optional<Class<?>>> CLASS_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<ConstructorKey, Optional<Constructor<?>>> CONSTRUCTOR_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MethodKey, Optional<Method>> METHOD_CACHE = new ConcurrentHashMap<>();
 
     private ModelDataCompat() {
     }
@@ -162,37 +170,41 @@ public final class ModelDataCompat {
     }
 
     private static Object createNamespacedKey(String rawKey) {
-        try {
-            Class<?> namespacedKeyClass = Class.forName(NAMESPACED_KEY_CLASS);
-            Object key = createNamespacedKeyWithFactory(namespacedKeyClass, rawKey);
-            if (key != null) {
-                return key;
-            }
-            return createNamespacedKeyWithConstructor(namespacedKeyClass, rawKey);
-        } catch (ReflectiveOperationException ignored) {
+        Class<?> namespacedKeyClass = resolveClass(NAMESPACED_KEY_CLASS);
+        if (namespacedKeyClass == null) {
             return null;
         }
+        Object key = createNamespacedKeyWithFactory(namespacedKeyClass, rawKey);
+        if (key != null) {
+            return key;
+        }
+        return createNamespacedKeyWithConstructor(namespacedKeyClass, rawKey);
     }
 
-    private static Object createNamespacedKeyWithConstructor(Class<?> namespacedKeyClass, String rawKey)
-            throws ReflectiveOperationException {
+    private static Object createNamespacedKeyWithConstructor(Class<?> namespacedKeyClass, String rawKey) {
         String[] parts = splitNamespacedKey(rawKey);
         if (parts == null) {
             return null;
         }
-        Constructor<?> constructor = namespacedKeyClass.getConstructor(String.class, String.class);
-        return constructor.newInstance(parts[0], parts[1]);
+        Constructor<?> constructor = resolveConstructor(namespacedKeyClass, String.class, String.class);
+        if (constructor == null) {
+            return null;
+        }
+        try {
+            return constructor.newInstance(parts[0], parts[1]);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | RuntimeException ignored) {
+            return null;
+        }
     }
 
-    private static Object createNamespacedKeyWithFactory(Class<?> namespacedKeyClass, String rawKey)
-            throws ReflectiveOperationException {
+    private static Object createNamespacedKeyWithFactory(Class<?> namespacedKeyClass, String rawKey) {
+        Method fromString = resolveSingleArgumentMethod(namespacedKeyClass, "fromString", String.class);
+        if (fromString == null || !Modifier.isStatic(fromString.getModifiers())) {
+            return null;
+        }
         try {
-            Method fromString = namespacedKeyClass.getMethod("fromString", String.class);
-            if (!Modifier.isStatic(fromString.getModifiers())) {
-                return null;
-            }
             return fromString.invoke(null, rawKey);
-        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException | InvocationTargetException | RuntimeException ignored) {
             return null;
         }
     }
@@ -212,7 +224,7 @@ public final class ModelDataCompat {
     }
 
     private static Object invokeNoArgumentMethod(Object target, String methodName) {
-        Method method = findNoArgumentMethod(target.getClass(), methodName);
+        Method method = resolveNoArgumentMethod(target.getClass(), methodName);
         if (method == null) {
             return null;
         }
@@ -224,7 +236,7 @@ public final class ModelDataCompat {
     }
 
     private static boolean invokeSingleArgumentMethod(Object target, String methodName, Object argument) {
-        Method method = findSingleArgumentMethod(target.getClass(), methodName, argument);
+        Method method = resolveSingleArgumentMethod(target.getClass(), methodName, argument == null ? null : argument.getClass());
         if (method == null) {
             return false;
         }
@@ -236,39 +248,78 @@ public final class ModelDataCompat {
         }
     }
 
-    private static Method findNoArgumentMethod(Class<?> type, String methodName) {
-        Method[] methods = type.getMethods();
-        for (Method method : methods) {
-            if (method.getName().equals(methodName) && method.getParameterTypes().length == 0) {
-                return method;
-            }
-        }
-        return null;
+    private static Class<?> resolveClass(String className) {
+        Optional<Class<?>> cached = CLASS_CACHE.computeIfAbsent(className, ModelDataCompat::loadClass);
+        return cached.orElse(null);
     }
 
-    private static Method findSingleArgumentMethod(Class<?> type, String methodName, Object argument) {
-        Method[] methods = type.getMethods();
+    private static Optional<Class<?>> loadClass(String className) {
+        try {
+            return Optional.of(Class.forName(className));
+        } catch (ClassNotFoundException | LinkageError ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Constructor<?> resolveConstructor(Class<?> type, Class<?>... parameterTypes) {
+        ConstructorKey key = new ConstructorKey(type, parameterTypes);
+        Optional<Constructor<?>> cached = CONSTRUCTOR_CACHE.computeIfAbsent(key, ModelDataCompat::findConstructor);
+        return cached.orElse(null);
+    }
+
+    private static Optional<Constructor<?>> findConstructor(ConstructorKey key) {
+        try {
+            return Optional.of(key.type.getConstructor(key.parameterTypes));
+        } catch (NoSuchMethodException | SecurityException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Method resolveNoArgumentMethod(Class<?> type, String methodName) {
+        MethodKey key = new MethodKey(type, methodName, NO_ARGUMENT);
+        Optional<Method> cached = METHOD_CACHE.computeIfAbsent(key, ModelDataCompat::findNoArgumentMethod);
+        return cached.orElse(null);
+    }
+
+    private static Method resolveSingleArgumentMethod(Class<?> type, String methodName, Class<?> argumentType) {
+        MethodKey key = new MethodKey(type, methodName, argumentType);
+        Optional<Method> cached = METHOD_CACHE.computeIfAbsent(key, ModelDataCompat::findSingleArgumentMethod);
+        return cached.orElse(null);
+    }
+
+    private static Optional<Method> findNoArgumentMethod(MethodKey key) {
+        Method[] methods = key.type.getMethods();
+        for (Method method : methods) {
+            if (method.getName().equals(key.name) && method.getParameterTypes().length == 0) {
+                return Optional.of(method);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Method> findSingleArgumentMethod(MethodKey key) {
+        Method[] methods = key.type.getMethods();
         for (Method method : methods) {
             Class<?>[] parameterTypes = method.getParameterTypes();
-            if (!method.getName().equals(methodName) || parameterTypes.length != 1) {
+            if (!method.getName().equals(key.name) || parameterTypes.length != 1) {
                 continue;
             }
-            if (isArgumentCompatible(parameterTypes[0], argument)) {
-                return method;
+            if (isArgumentTypeCompatible(parameterTypes[0], key.argumentType)) {
+                return Optional.of(method);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
-    private static boolean isArgumentCompatible(Class<?> parameterType, Object argument) {
-        if (argument == null) {
+    private static boolean isArgumentTypeCompatible(Class<?> parameterType, Class<?> argumentType) {
+        if (argumentType == null) {
             return !parameterType.isPrimitive();
         }
         if (!parameterType.isPrimitive()) {
-            return parameterType.isAssignableFrom(argument.getClass());
+            return parameterType.isAssignableFrom(argumentType);
         }
         Class<?> wrapperType = primitiveWrapper(parameterType);
-        return wrapperType != null && wrapperType.isInstance(argument);
+        return wrapperType != null && wrapperType.isAssignableFrom(argumentType);
     }
 
     private static Class<?> primitiveWrapper(Class<?> primitiveType) {
@@ -297,5 +348,85 @@ public final class ModelDataCompat {
             return Short.class;
         }
         return null;
+    }
+
+    private static final class MethodKey {
+        private final Class<?> type;
+        private final String name;
+        private final Class<?> argumentType;
+
+        private MethodKey(Class<?> type, String name, Class<?> argumentType) {
+            this.type = type;
+            this.name = name;
+            this.argumentType = argumentType;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof MethodKey)) {
+                return false;
+            }
+            MethodKey other = (MethodKey) obj;
+            return type.equals(other.type)
+                    && name.equals(other.name)
+                    && (argumentType == null ? other.argumentType == null : argumentType.equals(other.argumentType));
+        }
+
+        @Override
+        public int hashCode() {
+            int result = type.hashCode();
+            result = 31 * result + name.hashCode();
+            result = 31 * result + (argumentType == null ? 0 : argumentType.hashCode());
+            return result;
+        }
+    }
+
+    private static final class ConstructorKey {
+        private final Class<?> type;
+        private final Class<?>[] parameterTypes;
+
+        private ConstructorKey(Class<?> type, Class<?>[] parameterTypes) {
+            this.type = type;
+            this.parameterTypes = parameterTypes.clone();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof ConstructorKey)) {
+                return false;
+            }
+            ConstructorKey other = (ConstructorKey) obj;
+            return type.equals(other.type) && parameterTypesEqual(parameterTypes, other.parameterTypes);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = type.hashCode();
+            for (Class<?> parameterType : parameterTypes) {
+                result = 31 * result + parameterType.hashCode();
+            }
+            return result;
+        }
+    }
+
+    private static boolean parameterTypesEqual(Class<?>[] left, Class<?>[] right) {
+        if (left.length != right.length) {
+            return false;
+        }
+        for (int i = 0; i < left.length; i++) {
+            if (!left[i].equals(right[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static final class NoArgument {
     }
 }

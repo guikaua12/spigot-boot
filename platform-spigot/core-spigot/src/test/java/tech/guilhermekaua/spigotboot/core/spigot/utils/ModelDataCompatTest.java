@@ -10,9 +10,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -98,6 +100,35 @@ class ModelDataCompatTest {
     }
 
     @Test
+    void reflection_method_cache_reuses_lookup_results() throws Exception {
+        Map<?, ?> methodCache = methodCache();
+        methodCache.clear();
+
+        ComponentMeta meta = mock(ComponentMeta.class);
+        when(meta.getCustomModelDataComponent()).thenReturn(new TestCustomModelDataComponent());
+
+        assertTrue(ModelDataCompat.setCustomModelDataComponent(
+                meta,
+                Collections.singletonList(1.0F),
+                Collections.singletonList(true),
+                Collections.singletonList("bronze"),
+                Collections.singletonList(Color.RED)
+        ));
+        int cacheSizeAfterFirstCall = methodCache.size();
+
+        assertTrue(ModelDataCompat.setCustomModelDataComponent(
+                meta,
+                Collections.singletonList(2.0F),
+                Collections.singletonList(false),
+                Collections.singletonList("silver"),
+                Collections.singletonList(Color.BLUE)
+        ));
+
+        assertTrue(cacheSizeAfterFirstCall > 0);
+        assertEquals(cacheSizeAfterFirstCall, methodCache.size());
+    }
+
+    @Test
     void setItemModel_sets_namespaced_key_when_api_is_available() {
         ItemModelMeta meta = mock(ItemModelMeta.class);
 
@@ -132,6 +163,12 @@ class ModelDataCompatTest {
 
     private interface ItemModelMeta extends ItemMeta {
         void setItemModel(NamespacedKey itemModel);
+    }
+
+    private static Map<?, ?> methodCache() throws ReflectiveOperationException {
+        Field field = ModelDataCompat.class.getDeclaredField("METHOD_CACHE");
+        field.setAccessible(true);
+        return (Map<?, ?>) field.get(null);
     }
 
     public static final class TestCustomModelDataComponent {
