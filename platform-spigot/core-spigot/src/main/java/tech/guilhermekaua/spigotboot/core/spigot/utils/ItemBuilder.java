@@ -292,9 +292,20 @@ public class ItemBuilder {
     }
 
     /**
-     * Sets the custom model data. {@code setCustomModelData} only exists on 1.14+, so it is invoked
-     * reflectively — on older servers (and when {@code data} is null) this is a no-op, keeping the
-     * builder usable down to 1.8.8.
+     * Sets the legacy durability/data value used by old pre-flattening item variants.
+     *
+     * @param data the legacy data value, or null to leave it unchanged
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setLegacyModelData(Integer data) {
+        ModelDataCompat.setLegacyData(item, data);
+        return this;
+    }
+
+    /**
+     * Sets the custom model data. This uses the component-backed custom model data float list when
+     * available on newer servers, falls back to the 1.14+ integer API, and is a no-op on older
+     * servers or when {@code data} is null.
      *
      * @param data the custom model data, or null to leave it unset
      * @return this ItemBuilder instance for chaining
@@ -303,13 +314,79 @@ public class ItemBuilder {
         if (data == null) {
             return this;
         }
-        return changeItemMeta(meta -> {
-            try {
-                ItemMeta.class.getMethod("setCustomModelData", Integer.class).invoke(meta, data);
-            } catch (ReflectiveOperationException ignored) {
-                // pre-1.14: no custom model data support
-            }
-        });
+        return changeItemMeta(meta -> ModelDataCompat.setCustomModelData(meta, data));
+    }
+
+    /**
+     * Sets custom model data component values on servers that expose that API. Null lists are left
+     * unchanged on the component snapshot.
+     *
+     * @param floats  range dispatch float values, or null to leave unchanged
+     * @param flags   condition flag values, or null to leave unchanged
+     * @param strings select string values, or null to leave unchanged
+     * @param colors  tint colors, or null to leave unchanged
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelDataComponent(
+            List<Float> floats,
+            List<Boolean> flags,
+            List<String> strings,
+            List<Color> colors
+    ) {
+        return changeItemMeta(meta -> ModelDataCompat.setCustomModelDataComponent(meta, floats, flags, strings, colors));
+    }
+
+    /**
+     * Sets custom model data component float values.
+     *
+     * @param floats range dispatch float values
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelDataFloats(Float... floats) {
+        return setCustomModelDataComponent(asListOrNull(floats), null, null, null);
+    }
+
+    /**
+     * Sets custom model data component boolean flag values.
+     *
+     * @param flags condition flag values
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelDataFlags(Boolean... flags) {
+        return setCustomModelDataComponent(null, asListOrNull(flags), null, null);
+    }
+
+    /**
+     * Sets custom model data component string values.
+     *
+     * @param strings select string values
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelDataStrings(String... strings) {
+        return setCustomModelDataComponent(null, null, asListOrNull(strings), null);
+    }
+
+    /**
+     * Sets custom model data component tint colors.
+     *
+     * @param colors tint colors
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setCustomModelDataColors(Color... colors) {
+        return setCustomModelDataComponent(null, null, null, asListOrNull(colors));
+    }
+
+    /**
+     * Sets the direct item model key on servers that expose that API.
+     *
+     * @param itemModel a namespaced key such as {@code my_pack:bronze_sword}
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder setItemModel(String itemModel) {
+        if (itemModel == null) {
+            return this;
+        }
+        return changeItemMeta(meta -> ModelDataCompat.setItemModel(meta, itemModel));
     }
 
     /**
@@ -372,5 +449,8 @@ public class ItemBuilder {
         return item;
     }
 
+    private static <T> List<T> asListOrNull(T[] values) {
+        return values == null ? null : Arrays.asList(values);
+    }
 
 }

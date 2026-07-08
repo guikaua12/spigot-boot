@@ -2,18 +2,25 @@ package tech.guilhermekaua.spigotboot.core.spigot.utils;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ItemBuilderTest {
 
@@ -49,6 +56,39 @@ class ItemBuilderTest {
     void setCustomModelData_null_is_noop() {
         ItemMeta meta = new ItemBuilder(Material.STONE).setCustomModelData(null).wrap().getItemMeta();
         assertFalse(meta.hasCustomModelData());
+    }
+
+    @Test
+    void setLegacyModelData_sets_item_durability() {
+        ItemStack item = new ItemBuilder(Material.STONE).setLegacyModelData(4).wrap();
+        assertEquals(4, item.getDurability());
+    }
+
+    @Test
+    void setItemModel_sets_namespaced_key_when_supported() {
+        ItemStack item = mock(ItemStack.class);
+        ItemModelMeta meta = mock(ItemModelMeta.class);
+        when(item.getItemMeta()).thenReturn(meta);
+
+        new ItemBuilder(item).setItemModel("example:widgets/bronze_sword");
+
+        verify(meta).setItemModel(argThat(key -> "example:widgets/bronze_sword".equals(key.toString())));
+        verify(item).setItemMeta(meta);
+    }
+
+    @Test
+    void setCustomModelDataStrings_applies_component_strings_when_supported() {
+        ItemStack item = mock(ItemStack.class);
+        ComponentMeta meta = mock(ComponentMeta.class);
+        TestCustomModelDataComponent component = new TestCustomModelDataComponent();
+        when(item.getItemMeta()).thenReturn(meta);
+        when(meta.getCustomModelDataComponent()).thenReturn(component);
+
+        new ItemBuilder(item).setCustomModelDataStrings("bronze_sword");
+
+        assertEquals(Collections.singletonList("bronze_sword"), component.strings);
+        verify(meta).setCustomModelDataComponent(component);
+        verify(item).setItemMeta(meta);
     }
 
     @Test
@@ -91,5 +131,23 @@ class ItemBuilderTest {
         assertNotNull(lore);
         assertEquals(1, lore.size());
         assertEquals("§aLine", lore.get(0));
+    }
+
+    private interface ItemModelMeta extends ItemMeta {
+        void setItemModel(NamespacedKey itemModel);
+    }
+
+    private interface ComponentMeta extends ItemMeta {
+        TestCustomModelDataComponent getCustomModelDataComponent();
+
+        void setCustomModelDataComponent(TestCustomModelDataComponent customModelData);
+    }
+
+    public static final class TestCustomModelDataComponent {
+        private List<String> strings = Collections.emptyList();
+
+        public void setStrings(List<String> strings) {
+            this.strings = strings;
+        }
     }
 }
