@@ -320,7 +320,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return "Provide a non-empty value";
+                        return "Provide at least one value";
                     }
                 };
             }
