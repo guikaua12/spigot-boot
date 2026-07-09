@@ -28,6 +28,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -35,6 +36,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
+import tech.guilhermekaua.spigotboot.core.spigot.text.ChatMarkup;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -69,6 +71,9 @@ public class ChatConversationManager implements Listener {
         ActiveConversation previous = conversations.put(conv.playerId, conv);
         if (previous != null) {
             end(previous, EndReason.REPLACED);
+        }
+        if (conv.firstPrompt != null && !conv.firstPrompt.isBlank()) {
+            sendFirstPrompt(conv.player, conv.firstPrompt);
         }
     }
 
@@ -156,6 +161,13 @@ public class ChatConversationManager implements Listener {
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "ChatUtils " + what + " threw", t);
         }
+    }
+
+    // ChatMarkup.parse is the "for players" front door; it routes #rrggbb through HexSupport
+    // (native §x… on 1.16+, nearest-legacy below) and handles &/§ codes and click/hover tags.
+    private void sendFirstPrompt(Player player, String markup) {
+        BaseComponent[] components = ChatMarkup.parse(markup);
+        player.spigot().sendMessage(components);
     }
 
     /** Immutable-ish snapshot of a running conversation plus its mutable timeout handle. */
