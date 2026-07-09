@@ -284,6 +284,52 @@ public class DefaultValidator implements Validator {
                 return Size.class;
             }
         });
+
+        factories.put(NotEmpty.class, new ConstraintFactory<NotEmpty>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull NotEmpty annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return false;
+                        return !isEmpty(value);
+                    }
+
+                    private boolean isEmpty(Object value) {
+                        if (value instanceof CharSequence) {
+                            return ((CharSequence) value).length() == 0;
+                        } else if (value instanceof Collection) {
+                            return ((Collection<?>) value).isEmpty();
+                        } else if (value instanceof Map) {
+                            return ((Map<?, ?>) value).isEmpty();
+                        } else if (value.getClass().isArray()) {
+                            return java.lang.reflect.Array.getLength(value) == 0;
+                        }
+                        return true; // unmeasurable type: treat as empty -> invalid
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Provide a non-empty value";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<NotEmpty> getAnnotationType() {
+                return NotEmpty.class;
+            }
+        });
     }
 
     @Override
