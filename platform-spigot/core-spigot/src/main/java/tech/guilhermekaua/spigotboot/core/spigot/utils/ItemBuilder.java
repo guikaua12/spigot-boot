@@ -94,14 +94,14 @@ public class ItemBuilder {
 
     /**
      * Replaces the current item with a player head skinned from a Mojang texture URL. Works
-     * version-proof from 1.8.8 to the latest release (see {@link ItemUtils#getHeadByUrl(String)}); a
+     * version-proof from 1.8.8 to the latest release (see {@link HeadUtils#getHeadByUrl(String)}); a
      * null, blank, or malformed URL yields a bare head rather than throwing.
      *
      * @param url the Mojang texture URL (e.g. {@code http://textures.minecraft.net/texture/<hash>})
      * @return this ItemBuilder instance for chaining
      */
     public ItemBuilder headUrl(String url) {
-        this.item = ItemUtils.getHeadByUrl(url);
+        this.item = HeadUtils.getHeadByUrl(url);
         return this;
     }
 
@@ -112,7 +112,7 @@ public class ItemBuilder {
      * @return this ItemBuilder instance for chaining
      */
     public ItemBuilder headName(String name) {
-        this.item = ItemUtils.getHeadByName(name);
+        this.item = HeadUtils.getHeadByName(name);
         return this;
     }
 
@@ -123,7 +123,7 @@ public class ItemBuilder {
      * @return this ItemBuilder instance for chaining
      */
     public ItemBuilder headUUID(UUID uuid) {
-        this.item = ItemUtils.getHeadByUuid(uuid);
+        this.item = HeadUtils.getHeadByUuid(uuid);
         return this;
     }
 
@@ -143,7 +143,7 @@ public class ItemBuilder {
                 // fall through to a bare, owner-less head
             }
         }
-        this.item = ItemUtils.getHeadByUuid(parsed);
+        this.item = HeadUtils.getHeadByUuid(parsed);
         return this;
     }
 

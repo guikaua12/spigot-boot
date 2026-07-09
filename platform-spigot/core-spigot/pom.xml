@@ -55,9 +55,9 @@
                 <configuration>
                     <!-- TypeUtil#convertFromLegacy: UnsafeValues#fromLegacy (1.13+) is data-gated -
                          Material.valueOf("LEGACY_"+name) throws on 1.8.8 before the call is reached.
-                         (ItemUtils#getHeadByUuid calls the 1.12.1+ SkullMeta#setOwningPlayer
+                         (HeadUtils#getHeadByUuid calls the 1.12.1+ SkullMeta#setOwningPlayer
                          reflectively instead of ignoring the class, so the rest of the SkullMeta
-                         api stays checked - see ItemUtils#trySetOwningPlayer.)
+                         api stays checked - see HeadUtils#trySetOwningPlayer.)
                          combine.children="append" merges with the managed java.*/javax.* ignores
                          instead of replacing them -->
                     <ignores combine.children="append">
@@ -100,7 +100,7 @@
             <artifactId>MockBukkit-v1.20</artifactId>
         </dependency>
 
-        <!-- Exercises the legacy (1.8-1.17) GameProfile texture path in ItemUtils. authlib ships with
+        <!-- Exercises the legacy (1.8-1.17) GameProfile texture path in HeadUtils. authlib ships with
              the server at runtime, so this is test-scoped only. -->
         <dependency>
             <groupId>com.mojang</groupId>

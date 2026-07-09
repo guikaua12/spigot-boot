@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-class ItemUtilsTest {
+class HeadUtilsTest {
 
     private static final String SKIN_URL = "http://textures.minecraft.net/texture/deadbeefcafe";
 
@@ -41,19 +41,19 @@ class ItemUtilsTest {
 
     @Test
     void getHeadByUrl_null_returns_bare_player_head() {
-        ItemStack head = ItemUtils.getHeadByUrl(null);
+        ItemStack head = HeadUtils.getHeadByUrl(null);
         assertEquals(Material.PLAYER_HEAD, head.getType());
     }
 
     @Test
     void getHeadByUrl_blank_returns_bare_player_head() {
-        ItemStack head = ItemUtils.getHeadByUrl("   ");
+        ItemStack head = HeadUtils.getHeadByUrl("   ");
         assertEquals(Material.PLAYER_HEAD, head.getType());
     }
 
     @Test
     void getHeadByUrl_valid_url_returns_player_head() {
-        ItemStack head = ItemUtils.getHeadByUrl(SKIN_URL);
+        ItemStack head = HeadUtils.getHeadByUrl(SKIN_URL);
         assertEquals(Material.PLAYER_HEAD, head.getType());
     }
 
@@ -64,10 +64,10 @@ class ItemUtilsTest {
         // Verifies the version-specific reflection targets against the real (paper-api 1.20.1) modern
         // profile API: wrong class names, method names, or signatures would surface here. MockBukkit's
         // server does not implement createPlayerProfile, so the end-to-end apply cannot run in tests.
-        Optional<ItemUtils.ProfileApi> resolved = ItemUtils.resolveProfileApi();
+        Optional<HeadUtils.ProfileApi> resolved = HeadUtils.resolveProfileApi();
         assertTrue(resolved.isPresent(), "paper-api 1.20.1 exposes the org.bukkit.profile API");
 
-        ItemUtils.ProfileApi api = resolved.get();
+        HeadUtils.ProfileApi api = resolved.get();
         assertEquals("createPlayerProfile", api.createPlayerProfile.getName());
         assertArrayEquals(new Class<?>[]{UUID.class}, api.createPlayerProfile.getParameterTypes());
         assertEquals("getTextures", api.getTextures.getName());
@@ -80,26 +80,26 @@ class ItemUtilsTest {
     void applyViaProfileApi_malformed_url_returns_false() {
         SkullMeta meta = mock(SkullMeta.class);
 
-        assertFalse(ItemUtils.applyViaProfileApi(meta, "not a url"));
+        assertFalse(HeadUtils.applyViaProfileApi(meta, "not a url"));
     }
 
     // --- Tier 2: legacy GameProfile texture property + field write ------------------------------
 
     @Test
     void encodeSkinTexture_encodes_minimal_texture_json() {
-        String decoded = decode(ItemUtils.encodeSkinTexture(SKIN_URL));
+        String decoded = decode(HeadUtils.encodeSkinTexture(SKIN_URL));
         assertEquals("{\"textures\":{\"SKIN\":{\"url\":\"" + SKIN_URL + "\"}}}", decoded);
     }
 
     @Test
     void encodeSkinTexture_escapes_json_metacharacters() {
-        String decoded = decode(ItemUtils.encodeSkinTexture("a\"b\\c"));
+        String decoded = decode(HeadUtils.encodeSkinTexture("a\"b\\c"));
         assertEquals("{\"textures\":{\"SKIN\":{\"url\":\"a\\\"b\\\\c\"}}}", decoded);
     }
 
     @Test
     void createGameProfile_embeds_textures_property_with_the_encoded_skin() throws Exception {
-        Object profile = ItemUtils.createGameProfile(SKIN_URL);
+        Object profile = HeadUtils.createGameProfile(SKIN_URL);
         assertNotNull(profile, "authlib GameProfile must be constructible on the test classpath");
 
         Object properties = profile.getClass().getMethod("getProperties").invoke(profile);
@@ -109,7 +109,7 @@ class ItemUtilsTest {
 
         Object property = values.iterator().next();
         Object value = property.getClass().getMethod("getValue").invoke(property);
-        assertEquals(ItemUtils.encodeSkinTexture(SKIN_URL), value);
+        assertEquals(HeadUtils.encodeSkinTexture(SKIN_URL), value);
     }
 
     @Test
@@ -117,26 +117,26 @@ class ItemUtilsTest {
         FakeSkullMeta meta = new FakeSkullMeta();
         Object marker = new Object();
 
-        assertTrue(ItemUtils.writeProfileField(meta, marker));
+        assertTrue(HeadUtils.writeProfileField(meta, marker));
 
         assertSame(marker, meta.profile);
     }
 
     @Test
     void writeProfileField_returns_false_when_class_has_no_profile_field() {
-        assertFalse(ItemUtils.writeProfileField(new NoProfileField(), new Object()));
+        assertFalse(HeadUtils.writeProfileField(new NoProfileField(), new Object()));
     }
 
     @Test
     void writeProfileField_returns_false_for_object_without_field() {
-        assertFalse(ItemUtils.writeProfileField(new Object(), new Object()));
+        assertFalse(HeadUtils.writeProfileField(new Object(), new Object()));
     }
 
     // --- existing head factories still work -----------------------------------------------------
 
     @Test
     void getHeadByName_sets_owner() {
-        ItemStack head = ItemUtils.getHeadByName("Notch");
+        ItemStack head = HeadUtils.getHeadByName("Notch");
         assertEquals(Material.PLAYER_HEAD, head.getType());
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assertEquals("Notch", meta.getOwner());

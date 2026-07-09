@@ -39,7 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public final class ItemUtils {
+public final class HeadUtils {
 
     /**
      * Lazily-resolved handles for the modern Bukkit profile API (introduced in 1.18.1 and stable
@@ -54,7 +54,7 @@ public final class ItemUtils {
      */
     private static final ConcurrentMap<Class<?>, Optional<Field>> PROFILE_FIELD_CACHE = new ConcurrentHashMap<>();
 
-    private ItemUtils() {
+    private HeadUtils() {
     }
 
     public static ItemStack getHeadByName(String name) {
@@ -251,7 +251,7 @@ public final class ItemUtils {
     }
 
     private static Field profileField(Class<?> metaClass) {
-        return PROFILE_FIELD_CACHE.computeIfAbsent(metaClass, ItemUtils::findProfileField).orElse(null);
+        return PROFILE_FIELD_CACHE.computeIfAbsent(metaClass, HeadUtils::findProfileField).orElse(null);
     }
 
     private static Optional<Field> findProfileField(Class<?> metaClass) {
@@ -273,7 +273,7 @@ public final class ItemUtils {
     private static Optional<ProfileApi> profileApi() {
         Optional<ProfileApi> resolved = profileApi;
         if (resolved == null) {
-            synchronized (ItemUtils.class) {
+            synchronized (HeadUtils.class) {
                 resolved = profileApi;
                 if (resolved == null) {
                     resolved = resolveProfileApi();
