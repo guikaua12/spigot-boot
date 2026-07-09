@@ -106,6 +106,9 @@ class ValidatorTest {
 
         @NotEmpty
         String[] items;
+
+        @NotEmpty
+        int[] scores;
     }
 
     static class NotEmptyUnsupportedTypeConfig {
@@ -128,6 +131,7 @@ class ValidatorTest {
         config.tags = new ArrayList<>(List.of("tag1"));
         config.attributes = new HashMap<>(Map.of("key", "value"));
         config.items = new String[]{"item1"};
+        config.scores = new int[]{1, 2, 3};
         return config;
     }
 
@@ -325,6 +329,35 @@ class ValidatorTest {
         ValidationResult result = validator.validate(config);
         assertFalse(result.isValid());
         assertTrue(result.errors().stream().anyMatch(error -> "items".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyPrimitiveArrayValid() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        // config.scores = new int[]{1, 2, 3} from the baseline fixture
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyPrimitiveArrayViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.scores = new int[0]; // violates @NotEmpty - int[] is an array like any other
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyNullPrimitiveArrayViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.scores = null; // violates @NotEmpty - null still fails regardless of component type
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
     }
 
     @Test
