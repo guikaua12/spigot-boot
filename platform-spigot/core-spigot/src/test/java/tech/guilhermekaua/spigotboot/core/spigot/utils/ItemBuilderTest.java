@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -131,6 +133,45 @@ class ItemBuilderTest {
         assertNotNull(lore);
         assertEquals(1, lore.size());
         assertEquals("§aLine", lore.get(0));
+    }
+
+    @Test
+    void headUrl_produces_a_player_head() {
+        ItemStack head = new ItemBuilder(Material.STONE)
+                .headUrl("http://textures.minecraft.net/texture/deadbeefcafe")
+                .wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
+    @Test
+    void headUrl_null_produces_a_bare_head_without_throwing() {
+        ItemStack head = new ItemBuilder(Material.STONE).headUrl(null).wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
+    @Test
+    void headName_sets_the_owner() {
+        ItemStack head = new ItemBuilder(Material.STONE).headName("Notch").wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+        assertEquals("Notch", ((SkullMeta) head.getItemMeta()).getOwner());
+    }
+
+    @Test
+    void headUUID_string_produces_a_player_head() {
+        ItemStack head = new ItemBuilder(Material.STONE).headUUID(UUID.randomUUID().toString()).wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
+    @Test
+    void headUUID_invalid_string_produces_a_bare_head_without_throwing() {
+        ItemStack head = new ItemBuilder(Material.STONE).headUUID("not-a-uuid").wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
+    @Test
+    void headUUID_uuid_overload_produces_a_player_head() {
+        ItemStack head = new ItemBuilder(Material.STONE).headUUID(UUID.randomUUID()).wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
     }
 
     private interface ItemModelMeta extends ItemMeta {

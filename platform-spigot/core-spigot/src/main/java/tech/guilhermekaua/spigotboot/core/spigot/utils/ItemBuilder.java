@@ -22,7 +22,6 @@
  */
 package tech.guilhermekaua.spigotboot.core.spigot.utils;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -35,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -74,15 +74,6 @@ public class ItemBuilder {
     }
 
     /**
-     * Creates a new ItemBuilder with a skull item from the given URL.
-     *
-     * @param url the URL to get the skull item from
-     */
-    public ItemBuilder(String url) {
-        item = NBTEditor.getHead(url);
-    }
-
-    /**
      * Creates a new ItemBuilder with a leather armor item of the given color.
      *
      * @param type  the Material type to use
@@ -98,6 +89,61 @@ public class ItemBuilder {
 
     public ItemBuilder setItem(ItemStack item) {
         this.item = item;
+        return this;
+    }
+
+    /**
+     * Replaces the current item with a player head skinned from a Mojang texture URL. Works
+     * version-proof from 1.8.8 to the latest release (see {@link HeadUtils#getHeadByUrl(String)}); a
+     * null, blank, or malformed URL yields a bare head rather than throwing.
+     *
+     * @param url the Mojang texture URL (e.g. {@code http://textures.minecraft.net/texture/<hash>})
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder headUrl(String url) {
+        this.item = HeadUtils.getHeadByUrl(url);
+        return this;
+    }
+
+    /**
+     * Replaces the current item with a player head owned by the named player.
+     *
+     * @param name the player name whose skin to use
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder headName(String name) {
+        this.item = HeadUtils.getHeadByName(name);
+        return this;
+    }
+
+    /**
+     * Replaces the current item with a player head owned by the player with the given UUID.
+     *
+     * @param uuid the player UUID whose skin to use
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder headUUID(UUID uuid) {
+        this.item = HeadUtils.getHeadByUuid(uuid);
+        return this;
+    }
+
+    /**
+     * Replaces the current item with a player head owned by the player with the given UUID string. A
+     * null or unparseable UUID yields a bare head rather than throwing.
+     *
+     * @param uuid the player UUID in canonical string form
+     * @return this ItemBuilder instance for chaining
+     */
+    public ItemBuilder headUUID(String uuid) {
+        UUID parsed = null;
+        if (uuid != null) {
+            try {
+                parsed = UUID.fromString(uuid.trim());
+            } catch (IllegalArgumentException ignored) {
+                // fall through to a bare, owner-less head
+            }
+        }
+        this.item = HeadUtils.getHeadByUuid(parsed);
         return this;
     }
 
