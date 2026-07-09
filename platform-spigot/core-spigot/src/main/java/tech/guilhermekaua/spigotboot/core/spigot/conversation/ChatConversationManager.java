@@ -37,6 +37,7 @@ import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.core.spigot.text.ChatMarkup;
+import tech.guilhermekaua.spigotboot.core.spigot.utils.Utils;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -71,6 +72,9 @@ public class ChatConversationManager implements Listener {
         ActiveConversation previous = conversations.put(conv.playerId, conv);
         if (previous != null) {
             end(previous, EndReason.REPLACED);
+        }
+        if (conv.timeoutMillis > 0) {
+            scheduleTimeout(conv);
         }
         if (conv.firstPrompt != null && !conv.firstPrompt.isBlank()) {
             sendFirstPrompt(conv.player, conv.firstPrompt);
@@ -123,6 +127,9 @@ public class ChatConversationManager implements Listener {
     }
 
     private void dispatch(ActiveConversation conv, String message) {
+        if (conv.timeoutMillis > 0) {
+            scheduleTimeout(conv);
+        }
         ChatContext ctx = new ConversationContext(conv, message);
         Runnable run = () -> {
             if (conv.ended.get()) {
@@ -168,6 +175,24 @@ public class ChatConversationManager implements Listener {
     private void sendFirstPrompt(Player player, String markup) {
         BaseComponent[] components = ChatMarkup.parse(markup);
         player.spigot().sendMessage(components);
+    }
+
+    // Each (re)schedule bumps the generation and cancels the prior task; a fired task no-ops unless
+    // it is still the current generation and the conversation is live. This makes reset robust even
+    // if a stale task slips past cancellation across threads.
+    private void scheduleTimeout(ActiveConversation conv) {
+        PlatformTask previous = conv.timeoutTask;
+        if (previous != null) {
+            previous.cancel();
+        }
+        int gen = ++conv.timeoutGeneration;
+        long ticks = Math.max(1L, Utils.millisToTicks(conv.timeoutMillis));
+        conv.timeoutTask = scheduler.runOnEntityLater(conv.player, () -> {
+            if (conv.ended.get() || conv.timeoutGeneration != gen) {
+                return;
+            }
+            end(conv, EndReason.TIMEOUT);
+        }, null, ticks);
     }
 
     /** Immutable-ish snapshot of a running conversation plus its mutable timeout handle. */
