@@ -23,6 +23,11 @@
 package tech.guilhermekaua.spigotboot.core.spigot.conversation;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +51,7 @@ import java.util.logging.Level;
  */
 @Component
 @ApiStatus.Internal
-public class ChatConversationManager {
+public class ChatConversationManager implements Listener {
 
     private final Plugin plugin;
     private final PlatformScheduler scheduler;
@@ -82,6 +87,34 @@ public class ChatConversationManager {
     /** Package-private registry read for tests. */
     ActiveConversation activeFor(@NotNull UUID playerId) {
         return conversations.get(playerId);
+    }
+
+    /**
+     * Captures chat from players in a conversation: cancels the broadcast on the async thread and
+     * routes the message to the callback. Players without a conversation are untouched.
+     *
+     * @param event the async chat event
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onChat(@NotNull AsyncPlayerChatEvent event) {
+        if (activeFor(event.getPlayer().getUniqueId()) == null) {
+            return;
+        }
+        event.setCancelled(true);
+        deliver(event.getPlayer().getUniqueId(), event.getMessage());
+    }
+
+    /**
+     * Ends a disconnecting player's conversation with {@link EndReason#DISCONNECT}.
+     *
+     * @param event the quit event
+     */
+    @EventHandler
+    public void onQuit(@NotNull PlayerQuitEvent event) {
+        ActiveConversation conv = activeFor(event.getPlayer().getUniqueId());
+        if (conv != null) {
+            end(conv, EndReason.DISCONNECT);
+        }
     }
 
     private void dispatch(ActiveConversation conv, String message) {
