@@ -71,12 +71,24 @@ public final class ChatPrompt {
      * Inactivity timeout: if the player sends no message within this window the conversation ends
      * with {@link EndReason#TIMEOUT}. The window resets on every captured message.
      *
-     * @param duration the amount
+     * <p>To run without a timeout, simply do not call this method (the default). Passing a value
+     * that resolves to less than one millisecond is rejected rather than silently disabling the
+     * timeout.
+     *
+     * @param duration the amount; must resolve to at least one millisecond
      * @param unit     the time unit
      * @return this builder
+     * @throws IllegalArgumentException if {@code duration} is not positive or is smaller than one
+     *                                  millisecond in {@code unit}
      */
     public ChatPrompt timeout(long duration, @NotNull TimeUnit unit) {
-        this.timeoutMillis = unit.toMillis(duration);
+        Objects.requireNonNull(unit, "unit");
+        long millis = unit.toMillis(duration);
+        if (millis <= 0) {
+            throw new IllegalArgumentException(
+                    "timeout must be at least 1ms, got " + duration + " " + unit + " (" + millis + "ms)");
+        }
+        this.timeoutMillis = millis;
         return this;
     }
 

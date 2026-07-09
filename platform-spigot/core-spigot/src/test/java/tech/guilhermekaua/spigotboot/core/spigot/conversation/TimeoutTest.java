@@ -35,6 +35,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -96,5 +97,26 @@ class TimeoutTest {
     void noTimeoutWhenNotConfigured() {
         new ChatPrompt(player, manager).onChat(ctx -> {});
         assertEquals(0, scheduler.pendingLaterCount(), "no timeout scheduled when timeout() is not called");
+    }
+
+    @Test
+    void negativeTimeoutIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ChatPrompt(player, manager).timeout(-1, TimeUnit.SECONDS),
+                "a negative duration must not silently disable the timeout");
+    }
+
+    @Test
+    void zeroTimeoutIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ChatPrompt(player, manager).timeout(0, TimeUnit.SECONDS),
+                "a zero duration must not silently disable the timeout");
+    }
+
+    @Test
+    void subMillisecondTimeoutIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ChatPrompt(player, manager).timeout(500, TimeUnit.NANOSECONDS),
+                "a positive duration that truncates to 0ms must not silently disable the timeout");
     }
 }

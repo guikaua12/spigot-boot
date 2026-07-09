@@ -46,6 +46,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -207,10 +208,10 @@ public class ChatConversationManager implements Listener, ContextReadyListener {
         if (previous != null) {
             previous.cancel();
         }
-        int gen = ++conv.timeoutGeneration;
+        int gen = conv.timeoutGeneration.incrementAndGet();
         long ticks = Math.max(1L, Utils.millisToTicks(conv.timeoutMillis));
         conv.timeoutTask = scheduler.runOnEntityLater(conv.player, () -> {
-            if (conv.ended.get() || conv.timeoutGeneration != gen) {
+            if (conv.ended.get() || conv.timeoutGeneration.get() != gen) {
                 return;
             }
             end(conv, EndReason.TIMEOUT);
@@ -229,7 +230,7 @@ public class ChatConversationManager implements Listener, ContextReadyListener {
         final String firstPrompt;
         final AtomicBoolean ended = new AtomicBoolean(false);
         volatile PlatformTask timeoutTask;
-        volatile int timeoutGeneration;
+        final AtomicInteger timeoutGeneration = new AtomicInteger();
 
         ActiveConversation(ChatPrompt p) {
             this.player = p.player;

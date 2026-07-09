@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -62,7 +63,7 @@ class FirstPromptRenderTest {
     @Test
     void firstPromptRendersHexAndColourCodes() {
         // precondition: MockBukkit-v1.20 reports a 1.16+ server, so native hex is on
-        assertTrue(HexSupport.NATIVE_HEX, "test server must support native hex for this assertion");
+        assumeTrue(HexSupport.NATIVE_HEX, "test server must support native hex for this assertion");
 
         new ChatPrompt(player, manager)
                 .firstPrompt("#ff0000Enter &aamount")

@@ -614,7 +614,7 @@ public class ChatConversationManager {
         final String firstPrompt;
         final AtomicBoolean ended = new AtomicBoolean(false);
         volatile PlatformTask timeoutTask;
-        volatile int timeoutGeneration;
+        final AtomicInteger timeoutGeneration = new AtomicInteger();
 
         ActiveConversation(ChatPrompt p) {
             this.player = p.player;
@@ -712,12 +712,24 @@ public final class ChatPrompt {
      * Inactivity timeout: if the player sends no message within this window the conversation ends
      * with {@link EndReason#TIMEOUT}. The window resets on every captured message.
      *
-     * @param duration the amount
+     * <p>To run without a timeout, simply do not call this method (the default). Passing a value
+     * that resolves to less than one millisecond is rejected rather than silently disabling the
+     * timeout.
+     *
+     * @param duration the amount; must resolve to at least one millisecond
      * @param unit     the time unit
      * @return this builder
+     * @throws IllegalArgumentException if {@code duration} is not positive or is smaller than one
+     *                                  millisecond in {@code unit}
      */
     public ChatPrompt timeout(long duration, @NotNull TimeUnit unit) {
-        this.timeoutMillis = unit.toMillis(duration);
+        Objects.requireNonNull(unit, "unit");
+        long millis = unit.toMillis(duration);
+        if (millis <= 0) {
+            throw new IllegalArgumentException(
+                    "timeout must be at least 1ms, got " + duration + " " + unit + " (" + millis + "ms)");
+        }
+        this.timeoutMillis = millis;
         return this;
     }
 
@@ -1344,10 +1356,10 @@ private void scheduleTimeout(ActiveConversation conv) {
     if (previous != null) {
         previous.cancel();
     }
-    int gen = ++conv.timeoutGeneration;
+    int gen = conv.timeoutGeneration.incrementAndGet();
     long ticks = Math.max(1L, Utils.millisToTicks(conv.timeoutMillis));
     conv.timeoutTask = scheduler.runOnEntityLater(conv.player, () -> {
-        if (conv.ended.get() || conv.timeoutGeneration != gen) {
+        if (conv.ended.get() || conv.timeoutGeneration.get() != gen) {
             return;
         }
         end(conv, EndReason.TIMEOUT);
