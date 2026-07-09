@@ -32,13 +32,16 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import tech.guilhermekaua.spigotboot.core.context.Context;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Component;
 import tech.guilhermekaua.spigotboot.core.context.annotations.Inject;
+import tech.guilhermekaua.spigotboot.core.context.lifecycle.listeners.ContextReadyListener;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformScheduler;
 import tech.guilhermekaua.spigotboot.core.spigot.scheduler.PlatformTask;
 import tech.guilhermekaua.spigotboot.core.spigot.text.ChatMarkup;
 import tech.guilhermekaua.spigotboot.core.spigot.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +57,7 @@ import java.util.logging.Level;
  */
 @Component
 @ApiStatus.Internal
-public class ChatConversationManager implements Listener {
+public class ChatConversationManager implements Listener, ContextReadyListener {
 
     private final Plugin plugin;
     private final PlatformScheduler scheduler;
@@ -124,6 +127,25 @@ public class ChatConversationManager implements Listener {
         if (conv != null) {
             end(conv, EndReason.DISCONNECT);
         }
+    }
+
+    /**
+     * Installs the {@link ChatUtils} facade and registers a shutdown hook that ends every active
+     * conversation with {@link EndReason#PLUGIN_DISABLE} and uninstalls the facade. The Bukkit
+     * event registration is handled separately by {@code BukkitListenerAutoRegistrar}.
+     *
+     * @param context the ready context
+     */
+    @Override
+    public void onContextReady(@NotNull Context context) {
+        ChatUtils.install(this);
+        context.registerShutdownHook(() -> {
+            for (ActiveConversation conv : new ArrayList<>(conversations.values())) {
+                end(conv, EndReason.PLUGIN_DISABLE);
+            }
+            conversations.clear();
+            ChatUtils.uninstall();
+        });
     }
 
     private void dispatch(ActiveConversation conv, String message) {
