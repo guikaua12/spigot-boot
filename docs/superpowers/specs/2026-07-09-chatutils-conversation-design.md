@@ -25,7 +25,7 @@ passthrough, async) has a passing JUnit test in the same commit.
 ```java
 // Fluent builder
 ChatUtils.with(player)
-    .firstPrompt("§eEnter an amount, or type cancel")   // optional: message sent on start
+    .firstPrompt("#ffaa00Enter an amount, &7or type &ccancel") // optional: ChatMarkup, sent on start
     .timeout(30, TimeUnit.SECONDS)                       // optional: inactivity timeout
     .onTimeout(p -> p.sendMessage("§cTimed out."))       // optional
     .onEnd((p, reason) -> reopenMenu(p))                 // optional: fired on ANY end
@@ -60,7 +60,7 @@ minimal surface).
 | Type | Kind | Role |
 |---|---|---|
 | `ChatUtils` | public final, static-only | Facade. `with(Player)` → `ChatPrompt`; `onChat(Player, Consumer<ChatContext>)` shorthand. Holds the installed `ChatConversationManager`. |
-| `ChatPrompt` | public final | Builder. `firstPrompt`, `timeout`, `onTimeout`, `onEnd`, `async`, terminal `onChat`. |
+| `ChatPrompt` | public final | Builder. `firstPrompt` (ChatMarkup source), `timeout`, `onTimeout`, `onEnd`, `async`, terminal `onChat`. |
 | `ChatContext` | public interface | Per-message context: `Player getPlayer()`, `String getMessage()`, `void end()`. |
 | `EndReason` | public enum | `ENDED`, `TIMEOUT`, `DISCONNECT`, `PLUGIN_DISABLE`, `REPLACED`. |
 | `ChatConversationManager` | `@Component`, `@ApiStatus.Internal` | `implements Listener, ContextReadyListener`. Owns the registry, scheduler, plugin. |
@@ -111,6 +111,24 @@ the new one.
 
 `ctx.end()` removes the conversation from the registry, cancels the timeout task, and
 fires `onEnd(ENDED)`. It is idempotent (ending an already-ended conversation is a no-op).
+
+### First prompt rendering
+
+`.firstPrompt(String)` treats its argument as **ChatMarkup source**, not a raw string. When
+the conversation starts the manager renders it with `ChatMarkup.parse(text)` and sends the
+resulting `BaseComponent[]` via `player.spigot().sendMessage(components)` — the documented
+"for players" path.
+
+`ChatMarkup.parse` is the front door; `HexSupport` is its engine. `#rrggbb` tokens in the
+prompt are encoded by `HexSupport.encode(..., HexSupport.NATIVE_HEX)`: the native
+`§x§r§r§g§g§b§b` wire sequence on 1.16+, downsampled to the nearest legacy colour on older
+servers. So one `ChatMarkup.parse` call satisfies "use HexSupport and ChatMarkup" — hex,
+`&`/`§` colour + style codes, and `[click=…]`/`[hover=…]` tags all render. Nothing is
+hand-rolled.
+
+The prompt is sent synchronously on the thread that called `onChat(...)` (typically the
+main thread from a command or menu handler); `player.spigot().sendMessage` is thread-safe,
+so no scheduler hop is needed. A `null`/blank `firstPrompt` sends nothing.
 
 ### Timeout
 
@@ -165,7 +183,10 @@ main-thread dispatch is deterministic without ticking a scheduler.
    re-fires the callback.
 4. `endStopsCapture` — after `ctx.end()`, a further message is not captured and the
    event is not cancelled; `onEnd(ENDED)` fired once.
-5. `firstPromptSent` — `.firstPrompt("...")` sends the message to the player on start.
+5. `firstPromptSent` — `.firstPrompt("...")` sends the rendered message to the player on
+   start; a `#rrggbb` token renders through `HexSupport` as the native `§x…` sequence
+   (MockBukkit-v1.20 reports 1.20, so `NATIVE_HEX` is true), `&`-codes become `§`-codes,
+   and the visible text survives. No prompt sent when `firstPrompt` is null/blank.
 6. `timeoutFires` — inactivity timeout removes the conversation and fires
    `onTimeout` then `onEnd(TIMEOUT)`; a message before expiry resets the window.
 7. `disconnectEnds` — `PlayerQuitEvent` fires `onEnd(DISCONNECT)` and stops capture.
