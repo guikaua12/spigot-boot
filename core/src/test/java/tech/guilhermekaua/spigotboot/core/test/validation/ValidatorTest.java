@@ -28,9 +28,15 @@ import tech.guilhermekaua.spigotboot.core.exceptions.ValidationException;
 import tech.guilhermekaua.spigotboot.core.validation.ValidationResult;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Min;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.NotEmpty;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotNull;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Range;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Valid;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -86,6 +92,47 @@ class ValidatorTest {
 
     static class ChildConfig extends ParentConfig {
         String childValue;
+    }
+
+    static class NotEmptyConfig {
+        @NotEmpty
+        String name;
+
+        @NotEmpty(failFast = false)
+        List<String> tags;
+
+        @NotEmpty
+        Map<String, String> attributes;
+
+        @NotEmpty
+        String[] items;
+
+        @NotEmpty
+        int[] scores;
+    }
+
+    static class NotEmptyUnsupportedTypeConfig {
+        @NotEmpty
+        Integer count;
+    }
+
+    static class InheritedNotEmptyBaseConfig {
+        @NotEmpty
+        String baseName;
+    }
+
+    static class InheritedNotEmptyConfig extends InheritedNotEmptyBaseConfig {
+        String childName;
+    }
+
+    private NotEmptyConfig validNotEmptyConfig() {
+        NotEmptyConfig config = new NotEmptyConfig();
+        config.name = "Test";
+        config.tags = new ArrayList<>(List.of("tag1"));
+        config.attributes = new HashMap<>(Map.of("key", "value"));
+        config.items = new String[]{"item1"};
+        config.scores = new int[]{1, 2, 3};
+        return config;
     }
 
     private Validator validator;
@@ -214,5 +261,147 @@ class ValidatorTest {
         assertTrue(result.hasErrors());
         assertTrue(result.errors().stream().anyMatch(error -> "grandParentName".equals(error.getFieldName())));
         assertTrue(result.errors().stream().anyMatch(error -> "grandParentName".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testNotEmptyValidObject() {
+        NotEmptyConfig config = validNotEmptyConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.isValid());
+        assertFalse(result.hasErrors());
+    }
+
+    @Test
+    void testNotEmptyNullViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.name = null; // violates @NotEmpty (null treated as empty)
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyStringViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.name = ""; // violates @NotEmpty
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyBlankStringIsValid() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.name = " "; // length > 0, not a whitespace-trim check
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyListViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.tags = new ArrayList<>(); // violates @NotEmpty(failFast = false)
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "tags".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyMapViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.attributes = new HashMap<>(); // violates @NotEmpty
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "attributes".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyArrayViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.items = new String[0]; // violates @NotEmpty
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "items".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyPrimitiveArrayValid() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        // config.scores = new int[]{1, 2, 3} from the baseline fixture
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyEmptyPrimitiveArrayViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.scores = new int[0]; // violates @NotEmpty - int[] is an array like any other
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyNullPrimitiveArrayViolation() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.scores = null; // violates @NotEmpty - null still fails regardless of component type
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "scores".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyUnsupportedTypeIsAlwaysInvalid() {
+        NotEmptyUnsupportedTypeConfig config = new NotEmptyUnsupportedTypeConfig();
+        config.count = 5; // non-null but unmeasurable type -> always invalid by design
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "count".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testNotEmptyFailFastDefaultTrue() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.name = null; // @NotEmpty on `name` has default failFast = true
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.getFailFastErrors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+        assertThrows(ValidationException.class, () -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testNotEmptyFailFastFalseOverride() {
+        NotEmptyConfig config = validNotEmptyConfig();
+        config.tags = new ArrayList<>(); // @NotEmpty(failFast = false) on `tags`
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error -> "tags".equals(error.getFieldName())));
+        assertFalse(result.getFailFastErrors().stream().anyMatch(error -> "tags".equals(error.getFieldName())));
+        assertDoesNotThrow(() -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testInheritedNotEmptyViolation() {
+        InheritedNotEmptyConfig config = new InheritedNotEmptyConfig();
+        config.baseName = null; // violates @NotEmpty declared in superclass
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getPath().asString())));
     }
 }
