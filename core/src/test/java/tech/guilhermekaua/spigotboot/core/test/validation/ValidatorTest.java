@@ -211,6 +211,73 @@ class ValidatorTest {
         String childName;
     }
 
+    interface AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled();
+
+        @AssertTrue(message = "interface rule failed", path = "interfaceEnabled")
+        default boolean isInterfaceEnabled() {
+            return interfaceEnabled();
+        }
+    }
+
+    interface AssertTrueSuperIface {
+        boolean superIfaceEnabled();
+
+        @AssertTrue(message = "superinterface rule failed", path = "superIfaceEnabled")
+        default boolean isSuperIfaceEnabled() {
+            return superIfaceEnabled();
+        }
+    }
+
+    interface AssertTrueChildIface extends AssertTrueSuperIface {
+        boolean childIfaceEnabled();
+
+        @AssertTrue(message = "child interface rule failed", path = "childIfaceEnabled")
+        default boolean isChildIfaceEnabled() {
+            return childIfaceEnabled();
+        }
+    }
+
+    static class InterfaceAssertTrueConfig implements AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled = false;
+
+        @Override
+        public boolean interfaceEnabled() {
+            return interfaceEnabled;
+        }
+    }
+
+    static class SuperinterfaceAssertTrueConfig implements AssertTrueChildIface {
+        boolean childIfaceEnabled = true;
+        boolean superIfaceEnabled = false;
+
+        @Override
+        public boolean childIfaceEnabled() {
+            return childIfaceEnabled;
+        }
+
+        @Override
+        public boolean superIfaceEnabled() {
+            return superIfaceEnabled;
+        }
+    }
+
+    static class ClassOverridesInterfaceAssertConfig implements AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled = false;
+        boolean overridePass = true;
+
+        @Override
+        public boolean interfaceEnabled() {
+            return interfaceEnabled;
+        }
+
+        @AssertTrue(message = "class override rule failed", path = "overridePass")
+        @Override
+        public boolean isInterfaceEnabled() {
+            return overridePass;
+        }
+    }
+
     static class CoexistFieldAndMethodConfig {
         @NotNull
         String name;
@@ -649,6 +716,78 @@ class ValidatorTest {
         assertTrue(result.errors().stream().anyMatch(error ->
                 "baseEnabled".equals(error.getFieldName())
                         && "baseEnabled".equals(error.getPath().asString())
+        ));
+    }
+
+    @Test
+    void testInterfaceDefaultAssertTrueViolation() {
+        InterfaceAssertTrueConfig config = new InterfaceAssertTrueConfig();
+        config.interfaceEnabled = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "interfaceEnabled".equals(error.getFieldName())
+                        && "interfaceEnabled".equals(error.getPath().asString())
+                        && error.getMessage().contains("interface rule failed")
+        ));
+    }
+
+    @Test
+    void testInterfaceDefaultAssertTrueValid() {
+        InterfaceAssertTrueConfig config = new InterfaceAssertTrueConfig();
+        config.interfaceEnabled = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    void testSuperinterfaceDefaultAssertTrueViolation() {
+        SuperinterfaceAssertTrueConfig config = new SuperinterfaceAssertTrueConfig();
+        config.childIfaceEnabled = true;
+        config.superIfaceEnabled = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "superIfaceEnabled".equals(error.getFieldName())
+                        && error.getMessage().contains("superinterface rule failed")
+        ));
+        assertFalse(result.errors().stream().anyMatch(error ->
+                "childIfaceEnabled".equals(error.getFieldName())
+        ));
+    }
+
+    @Test
+    void testClassOverrideWinsOverInterfaceAssertTrue() {
+        ClassOverridesInterfaceAssertConfig config = new ClassOverridesInterfaceAssertConfig();
+        config.interfaceEnabled = false;
+        config.overridePass = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(), "class override with matching signature must suppress interface default");
+    }
+
+    @Test
+    void testClassOverrideAssertTrueViolationUsesClassAnnotation() {
+        ClassOverridesInterfaceAssertConfig config = new ClassOverridesInterfaceAssertConfig();
+        config.interfaceEnabled = true;
+        config.overridePass = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "overridePass".equals(error.getFieldName())
+                        && error.getMessage().contains("class override rule failed")
+        ));
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("interface rule failed")
         ));
     }
 

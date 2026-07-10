@@ -576,30 +576,69 @@ public class DefaultValidator implements Validator {
 
     /**
      * Collects methods that may carry {@link AssertTrue}/{@link AssertFalse},
-     * walking the hierarchy subclass-first and skipping overridden signatures.
+     * walking the class hierarchy subclass-first, then each class's interfaces
+     * (including superinterfaces), and skipping overridden signatures.
      */
     private @NotNull List<Method> getAllAssertMethods(@NotNull Class<?> clazz) {
         List<Method> methods = new ArrayList<>();
         Set<String> seenSignatures = new HashSet<>();
+        Set<Class<?>> visitedInterfaces = new HashSet<>();
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
-            for (Method method : current.getDeclaredMethods()) {
-                if (method.isBridge() || method.isSynthetic()) {
-                    continue;
-                }
-                if (method.getAnnotation(AssertTrue.class) == null
-                        && method.getAnnotation(AssertFalse.class) == null) {
-                    continue;
-                }
-                String signature = methodSignature(method);
-                if (!seenSignatures.add(signature)) {
-                    continue;
-                }
-                methods.add(method);
+            collectAssertMethodsFrom(current, methods, seenSignatures);
+            for (Class<?> iface : current.getInterfaces()) {
+                collectAssertMethodsFromInterfaces(iface, methods, seenSignatures, visitedInterfaces);
             }
             current = current.getSuperclass();
         }
         return methods;
+    }
+
+    /**
+     * Recursively collects annotated default methods from {@code iface} and its
+     * superinterfaces, skipping interfaces already visited.
+     */
+    private void collectAssertMethodsFromInterfaces(@NotNull Class<?> iface,
+                                                    @NotNull List<Method> methods,
+                                                    @NotNull Set<String> seenSignatures,
+                                                    @NotNull Set<Class<?>> visitedInterfaces) {
+        if (!iface.isInterface() || !visitedInterfaces.add(iface)) {
+            return;
+        }
+        collectAssertMethodsFrom(iface, methods, seenSignatures);
+        for (Class<?> parent : iface.getInterfaces()) {
+            collectAssertMethodsFromInterfaces(parent, methods, seenSignatures, visitedInterfaces);
+        }
+    }
+
+    /**
+     * Adds annotated assert methods declared on {@code type}. Interface types
+     * contribute only default methods (invocable bodies). Bridge, synthetic,
+     * and {@link Object} methods are skipped.
+     */
+    private void collectAssertMethodsFrom(@NotNull Class<?> type,
+                                          @NotNull List<Method> methods,
+                                          @NotNull Set<String> seenSignatures) {
+        for (Method method : type.getDeclaredMethods()) {
+            if (method.isBridge() || method.isSynthetic()) {
+                continue;
+            }
+            if (method.getDeclaringClass() == Object.class) {
+                continue;
+            }
+            if (type.isInterface() && !method.isDefault()) {
+                continue;
+            }
+            if (method.getAnnotation(AssertTrue.class) == null
+                    && method.getAnnotation(AssertFalse.class) == null) {
+                continue;
+            }
+            String signature = methodSignature(method);
+            if (!seenSignatures.add(signature)) {
+                continue;
+            }
+            methods.add(method);
+        }
     }
 
     private @NotNull String methodSignature(@NotNull Method method) {
