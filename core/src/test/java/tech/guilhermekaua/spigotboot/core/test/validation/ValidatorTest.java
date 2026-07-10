@@ -211,6 +211,28 @@ class ValidatorTest {
         String childName;
     }
 
+    /**
+     * Parent and child each declare a private assert with the same signature.
+     * Both must be collected and evaluated (private methods do not override).
+     */
+    static class PrivateAssertSameSignatureBase {
+        boolean baseOk = false;
+
+        @AssertTrue(message = "base private failed", path = "baseOk", failFast = false)
+        private boolean isValid() {
+            return baseOk;
+        }
+    }
+
+    static class PrivateAssertSameSignatureChild extends PrivateAssertSameSignatureBase {
+        boolean childOk = false;
+
+        @AssertTrue(message = "child private failed", path = "childOk", failFast = false)
+        private boolean isValid() {
+            return childOk;
+        }
+    }
+
     interface AssertTrueDefaultMethodIface {
         boolean interfaceEnabled();
 
@@ -717,6 +739,36 @@ class ValidatorTest {
                 "baseEnabled".equals(error.getFieldName())
                         && "baseEnabled".equals(error.getPath().asString())
         ));
+    }
+
+    @Test
+    void testPrivateAssertTrueSameSignatureOnHierarchyBothRetained() {
+        PrivateAssertSameSignatureChild config = new PrivateAssertSameSignatureChild();
+        config.baseOk = false;
+        config.childOk = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "childOk".equals(error.getFieldName())
+                        && error.getMessage().contains("child private failed")
+        ), "child private @AssertTrue must be retained");
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "baseOk".equals(error.getFieldName())
+                        && error.getMessage().contains("base private failed")
+        ), "base private @AssertTrue with same signature must also be retained");
+    }
+
+    @Test
+    void testPrivateAssertTrueSameSignatureBothValid() {
+        PrivateAssertSameSignatureChild config = new PrivateAssertSameSignatureChild();
+        config.baseOk = true;
+        config.childOk = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid());
     }
 
     @Test

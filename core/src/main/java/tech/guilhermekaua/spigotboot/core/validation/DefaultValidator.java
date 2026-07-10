@@ -30,6 +30,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.regex.Matcher;
 
@@ -577,7 +578,8 @@ public class DefaultValidator implements Validator {
     /**
      * Collects methods that may carry {@link AssertTrue}/{@link AssertFalse},
      * walking the class hierarchy subclass-first, then each class's interfaces
-     * (including superinterfaces), and skipping overridden signatures.
+     * (including superinterfaces). Overridable methods are signature-deduped;
+     * private methods are always retained (they cannot override).
      */
     private @NotNull List<Method> getAllAssertMethods(@NotNull Class<?> clazz) {
         List<Method> methods = new ArrayList<>();
@@ -614,7 +616,9 @@ public class DefaultValidator implements Validator {
     /**
      * Adds annotated assert methods declared on {@code type}. Interface types
      * contribute only default methods (invocable bodies). Bridge, synthetic,
-     * and {@link Object} methods are skipped.
+     * and {@link Object} methods are skipped. Private methods skip signature
+     * deduplication so same-named private asserts on different hierarchy levels
+     * are each retained.
      */
     private void collectAssertMethodsFrom(@NotNull Class<?> type,
                                           @NotNull List<Method> methods,
@@ -631,6 +635,11 @@ public class DefaultValidator implements Validator {
             }
             if (method.getAnnotation(AssertTrue.class) == null
                     && method.getAnnotation(AssertFalse.class) == null) {
+                continue;
+            }
+            // Private methods cannot override; never consult or populate seenSignatures.
+            if (Modifier.isPrivate(method.getModifiers())) {
+                methods.add(method);
                 continue;
             }
             String signature = methodSignature(method);
