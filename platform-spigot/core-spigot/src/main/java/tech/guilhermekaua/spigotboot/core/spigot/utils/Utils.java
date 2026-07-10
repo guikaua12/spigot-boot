@@ -54,7 +54,7 @@ public class Utils {
 
         if (useHead) {
             final String url = section.getString("head.url");
-            return new ItemBuilder(url).setName(name).setLore(lore).setGlow(glow).wrap();
+            return new ItemBuilder(material).headUrl(url).setName(name).setLore(lore).setGlow(glow).wrap();
         } else {
             return new ItemBuilder(material, data).setName(name).setLore(lore).setGlow(glow).wrap();
         }
