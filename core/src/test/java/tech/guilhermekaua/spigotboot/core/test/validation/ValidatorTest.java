@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.exceptions.ValidationException;
 import tech.guilhermekaua.spigotboot.core.validation.ValidationResult;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertFalse;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertTrue;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Min;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotEmpty;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotNull;
@@ -123,6 +125,227 @@ class ValidatorTest {
 
     static class InheritedNotEmptyConfig extends InheritedNotEmptyBaseConfig {
         String childName;
+    }
+
+    static class AssertTrueConfig {
+        int min;
+        int max;
+        Boolean optionalCheck;
+
+        @AssertTrue(message = "max must be >= min", path = "max")
+        private boolean isMaxGteMin() {
+            return max >= min;
+        }
+
+        @AssertTrue(failFast = false)
+        private boolean isEnabled() {
+            return true;
+        }
+
+        @AssertTrue(message = "optional check must be true", failFast = false)
+        private Boolean optionalCheckTrue() {
+            return optionalCheck;
+        }
+    }
+
+    static class AssertFalseConfig {
+        boolean production;
+        boolean debug;
+
+        @AssertFalse(message = "debug must be off in production", path = "debug")
+        private boolean isDebugInProduction() {
+            return production && debug;
+        }
+
+        @AssertFalse(failFast = false)
+        private boolean isFlagClear() {
+            return false;
+        }
+    }
+
+    static class AssertTrueDefaultPathConfig {
+        boolean ok = false;
+
+        @AssertTrue
+        private boolean isOk() {
+            return ok;
+        }
+    }
+
+    static class AssertTrueNestedPathConfig {
+        @AssertTrue(message = "nested path failed", path = "a.b")
+        private boolean nestedRule() {
+            return false;
+        }
+    }
+
+    static class AssertTrueInvalidSignatureConfig {
+        @AssertTrue
+        private boolean hasParam(int x) {
+            return true;
+        }
+
+        @AssertTrue(path = "badReturn")
+        private String notBoolean() {
+            return "nope";
+        }
+    }
+
+    static class AssertTrueThrowsConfig {
+        @AssertTrue(message = "should not throw")
+        private boolean boom() {
+            throw new IllegalStateException("kaboom");
+        }
+    }
+
+    static class InheritedAssertTrueBaseConfig {
+        boolean baseEnabled = false;
+
+        @AssertTrue(path = "baseEnabled")
+        private boolean isBaseEnabled() {
+            return baseEnabled;
+        }
+    }
+
+    static class InheritedAssertTrueConfig extends InheritedAssertTrueBaseConfig {
+        String childName;
+    }
+
+    /**
+     * Parent and child each declare a private assert with the same signature.
+     * Both must be collected and evaluated (private methods do not override).
+     */
+    static class PrivateAssertSameSignatureBase {
+        boolean baseOk = false;
+
+        @AssertTrue(message = "base private failed", path = "baseOk", failFast = false)
+        private boolean isValid() {
+            return baseOk;
+        }
+    }
+
+    static class PrivateAssertSameSignatureChild extends PrivateAssertSameSignatureBase {
+        boolean childOk = false;
+
+        @AssertTrue(message = "child private failed", path = "childOk", failFast = false)
+        private boolean isValid() {
+            return childOk;
+        }
+    }
+
+    interface AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled();
+
+        @AssertTrue(message = "interface rule failed", path = "interfaceEnabled")
+        default boolean isInterfaceEnabled() {
+            return interfaceEnabled();
+        }
+    }
+
+    interface AssertTrueSuperIface {
+        boolean superIfaceEnabled();
+
+        @AssertTrue(message = "superinterface rule failed", path = "superIfaceEnabled")
+        default boolean isSuperIfaceEnabled() {
+            return superIfaceEnabled();
+        }
+    }
+
+    interface AssertTrueChildIface extends AssertTrueSuperIface {
+        boolean childIfaceEnabled();
+
+        @AssertTrue(message = "child interface rule failed", path = "childIfaceEnabled")
+        default boolean isChildIfaceEnabled() {
+            return childIfaceEnabled();
+        }
+    }
+
+    static class InterfaceAssertTrueConfig implements AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled = false;
+
+        @Override
+        public boolean interfaceEnabled() {
+            return interfaceEnabled;
+        }
+    }
+
+    static class SuperinterfaceAssertTrueConfig implements AssertTrueChildIface {
+        boolean childIfaceEnabled = true;
+        boolean superIfaceEnabled = false;
+
+        @Override
+        public boolean childIfaceEnabled() {
+            return childIfaceEnabled;
+        }
+
+        @Override
+        public boolean superIfaceEnabled() {
+            return superIfaceEnabled;
+        }
+    }
+
+    static class ClassOverridesInterfaceAssertConfig implements AssertTrueDefaultMethodIface {
+        boolean interfaceEnabled = false;
+        boolean overridePass = true;
+
+        @Override
+        public boolean interfaceEnabled() {
+            return interfaceEnabled;
+        }
+
+        @AssertTrue(message = "class override rule failed", path = "overridePass")
+        @Override
+        public boolean isInterfaceEnabled() {
+            return overridePass;
+        }
+    }
+
+    /**
+     * Superclass declares a public annotated assert; subclass overrides without
+     * re-annotating. The ancestor rule must not apply (return false would fail
+     * if the annotation were retained under virtual dispatch).
+     */
+    static class AnnotatedAssertSuperclass {
+        @AssertTrue(message = "superclass rule failed", path = "flag")
+        public boolean isFlag() {
+            return true;
+        }
+    }
+
+    static class UnannotatedOverrideOfSuperclassAssert extends AnnotatedAssertSuperclass {
+        @Override
+        public boolean isFlag() {
+            return false;
+        }
+    }
+
+    /**
+     * Interface default carries {@code @AssertTrue}; implementing class overrides
+     * without the annotation. Ancestor interface rule must not apply.
+     */
+    static class UnannotatedOverrideOfInterfaceAssert implements AssertTrueDefaultMethodIface {
+        @Override
+        public boolean interfaceEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isInterfaceEnabled() {
+            return false;
+        }
+    }
+
+    static class CoexistFieldAndMethodConfig {
+        @NotNull
+        String name;
+
+        int min;
+        int max;
+
+        @AssertTrue(message = "max must be >= min", path = "max")
+        private boolean isMaxGteMin() {
+            return max >= min;
+        }
     }
 
     private NotEmptyConfig validNotEmptyConfig() {
@@ -403,5 +626,362 @@ class ValidatorTest {
         assertTrue(result.hasErrors());
         assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getFieldName())));
         assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testAssertTrueValidObject() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.min = 1;
+        config.max = 10;
+        config.optionalCheck = true;
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.isValid());
+        assertFalse(result.hasErrors());
+    }
+
+    @Test
+    void testAssertTrueViolationUsesPathAttribute() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.min = 10;
+        config.max = 1; // violates isMaxGteMin with path = "max"
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "max".equals(error.getFieldName())
+                        && "max".equals(error.getPath().asString())
+                        && "max must be >= min".equals(error.getMessage())
+                        && Boolean.FALSE.equals(error.getInvalidValue())
+        ));
+    }
+
+    @Test
+    void testAssertTrueDefaultPathUsesMethodName() {
+        AssertTrueDefaultPathConfig config = new AssertTrueDefaultPathConfig();
+        config.ok = false;
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "isOk".equals(error.getFieldName())
+                        && "isOk".equals(error.getPath().asString())
+        ));
+    }
+
+    @Test
+    void testAssertTrueNestedPath() {
+        AssertTrueNestedPathConfig config = new AssertTrueNestedPathConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "b".equals(error.getFieldName())
+                        && "a.b".equals(error.getPath().asString())
+        ));
+    }
+
+    @Test
+    void testAssertTrueNullBooleanReturnIsValid() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.min = 1;
+        config.max = 10;
+        config.optionalCheck = null; // null Boolean return is valid
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("optional check")
+        ));
+    }
+
+    @Test
+    void testAssertTrueFailFastDefaultTrue() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.min = 10;
+        config.max = 1; // path = "max", failFast default true
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.getFailFastErrors().stream().anyMatch(error -> "max".equals(error.getFieldName())));
+        assertThrows(ValidationException.class, () -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testAssertTrueFailFastFalseOverride() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.min = 1;
+        config.max = 10;
+        config.optionalCheck = false; // failFast = false on optionalCheckTrue
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "optionalCheckTrue".equals(error.getFieldName())
+                        || error.getMessage().contains("optional check")
+        ));
+        assertFalse(result.getFailFastErrors().stream().anyMatch(error ->
+                error.getMessage().contains("optional check")
+        ));
+        assertDoesNotThrow(() -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testAssertFalseValidObject() {
+        AssertFalseConfig config = new AssertFalseConfig();
+        config.production = true;
+        config.debug = false;
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.isValid());
+        assertFalse(result.hasErrors());
+    }
+
+    @Test
+    void testAssertFalseViolationUsesPathAttribute() {
+        AssertFalseConfig config = new AssertFalseConfig();
+        config.production = true;
+        config.debug = true; // violates isDebugInProduction with path = "debug"
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "debug".equals(error.getFieldName())
+                        && "debug".equals(error.getPath().asString())
+                        && "debug must be off in production".equals(error.getMessage())
+                        && Boolean.TRUE.equals(error.getInvalidValue())
+        ));
+    }
+
+    @Test
+    void testAssertFalseFailFastDefaultTrue() {
+        AssertFalseConfig config = new AssertFalseConfig();
+        config.production = true;
+        config.debug = true;
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.getFailFastErrors().stream().anyMatch(error -> "debug".equals(error.getFieldName())));
+        assertThrows(ValidationException.class, () -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testInheritedAssertTrueViolation() {
+        InheritedAssertTrueConfig config = new InheritedAssertTrueConfig();
+        config.baseEnabled = false;
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "baseEnabled".equals(error.getFieldName())
+                        && "baseEnabled".equals(error.getPath().asString())
+        ));
+    }
+
+    @Test
+    void testPrivateAssertTrueSameSignatureOnHierarchyBothRetained() {
+        PrivateAssertSameSignatureChild config = new PrivateAssertSameSignatureChild();
+        config.baseOk = false;
+        config.childOk = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "childOk".equals(error.getFieldName())
+                        && error.getMessage().contains("child private failed")
+        ), "child private @AssertTrue must be retained");
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "baseOk".equals(error.getFieldName())
+                        && error.getMessage().contains("base private failed")
+        ), "base private @AssertTrue with same signature must also be retained");
+    }
+
+    @Test
+    void testPrivateAssertTrueSameSignatureBothValid() {
+        PrivateAssertSameSignatureChild config = new PrivateAssertSameSignatureChild();
+        config.baseOk = true;
+        config.childOk = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    void testInterfaceDefaultAssertTrueViolation() {
+        InterfaceAssertTrueConfig config = new InterfaceAssertTrueConfig();
+        config.interfaceEnabled = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "interfaceEnabled".equals(error.getFieldName())
+                        && "interfaceEnabled".equals(error.getPath().asString())
+                        && error.getMessage().contains("interface rule failed")
+        ));
+    }
+
+    @Test
+    void testInterfaceDefaultAssertTrueValid() {
+        InterfaceAssertTrueConfig config = new InterfaceAssertTrueConfig();
+        config.interfaceEnabled = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    void testSuperinterfaceDefaultAssertTrueViolation() {
+        SuperinterfaceAssertTrueConfig config = new SuperinterfaceAssertTrueConfig();
+        config.childIfaceEnabled = true;
+        config.superIfaceEnabled = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "superIfaceEnabled".equals(error.getFieldName())
+                        && error.getMessage().contains("superinterface rule failed")
+        ));
+        assertFalse(result.errors().stream().anyMatch(error ->
+                "childIfaceEnabled".equals(error.getFieldName())
+        ));
+    }
+
+    @Test
+    void testClassOverrideWinsOverInterfaceAssertTrue() {
+        ClassOverridesInterfaceAssertConfig config = new ClassOverridesInterfaceAssertConfig();
+        config.interfaceEnabled = false;
+        config.overridePass = true;
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(), "class override with matching signature must suppress interface default");
+    }
+
+    @Test
+    void testUnannotatedOverrideSuppressesSuperclassAssertTrue() {
+        UnannotatedOverrideOfSuperclassAssert config = new UnannotatedOverrideOfSuperclassAssert();
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(),
+                "unannotated override must suppress superclass @AssertTrue (return false would fail if retained)");
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("superclass rule failed")
+        ));
+    }
+
+    @Test
+    void testUnannotatedOverrideSuppressesInterfaceAssertTrue() {
+        UnannotatedOverrideOfInterfaceAssert config = new UnannotatedOverrideOfInterfaceAssert();
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(),
+                "unannotated class override must suppress interface default @AssertTrue");
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("interface rule failed")
+        ));
+    }
+
+    @Test
+    void testClassOverrideAssertTrueViolationUsesClassAnnotation() {
+        ClassOverridesInterfaceAssertConfig config = new ClassOverridesInterfaceAssertConfig();
+        config.interfaceEnabled = true;
+        config.overridePass = false;
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "overridePass".equals(error.getFieldName())
+                        && error.getMessage().contains("class override rule failed")
+        ));
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("interface rule failed")
+        ));
+    }
+
+    @Test
+    void testAssertTrueInvalidSignatureFailsLoud() {
+        AssertTrueInvalidSignatureConfig config = new AssertTrueInvalidSignatureConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "hasParam".equals(error.getFieldName())
+                        && error.getMessage().contains("take no parameters")
+        ));
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "badReturn".equals(error.getFieldName())
+                        && error.getMessage().contains("boolean")
+        ));
+    }
+
+    @Test
+    void testAssertTrueInvocationExceptionFailsLoud() {
+        AssertTrueThrowsConfig config = new AssertTrueThrowsConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "boom".equals(error.getFieldName())
+                        && error.getMessage().contains("kaboom")
+        ));
+    }
+
+    @Test
+    void testAssertMethodCoexistsWithFieldConstraints() {
+        CoexistFieldAndMethodConfig config = new CoexistFieldAndMethodConfig();
+        config.name = null; // field violation
+        config.min = 10;
+        config.max = 1; // method violation
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "max".equals(error.getFieldName())));
+    }
+
+    /**
+     * Cached assert-method discovery must keep hierarchy/interface order and results
+     * stable across repeated validations of the same class.
+     */
+    @Test
+    void testAssertMethodDiscoveryCacheIsStableAcrossRepeatedValidation() {
+        SuperinterfaceAssertTrueConfig config = new SuperinterfaceAssertTrueConfig();
+        config.childIfaceEnabled = false;
+        config.superIfaceEnabled = false;
+
+        ValidationResult first = validator.validate(config);
+        ValidationResult second = validator.validate(config);
+
+        List<String> firstPaths = first.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+        List<String> secondPaths = second.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+
+        assertEquals(2, firstPaths.size());
+        assertEquals(firstPaths, secondPaths);
+
+        PrivateAssertSameSignatureChild privateConfig = new PrivateAssertSameSignatureChild();
+        privateConfig.baseOk = false;
+        privateConfig.childOk = false;
+
+        ValidationResult privateFirst = validator.validate(privateConfig);
+        ValidationResult privateSecond = validator.validate(privateConfig);
+        List<String> privateFirstPaths = privateFirst.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+        List<String> privateSecondPaths = privateSecond.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+
+        assertEquals(2, privateFirstPaths.size());
+        assertEquals(privateFirstPaths, privateSecondPaths);
     }
 }

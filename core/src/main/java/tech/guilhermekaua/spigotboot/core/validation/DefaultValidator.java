@@ -28,7 +28,11 @@ import tech.guilhermekaua.spigotboot.core.validation.annotation.*;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 
 /**
@@ -37,6 +41,12 @@ import java.util.regex.Matcher;
 public class DefaultValidator implements Validator {
 
     private final Map<Class<? extends Annotation>, ConstraintFactory<?>> factories = new HashMap<>();
+
+    /**
+     * Per-class cache of assert methods discovered via hierarchy/interface walk.
+     * Avoids repeating reflection on every validation of the same type.
+     */
+    private final Map<Class<?>, List<Method>> assertMethodsCache = new ConcurrentHashMap<>();
 
     public DefaultValidator() {
         registerDefaultFactories();
@@ -330,6 +340,74 @@ public class DefaultValidator implements Validator {
                 return NotEmpty.class;
             }
         });
+
+        factories.put(AssertTrue.class, new ConstraintFactory<AssertTrue>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertTrue annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return (Boolean) value;
+                        return false;
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Ensure the assertion evaluates to true";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertTrue> getAnnotationType() {
+                return AssertTrue.class;
+            }
+        });
+
+        factories.put(AssertFalse.class, new ConstraintFactory<AssertFalse>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertFalse annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return !(Boolean) value;
+                        return false;
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Ensure the assertion evaluates to false";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertFalse> getAnnotationType() {
+                return AssertFalse.class;
+            }
+        });
     }
 
     @Override
@@ -390,7 +468,226 @@ public class DefaultValidator implements Validator {
             }
         }
 
+        errors.addAll(validateAssertMethods(object, basePath));
+
         return ValidationResult.of(errors);
+    }
+
+    @SuppressWarnings("unchecked")
+    private @NotNull List<ValidationError> validateAssertMethods(@NotNull Object object,
+                                                                 @NotNull PropertyPath basePath) {
+        List<ValidationError> errors = new ArrayList<>();
+
+        for (Method method : getAllAssertMethods(object.getClass())) {
+            AssertTrue assertTrue = method.getAnnotation(AssertTrue.class);
+            AssertFalse assertFalse = method.getAnnotation(AssertFalse.class);
+            if (assertTrue == null && assertFalse == null) {
+                continue;
+            }
+
+            String pathAttr = assertTrue != null ? assertTrue.path() : assertFalse.path();
+            boolean failFast = assertTrue != null ? assertTrue.failFast() : assertFalse.failFast();
+            PropertyPath errorPath = resolveAssertPath(basePath, method, pathAttr);
+            String fieldName = resolveAssertFieldName(errorPath, method);
+
+            if (method.getParameterCount() != 0 || !isBooleanReturnType(method)) {
+                String message = "Assert method must return boolean/Boolean and take no parameters: "
+                        + method.getDeclaringClass().getSimpleName() + "." + method.getName();
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        message,
+                        failFast,
+                        "Change the method to a zero-arg boolean-returning method"
+                ));
+                continue;
+            }
+
+            Object returnValue;
+            try {
+                method.setAccessible(true);
+                returnValue = method.invoke(object);
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                String message = "Assert method threw: " + cause.getClass().getSimpleName()
+                        + (cause.getMessage() != null ? ": " + cause.getMessage() : "");
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        message,
+                        failFast,
+                        "Fix the assert method so it does not throw"
+                ));
+                continue;
+            } catch (IllegalAccessException e) {
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        "Assert method is not accessible: " + method.getName(),
+                        failFast,
+                        "Make the assert method accessible"
+                ));
+                continue;
+            }
+
+            Annotation annotation = assertTrue != null ? assertTrue : assertFalse;
+            ConstraintFactory<?> factory = factories.get(annotation.annotationType());
+            if (factory == null) {
+                continue;
+            }
+            Constraint<Object> constraint = (Constraint<Object>) createConstraint(factory, annotation);
+            if (!constraint.isValid(returnValue)) {
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        returnValue,
+                        constraint.message(returnValue),
+                        constraint.isFailFast(),
+                        constraint.suggestedFix(returnValue)
+                ));
+            }
+        }
+
+        return errors;
+    }
+
+    private @NotNull PropertyPath resolveAssertPath(@NotNull PropertyPath basePath,
+                                                    @NotNull Method method,
+                                                    @NotNull String pathAttr) {
+        if (pathAttr.isEmpty()) {
+            return basePath.child(method.getName());
+        }
+        PropertyPath relative = PropertyPath.parse(pathAttr);
+        PropertyPath result = basePath;
+        for (Object element : relative.elements()) {
+            result = result.child(element);
+        }
+        return result;
+    }
+
+    private @NotNull String resolveAssertFieldName(@NotNull PropertyPath errorPath,
+                                                   @NotNull Method method) {
+        Object last = errorPath.last();
+        if (last != null) {
+            return String.valueOf(last);
+        }
+        return method.getName();
+    }
+
+    private boolean isBooleanReturnType(@NotNull Method method) {
+        Class<?> returnType = method.getReturnType();
+        return returnType == boolean.class || returnType == Boolean.class;
+    }
+
+    /**
+     * Collects methods that may carry {@link AssertTrue}/{@link AssertFalse},
+     * walking the class hierarchy subclass-first, then each class's interfaces
+     * (including superinterfaces). Overridable methods are signature-deduped;
+     * private methods are always retained (they cannot override).
+     * Results are cached per class.
+     */
+    private @NotNull List<Method> getAllAssertMethods(@NotNull Class<?> clazz) {
+        return assertMethodsCache.computeIfAbsent(clazz, this::resolveAssertMethods);
+    }
+
+    /**
+     * Discovers assert methods for {@code clazz} without consulting the cache.
+     * Order: subclass declared methods first, then each type's interfaces
+     * (including superinterfaces), then superclasses — same as before caching.
+     */
+    private @NotNull List<Method> resolveAssertMethods(@NotNull Class<?> clazz) {
+        List<Method> methods = new ArrayList<>();
+        Set<String> seenSignatures = new HashSet<>();
+        Set<Class<?>> visitedInterfaces = new HashSet<>();
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            collectAssertMethodsFrom(current, methods, seenSignatures);
+            for (Class<?> iface : current.getInterfaces()) {
+                collectAssertMethodsFromInterfaces(iface, methods, seenSignatures, visitedInterfaces);
+            }
+            current = current.getSuperclass();
+        }
+        return List.copyOf(methods);
+    }
+
+    /**
+     * Recursively collects annotated default methods from {@code iface} and its
+     * superinterfaces, skipping interfaces already visited.
+     */
+    private void collectAssertMethodsFromInterfaces(@NotNull Class<?> iface,
+                                                    @NotNull List<Method> methods,
+                                                    @NotNull Set<String> seenSignatures,
+                                                    @NotNull Set<Class<?>> visitedInterfaces) {
+        if (!iface.isInterface() || !visitedInterfaces.add(iface)) {
+            return;
+        }
+        collectAssertMethodsFrom(iface, methods, seenSignatures);
+        for (Class<?> parent : iface.getInterfaces()) {
+            collectAssertMethodsFromInterfaces(parent, methods, seenSignatures, visitedInterfaces);
+        }
+    }
+
+    /**
+     * Adds annotated assert methods declared on {@code type}. Interface types
+     * contribute only default methods (invocable bodies). Bridge, synthetic,
+     * and {@link Object} methods are skipped. Private methods skip signature
+     * deduplication so same-named private asserts on different hierarchy levels
+     * are each retained. Non-private methods reserve their signature before
+     * annotation filtering so an unannotated override suppresses ancestor
+     * {@link AssertTrue}/{@link AssertFalse} rules with the same signature.
+     */
+    private void collectAssertMethodsFrom(@NotNull Class<?> type,
+                                          @NotNull List<Method> methods,
+                                          @NotNull Set<String> seenSignatures) {
+        for (Method method : type.getDeclaredMethods()) {
+            if (method.isBridge() || method.isSynthetic()) {
+                continue;
+            }
+            if (method.getDeclaringClass() == Object.class) {
+                continue;
+            }
+            if (type.isInterface() && !method.isDefault()) {
+                continue;
+            }
+
+            boolean annotated = method.getAnnotation(AssertTrue.class) != null
+                    || method.getAnnotation(AssertFalse.class) != null;
+
+            // Private methods cannot override; never consult or populate seenSignatures.
+            if (Modifier.isPrivate(method.getModifiers())) {
+                if (annotated) {
+                    methods.add(method);
+                }
+                continue;
+            }
+
+            // Reserve signature before annotation filtering so unannotated
+            // overrides block ancestor assert methods with the same signature.
+            String signature = methodSignature(method);
+            if (!seenSignatures.add(signature)) {
+                continue;
+            }
+            if (annotated) {
+                methods.add(method);
+            }
+        }
+    }
+
+    private @NotNull String methodSignature(@NotNull Method method) {
+        StringBuilder sb = new StringBuilder(method.getName());
+        sb.append('(');
+        Class<?>[] params = method.getParameterTypes();
+        for (int i = 0; i < params.length; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(params[i].getName());
+        }
+        sb.append(')');
+        return sb.toString();
     }
 
     private @NotNull List<Field> getAllFields(@NotNull Class<?> clazz) {
