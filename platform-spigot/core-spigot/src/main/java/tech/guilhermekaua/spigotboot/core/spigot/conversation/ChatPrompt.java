@@ -93,6 +93,11 @@ public final class ChatPrompt {
     }
 
     /**
+     * Sets a hook that runs, with the player, when the inactivity timeout elapses, just before
+     * {@code onEnd}. It fires synchronously on the thread that detects the timeout (the scheduler's
+     * entity/region thread), not on the async chat thread: {@link #async()} governs only the
+     * {@code onChat} callback, never this lifecycle hook.
+     *
      * @param onTimeout run (with the player) when the timeout elapses, just before {@code onEnd}
      * @return this builder
      */
@@ -102,6 +107,13 @@ public final class ChatPrompt {
     }
 
     /**
+     * Sets a hook that runs when the conversation ends for any reason. It fires synchronously on
+     * whichever thread triggers the end, so the thread context varies by {@link EndReason}:
+     * {@code TIMEOUT} on the scheduler's entity/region thread, {@code ENDED} on the {@code onChat}
+     * callback's thread, {@code DISCONNECT} and {@code PLUGIN_DISABLE} on the server thread, and
+     * {@code REPLACED} on whichever thread started the replacing conversation. {@link #async()}
+     * affects only the {@code onChat} callback, never this lifecycle hook.
+     *
      * @param onEnd run when the conversation ends for any reason
      * @return this builder
      */

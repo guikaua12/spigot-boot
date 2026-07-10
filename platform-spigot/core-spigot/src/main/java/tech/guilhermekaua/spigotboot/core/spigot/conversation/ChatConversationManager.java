@@ -70,12 +70,18 @@ public class ChatConversationManager implements Listener, ContextReadyListener {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
     }
 
-    /** Starts a conversation from a completed builder, replacing any existing one for the player. */
     void begin(@NotNull ChatPrompt prompt) {
         ActiveConversation conv = new ActiveConversation(prompt);
         ActiveConversation previous = conversations.put(conv.playerId, conv);
         if (previous != null) {
             end(previous, EndReason.REPLACED);
+        }
+        // end() above fires previous.onEnd synchronously on this thread; that callback may start a
+        // newer conversation for the same player, displacing conv in the registry. If conv is no
+        // longer the active one, skip setup so we don't schedule a stale timeout or send this
+        // prompt's opener over the newer conversation.
+        if (conversations.get(conv.playerId) != conv) {
+            return;
         }
         if (conv.timeoutMillis > 0) {
             scheduleTimeout(conv);

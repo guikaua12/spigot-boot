@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.spigot.conversation.support.FakeScheduler;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -171,5 +172,32 @@ class ChatConversationManagerTest {
         ChatUtils.uninstall();
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
                 () -> ChatUtils.with(player));
+    }
+
+    @Test
+    void reentrantBeginFromOnEndSkipsStaleSetupForTheDisplacedConversation() {
+        // The replaced conversation's onEnd starts a brand-new conversation, displacing the
+        // conversation whose begin() is still running. That outer begin() must notice it is no
+        // longer the active conversation and skip its own timeout scheduling, leaving only the
+        // newest conversation's timeout live (not the displaced, already-ended one's).
+        AtomicReference<String> newestSaw = new AtomicReference<>();
+        prompt()
+                .timeout(30, TimeUnit.SECONDS)
+                .onEnd((p, r) -> {
+                    if (r == EndReason.REPLACED) {
+                        prompt().timeout(30, TimeUnit.SECONDS)
+                                .onChat(ctx -> newestSaw.set(ctx.getMessage()));
+                    }
+                })
+                .onChat(ctx -> {});
+
+        // Replaces the first conversation; its onEnd re-enters begin() and starts the newest one.
+        prompt().timeout(30, TimeUnit.SECONDS).onChat(ctx -> {});
+
+        assertEquals(1, scheduler.pendingLaterCount(),
+                "only the newest conversation may have a live timeout; the displaced begin must not schedule one");
+
+        manager.deliver(player.getUniqueId(), "routed");
+        assertEquals("routed", newestSaw.get(), "messages reach the newest conversation, not a stale one");
     }
 }
