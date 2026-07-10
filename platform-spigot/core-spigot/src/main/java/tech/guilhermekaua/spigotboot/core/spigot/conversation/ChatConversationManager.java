@@ -86,7 +86,7 @@ public class ChatConversationManager implements Listener, ContextReadyListener {
         if (conv.timeoutMillis > 0) {
             scheduleTimeout(conv);
         }
-        if (conv.firstPrompt != null && !conv.firstPrompt.isBlank()) {
+        if (conv.firstPrompt != null && !conv.firstPrompt.isEmpty()) {
             sendFirstPrompt(conv.player, conv.firstPrompt);
         }
     }
