@@ -330,6 +330,74 @@ public class DefaultValidator implements Validator {
                 return NotEmpty.class;
             }
         });
+
+        factories.put(AssertTrue.class, new ConstraintFactory<AssertTrue>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertTrue annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return (Boolean) value;
+                        return false; // unsupported type
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Set the value to true";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertTrue> getAnnotationType() {
+                return AssertTrue.class;
+            }
+        });
+
+        factories.put(AssertFalse.class, new ConstraintFactory<AssertFalse>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertFalse annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return !(Boolean) value;
+                        return false; // unsupported type
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Set the value to false";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertFalse> getAnnotationType() {
+                return AssertFalse.class;
+            }
+        });
     }
 
     @Override

@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import tech.guilhermekaua.spigotboot.core.exceptions.ValidationException;
 import tech.guilhermekaua.spigotboot.core.validation.ValidationResult;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertFalse;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertTrue;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Min;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotEmpty;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotNull;
@@ -125,6 +127,50 @@ class ValidatorTest {
         String childName;
     }
 
+    static class AssertTrueConfig {
+        @AssertTrue
+        boolean enabled;
+
+        @AssertTrue(failFast = false)
+        Boolean optionalFlag;
+    }
+
+    static class AssertFalseConfig {
+        @AssertFalse
+        boolean disabled;
+
+        @AssertFalse(failFast = false)
+        Boolean optionalFlag;
+    }
+
+    static class AssertTrueUnsupportedTypeConfig {
+        @AssertTrue
+        String name;
+    }
+
+    static class AssertFalseUnsupportedTypeConfig {
+        @AssertFalse
+        String name;
+    }
+
+    static class InheritedAssertTrueBaseConfig {
+        @AssertTrue
+        boolean baseEnabled;
+    }
+
+    static class InheritedAssertTrueConfig extends InheritedAssertTrueBaseConfig {
+        String childName;
+    }
+
+    static class InheritedAssertFalseBaseConfig {
+        @AssertFalse
+        boolean baseDisabled;
+    }
+
+    static class InheritedAssertFalseConfig extends InheritedAssertFalseBaseConfig {
+        String childName;
+    }
+
     private NotEmptyConfig validNotEmptyConfig() {
         NotEmptyConfig config = new NotEmptyConfig();
         config.name = "Test";
@@ -132,6 +178,20 @@ class ValidatorTest {
         config.attributes = new HashMap<>(Map.of("key", "value"));
         config.items = new String[]{"item1"};
         config.scores = new int[]{1, 2, 3};
+        return config;
+    }
+
+    private AssertTrueConfig validAssertTrueConfig() {
+        AssertTrueConfig config = new AssertTrueConfig();
+        config.enabled = true;
+        config.optionalFlag = true;
+        return config;
+    }
+
+    private AssertFalseConfig validAssertFalseConfig() {
+        AssertFalseConfig config = new AssertFalseConfig();
+        config.disabled = false;
+        config.optionalFlag = false;
         return config;
     }
 
@@ -403,5 +463,171 @@ class ValidatorTest {
         assertTrue(result.hasErrors());
         assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getFieldName())));
         assertTrue(result.errors().stream().anyMatch(error -> "baseName".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testAssertTrueValidObject() {
+        AssertTrueConfig config = validAssertTrueConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.isValid());
+        assertFalse(result.hasErrors());
+    }
+
+    @Test
+    void testAssertTrueFalseViolation() {
+        AssertTrueConfig config = validAssertTrueConfig();
+        config.enabled = false; // violates @AssertTrue
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "enabled".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertTrueNullIsValid() {
+        AssertTrueConfig config = validAssertTrueConfig();
+        config.optionalFlag = null; // null is valid for @AssertTrue
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertTrueBoxedFalseViolation() {
+        AssertTrueConfig config = validAssertTrueConfig();
+        config.optionalFlag = false; // violates @AssertTrue(failFast = false)
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertTrueUnsupportedTypeIsAlwaysInvalid() {
+        AssertTrueUnsupportedTypeConfig config = new AssertTrueUnsupportedTypeConfig();
+        config.name = "not-a-boolean"; // non-null non-boolean -> always invalid by design
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertTrueFailFastDefaultTrue() {
+        AssertTrueConfig config = validAssertTrueConfig();
+        config.enabled = false; // @AssertTrue on `enabled` has default failFast = true
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.getFailFastErrors().stream().anyMatch(error -> "enabled".equals(error.getFieldName())));
+        assertThrows(ValidationException.class, () -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testAssertTrueFailFastFalseOverride() {
+        AssertTrueConfig config = validAssertTrueConfig();
+        config.optionalFlag = false; // @AssertTrue(failFast = false) on `optionalFlag`
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+        assertFalse(result.getFailFastErrors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+        assertDoesNotThrow(() -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testInheritedAssertTrueViolation() {
+        InheritedAssertTrueConfig config = new InheritedAssertTrueConfig();
+        config.baseEnabled = false; // violates @AssertTrue declared in superclass
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "baseEnabled".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "baseEnabled".equals(error.getPath().asString())));
+    }
+
+    @Test
+    void testAssertFalseValidObject() {
+        AssertFalseConfig config = validAssertFalseConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.isValid());
+        assertFalse(result.hasErrors());
+    }
+
+    @Test
+    void testAssertFalseTrueViolation() {
+        AssertFalseConfig config = validAssertFalseConfig();
+        config.disabled = true; // violates @AssertFalse
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "disabled".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertFalseNullIsValid() {
+        AssertFalseConfig config = validAssertFalseConfig();
+        config.optionalFlag = null; // null is valid for @AssertFalse
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertFalseBoxedTrueViolation() {
+        AssertFalseConfig config = validAssertFalseConfig();
+        config.optionalFlag = true; // violates @AssertFalse(failFast = false)
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertFalseUnsupportedTypeIsAlwaysInvalid() {
+        AssertFalseUnsupportedTypeConfig config = new AssertFalseUnsupportedTypeConfig();
+        config.name = "not-a-boolean"; // non-null non-boolean -> always invalid by design
+
+        ValidationResult result = validator.validate(config);
+        assertFalse(result.isValid());
+        assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
+    }
+
+    @Test
+    void testAssertFalseFailFastDefaultTrue() {
+        AssertFalseConfig config = validAssertFalseConfig();
+        config.disabled = true; // @AssertFalse on `disabled` has default failFast = true
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.getFailFastErrors().stream().anyMatch(error -> "disabled".equals(error.getFieldName())));
+        assertThrows(ValidationException.class, () -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testAssertFalseFailFastFalseOverride() {
+        AssertFalseConfig config = validAssertFalseConfig();
+        config.optionalFlag = true; // @AssertFalse(failFast = false) on `optionalFlag`
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+        assertFalse(result.getFailFastErrors().stream().anyMatch(error -> "optionalFlag".equals(error.getFieldName())));
+        assertDoesNotThrow(() -> validator.validateOrThrow(config));
+    }
+
+    @Test
+    void testInheritedAssertFalseViolation() {
+        InheritedAssertFalseConfig config = new InheritedAssertFalseConfig();
+        config.baseDisabled = true; // violates @AssertFalse declared in superclass
+        config.childName = "child";
+
+        ValidationResult result = validator.validate(config);
+
+        assertFalse(result.isValid());
+        assertTrue(result.hasErrors());
+        assertTrue(result.errors().stream().anyMatch(error -> "baseDisabled".equals(error.getFieldName())));
+        assertTrue(result.errors().stream().anyMatch(error -> "baseDisabled".equals(error.getPath().asString())));
     }
 }
