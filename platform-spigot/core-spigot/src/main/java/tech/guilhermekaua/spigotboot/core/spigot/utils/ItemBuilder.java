@@ -452,6 +452,23 @@ public class ItemBuilder {
         return new ItemBuilder(material);
     }
 
+    /**
+     * Creates an {@link ItemBuilder} wrapping a player head resolved from either a Mojang texture
+     * URL or a player name. When {@code textureUrlOrName} matches
+     * {@link HeadUtils#isTextureUrl(String)}, the head is skinned via
+     * {@link HeadUtils#getHeadByUrl(String)}; otherwise {@link HeadUtils#getHeadByName(String)} is
+     * used. A null or blank value yields a bare head rather than throwing.
+     *
+     * @param textureUrlOrName a Mojang texture URL or player name
+     * @return a builder wrapping the resolved player head
+     */
+    public static ItemBuilder ofHead(String textureUrlOrName) {
+        if (HeadUtils.isTextureUrl(textureUrlOrName)) {
+            return new ItemBuilder(HeadUtils.getHeadByUrl(textureUrlOrName));
+        }
+        return new ItemBuilder(HeadUtils.getHeadByName(textureUrlOrName));
+    }
+
     public ItemBuilder setMaterial(String... candidates) {
         Material material = findMaterial(candidates);
         if (material == null) {

@@ -132,6 +132,37 @@ class HeadUtilsTest {
         assertFalse(HeadUtils.writeProfileField(new Object(), new Object()));
     }
 
+    // --- isTextureUrl ----------------------------------------------------------------------------
+
+    @Test
+    void isTextureUrl_accepts_http_textures_minecraft_net() {
+        assertTrue(HeadUtils.isTextureUrl(
+                "http://textures.minecraft.net/texture/2fdd5f297d76d35257724ea722e06af12f847052225de6d4919c1aa773c25e5c"));
+    }
+
+    @Test
+    void isTextureUrl_accepts_https_and_ignores_surrounding_whitespace() {
+        assertTrue(HeadUtils.isTextureUrl(
+                "  https://textures.minecraft.net/texture/deadbeefcafe  "));
+    }
+
+    @Test
+    void isTextureUrl_is_case_insensitive_on_scheme_and_host() {
+        assertTrue(HeadUtils.isTextureUrl(
+                "HTTP://Textures.Minecraft.NET/texture/abc123"));
+    }
+
+    @Test
+    void isTextureUrl_rejects_null_blank_player_name_and_incomplete_url() {
+        assertFalse(HeadUtils.isTextureUrl(null));
+        assertFalse(HeadUtils.isTextureUrl(""));
+        assertFalse(HeadUtils.isTextureUrl("   "));
+        assertFalse(HeadUtils.isTextureUrl("Notch"));
+        assertFalse(HeadUtils.isTextureUrl("http://textures.minecraft.net/texture/"));
+        assertFalse(HeadUtils.isTextureUrl("http://example.com/texture/abc"));
+        assertFalse(HeadUtils.isTextureUrl("textures.minecraft.net/texture/abc"));
+    }
+
     // --- existing head factories still work -----------------------------------------------------
 
     @Test

@@ -174,6 +174,27 @@ class ItemBuilderTest {
         assertEquals(Material.PLAYER_HEAD, head.getType());
     }
 
+    @Test
+    void ofHead_with_texture_url_produces_a_player_head() {
+        ItemStack head = ItemBuilder.ofHead(
+                        "http://textures.minecraft.net/texture/2fdd5f297d76d35257724ea722e06af12f847052225de6d4919c1aa773c25e5c")
+                .wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
+    @Test
+    void ofHead_with_player_name_sets_the_owner() {
+        ItemStack head = ItemBuilder.ofHead("Notch").wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+        assertEquals("Notch", ((SkullMeta) head.getItemMeta()).getOwner());
+    }
+
+    @Test
+    void ofHead_null_produces_a_bare_head_without_throwing() {
+        ItemStack head = ItemBuilder.ofHead(null).wrap();
+        assertEquals(Material.PLAYER_HEAD, head.getType());
+    }
+
     private interface ItemModelMeta extends ItemMeta {
         void setItemModel(NamespacedKey itemModel);
     }

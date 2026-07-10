@@ -34,6 +34,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -125,6 +126,39 @@ public final class HeadUtils {
         applySkinUrl(headMeta, url.trim());
         head.setItemMeta(headMeta);
         return head;
+    }
+
+    /**
+     * Returns whether {@code value} is a Mojang texture URL of the form
+     * {@code http(s)://textures.minecraft.net/texture/<hash>} (leading/trailing whitespace
+     * ignored; host match is case-insensitive).
+     *
+     * @param value the candidate string, or null
+     * @return {@code true} when {@code value} looks like a texture URL with a non-empty hash
+     */
+    public static boolean isTextureUrl(String value) {
+        if (value == null) {
+            return false;
+        }
+        final String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return false;
+        }
+        final String lower = trimmed.toLowerCase(Locale.ROOT);
+        final int schemeEnd;
+        if (lower.startsWith("http://")) {
+            schemeEnd = 7;
+        } else if (lower.startsWith("https://")) {
+            schemeEnd = 8;
+        } else {
+            return false;
+        }
+        final String hostAndPath = "textures.minecraft.net/texture/";
+        if (!lower.startsWith(hostAndPath, schemeEnd)) {
+            return false;
+        }
+        // Require at least one character after /texture/
+        return trimmed.length() > schemeEnd + hostAndPath.length();
     }
 
     /**
