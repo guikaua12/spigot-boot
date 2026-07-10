@@ -883,4 +883,44 @@ class ValidatorTest {
         assertTrue(result.errors().stream().anyMatch(error -> "name".equals(error.getFieldName())));
         assertTrue(result.errors().stream().anyMatch(error -> "max".equals(error.getFieldName())));
     }
+
+    /**
+     * Cached assert-method discovery must keep hierarchy/interface order and results
+     * stable across repeated validations of the same class.
+     */
+    @Test
+    void testAssertMethodDiscoveryCacheIsStableAcrossRepeatedValidation() {
+        SuperinterfaceAssertTrueConfig config = new SuperinterfaceAssertTrueConfig();
+        config.childIfaceEnabled = false;
+        config.superIfaceEnabled = false;
+
+        ValidationResult first = validator.validate(config);
+        ValidationResult second = validator.validate(config);
+
+        List<String> firstPaths = first.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+        List<String> secondPaths = second.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+
+        assertEquals(2, firstPaths.size());
+        assertEquals(firstPaths, secondPaths);
+
+        PrivateAssertSameSignatureChild privateConfig = new PrivateAssertSameSignatureChild();
+        privateConfig.baseOk = false;
+        privateConfig.childOk = false;
+
+        ValidationResult privateFirst = validator.validate(privateConfig);
+        ValidationResult privateSecond = validator.validate(privateConfig);
+        List<String> privateFirstPaths = privateFirst.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+        List<String> privateSecondPaths = privateSecond.errors().stream()
+                .map(error -> error.getPath().asString() + "|" + error.getMessage())
+                .toList();
+
+        assertEquals(2, privateFirstPaths.size());
+        assertEquals(privateFirstPaths, privateSecondPaths);
+    }
 }

@@ -32,6 +32,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 
 /**
@@ -40,6 +41,12 @@ import java.util.regex.Matcher;
 public class DefaultValidator implements Validator {
 
     private final Map<Class<? extends Annotation>, ConstraintFactory<?>> factories = new HashMap<>();
+
+    /**
+     * Per-class cache of assert methods discovered via hierarchy/interface walk.
+     * Avoids repeating reflection on every validation of the same type.
+     */
+    private final Map<Class<?>, List<Method>> assertMethodsCache = new ConcurrentHashMap<>();
 
     public DefaultValidator() {
         registerDefaultFactories();
@@ -580,8 +587,18 @@ public class DefaultValidator implements Validator {
      * walking the class hierarchy subclass-first, then each class's interfaces
      * (including superinterfaces). Overridable methods are signature-deduped;
      * private methods are always retained (they cannot override).
+     * Results are cached per class.
      */
     private @NotNull List<Method> getAllAssertMethods(@NotNull Class<?> clazz) {
+        return assertMethodsCache.computeIfAbsent(clazz, this::resolveAssertMethods);
+    }
+
+    /**
+     * Discovers assert methods for {@code clazz} without consulting the cache.
+     * Order: subclass declared methods first, then each type's interfaces
+     * (including superinterfaces), then superclasses — same as before caching.
+     */
+    private @NotNull List<Method> resolveAssertMethods(@NotNull Class<?> clazz) {
         List<Method> methods = new ArrayList<>();
         Set<String> seenSignatures = new HashSet<>();
         Set<Class<?>> visitedInterfaces = new HashSet<>();
@@ -593,7 +610,7 @@ public class DefaultValidator implements Validator {
             }
             current = current.getSuperclass();
         }
-        return methods;
+        return List.copyOf(methods);
     }
 
     /**
