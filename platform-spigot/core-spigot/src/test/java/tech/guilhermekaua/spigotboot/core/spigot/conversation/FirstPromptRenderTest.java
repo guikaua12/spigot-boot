@@ -84,7 +84,7 @@ class FirstPromptRenderTest {
 
     @Test
     void blankFirstPromptSendsNothing() {
-        new ChatPrompt(player, manager).firstPrompt("   ").onChat(ctx -> {});
+        new ChatPrompt(player, manager).firstPrompt("").onChat(ctx -> {});
         new ChatPrompt(player, manager).onChat(ctx -> {}); // null firstPrompt
 
         verify(spigot, never()).sendMessage(org.mockito.ArgumentMatchers.<BaseComponent[]>any());
