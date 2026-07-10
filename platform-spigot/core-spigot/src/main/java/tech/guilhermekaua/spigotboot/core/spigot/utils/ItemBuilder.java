@@ -444,15 +444,33 @@ public class ItemBuilder {
      * @return a builder for the resolved material, or STONE
      */
     public static ItemBuilder ofMaterial(String... candidates) {
+        Material material = findMaterial(candidates);
+        if (material == null) {
+            throw new IllegalStateException("Material not found: "  + String.join(", ", candidates));
+        }
+
+        return new ItemBuilder(material);
+    }
+
+    public ItemBuilder setMaterial(String... candidates) {
+        Material material = findMaterial(candidates);
+        if (material == null) {
+            throw new IllegalStateException("Material not found: "  + String.join(", ", candidates));
+        }
+
+        return new ItemBuilder(material);
+    }
+
+    private static Material findMaterial(String... candidates) {
         if (candidates != null) {
             for (String name : candidates) {
                 Material material = TypeUtil.getMaterialFromLegacy(name);
                 if (material != null) {
-                    return new ItemBuilder(material);
+                    return material;
                 }
             }
         }
-        return new ItemBuilder(Material.STONE);
+        return null;
     }
 
     /**
