@@ -300,6 +300,41 @@ class ValidatorTest {
         }
     }
 
+    /**
+     * Superclass declares a public annotated assert; subclass overrides without
+     * re-annotating. The ancestor rule must not apply (return false would fail
+     * if the annotation were retained under virtual dispatch).
+     */
+    static class AnnotatedAssertSuperclass {
+        @AssertTrue(message = "superclass rule failed", path = "flag")
+        public boolean isFlag() {
+            return true;
+        }
+    }
+
+    static class UnannotatedOverrideOfSuperclassAssert extends AnnotatedAssertSuperclass {
+        @Override
+        public boolean isFlag() {
+            return false;
+        }
+    }
+
+    /**
+     * Interface default carries {@code @AssertTrue}; implementing class overrides
+     * without the annotation. Ancestor interface rule must not apply.
+     */
+    static class UnannotatedOverrideOfInterfaceAssert implements AssertTrueDefaultMethodIface {
+        @Override
+        public boolean interfaceEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isInterfaceEnabled() {
+            return false;
+        }
+    }
+
     static class CoexistFieldAndMethodConfig {
         @NotNull
         String name;
@@ -823,6 +858,32 @@ class ValidatorTest {
         ValidationResult result = validator.validate(config);
 
         assertTrue(result.isValid(), "class override with matching signature must suppress interface default");
+    }
+
+    @Test
+    void testUnannotatedOverrideSuppressesSuperclassAssertTrue() {
+        UnannotatedOverrideOfSuperclassAssert config = new UnannotatedOverrideOfSuperclassAssert();
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(),
+                "unannotated override must suppress superclass @AssertTrue (return false would fail if retained)");
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("superclass rule failed")
+        ));
+    }
+
+    @Test
+    void testUnannotatedOverrideSuppressesInterfaceAssertTrue() {
+        UnannotatedOverrideOfInterfaceAssert config = new UnannotatedOverrideOfInterfaceAssert();
+
+        ValidationResult result = validator.validate(config);
+
+        assertTrue(result.isValid(),
+                "unannotated class override must suppress interface default @AssertTrue");
+        assertFalse(result.errors().stream().anyMatch(error ->
+                error.getMessage().contains("interface rule failed")
+        ));
     }
 
     @Test

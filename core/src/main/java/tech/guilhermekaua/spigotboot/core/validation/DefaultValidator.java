@@ -635,7 +635,9 @@ public class DefaultValidator implements Validator {
      * contribute only default methods (invocable bodies). Bridge, synthetic,
      * and {@link Object} methods are skipped. Private methods skip signature
      * deduplication so same-named private asserts on different hierarchy levels
-     * are each retained.
+     * are each retained. Non-private methods reserve their signature before
+     * annotation filtering so an unannotated override suppresses ancestor
+     * {@link AssertTrue}/{@link AssertFalse} rules with the same signature.
      */
     private void collectAssertMethodsFrom(@NotNull Class<?> type,
                                           @NotNull List<Method> methods,
@@ -650,20 +652,27 @@ public class DefaultValidator implements Validator {
             if (type.isInterface() && !method.isDefault()) {
                 continue;
             }
-            if (method.getAnnotation(AssertTrue.class) == null
-                    && method.getAnnotation(AssertFalse.class) == null) {
-                continue;
-            }
+
+            boolean annotated = method.getAnnotation(AssertTrue.class) != null
+                    || method.getAnnotation(AssertFalse.class) != null;
+
             // Private methods cannot override; never consult or populate seenSignatures.
             if (Modifier.isPrivate(method.getModifiers())) {
-                methods.add(method);
+                if (annotated) {
+                    methods.add(method);
+                }
                 continue;
             }
+
+            // Reserve signature before annotation filtering so unannotated
+            // overrides block ancestor assert methods with the same signature.
             String signature = methodSignature(method);
             if (!seenSignatures.add(signature)) {
                 continue;
             }
-            methods.add(method);
+            if (annotated) {
+                methods.add(method);
+            }
         }
     }
 
