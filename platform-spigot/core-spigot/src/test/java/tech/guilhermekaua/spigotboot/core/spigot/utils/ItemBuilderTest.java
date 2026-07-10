@@ -15,10 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -99,8 +96,9 @@ class ItemBuilderTest {
     }
 
     @Test
-    void ofMaterial_falls_back_to_stone_when_unknown() {
-        assertEquals(Material.STONE, ItemBuilder.ofMaterial("NOPE_NOT_REAL", "ALSO_FAKE").wrap().getType());
+    void ofMaterial_throws_when_unknown() {
+        Exception e = assertThrows(IllegalStateException.class, () -> ItemBuilder.ofMaterial("NOPE_NOT_REAL", "ALSO_FAKE").wrap().getType());
+        assertEquals("Material not found: NOPE_NOT_REAL, ALSO_FAKE", e.getMessage());
     }
 
     @Test
