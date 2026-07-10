@@ -28,6 +28,8 @@ import tech.guilhermekaua.spigotboot.core.validation.annotation.*;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
 
@@ -330,6 +332,74 @@ public class DefaultValidator implements Validator {
                 return NotEmpty.class;
             }
         });
+
+        factories.put(AssertTrue.class, new ConstraintFactory<AssertTrue>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertTrue annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return (Boolean) value;
+                        return false;
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Ensure the assertion evaluates to true";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertTrue> getAnnotationType() {
+                return AssertTrue.class;
+            }
+        });
+
+        factories.put(AssertFalse.class, new ConstraintFactory<AssertFalse>() {
+            @Override
+            public @NotNull Constraint<?> create(@NotNull AssertFalse annotation) {
+                return new Constraint<Object>() {
+                    @Override
+                    public boolean isValid(Object value) {
+                        if (value == null) return true;
+                        if (value instanceof Boolean) return !(Boolean) value;
+                        return false;
+                    }
+
+                    @Override
+                    public @NotNull String message(Object value) {
+                        return annotation.message();
+                    }
+
+                    @Override
+                    public boolean isFailFast() {
+                        return annotation.failFast();
+                    }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return "Ensure the assertion evaluates to false";
+                    }
+                };
+            }
+
+            @Override
+            public @NotNull Class<AssertFalse> getAnnotationType() {
+                return AssertFalse.class;
+            }
+        });
     }
 
     @Override
@@ -390,7 +460,160 @@ public class DefaultValidator implements Validator {
             }
         }
 
+        errors.addAll(validateAssertMethods(object, basePath));
+
         return ValidationResult.of(errors);
+    }
+
+    @SuppressWarnings("unchecked")
+    private @NotNull List<ValidationError> validateAssertMethods(@NotNull Object object,
+                                                                 @NotNull PropertyPath basePath) {
+        List<ValidationError> errors = new ArrayList<>();
+
+        for (Method method : getAllAssertMethods(object.getClass())) {
+            AssertTrue assertTrue = method.getAnnotation(AssertTrue.class);
+            AssertFalse assertFalse = method.getAnnotation(AssertFalse.class);
+            if (assertTrue == null && assertFalse == null) {
+                continue;
+            }
+
+            String pathAttr = assertTrue != null ? assertTrue.path() : assertFalse.path();
+            boolean failFast = assertTrue != null ? assertTrue.failFast() : assertFalse.failFast();
+            PropertyPath errorPath = resolveAssertPath(basePath, method, pathAttr);
+            String fieldName = resolveAssertFieldName(errorPath, method);
+
+            if (method.getParameterCount() != 0 || !isBooleanReturnType(method)) {
+                String message = "Assert method must return boolean/Boolean and take no parameters: "
+                        + method.getDeclaringClass().getSimpleName() + "." + method.getName();
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        message,
+                        failFast,
+                        "Change the method to a zero-arg boolean-returning method"
+                ));
+                continue;
+            }
+
+            Object returnValue;
+            try {
+                method.setAccessible(true);
+                returnValue = method.invoke(object);
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                String message = "Assert method threw: " + cause.getClass().getSimpleName()
+                        + (cause.getMessage() != null ? ": " + cause.getMessage() : "");
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        message,
+                        failFast,
+                        "Fix the assert method so it does not throw"
+                ));
+                continue;
+            } catch (IllegalAccessException e) {
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        null,
+                        "Assert method is not accessible: " + method.getName(),
+                        failFast,
+                        "Make the assert method accessible"
+                ));
+                continue;
+            }
+
+            Annotation annotation = assertTrue != null ? assertTrue : assertFalse;
+            ConstraintFactory<?> factory = factories.get(annotation.annotationType());
+            if (factory == null) {
+                continue;
+            }
+            Constraint<Object> constraint = (Constraint<Object>) createConstraint(factory, annotation);
+            if (!constraint.isValid(returnValue)) {
+                errors.add(new ValidationError(
+                        errorPath,
+                        fieldName,
+                        returnValue,
+                        constraint.message(returnValue),
+                        constraint.isFailFast(),
+                        constraint.suggestedFix(returnValue)
+                ));
+            }
+        }
+
+        return errors;
+    }
+
+    private @NotNull PropertyPath resolveAssertPath(@NotNull PropertyPath basePath,
+                                                    @NotNull Method method,
+                                                    @NotNull String pathAttr) {
+        if (pathAttr.isEmpty()) {
+            return basePath.child(method.getName());
+        }
+        PropertyPath relative = PropertyPath.parse(pathAttr);
+        PropertyPath result = basePath;
+        for (Object element : relative.elements()) {
+            result = result.child(element);
+        }
+        return result;
+    }
+
+    private @NotNull String resolveAssertFieldName(@NotNull PropertyPath errorPath,
+                                                   @NotNull Method method) {
+        Object last = errorPath.last();
+        if (last != null) {
+            return String.valueOf(last);
+        }
+        return method.getName();
+    }
+
+    private boolean isBooleanReturnType(@NotNull Method method) {
+        Class<?> returnType = method.getReturnType();
+        return returnType == boolean.class || returnType == Boolean.class;
+    }
+
+    /**
+     * Collects methods that may carry {@link AssertTrue}/{@link AssertFalse},
+     * walking the hierarchy subclass-first and skipping overridden signatures.
+     */
+    private @NotNull List<Method> getAllAssertMethods(@NotNull Class<?> clazz) {
+        List<Method> methods = new ArrayList<>();
+        Set<String> seenSignatures = new HashSet<>();
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (method.isBridge() || method.isSynthetic()) {
+                    continue;
+                }
+                if (method.getAnnotation(AssertTrue.class) == null
+                        && method.getAnnotation(AssertFalse.class) == null) {
+                    continue;
+                }
+                String signature = methodSignature(method);
+                if (!seenSignatures.add(signature)) {
+                    continue;
+                }
+                methods.add(method);
+            }
+            current = current.getSuperclass();
+        }
+        return methods;
+    }
+
+    private @NotNull String methodSignature(@NotNull Method method) {
+        StringBuilder sb = new StringBuilder(method.getName());
+        sb.append('(');
+        Class<?>[] params = method.getParameterTypes();
+        for (int i = 0; i < params.length; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(params[i].getName());
+        }
+        sb.append(')');
+        return sb.toString();
     }
 
     private @NotNull List<Field> getAllFields(@NotNull Class<?> clazz) {
