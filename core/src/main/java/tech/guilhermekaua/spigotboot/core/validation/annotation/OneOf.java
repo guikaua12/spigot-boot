@@ -54,4 +54,14 @@ public @interface OneOf {
      * @return the message
      */
     String message() default "Value must be one of: {value}";
+
+    /**
+     * The suggestion shown after the error message describing how to fix it.
+     * Supports the same {@code {...}} placeholders as {@link #message()}
+     * (substituted at validation time). Set to an empty string to omit the
+     * suggestion entirely.
+     *
+     * @return the suggestion template
+     */
+    String suggestion() default "Use one of: {value}";
 }

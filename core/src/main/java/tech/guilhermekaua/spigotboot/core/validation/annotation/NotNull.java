@@ -47,4 +47,12 @@ public @interface NotNull {
      * @return true to fail fast
      */
     boolean failFast() default true;
+
+    /**
+     * An optional suggestion shown after the error message describing how to fix
+     * it. Empty by default (no suggestion).
+     *
+     * @return the suggestion, or empty for none
+     */
+    String suggestion() default "";
 }

@@ -29,10 +29,14 @@ import tech.guilhermekaua.spigotboot.core.validation.ValidationResult;
 import tech.guilhermekaua.spigotboot.core.validation.Validator;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertFalse;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.AssertTrue;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.Max;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Min;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotEmpty;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.NotNull;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.OneOf;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.Pattern;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Range;
+import tech.guilhermekaua.spigotboot.core.validation.annotation.Size;
 import tech.guilhermekaua.spigotboot.core.validation.annotation.Valid;
 
 import java.util.ArrayList;
@@ -345,6 +349,75 @@ class ValidatorTest {
         @AssertTrue(message = "max must be >= min", path = "max")
         private boolean isMaxGteMin() {
             return max >= min;
+        }
+    }
+
+    static class CustomSuggestionConfig {
+        @NotNull(suggestion = "Set 'name' in config.yml")
+        String name;
+
+        @NotEmpty(suggestion = "Provide at least one slot index")
+        int[] slots = new int[0];
+
+        @Min(value = 5, suggestion = "pick at least {value}")
+        int count = 0;
+
+        @Range(min = 1, max = 10, suggestion = "choose {min}-{max}")
+        int ratio = 50;
+
+        @Max(value = 3, suggestion = "keep it under {value}")
+        int level = 9;
+
+        @Pattern(value = "[a-z]+", suggestion = "match {value}")
+        String code = "ABC";
+
+        @OneOf(value = {"strict", "relaxed"}, suggestion = "pick from {value}")
+        String mode = "chaotic";
+
+        @Size(min = 2, max = 4, suggestion = "keep {min}-{max} chars")
+        String tag = "x";
+
+        @AssertTrue(message = "material required", path = "material",
+                suggestion = "Set material or head texture")
+        private boolean hasMaterial() {
+            return false;
+        }
+
+        @AssertFalse(message = "must not be debug", path = "debug",
+                suggestion = "turn debug off")
+        private boolean isDebug() {
+            return true;
+        }
+    }
+
+    static class DefaultSuggestionConfig {
+        @NotNull
+        String name;
+
+        @NotEmpty
+        int[] slots = new int[0];
+
+        @Min(5)
+        int count = 0;
+
+        @Range(min = 1, max = 100)
+        int ratio = 500;
+
+        @Max(3)
+        int level = 9;
+
+        @OneOf({"strict", "relaxed"})
+        String mode = "chaotic";
+
+        @Pattern("[a-z]+")
+        String code = "ABC";
+
+        @Size(min = 2, max = 4)
+        String tag = "x";
+
+        @AssertFalse(message = "must not be debug", path = "debug")
+        private boolean isDebug() {
+            return true;
         }
     }
 
@@ -983,5 +1056,226 @@ class ValidatorTest {
 
         assertEquals(2, privateFirstPaths.size());
         assertEquals(privateFirstPaths, privateSecondPaths);
+    }
+
+    @Test
+    void testCustomSuggestionOverridesNotNullDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "name".equals(error.getFieldName())
+                        && "Set 'name' in config.yml".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOverridesNotEmptyDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "slots".equals(error.getFieldName())
+                        && "Provide at least one slot index".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnMinSubstitutesPlaceholder() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "count".equals(error.getFieldName())
+                        && "pick at least 5".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnRangeSubstitutesMinAndMaxPlaceholders() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "ratio".equals(error.getFieldName())
+                        && "choose 1-10".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionOnRangeSubstitutesPlaceholders() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "ratio".equals(error.getFieldName())
+                        && "Use a value between 1 and 100".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOverridesAssertTrueDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "material".equals(error.getFieldName())
+                        && "Set material or head texture".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionUsedWhenNotEmptySuggestionOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "slots".equals(error.getFieldName())
+                        && "Provide at least one value".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionUsedWhenMinSuggestionOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "count".equals(error.getFieldName())
+                        && "Use a value >= 5".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testNotNullHasNoDefaultSuggestionWhenOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "name".equals(error.getFieldName())
+                        && error.getSuggestedFix() == null
+        ));
+    }
+
+    @Test
+    void testEmptyIntArrayNotEmptyErrorFormatsWithoutIdentityHash() {
+        // End-to-end mirror of the user's report: @NotEmpty int[] slots
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        String formatted = result.formatErrors();
+
+        assertFalse(formatted.contains("[I@"), formatted);
+        assertTrue(formatted.contains("(was: [])"), formatted);
+    }
+
+    @Test
+    void testCustomSuggestionOnMaxSubstitutesPlaceholder() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "level".equals(error.getFieldName())
+                        && "keep it under 3".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionOnMaxSubstitutesPlaceholder() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "level".equals(error.getFieldName())
+                        && "Use a value <= 3".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnPatternSubstitutesPlaceholder() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "code".equals(error.getFieldName())
+                        && "match [a-z]+".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testPatternHasNoDefaultSuggestionWhenOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "code".equals(error.getFieldName())
+                        && error.getSuggestedFix() == null
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnOneOfSubstitutesPlaceholder() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "mode".equals(error.getFieldName())
+                        && "pick from [strict, relaxed]".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionOnOneOfSubstitutesPlaceholder() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "mode".equals(error.getFieldName())
+                        && "Use one of: [strict, relaxed]".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnSizeSubstitutesPlaceholders() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "tag".equals(error.getFieldName())
+                        && "keep 2-4 chars".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testSizeHasNoDefaultSuggestionWhenOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "tag".equals(error.getFieldName())
+                        && error.getSuggestedFix() == null
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOverridesAssertFalseDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "debug".equals(error.getFieldName())
+                        && "turn debug off".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionOnAssertFalseUsed() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "debug".equals(error.getFieldName())
+                        && "Ensure the assertion evaluates to false".equals(error.getSuggestedFix())
+        ));
     }
 }

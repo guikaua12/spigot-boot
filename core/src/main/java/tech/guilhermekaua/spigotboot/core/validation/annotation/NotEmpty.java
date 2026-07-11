@@ -53,4 +53,12 @@ public @interface NotEmpty {
      * @return true to fail fast
      */
     boolean failFast() default true;
+
+    /**
+     * The suggestion shown after the error message describing how to fix it.
+     * Set to an empty string to omit the suggestion entirely.
+     *
+     * @return the suggestion
+     */
+    String suggestion() default "Provide at least one value";
 }

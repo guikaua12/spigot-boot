@@ -54,4 +54,13 @@ public @interface Pattern {
      * @return the message
      */
     String message() default "Value must match pattern: {value}";
+
+    /**
+     * An optional suggestion shown after the error message describing how to fix
+     * it. Empty by default (no suggestion). When set, supports the same
+     * {@code {...}} placeholders as {@link #message()}.
+     *
+     * @return the suggestion template, or empty for none
+     */
+    String suggestion() default "";
 }
