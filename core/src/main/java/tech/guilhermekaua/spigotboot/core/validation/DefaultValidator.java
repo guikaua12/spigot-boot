@@ -627,7 +627,7 @@ public class DefaultValidator implements Validator {
             }
             current = current.getSuperclass();
         }
-        return List.copyOf(methods);
+        return Collections.unmodifiableList(methods);
     }
 
     /**
