@@ -348,6 +348,34 @@ class ValidatorTest {
         }
     }
 
+    static class CustomSuggestionConfig {
+        @NotNull(suggestion = "Set 'name' in config.yml")
+        String name;
+
+        @NotEmpty(suggestion = "Provide at least one slot index")
+        int[] slots = new int[0];
+
+        @Min(value = 5, suggestion = "pick at least {value}")
+        int count = 0;
+
+        @AssertTrue(message = "material required", path = "material",
+                suggestion = "Set material or head texture")
+        private boolean hasMaterial() {
+            return false;
+        }
+    }
+
+    static class DefaultSuggestionConfig {
+        @NotNull
+        String name;
+
+        @NotEmpty
+        int[] slots = new int[0];
+
+        @Min(5)
+        int count = 0;
+    }
+
     private NotEmptyConfig validNotEmptyConfig() {
         NotEmptyConfig config = new NotEmptyConfig();
         config.name = "Test";
@@ -983,5 +1011,94 @@ class ValidatorTest {
 
         assertEquals(2, privateFirstPaths.size());
         assertEquals(privateFirstPaths, privateSecondPaths);
+    }
+
+    @Test
+    void testCustomSuggestionOverridesNotNullDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "name".equals(error.getFieldName())
+                        && "Set 'name' in config.yml".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOverridesNotEmptyDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "slots".equals(error.getFieldName())
+                        && "Provide at least one slot index".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnMinIsLiteralNoPlaceholderSubstitution() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "count".equals(error.getFieldName())
+                        && "pick at least {value}".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOverridesAssertTrueDefault() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "material".equals(error.getFieldName())
+                        && "Set material or head texture".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionUsedWhenNotEmptySuggestionOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "slots".equals(error.getFieldName())
+                        && "Provide at least one value".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionUsedWhenMinSuggestionOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "count".equals(error.getFieldName())
+                        && "Use a value >= 5".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testNotNullHasNoDefaultSuggestionWhenOmitted() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "name".equals(error.getFieldName())
+                        && error.getSuggestedFix() == null
+        ));
+    }
+
+    @Test
+    void testEmptyIntArrayNotEmptyErrorFormatsWithoutIdentityHash() {
+        // End-to-end mirror of the user's report: @NotEmpty int[] slots
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        String formatted = result.formatErrors();
+
+        assertFalse(formatted.contains("[I@"), formatted);
+        assertTrue(formatted.contains("(was: [])"), formatted);
     }
 }

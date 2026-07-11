@@ -25,6 +25,7 @@ package tech.guilhermekaua.spigotboot.core.validation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -128,11 +129,57 @@ public final class ValidationError {
         StringBuilder sb = new StringBuilder();
         sb.append("[").append(path.asString()).append("] ");
         sb.append(message);
-        sb.append(" (was: ").append(invalidValue).append(")");
+        sb.append(" (was: ").append(formatValue(invalidValue)).append(")");
         if (suggestedFix != null) {
             sb.append(" - Suggestion: ").append(suggestedFix);
         }
         return sb.toString();
+    }
+
+    /**
+     * Renders a value for display. Arrays are rendered by their elements
+     * ({@link Arrays#toString} for primitive arrays, {@link Arrays#deepToString}
+     * for object/nested arrays) instead of their {@link Object#toString()}
+     * identity (e.g. {@code [I@7f80aba6}). All other values use
+     * {@link String#valueOf}.
+     *
+     * @param value the value to render
+     * @return the human-readable rendering
+     */
+    private static @NotNull String formatValue(@Nullable Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value.getClass().isArray()) {
+            if (value instanceof Object[]) {
+                return Arrays.deepToString((Object[]) value);
+            }
+            if (value instanceof int[]) {
+                return Arrays.toString((int[]) value);
+            }
+            if (value instanceof long[]) {
+                return Arrays.toString((long[]) value);
+            }
+            if (value instanceof double[]) {
+                return Arrays.toString((double[]) value);
+            }
+            if (value instanceof float[]) {
+                return Arrays.toString((float[]) value);
+            }
+            if (value instanceof boolean[]) {
+                return Arrays.toString((boolean[]) value);
+            }
+            if (value instanceof byte[]) {
+                return Arrays.toString((byte[]) value);
+            }
+            if (value instanceof short[]) {
+                return Arrays.toString((short[]) value);
+            }
+            if (value instanceof char[]) {
+                return Arrays.toString((char[]) value);
+            }
+        }
+        return String.valueOf(value);
     }
 
     @Override

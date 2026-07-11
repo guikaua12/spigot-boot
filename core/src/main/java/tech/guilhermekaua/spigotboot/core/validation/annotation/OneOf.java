@@ -54,4 +54,13 @@ public @interface OneOf {
      * @return the message
      */
     String message() default "Value must be one of: {value}";
+
+    /**
+     * An optional suggestion describing how to fix the error, shown alongside the
+     * message. When empty, the built-in default suggestion is used (or none, for
+     * constraints without a default). Used verbatim; no placeholder substitution.
+     *
+     * @return the suggestion, or empty for the built-in default
+     */
+    String suggestion() default "";
 }

@@ -73,6 +73,11 @@ public class DefaultValidator implements Validator {
                             public boolean isFailFast() {
                                 return annotation.failFast();
                             }
+
+                            @Override
+                            public String suggestedFix(Object value) {
+                                return resolveSuggestion(annotation.suggestion(), null);
+                            }
                         };
                     }
 
@@ -103,7 +108,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Number value) {
-                        return "Use a value >= " + annotation.value();
+                        return resolveSuggestion(annotation.suggestion(), "Use a value >= " + annotation.value());
                     }
                 };
             }
@@ -135,7 +140,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Number value) {
-                        return "Use a value <= " + annotation.value();
+                        return resolveSuggestion(annotation.suggestion(), "Use a value <= " + annotation.value());
                     }
                 };
             }
@@ -171,7 +176,8 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Number value) {
-                        return "Use a value between " + annotation.min() + " and " + annotation.max();
+                        return resolveSuggestion(annotation.suggestion(),
+                                "Use a value between " + annotation.min() + " and " + annotation.max());
                     }
                 };
             }
@@ -203,6 +209,11 @@ public class DefaultValidator implements Validator {
                     @Override
                     public boolean isFailFast() {
                         return false;
+                    }
+
+                    @Override
+                    public String suggestedFix(String value) {
+                        return resolveSuggestion(annotation.suggestion(), null);
                     }
                 };
             }
@@ -240,7 +251,8 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(String value) {
-                        return "Use one of: " + Arrays.toString(annotation.value());
+                        return resolveSuggestion(annotation.suggestion(),
+                                "Use one of: " + Arrays.toString(annotation.value()));
                     }
                 };
             }
@@ -286,6 +298,11 @@ public class DefaultValidator implements Validator {
                     public boolean isFailFast() {
                         return false;
                     }
+
+                    @Override
+                    public String suggestedFix(Object value) {
+                        return resolveSuggestion(annotation.suggestion(), null);
+                    }
                 };
             }
 
@@ -330,7 +347,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return "Provide at least one value";
+                        return resolveSuggestion(annotation.suggestion(), "Provide at least one value");
                     }
                 };
             }
@@ -364,7 +381,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return "Ensure the assertion evaluates to true";
+                        return resolveSuggestion(annotation.suggestion(), "Ensure the assertion evaluates to true");
                     }
                 };
             }
@@ -398,7 +415,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return "Ensure the assertion evaluates to false";
+                        return resolveSuggestion(annotation.suggestion(), "Ensure the assertion evaluates to false");
                     }
                 };
             }
@@ -703,6 +720,20 @@ public class DefaultValidator implements Validator {
     @SuppressWarnings("unchecked")
     private <A extends Annotation> Constraint<?> createConstraint(ConstraintFactory<?> factory, A annotation) {
         return ((ConstraintFactory<A>) factory).create(annotation);
+    }
+
+    /**
+     * Resolves the suggestion shown alongside a validation error: the annotation's
+     * custom {@code suggestion()} when set (used verbatim, no placeholder
+     * substitution), otherwise the constraint's built-in default (which may be
+     * {@code null} for constraints without one).
+     *
+     * @param custom   the annotation's {@code suggestion()} value (never null)
+     * @param fallback the built-in default suggestion, or null
+     * @return the custom suggestion if non-empty, else the fallback
+     */
+    private static String resolveSuggestion(@NotNull String custom, String fallback) {
+        return custom.isEmpty() ? fallback : custom;
     }
 
     @Override
