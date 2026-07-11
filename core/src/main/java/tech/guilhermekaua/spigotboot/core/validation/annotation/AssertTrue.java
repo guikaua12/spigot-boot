@@ -70,11 +70,10 @@ public @interface AssertTrue {
     boolean failFast() default true;
 
     /**
-     * An optional suggestion describing how to fix the error, shown alongside the
-     * message. When empty, the built-in default suggestion is used (or none, for
-     * constraints without a default). Used verbatim; no placeholder substitution.
+     * The suggestion shown after the error message describing how to fix it.
+     * Set to an empty string to omit the suggestion entirely.
      *
-     * @return the suggestion, or empty for the built-in default
+     * @return the suggestion
      */
-    String suggestion() default "";
+    String suggestion() default "Ensure the assertion evaluates to true";
 }

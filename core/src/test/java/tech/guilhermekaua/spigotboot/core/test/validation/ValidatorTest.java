@@ -358,6 +358,9 @@ class ValidatorTest {
         @Min(value = 5, suggestion = "pick at least {value}")
         int count = 0;
 
+        @Range(min = 1, max = 10, suggestion = "choose {min}-{max}")
+        int ratio = 50;
+
         @AssertTrue(message = "material required", path = "material",
                 suggestion = "Set material or head texture")
         private boolean hasMaterial() {
@@ -374,6 +377,9 @@ class ValidatorTest {
 
         @Min(5)
         int count = 0;
+
+        @Range(min = 1, max = 100)
+        int ratio = 500;
     }
 
     private NotEmptyConfig validNotEmptyConfig() {
@@ -1036,13 +1042,35 @@ class ValidatorTest {
     }
 
     @Test
-    void testCustomSuggestionOnMinIsLiteralNoPlaceholderSubstitution() {
+    void testCustomSuggestionOnMinSubstitutesPlaceholder() {
         CustomSuggestionConfig config = new CustomSuggestionConfig();
 
         ValidationResult result = validator.validate(config);
         assertTrue(result.errors().stream().anyMatch(error ->
                 "count".equals(error.getFieldName())
-                        && "pick at least {value}".equals(error.getSuggestedFix())
+                        && "pick at least 5".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testCustomSuggestionOnRangeSubstitutesMinAndMaxPlaceholders() {
+        CustomSuggestionConfig config = new CustomSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "ratio".equals(error.getFieldName())
+                        && "choose 1-10".equals(error.getSuggestedFix())
+        ));
+    }
+
+    @Test
+    void testDefaultSuggestionOnRangeSubstitutesPlaceholders() {
+        DefaultSuggestionConfig config = new DefaultSuggestionConfig();
+
+        ValidationResult result = validator.validate(config);
+        assertTrue(result.errors().stream().anyMatch(error ->
+                "ratio".equals(error.getFieldName())
+                        && "Use a value between 1 and 100".equals(error.getSuggestedFix())
         ));
     }
 

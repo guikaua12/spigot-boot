@@ -56,11 +56,11 @@ public @interface Pattern {
     String message() default "Value must match pattern: {value}";
 
     /**
-     * An optional suggestion describing how to fix the error, shown alongside the
-     * message. When empty, the built-in default suggestion is used (or none, for
-     * constraints without a default). Used verbatim; no placeholder substitution.
+     * An optional suggestion shown after the error message describing how to fix
+     * it. Empty by default (no suggestion). When set, supports the same
+     * {@code {...}} placeholders as {@link #message()}.
      *
-     * @return the suggestion, or empty for the built-in default
+     * @return the suggestion template, or empty for none
      */
     String suggestion() default "";
 }

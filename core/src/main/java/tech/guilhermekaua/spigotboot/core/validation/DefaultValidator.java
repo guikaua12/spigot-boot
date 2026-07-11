@@ -76,7 +76,7 @@ public class DefaultValidator implements Validator {
 
                             @Override
                             public String suggestedFix(Object value) {
-                                return resolveSuggestion(annotation.suggestion(), null);
+                                return resolveSuggestion(annotation.suggestion());
                             }
                         };
                     }
@@ -108,7 +108,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Number value) {
-                        return resolveSuggestion(annotation.suggestion(), "Use a value >= " + annotation.value());
+                        return resolveSuggestion(annotation.suggestion(), "{value}", String.valueOf(annotation.value()));
                     }
                 };
             }
@@ -140,7 +140,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Number value) {
-                        return resolveSuggestion(annotation.suggestion(), "Use a value <= " + annotation.value());
+                        return resolveSuggestion(annotation.suggestion(), "{value}", String.valueOf(annotation.value()));
                     }
                 };
             }
@@ -177,7 +177,7 @@ public class DefaultValidator implements Validator {
                     @Override
                     public String suggestedFix(Number value) {
                         return resolveSuggestion(annotation.suggestion(),
-                                "Use a value between " + annotation.min() + " and " + annotation.max());
+                                "{min}", String.valueOf(annotation.min()), "{max}", String.valueOf(annotation.max()));
                     }
                 };
             }
@@ -213,7 +213,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(String value) {
-                        return resolveSuggestion(annotation.suggestion(), null);
+                        return resolveSuggestion(annotation.suggestion(), "{value}", annotation.value());
                     }
                 };
             }
@@ -251,8 +251,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(String value) {
-                        return resolveSuggestion(annotation.suggestion(),
-                                "Use one of: " + Arrays.toString(annotation.value()));
+                        return resolveSuggestion(annotation.suggestion(), "{value}", Arrays.toString(annotation.value()));
                     }
                 };
             }
@@ -301,7 +300,8 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return resolveSuggestion(annotation.suggestion(), null);
+                        return resolveSuggestion(annotation.suggestion(),
+                                "{min}", String.valueOf(annotation.min()), "{max}", String.valueOf(annotation.max()));
                     }
                 };
             }
@@ -347,7 +347,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return resolveSuggestion(annotation.suggestion(), "Provide at least one value");
+                        return resolveSuggestion(annotation.suggestion());
                     }
                 };
             }
@@ -381,7 +381,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return resolveSuggestion(annotation.suggestion(), "Ensure the assertion evaluates to true");
+                        return resolveSuggestion(annotation.suggestion());
                     }
                 };
             }
@@ -415,7 +415,7 @@ public class DefaultValidator implements Validator {
 
                     @Override
                     public String suggestedFix(Object value) {
-                        return resolveSuggestion(annotation.suggestion(), "Ensure the assertion evaluates to false");
+                        return resolveSuggestion(annotation.suggestion());
                     }
                 };
             }
@@ -723,17 +723,26 @@ public class DefaultValidator implements Validator {
     }
 
     /**
-     * Resolves the suggestion shown alongside a validation error: the annotation's
-     * custom {@code suggestion()} when set (used verbatim, no placeholder
-     * substitution), otherwise the constraint's built-in default (which may be
-     * {@code null} for constraints without one).
+     * Resolves the suggestion shown after a validation error message. An empty
+     * {@code suggestion} means "no suggestion" and yields {@code null}; otherwise
+     * the template is returned with its {@code {...}} placeholders substituted.
+     * Each annotation's default suggestion lives on its own {@code suggestion()}
+     * default, so defaults and custom values run through the same substitution.
      *
-     * @param custom   the annotation's {@code suggestion()} value (never null)
-     * @param fallback the built-in default suggestion, or null
-     * @return the custom suggestion if non-empty, else the fallback
+     * @param suggestion   the annotation's {@code suggestion()} value (never null)
+     * @param replacements placeholder/value pairs, e.g. {@code "{value}", "5"};
+     *                     the same tokens the constraint's message supports
+     * @return the substituted suggestion, or {@code null} when {@code suggestion} is empty
      */
-    private static String resolveSuggestion(@NotNull String custom, String fallback) {
-        return custom.isEmpty() ? fallback : custom;
+    private static String resolveSuggestion(@NotNull String suggestion, String... replacements) {
+        if (suggestion.isEmpty()) {
+            return null;
+        }
+        String result = suggestion;
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            result = result.replace(replacements[i], replacements[i + 1]);
+        }
+        return result;
     }
 
     @Override

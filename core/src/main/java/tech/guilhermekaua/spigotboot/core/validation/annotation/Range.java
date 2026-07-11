@@ -56,11 +56,12 @@ public @interface Range {
     String message() default "Value must be between {min} and {max}";
 
     /**
-     * An optional suggestion describing how to fix the error, shown alongside the
-     * message. When empty, the built-in default suggestion is used (or none, for
-     * constraints without a default). Used verbatim; no placeholder substitution.
+     * The suggestion shown after the error message describing how to fix it.
+     * Supports the same {@code {...}} placeholders as {@link #message()}
+     * (substituted at validation time). Set to an empty string to omit the
+     * suggestion entirely.
      *
-     * @return the suggestion, or empty for the built-in default
+     * @return the suggestion template
      */
-    String suggestion() default "";
+    String suggestion() default "Use a value between {min} and {max}";
 }
